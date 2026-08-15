@@ -102,31 +102,51 @@ async function renderCertificatePdf(template, row, campaign) {
     ngayCap: new Date().toISOString().slice(0, 10),
   }
 
-  // Strip external link tags, keep inline styles/fonts
+  // Strip external link tags (avoid CORS issues with Google Fonts in canvas)
   const cleanHtml = (template.html || '').replace(/<link[^>]*>/gi, '')
 
-  // Create a hidden container directly in the main document so fonts & CORS work
+  // Scope the template CSS so it never leaks into the main page.
+  // Replace `html` / `body` selectors and prefix any top-level rules
+  // with `#pdf-cert-render` to keep them contained.
+  const rawCss = (template.css || '')
+    .replace(/\bhtml\s*,?\s*body\b/g, '#pdf-cert-render')
+    .replace(/\bbody\b/g, '#pdf-cert-render')
+    .replace(/\bhtml\b/g, '#pdf-cert-render')
+
+  // Create a hidden container off-screen (position:fixed + left:-Npx keeps
+  // it out of view but still in the live document so fonts/images load)
   const container = document.createElement('div')
-  container.style.cssText = `position:fixed;left:-${width + 200}px;top:0;width:${width}px;height:${height}px;overflow:hidden;z-index:-9999;`
-
-  // Inject a style tag with the template CSS into head so it applies to container
-  const styleTag = document.createElement('style')
-  styleTag.textContent = `
-    #pdf-cert-render { box-sizing: border-box; margin: 0; padding: 0; }
-    #pdf-cert-render * { box-sizing: border-box; }
-    ${template.css || ''}
+  container.id = 'pdf-gen-host'
+  container.style.cssText = `
+    position:fixed;
+    left:-${width + 400}px;
+    top:0;
+    width:${width}px;
+    height:${height}px;
+    overflow:hidden;
+    z-index:-9999;
+    pointer-events:none;
   `
-  document.head.appendChild(styleTag)
 
-  container.innerHTML = `<div id="pdf-cert-render" style="width:${width}px;height:${height}px;position:relative;background:white;overflow:hidden;">${fillTokens(cleanHtml, rowData)}</div>`
+  // Put scoped <style> INSIDE the container div so it does NOT affect the main page
+  container.innerHTML = `
+    <style>
+      #pdf-cert-render { box-sizing: border-box; }
+      #pdf-cert-render * { box-sizing: border-box; }
+      ${rawCss}
+    </style>
+    <div id="pdf-cert-render" style="width:${width}px;height:${height}px;position:relative;background:white;overflow:hidden;">
+      ${fillTokens(cleanHtml, rowData)}
+    </div>
+  `
   document.body.appendChild(container)
 
   const mmPerPx = 25.4 / 96
   try {
-    // Wait for fonts
+    // Wait for fonts to load in the main document context
     await document.fonts.ready
 
-    // Wait for all images inside the container
+    // Wait for any images inside the certificate
     const images = Array.from(container.querySelectorAll('img'))
     await Promise.all(
       images.map((img) =>
@@ -139,10 +159,13 @@ async function renderCertificatePdf(template, row, campaign) {
       )
     )
 
-    // Extra settle time for CSS animations / gradients
-    await new Promise((r) => setTimeout(r, 400))
+    // Let gradients / CSS animations settle
+    await new Promise((r) => setTimeout(r, 500))
 
     const wrapper = container.querySelector('#pdf-cert-render')
+    const pdfWidthMm = Number((width * mmPerPx).toFixed(2))
+    const pdfHeightMm = Number((height * mmPerPx).toFixed(2))
+
     const blob = await html2pdf()
       .set({
         margin: 0,
@@ -163,22 +186,33 @@ async function renderCertificatePdf(template, row, campaign) {
           x: 0,
           y: 0,
         },
+        // Disable automatic page-break detection so we always get exactly 1 page
+        pagebreak: { mode: [] },
         jsPDF: {
           unit: 'mm',
-          format: [Number((width * mmPerPx).toFixed(2)), Number((height * mmPerPx).toFixed(2))],
+          format: [pdfWidthMm, pdfHeightMm],
           orientation: width > height ? 'l' : 'p',
+          compress: true,
+          hotfixes: ['px_scaling'],
         },
       })
       .from(wrapper)
       .toPdf()
       .get('pdf')
+      .then((pdf) => {
+        // Remove extra blank pages (safety net)
+        while (pdf.internal.pages.length > 2) {
+          pdf.deletePage(pdf.internal.pages.length - 1)
+        }
+        return pdf
+      })
       .outputPdf('blob')
     return blob
   } finally {
     container.remove()
-    styleTag.remove()
   }
 }
+
 
 const downloading = ref(false)
 
