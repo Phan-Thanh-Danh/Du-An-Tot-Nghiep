@@ -18,6 +18,31 @@ export const rewardDisciplineApi = {
     return apiRequest(`/api/admin/reward-campaigns/${campaignId}/candidates${buildQuery(params)}`)
   },
 
+  getApprovalSummary(campaignId) {
+    return apiRequest(`/api/admin/reward-campaigns/${campaignId}/approval-summary`)
+  },
+
+  createTop100Campaign(payload) {
+    return apiRequest('/api/admin/reward-campaigns/top100', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  cancelCampaign(id, payload = {}) {
+    return apiRequest(`/api/admin/reward-campaigns/${id}/cancel`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  evaluateCampaign(campaignId, payload = { isDryRun: false }) {
+    return apiRequest(`/api/admin/reward-campaigns/${campaignId}/evaluate`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
   approveRewardCampaign(campaignId) {
     return apiRequest(`/api/admin/reward-campaigns/${campaignId}/approve`, {
       method: 'POST',
