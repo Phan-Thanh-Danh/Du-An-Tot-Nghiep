@@ -77,5 +77,42 @@ export const superAdminApi = {
     a.click()
     a.remove()
     window.URL.revokeObjectURL(downloadUrl)
+  },
+
+  // Notification Templates
+  getNotificationTemplates(params = {}) {
+    const query = new URLSearchParams(params).toString()
+    return apiRequest(`/api/admin/notification-templates?${query}`)
+  },
+  getNotificationTemplateDetail(id) {
+    return apiRequest(`/api/admin/notification-templates/${id}`)
+  },
+  createNotificationTemplate(payload) {
+    return apiRequest('/api/admin/notification-templates', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    })
+  },
+  updateNotificationTemplate(id, payload) {
+    return apiRequest(`/api/admin/notification-templates/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    })
+  },
+  activateNotificationTemplate(id) {
+    return apiRequest(`/api/admin/notification-templates/${id}/activate`, {
+      method: 'POST'
+    })
+  },
+  deactivateNotificationTemplate(id, payload = { lyDo: 'Tạm dừng' }) {
+    return apiRequest(`/api/admin/notification-templates/${id}/deactivate`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    })
+  },
+  deleteNotificationTemplate(id) {
+    return apiRequest(`/api/admin/notification-templates/${id}`, {
+      method: 'DELETE'
+    })
   }
 }

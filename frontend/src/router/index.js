@@ -726,6 +726,18 @@ const router = createRouter({
           meta: { title: 'Template thông báo' },
         },
         {
+          path: 'notifications/templates/create',
+          name: 'super-admin-notifications-templates-create',
+          component: () => import('../views/SuperAdmin/NotificationTemplateFormView.vue'),
+          meta: { title: 'Tạo mẫu thông báo' },
+        },
+        {
+          path: 'notifications/templates/:id/edit',
+          name: 'super-admin-notifications-templates-edit',
+          component: () => import('../views/SuperAdmin/NotificationTemplateFormView.vue'),
+          meta: { title: 'Sửa mẫu thông báo' },
+        },
+        {
           path: 'notifications/send',
           name: 'super-admin-notifications-send',
           component: () => import('../views/SuperAdmin/SendNotificationView.vue'),
