@@ -2,15 +2,17 @@
 import { ref, computed, onMounted } from 'vue'
 import { useBodyScrollLock } from '@/composables/useBodyScrollLock'
 import { usePopupStore } from '@/stores/popup'
+import { useAuthStore } from '@/stores/auth'
 import { studentApi } from '@/services/studentApi'
 import { unwrapApiData, storageApi } from '@/services/apiClient'
 import {
   LifeBuoy, Search, Plus, Send, Clock,
   CheckCircle2, XCircle, AlertCircle, Paperclip,
-  Star, MessageSquare, Bot, FileText, X, ChevronDown, Sparkles
+  Star, MessageSquare, Bot, FileText, X, ChevronDown, Sparkles, Lock
 } from 'lucide-vue-next'
 
 const popupStore = usePopupStore()
+const authStore = useAuthStore()
 
 const categories = ['Kỹ thuật', 'Học vụ', 'Tài chính', 'Khác']
 const statuses = ['Open', 'In progress', 'Resolved', 'Closed']
@@ -234,9 +236,13 @@ const setRating = (val) => rating.value = val
         <h1 class="page-title">Hỗ trợ & Ticket</h1>
         <p class="page-sub">Gửi yêu cầu hỗ trợ, theo dõi tiến độ xử lý với sự trợ giúp từ AI.</p>
       </div>
-      <button class="btn-primary" @click="openCreateModal">
+      <button v-if="authStore.hasPermission('requests.create')" class="btn-primary" @click="openCreateModal">
         <Plus :size="16"/> Tạo Ticket Mới
       </button>
+      <div v-else class="px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 text-xs font-bold flex items-center gap-1.5" title="Quyền tạo ticket đã được BGH điều chỉnh">
+        <Lock :size="13" />
+        <span>Gửi yêu cầu đang khóa</span>
+      </div>
     </div>
 
     <!-- Main Layout: Master Detail -->
@@ -376,6 +382,12 @@ const setRating = (val) => rating.value = val
                 <button v-if="activeTicket.status === 'Resolved'" class="btn-primary mt-2 mx-auto" @click="closeTicket">
                   Xác nhận Đóng & Đánh giá
                 </button>
+              </div>
+            </template>
+            <template v-else-if="!authStore.hasPermission('requests.create')">
+              <div class="w-full py-2.5 px-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-700 dark:text-amber-300 text-xs text-center font-medium flex items-center justify-center gap-2">
+                <Lock :size="14" class="text-amber-600" />
+                <span>Quyền gửi phản hồi đã bị tạm dừng bởi Nhà trường.</span>
               </div>
             </template>
             <template v-else>

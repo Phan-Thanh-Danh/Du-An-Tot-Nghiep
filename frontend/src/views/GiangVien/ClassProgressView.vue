@@ -5,10 +5,13 @@ import {
   Activity,
   AlertCircle,
   ArrowLeft,
+  Award,
   BookMarked,
   BookOpen,
   Clock,
   Filter,
+  Layers,
+  Lock,
   Mail,
   Search,
   Target,
@@ -23,17 +26,56 @@ import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import TableShell from '@/components/ui/TableShell.vue'
+import LmsSelect from '@/components/LmsSelect.vue'
 import { teacherApi } from '@/services/teacherApi'
 
 const loading = ref(false)
 const error = ref('')
 const students = ref([])
+const filterStatus = ref('')
+const searchQuery = ref('')
+
+const statusFilterOptions = [
+  { value: '', label: 'Tất cả trạng thái' },
+  { value: 'excellent', label: 'Hoàn thành tốt' },
+  { value: 'good', label: 'Đang học' },
+  { value: 'warning', label: 'Chậm tiến độ' },
+  { value: 'danger', label: 'Nguy cơ' }
+]
+
+const filteredStudents = computed(() => {
+  let list = students.value
+  if (filterStatus.value) {
+    list = list.filter(s => s.status === filterStatus.value)
+  }
+  if (searchQuery.value.trim()) {
+    const q = searchQuery.value.trim().toLowerCase()
+    list = list.filter(s => (s.name || '').toLowerCase().includes(q) || String(s.id || '').toLowerCase().includes(q))
+  }
+  return list
+})
+
 const overallProgress = ref(0)
 const completedLessons = ref(0)
 const totalLessons = ref(0)
+const courseTotalLessons = ref(10)
 const activeStudents = ref(0)
 const courseName = ref('')
 const className = ref('')
+
+const displaySubjectTitle = computed(() => {
+  if (!courseName.value || courseName.value === 'Khóa học') return 'Tiến độ môn học'
+  const parts = courseName.value.split(' - ')
+  return parts[0] || courseName.value
+})
+
+const displaySubTitle = computed(() => {
+  if (courseName.value && courseName.value.includes(' - ')) {
+    const parts = courseName.value.split(' - ')
+    return parts.slice(1).join(' · ')
+  }
+  return className.value ? `${className.value} · Cập nhật theo thời gian thực` : 'Cập nhật theo thời gian thực'
+})
 
 const chartData = ref([])
 const route = useRoute()
@@ -66,6 +108,19 @@ async function loadStudentGradeDetail(studentId) {
   }
 }
 
+function formatDateTime(dtStr) {
+  if (!dtStr) return ''
+  try {
+    const d = new Date(dtStr)
+    return d.toLocaleString('vi-VN', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    })
+  } catch {
+    return dtStr
+  }
+}
+
 const studentAssignmentItems = computed(() => {
   const types = studentGradeDetail.value?.gradeTypes || studentGradeDetail.value?.GradeTypes || []
   if (!types.length) return []
@@ -77,11 +132,47 @@ const studentAssignmentItems = computed(() => {
         id: item.itemId || item.ItemId,
         title: item.itemName || item.ItemName || gt.name || gt.Name,
         groupName: gt.name || gt.Name,
-        grade: item.grade ?? item.Grade ?? null
+        grade: item.grade ?? item.Grade ?? null,
+        status: item.status || item.Status || (item.grade !== null ? 'da_cham' : 'chua_nop'),
+        submittedAt: item.submittedAt || item.SubmittedAt || null,
+        isSubmitted: item.isSubmitted || item.IsSubmitted || false
       })
     }
   }
   return items
+})
+
+const studentActivities = computed(() => {
+  return studentGradeDetail.value?.activities || studentGradeDetail.value?.Activities || []
+})
+
+const studentGpaDisplay = computed(() => {
+  if (studentGradeDetail.value) {
+    const val = studentGradeDetail.value.gpaMonHoc ?? studentGradeDetail.value.GpaMonHoc ?? studentGradeDetail.value.diemQuaTrinh ?? studentGradeDetail.value.DiemQuaTrinh
+    if (val !== null && val !== undefined && val !== '') {
+      return `${val} / 10`
+    }
+  }
+  if (selectedStudent.value) {
+    const val = selectedStudent.value.gpa ?? selectedStudent.value.score
+    if (val !== null && val !== undefined && val !== '') {
+      return `${val} / 10`
+    }
+  }
+  return 'Chưa có điểm'
+})
+
+const gradeBreakdown = computed(() => {
+  if (!studentGradeDetail.value) return null
+  return {
+    gpa: studentGradeDetail.value.gpaMonHoc ?? studentGradeDetail.value.GpaMonHoc ?? null,
+    processScore: studentGradeDetail.value.diemQuaTrinh ?? studentGradeDetail.value.DiemQuaTrinh ?? null,
+    midtermScore: studentGradeDetail.value.diemGiuaKy ?? studentGradeDetail.value.DiemGiuaKy ?? null,
+    finalScore: studentGradeDetail.value.diemCuoiKy ?? studentGradeDetail.value.DiemCuoiKy ?? null,
+    status: studentGradeDetail.value.trangThai ?? studentGradeDetail.value.TrangThai ?? null,
+    isLocked: studentGradeDetail.value.daKhoa ?? studentGradeDetail.value.DaKhoa ?? false,
+    gradeTypes: studentGradeDetail.value.gradeTypes ?? studentGradeDetail.value.GradeTypes ?? []
+  }
 })
 
 async function loadProgress() {
@@ -100,59 +191,110 @@ async function loadProgress() {
       completedLessons.value = 0
       totalLessons.value = 0
       activeStudents.value = 0
-      chartData.value = []
-      courseName.value = ''
+      courseName.value = 'Chưa có lớp'
       className.value = ''
+      chartData.value = []
       return
     }
 
-    currentCourseId.value = Number(courseId)
-    const raw = await teacherApi.getTeacherCourseProgress(courseId)
-    const data = raw?.data?.data ?? raw?.data ?? raw?.Data ?? raw
-    
-    currentClassId.value = data?.classId ?? data?.maLop ?? 0
-    students.value = (data?.students || []).map(s => ({
-      id: s.maSinhVien ?? s.id,
-      name: s.tenSinhVien ?? s.name ?? '',
-      email: s.email ?? '',
-      progress: s.tienDo ?? s.progress ?? 0,
-      gpa: s.diemTB ?? s.gpa ?? 0,
-      absent: s.soBuoiVang ?? s.absent ?? 0,
-      status: s.trangThai ?? s.status ?? 'good',
-      lastActive: s.lanTuongTacCuoi ?? s.lastActive ?? null,
+    const data = await teacherApi.getTeacherClassProgress(courseId)
+    const progressData = data?.data?.data ?? data?.data ?? data
+
+    currentClassId.value = progressData?.classId ?? progressData?.id ?? (parseInt(courseId) || 0)
+    currentCourseId.value = progressData?.courseId ?? (parseInt(courseId) || 0)
+
+    courseName.value = progressData?.courseName || progressData?.name || 'Khóa học'
+    className.value = progressData?.className || ''
+    overallProgress.value = progressData?.overallProgress ?? 0
+    completedLessons.value = progressData?.completedLessons ?? 0
+    totalLessons.value = progressData?.totalLessons ?? 0
+    courseTotalLessons.value = progressData?.courseTotalLessons ?? (progressData?.students?.[0]?.totalLessons || 10)
+    activeStudents.value = progressData?.activeStudents ?? 0
+
+    students.value = (progressData?.students || []).map((s) => ({
+      id: s.id,
+      name: s.name,
+      email: s.email || `${s.id}@lms.edu.vn`,
+      progress: s.progress,
+      completedLessons: s.completedLessons ?? Math.round((s.progress / 100) * courseTotalLessons.value),
+      totalLessons: s.totalLessons ?? courseTotalLessons.value,
+      score: s.score ?? s.gpa,
+      gpa: s.gpa ?? s.score ?? null,
+      lastActive: s.lastActive,
+      status: s.status,
+      absent: s.absent || 0,
+      avatar: s.avatar || null,
+      phone: s.phone || '0987654321',
+      major: s.major || 'Công nghệ thông tin',
+      cohort: s.cohort || 'K18',
     }))
-    overallProgress.value = data?.tienDoChung ?? data?.overallProgress ?? 0
-    completedLessons.value = data?.soBaiHoanThanh ?? data?.completedLessons ?? 0
-    totalLessons.value = data?.tongSoBai ?? data?.totalLessons ?? 0
-    activeStudents.value = data?.siSo ?? data?.activeStudents ?? students.value.length
-    chartData.value = (data?.phanBo ?? data?.chartData ?? []).map(item => ({
-      range: item.nhan ?? item.range ?? '',
-      value: item.soLuong ?? item.value ?? 0,
-      height: item.chieuCao ?? item.height ?? 0,
-    }))
-    courseName.value = data?.tenKhoaHoc ?? data?.courseName ?? ''
-    className.value = data?.tenLop ?? data?.className ?? ''
+
+    chartData.value = progressData?.chartData || progressData?.ChartData || progressData?.distribution || []
   } catch (e) {
-    error.value = e?.message || 'Không thể tải tiến độ khóa học.'
+    error.value = e?.message || 'Không thể tải tiến độ lớp học.'
+    students.value = []
   } finally {
     loading.value = false
   }
   setTimeout(() => { animateProgress.value = true }, 100)
 }
 
-const summaryStats = computed(() => {
-  const completed = students.value.filter((student) => (student.status === 'excellent' || student.progress >= 90)).length
-  const studying = students.value.filter((student) => student.progress >= 60 && student.progress < 90).length
-  const delayed = students.value.filter((student) => student.status === 'warning').length
-  const risk = students.value.filter((student) => student.status === 'danger').length
+const completedCount = computed(() => students.value.filter(s => s.status === 'excellent' || s.progress >= 90).length)
+const studyingCount = computed(() => students.value.filter(s => (s.status === 'good' || (s.progress >= 70 && s.progress < 90))).length)
+const delayedCount = computed(() => students.value.filter(s => (s.status === 'warning' || (s.progress >= 50 && s.progress < 70))).length)
+const riskCount = computed(() => students.value.filter(s => (s.status === 'danger' || s.progress < 50)).length)
+
+const computedChartData = computed(() => {
+  const list = students.value || []
+  const total = list.length || 1
+
+  const r1 = list.filter(s => s.progress <= 25).length
+  const r2 = list.filter(s => s.progress > 25 && s.progress <= 50).length
+  const r3 = list.filter(s => s.progress > 50 && s.progress <= 75).length
+  const r4 = list.filter(s => s.progress > 75).length
+  const maxVal = Math.max(r1, r2, r3, r4, 1)
 
   return [
-    { label: 'Sĩ số', value: activeStudents.value, tone: 'primary' },
-    { label: 'Tiến độ TB', value: `${overallProgress.value}%`, tone: 'success' },
-    { label: 'Hoàn thành', value: completed, tone: 'success' },
-    { label: 'Đang học', value: studying, tone: 'info' },
-    { label: 'Chậm tiến độ', value: delayed, tone: 'warning' },
-    { label: 'Nguy cơ', value: risk, tone: 'danger' },
+    {
+      range: '0 - 25%',
+      value: r1,
+      percent: Math.round((r1 / total) * 100),
+      height: Math.max(12, Math.round((r1 / maxVal) * 100)),
+      color: 'from-rose-500 to-amber-500',
+      bgGlow: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
+      tone: 'danger',
+      label: 'Cần hỗ trợ'
+    },
+    {
+      range: '26 - 50%',
+      value: r2,
+      percent: Math.round((r2 / total) * 100),
+      height: Math.max(12, Math.round((r2 / maxVal) * 100)),
+      color: 'from-amber-500 to-yellow-500',
+      bgGlow: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+      tone: 'warning',
+      label: 'Chậm tiến độ'
+    },
+    {
+      range: '51 - 75%',
+      value: r3,
+      percent: Math.round((r3 / total) * 100),
+      height: Math.max(12, Math.round((r3 / maxVal) * 100)),
+      color: 'from-blue-500 to-cyan-500',
+      bgGlow: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+      tone: 'info',
+      label: 'Đang học'
+    },
+    {
+      range: '76 - 100%',
+      value: r4,
+      percent: Math.round((r4 / total) * 100),
+      height: Math.max(12, Math.round((r4 / maxVal) * 100)),
+      color: 'from-emerald-500 to-teal-500',
+      bgGlow: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+      tone: 'success',
+      label: 'Hoàn thành tốt'
+    }
   ]
 })
 
@@ -198,25 +340,21 @@ const openStudentDetails = async (studentId, tab) => {
   selectedStudent.value = students.value.find(s => s.id === studentId) || null
   activeTab.value = tab
   isDrawerOpen.value = true
-  document.body.style.overflow = 'hidden' // prevent body scroll
-  await loadStudentGradeDetail(studentId)
+  if (selectedStudent.value) {
+    await loadStudentGradeDetail(selectedStudent.value.id)
+  }
 }
 
 const closeDrawer = () => {
   isDrawerOpen.value = false
-  document.body.style.overflow = ''
-  setTimeout(() => {
-    if (!isDrawerOpen.value) {
-      selectedStudent.value = null
-      studentGradeDetail.value = null
-    }
-  }, 300)
+  selectedStudent.value = null
+  studentGradeDetail.value = null
 }
 </script>
 
 <template>
   <div v-if="loading" class="p-4">
-    <SkeletonTable :rows="6" :columns="5" />
+    <SkeletonTable :rows="6" :columns="6" />
   </div>
   <div v-else-if="error" class="flex flex-col items-center justify-center min-h-[300px] gap-4">
     <AlertCircle :size="40" class="text-rose-400" />
@@ -224,127 +362,288 @@ const closeDrawer = () => {
     <GlassButton variant="secondary" @click="loadProgress">Thử lại</GlassButton>
   </div>
   <div v-else class="class-progress-page lg-page-enter">
-    <GlassPanel variant="flat" density="compact" class="page-header">
-      <div class="header-main">
-        <router-link to="/teacher/class-progress" class="back-link" aria-label="Quay lại danh sách lớp">
-          <ArrowLeft :size="18" />
-        </router-link>
+    <!-- Top Hero Header Card -->
+    <div class="relative overflow-hidden rounded-3xl p-6 md:p-8 lg-glass-soft border border-card/80 shadow-lg shadow-blue-500/5 backdrop-blur-xl">
+      <!-- Ambient Gradient Flares -->
+      <div class="absolute -right-16 -top-16 w-80 h-80 rounded-full bg-gradient-to-br from-blue-500/20 via-indigo-500/10 to-transparent blur-3xl pointer-events-none" />
+      <div class="absolute -left-16 -bottom-16 w-64 h-64 rounded-full bg-gradient-to-tr from-cyan-500/15 via-blue-500/10 to-transparent blur-2xl pointer-events-none" />
 
-        <div class="header-copy">
-          <div class="context-tags">
-            <GlassBadge variant="primary" v-if="className">{{ className }}</GlassBadge>
-            <GlassBadge variant="success">Đang diễn ra</GlassBadge>
-          </div>
-          <h1>{{ courseName || 'Tiến độ khóa học' }}</h1>
-          <p>Theo dõi tiến độ học, bài hoàn thành và sinh viên có nguy cơ chậm tiến độ của khóa học này.</p>
-        </div>
-      </div>
+      <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <!-- Left: Back Button & Course Details -->
+        <div class="flex items-start gap-4 md:gap-5 min-w-0">
+          <button
+            type="button"
+            class="h-12 w-12 rounded-2xl surface-card hover:surface-card-hover border border-card flex items-center justify-center text-label hover:text-white hover:bg-blue-600 hover:border-blue-600 transition-all duration-300 shadow-sm shrink-0 group mt-1"
+            aria-label="Quay lại danh sách lớp"
+            @click="$router.push('/teacher/classes')"
+          >
+            <ArrowLeft :size="20" class="transition-transform group-hover:-translate-x-0.5" />
+          </button>
 
-      <div class="header-actions">
-        <GlassButton variant="secondary" size="sm" @click="$router.push('/teacher/lessons')">
-          <template #leading>
-            <BookMarked :size="16" />
-          </template>
-          Giáo trình
-        </GlassButton>
-        <GlassButton variant="primary" size="sm" @click="sendReminder">
-          <template #leading>
-            <Mail :size="16" />
-          </template>
-          Gửi nhắc nhở
-        </GlassButton>
-      </div>
-    </GlassPanel>
+          <div class="space-y-2 min-w-0 flex-1">
+            <!-- Eyebrow & Badges -->
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/25 shadow-xs">
+                <span class="relative flex h-2 w-2">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                Theo dõi tiến độ học tập
+              </span>
 
-    <GlassPanel variant="flat" density="compact" class="context-panel">
-      <div class="summary-strip">
-        <div v-for="item in summaryStats" :key="item.label" :class="['summary-pill', item.tone]">
-          <span>{{ item.label }}</span>
-          <strong>{{ item.value }}</strong>
-        </div>
-      </div>
-
-      <div class="filters">
-        <label class="select-shell">
-          <Target :size="16" />
-          <select>
-            <option>Tất cả trạng thái</option>
-            <option>Hoàn thành tốt</option>
-            <option>Đang học</option>
-            <option>Chậm tiến độ</option>
-            <option>Nguy cơ</option>
-          </select>
-        </label>
-        <label class="input-shell">
-          <Search :size="16" />
-          <input type="text" placeholder="Tìm sinh viên, MSSV..." />
-        </label>
-      </div>
-    </GlassPanel>
-
-    <div class="progress-grid">
-      <GlassPanel variant="flat" density="compact" class="overall-panel">
-        <div class="panel-title">
-          <div>
-            <h2>
-              <Activity :size="17" />
-              Tiến độ chung
-            </h2>
-            <p>{{ completedLessons }}/{{ totalLessons }} bài học đã hoàn thành.</p>
-          </div>
-          <GlassBadge variant="primary">{{ overallProgress }}%</GlassBadge>
-        </div>
-
-        <div class="overall-meter">
-          <div class="meter-value">{{ overallProgress }}%</div>
-          <div class="progress-track large" aria-hidden="true">
-            <span :style="{ width: animateProgress ? `${overallProgress}%` : '0%' }" />
-          </div>
-          <div class="meter-meta">
-            <span>Đã học: {{ completedLessons }}</span>
-            <span>Còn lại: {{ totalLessons - completedLessons }}</span>
-          </div>
-        </div>
-      </GlassPanel>
-
-      <GlassPanel variant="flat" density="compact" class="chart-panel">
-        <div class="panel-title">
-          <div>
-            <h2>
-              <Target :size="17" />
-              Phân bố tiến độ
-            </h2>
-            <p>Mức độ hoàn thành bài học của sinh viên trong lớp.</p>
-          </div>
-        </div>
-
-        <div class="bar-chart" aria-label="Phân bố tiến độ sinh viên">
-          <div v-for="(item, i) in chartData" :key="i" class="bar-item">
-            <strong>{{ item.value }}</strong>
-            <div class="bar-track">
-              <span :style="{ height: animateProgress ? `${item.height}%` : '0%' }" />
+              <span v-if="className" class="px-2.5 py-1 rounded-full text-xs font-bold surface-card border border-card text-heading shadow-xs">
+                {{ className }}
+              </span>
             </div>
-            <small>{{ item.range }}</small>
+
+            <!-- Main Subject Title -->
+            <h1 class="text-2xl md:text-3xl lg:text-4xl font-black text-heading tracking-tight leading-tight">
+              {{ displaySubjectTitle }}
+            </h1>
+
+            <!-- Meta Information Sub-row -->
+            <div class="flex flex-wrap items-center gap-2.5 md:gap-3 text-xs font-medium text-body pt-1">
+              <span class="flex items-center gap-1.5 bg-surface-input/60 px-2.5 py-1 rounded-xl border border-border-card/60">
+                <Users :size="15" class="text-blue-500" />
+                Sĩ số: <strong class="text-heading font-bold">{{ activeStudents }} sinh viên</strong>
+              </span>
+
+              <span class="flex items-center gap-1.5 bg-surface-input/60 px-2.5 py-1 rounded-xl border border-border-card/60">
+                <BookOpen :size="15" class="text-indigo-500" />
+                Tiến độ: <strong class="text-heading font-bold">{{ overallProgress }}% hoàn thành</strong>
+              </span>
+
+              <span class="flex items-center gap-1.5 bg-surface-input/60 px-2.5 py-1 rounded-xl border border-border-card/60">
+                <Clock :size="15" class="text-emerald-500" />
+                <span>{{ displaySubTitle }}</span>
+              </span>
+            </div>
           </div>
         </div>
-      </GlassPanel>
+
+        <!-- Right: Action Buttons -->
+        <div class="flex flex-wrap items-center gap-3 shrink-0 self-start lg:self-center">
+          <button
+            type="button"
+            class="px-4 py-2.5 rounded-xl surface-card hover:surface-card-hover border border-card text-xs font-bold text-heading transition-all duration-200 flex items-center gap-2 shadow-xs hover:border-blue-500/40 active:scale-95 cursor-pointer"
+            @click="$router.push('/teacher/lessons')"
+          >
+            <BookMarked :size="16" class="text-blue-500" />
+            <span>Giáo trình môn học</span>
+          </button>
+
+          <button
+            type="button"
+            class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-500 hover:to-indigo-500 text-xs font-bold text-white transition-all duration-200 flex items-center gap-2 shadow-md shadow-blue-500/25 hover:shadow-blue-500/40 active:scale-95 cursor-pointer"
+            @click="sendReminder"
+          >
+            <Mail :size="16" />
+            <span>Gửi nhắc nhở</span>
+          </button>
+        </div>
+      </div>
     </div>
 
-    <GlassPanel variant="flat" density="compact" class="students-panel">
-      <div class="panel-title">
+    <!-- 6 KPI Stat Cards Grid -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
+      <div class="p-4 rounded-2xl lg-glass-soft border border-card flex flex-col justify-between shadow-xs hover:border-blue-500/30 transition-all">
+        <div class="flex items-center justify-between text-muted mb-2">
+          <span class="text-xs font-semibold">Sĩ số lớp</span>
+          <Users :size="16" class="text-blue-500" />
+        </div>
+        <div class="flex items-baseline justify-between">
+          <strong class="text-2xl font-black text-heading">{{ activeStudents }}</strong>
+          <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400">100%</span>
+        </div>
+      </div>
+
+      <div class="p-4 rounded-2xl lg-glass-soft border border-card flex flex-col justify-between shadow-xs hover:border-emerald-500/30 transition-all">
+        <div class="flex items-center justify-between text-muted mb-2">
+          <span class="text-xs font-semibold">Tiến độ TB</span>
+          <Activity :size="16" class="text-emerald-500" />
+        </div>
+        <div class="flex items-baseline justify-between">
+          <strong class="text-2xl font-black text-heading">{{ overallProgress }}%</strong>
+          <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">Toàn lớp</span>
+        </div>
+      </div>
+
+      <div class="p-4 rounded-2xl lg-glass-soft border border-card flex flex-col justify-between shadow-xs hover:border-emerald-500/30 transition-all">
+        <div class="flex items-center justify-between text-muted mb-2">
+          <span class="text-xs font-semibold">Hoàn thành tốt</span>
+          <CheckCircle2 :size="16" class="text-emerald-500" />
+        </div>
+        <div class="flex items-baseline justify-between">
+          <strong class="text-2xl font-black text-emerald-600 dark:text-emerald-400">{{ completedCount }}</strong>
+          <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">≥90%</span>
+        </div>
+      </div>
+
+      <div class="p-4 rounded-2xl lg-glass-soft border border-card flex flex-col justify-between shadow-xs hover:border-indigo-500/30 transition-all">
+        <div class="flex items-center justify-between text-muted mb-2">
+          <span class="text-xs font-semibold">Đang học</span>
+          <BookOpen :size="16" class="text-indigo-500" />
+        </div>
+        <div class="flex items-baseline justify-between">
+          <strong class="text-2xl font-black text-indigo-600 dark:text-indigo-400">{{ studyingCount }}</strong>
+          <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">70-89%</span>
+        </div>
+      </div>
+
+      <div class="p-4 rounded-2xl lg-glass-soft border border-card flex flex-col justify-between shadow-xs hover:border-amber-500/30 transition-all">
+        <div class="flex items-center justify-between text-muted mb-2">
+          <span class="text-xs font-semibold">Chậm tiến độ</span>
+          <Clock :size="16" class="text-amber-500" />
+        </div>
+        <div class="flex items-baseline justify-between">
+          <strong class="text-2xl font-black text-amber-600 dark:text-amber-400">{{ delayedCount }}</strong>
+          <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400">50-69%</span>
+        </div>
+      </div>
+
+      <div class="p-4 rounded-2xl lg-glass-soft border border-card flex flex-col justify-between shadow-xs hover:border-rose-500/30 transition-all">
+        <div class="flex items-center justify-between text-muted mb-2">
+          <span class="text-xs font-semibold">Cần hỗ trợ</span>
+          <AlertCircle :size="16" class="text-rose-500" />
+        </div>
+        <div class="flex items-baseline justify-between">
+          <strong class="text-2xl font-black text-rose-600 dark:text-rose-400">{{ riskCount }}</strong>
+          <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400">&lt;50%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Middle Row: 2 Balanced Progress Cards -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <!-- Card 1: Tiến độ chung -->
+      <div class="p-5 md:p-6 rounded-2xl lg-glass-soft border border-card flex flex-col justify-between shadow-xs">
+        <div class="flex items-center justify-between pb-3 border-b border-card">
+          <div>
+            <h2 class="text-sm font-bold text-heading flex items-center gap-2">
+              <Activity :size="18" class="text-blue-500" />
+              Tiến độ hoàn thành chung
+            </h2>
+            <p class="text-xs text-muted mt-0.5">{{ completedLessons }}/{{ totalLessons }} bài học đã hoàn thành của lớp.</p>
+          </div>
+          <span class="px-3 py-1 rounded-full text-xs font-extrabold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-mono">
+            {{ overallProgress }}%
+          </span>
+        </div>
+
+        <div class="py-4 space-y-4">
+          <div class="flex items-baseline justify-between">
+            <span class="text-3xl md:text-4xl font-black text-heading tracking-tight font-mono">{{ overallProgress }}%</span>
+            <span class="text-xs font-semibold text-muted">Mục tiêu: 100%</span>
+          </div>
+
+          <div class="w-full h-3.5 bg-surface-input border border-card rounded-full overflow-hidden p-0.5">
+            <div
+              class="h-full bg-gradient-to-r from-blue-600 via-indigo-500 to-cyan-400 rounded-full transition-all duration-1000 shadow-sm"
+              :style="{ width: animateProgress ? `${overallProgress}%` : '0%' }"
+            />
+          </div>
+
+          <div class="grid grid-cols-3 gap-2.5 pt-2">
+            <div class="p-2.5 rounded-xl bg-surface-input/60 border border-card text-center">
+              <span class="text-[10px] text-muted font-bold block uppercase">Đã học</span>
+              <strong class="text-sm font-black text-heading">{{ completedLessons }}</strong>
+            </div>
+            <div class="p-2.5 rounded-xl bg-surface-input/60 border border-card text-center">
+              <span class="text-[10px] text-muted font-bold block uppercase">Còn lại</span>
+              <strong class="text-sm font-black text-heading">{{ Math.max(0, totalLessons - completedLessons) }}</strong>
+            </div>
+            <div class="p-2.5 rounded-xl bg-surface-input/60 border border-card text-center">
+              <span class="text-[10px] text-muted font-bold block uppercase">TB / Sinh viên</span>
+              <strong class="text-sm font-black text-heading">{{ (completedLessons / (activeStudents || 1)).toFixed(1) }} bài</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2: Phân bố tiến độ sinh viên (Bar Chart) -->
+      <div class="p-5 md:p-6 rounded-2xl lg-glass-soft border border-card flex flex-col justify-between shadow-xs">
+        <div class="flex items-center justify-between pb-3 border-b border-card">
+          <div>
+            <h2 class="text-sm font-bold text-heading flex items-center gap-2">
+              <Target :size="18" class="text-indigo-500" />
+              Phân bố tiến độ sinh viên
+            </h2>
+            <p class="text-xs text-muted mt-0.5">Mức độ hoàn thành bài học của sinh viên trong lớp.</p>
+          </div>
+          <span class="text-xs font-semibold text-muted">4 phân khúc</span>
+        </div>
+
+        <div class="pt-3 flex-1 flex flex-col justify-end">
+          <div class="grid grid-cols-4 gap-2.5 sm:gap-3 h-32 items-end px-1 sm:px-2">
+            <div
+              v-for="(item, i) in computedChartData"
+              :key="i"
+              class="flex flex-col items-center gap-1.5 h-full justify-end group"
+            >
+              <div class="flex flex-col items-center gap-0.5">
+                <span class="text-xs font-black text-heading font-mono">{{ item.value }} SV</span>
+                <span class="text-[10px] text-muted font-medium font-mono">({{ item.percent }}%)</span>
+              </div>
+
+              <div class="w-full max-w-[3.2rem] bg-surface-input rounded-xl overflow-hidden p-1 flex items-end h-20 border border-card">
+                <div
+                  class="w-full rounded-lg bg-gradient-to-t transition-all duration-1000 shadow-sm"
+                  :class="item.color"
+                  :style="{ height: animateProgress ? `${item.height}%` : '8%' }"
+                />
+              </div>
+
+              <span class="text-[11px] font-bold text-body whitespace-nowrap">{{ item.range }}</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 mt-2 border-t border-card">
+            <div
+              v-for="item in computedChartData"
+              :key="item.range"
+              class="flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-lg border"
+              :class="item.bgGlow"
+            >
+              <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="item.tone === 'danger' ? 'bg-rose-500' : (item.tone === 'warning' ? 'bg-amber-500' : (item.tone === 'info' ? 'bg-blue-500' : 'bg-emerald-500'))" />
+              <span class="truncate font-semibold">{{ item.label }}: <strong>{{ item.value }}</strong></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Student Table Section with Integrated Toolbar -->
+    <GlassPanel variant="flat" density="compact" class="students-panel p-5 md:p-6 rounded-2xl lg-glass-soft border border-card shadow-xs">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-card">
         <div>
-          <h2>
-            <Users :size="17" />
+          <h2 class="text-base font-bold text-heading flex items-center gap-2">
+            <Users :size="18" class="text-blue-500" />
             Danh sách sinh viên
           </h2>
-          <p>Quản lý và theo dõi chi tiết từng sinh viên trong lớp.</p>
+          <p class="text-xs text-muted mt-0.5">
+            Hiển thị <strong class="text-heading">{{ filteredStudents.length }}</strong> / {{ students.length }} sinh viên trong lớp.
+          </p>
         </div>
-        <GlassButton variant="secondary" size="sm">
-          <template #leading>
-            <Filter :size="15" />
-          </template>
-          Bộ lọc
-        </GlassButton>
+
+        <div class="flex flex-wrap items-center gap-2.5">
+          <div class="w-44 sm:w-48">
+            <LmsSelect
+              v-model="filterStatus"
+              placeholder="Tất cả trạng thái"
+              :options="statusFilterOptions"
+            />
+          </div>
+
+          <div class="relative w-full sm:w-64">
+            <Search :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-placeholder pointer-events-none" />
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Tìm sinh viên, MSSV..."
+              class="w-full pl-9 pr-3 py-2 rounded-xl border border-input surface-input text-xs text-heading placeholder:text-placeholder outline-none focus:border-blue-500 transition-all"
+            />
+          </div>
+        </div>
       </div>
 
       <TableShell density="compact" class="w-full overflow-x-auto">
@@ -363,7 +662,7 @@ const closeDrawer = () => {
             </tr>
           </thead>
           <tbody class="divide-y divide-card/40">
-            <tr v-for="sv in students" :key="sv.id" class="hover:surface-card-hover transition-colors">
+            <tr v-for="sv in filteredStudents" :key="sv.id" class="hover:surface-card-hover transition-colors">
               <td class="py-2 px-3">
                 <div class="flex items-center gap-2.5">
                   <span class="shrink-0 w-7 h-7 rounded-full bg-(--accent-primary-soft) text-(--accent-primary) font-bold flex items-center justify-center text-xs border border-(--border-card)">{{ sv.name.split(' ').pop()[0] }}</span>
@@ -388,10 +687,19 @@ const closeDrawer = () => {
                   <strong class="text-xs font-bold text-heading min-w-[2.2rem] text-right">{{ sv.progress }}%</strong>
                 </div>
               </td>
-              <td class="py-2 px-2.5 text-center whitespace-nowrap text-xs text-heading font-semibold">{{ Math.round((sv.progress / 100) * totalLessons) }}/{{ totalLessons }}</td>
+              <td class="py-2 px-2.5 text-center whitespace-nowrap text-xs text-heading font-semibold">
+                {{ sv.completedLessons ?? Math.round((sv.progress / 100) * courseTotalLessons) }}/{{ sv.totalLessons ?? courseTotalLessons }}
+              </td>
               <td class="py-2 px-2.5 text-center whitespace-nowrap text-xs">
-                <GlassBadge :variant="sv.gpa >= 8 ? 'success' : sv.gpa < 6 ? 'warning' : 'info'" size="sm">
-                  {{ sv.gpa >= 8 ? 'Tốt' : sv.gpa < 6 ? 'Cần hỗ trợ' : 'Đạt' }}
+                <GlassBadge
+                  v-if="sv.gpa !== null && sv.gpa !== undefined && sv.gpa > 0"
+                  :variant="sv.gpa >= 8 ? 'success' : sv.gpa < 5 ? 'danger' : (sv.gpa < 6.5 ? 'warning' : 'info')"
+                  size="sm"
+                >
+                  {{ sv.gpa >= 8 ? 'Giỏi' : sv.gpa >= 6.5 ? 'Khá' : (sv.gpa >= 5 ? 'Trung bình' : 'Yếu') }}
+                </GlassBadge>
+                <GlassBadge v-else variant="secondary" size="sm">
+                  Chưa có điểm
                 </GlassBadge>
               </td>
               <td class="py-2 px-3 whitespace-nowrap">
@@ -492,28 +800,132 @@ const closeDrawer = () => {
             </div>
 
             <div class="drawer-body">
-              <div v-if="activeTab === 'profile'" class="drawer-stack">
-                <div class="profile-grid">
-                  <div class="profile-stat">
-                    <span>Điểm TB</span>
-                    <strong>{{ selectedStudent.gpa }}</strong>
-                  </div>
-                  <div class="profile-stat danger">
-                    <span>Vắng mặt</span>
-                    <strong>{{ selectedStudent.absent }} buổi</strong>
-                  </div>
+              <div v-if="activeTab === 'profile'" class="drawer-stack space-y-3">
+                <div v-if="studentDetailLoading" class="py-6 text-center text-xs text-muted">
+                  Đang tải chi tiết thành phần điểm sinh viên...
                 </div>
 
-                <div class="detail-section">
-                  <h3>Mức độ hoàn thành</h3>
-                  <div class="progress-track large" aria-hidden="true">
-                    <span :style="{ width: `${selectedStudent.progress}%` }" />
+                <template v-else>
+                  <!-- 1. Hero Card: Điểm Tổng Kết GPA & Trạng Thái -->
+                  <div class="p-3.5 rounded-2xl surface-card border border-card bg-gradient-to-br from-blue-500/5 via-indigo-500/5 to-transparent">
+                    <div class="flex items-center justify-between gap-3 mb-2">
+                      <div class="flex items-center gap-2.5">
+                        <span class="p-2 rounded-xl bg-(--accent-primary)/10 text-(--accent-primary)">
+                          <Award :size="20" />
+                        </span>
+                        <div>
+                          <span class="text-[11px] font-semibold text-muted uppercase tracking-wider block">Điểm trung bình môn (GPA)</span>
+                          <strong class="text-xl font-extrabold text-heading tracking-tight">
+                            {{ gradeBreakdown?.gpa !== null && gradeBreakdown?.gpa !== undefined ? `${gradeBreakdown.gpa} / 10` : studentGpaDisplay }}
+                          </strong>
+                        </div>
+                      </div>
+                      <div class="flex flex-col items-end gap-1">
+                        <GlassBadge
+                          :variant="gradeBreakdown?.status === 'dat' || (gradeBreakdown?.gpa >= 5) ? 'success' : (gradeBreakdown?.status === 'rot' ? 'danger' : 'neutral')"
+                          size="sm"
+                        >
+                          {{ gradeBreakdown?.status === 'dat' || (gradeBreakdown?.gpa >= 5) ? 'Đạt môn' : (gradeBreakdown?.status === 'rot' ? 'Chưa đạt' : 'Đang học') }}
+                        </GlassBadge>
+                        <span v-if="gradeBreakdown?.isLocked" class="inline-flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400">
+                          <Lock :size="10" /> Đã khóa điểm
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- 3 Cột Điểm Cấu Thành Tổng Thể -->
+                    <div class="grid grid-cols-3 gap-2 mt-3 pt-2.5 border-t border-card/60">
+                      <div class="p-2 rounded-xl surface-input border border-card/60 text-center">
+                        <span class="text-[10px] text-muted font-medium block">Điểm Quá Trình</span>
+                        <strong class="text-xs font-bold text-heading mt-0.5 block">
+                          {{ gradeBreakdown?.processScore !== null && gradeBreakdown?.processScore !== undefined ? `${gradeBreakdown.processScore} đ` : '—' }}
+                        </strong>
+                      </div>
+                      <div class="p-2 rounded-xl surface-input border border-card/60 text-center">
+                        <span class="text-[10px] text-muted font-medium block">Điểm Giữa Kỳ</span>
+                        <strong class="text-xs font-bold text-heading mt-0.5 block">
+                          {{ gradeBreakdown?.midtermScore !== null && gradeBreakdown?.midtermScore !== undefined ? `${gradeBreakdown.midtermScore} đ` : '—' }}
+                        </strong>
+                      </div>
+                      <div class="p-2 rounded-xl surface-input border border-card/60 text-center">
+                        <span class="text-[10px] text-muted font-medium block">Điểm Cuối Kỳ</span>
+                        <strong class="text-xs font-bold text-heading mt-0.5 block">
+                          {{ gradeBreakdown?.finalScore !== null && gradeBreakdown?.finalScore !== undefined ? `${gradeBreakdown.finalScore} đ` : '—' }}
+                        </strong>
+                      </div>
+                    </div>
                   </div>
-                  <div class="meter-meta">
-                    <span>Tiến độ khóa học</span>
-                    <strong>{{ selectedStudent.progress }}%</strong>
+
+                  <!-- 2. Chi Tiết Các Nhóm Đầu Điểm & Trọng Số -->
+                  <div v-if="gradeBreakdown?.gradeTypes?.length > 0" class="p-3.5 rounded-2xl surface-card border border-card">
+                    <div class="flex items-center justify-between mb-2.5">
+                      <h4 class="text-xs font-bold text-heading flex items-center gap-1.5">
+                        <Layers :size="14" class="text-(--accent-primary)" />
+                        Chi tiết thành phần tính điểm
+                      </h4>
+                      <span class="text-[10px] text-muted">Trọng số đào tạo</span>
+                    </div>
+
+                    <div class="space-y-2">
+                      <div
+                        v-for="gt in gradeBreakdown.gradeTypes"
+                        :key="gt.code || gt.Code"
+                        class="p-2.5 rounded-xl surface-input border border-card/50 flex flex-col gap-1.5"
+                      >
+                        <div class="flex items-center justify-between text-xs">
+                          <div class="flex items-center gap-1.5 min-w-0">
+                            <span class="w-1.5 h-1.5 rounded-full bg-(--accent-primary)" />
+                            <strong class="text-heading font-semibold truncate">{{ gt.name || gt.Name }}</strong>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-(--accent-primary)/10 text-(--accent-primary) font-mono">
+                              {{ gt.weight || gt.Weight }}%
+                            </span>
+                          </div>
+                          <strong
+                            class="text-xs font-bold shrink-0 ml-2"
+                            :class="(gt.averageGrade ?? gt.AverageGrade) !== null ? 'text-heading' : 'text-muted font-normal italic'"
+                          >
+                            {{ (gt.averageGrade ?? gt.AverageGrade) !== null && (gt.averageGrade ?? gt.AverageGrade) !== undefined ? `${(gt.averageGrade ?? gt.AverageGrade)} / 10 đ` : 'Chưa có điểm' }}
+                          </strong>
+                        </div>
+
+                        <!-- Thanh progress điểm thành phần -->
+                        <div class="w-full h-1 surface-card rounded-full overflow-hidden" v-if="(gt.averageGrade ?? gt.AverageGrade) !== null">
+                          <div
+                            class="h-full bg-(--accent-primary) rounded-full"
+                            :style="{ width: `${Math.min(100, ((gt.averageGrade ?? gt.AverageGrade) / 10) * 100)}%` }"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <p class="text-[10px] text-muted italic mt-2.5 text-center">
+                      * Điểm TB môn được tổng hợp từ Điểm Quá Trình, Giữa Kỳ & Cuối Kỳ theo quy chế đào tạo.
+                    </p>
                   </div>
-                </div>
+
+                  <!-- 3. Tiến Độ & Chuyên Cần -->
+                  <div class="p-3.5 rounded-2xl surface-card border border-card space-y-3">
+                    <div class="flex items-center justify-between">
+                      <h4 class="text-xs font-bold text-heading flex items-center gap-1.5">
+                        <Activity :size="14" class="text-emerald-500" />
+                        Tiến độ & Chuyên cần
+                      </h4>
+                      <span class="text-xs font-bold" :class="selectedStudent.absent > 3 ? 'text-rose-500' : 'text-muted'">
+                        Vắng {{ selectedStudent.absent }} buổi
+                      </span>
+                    </div>
+
+                    <div>
+                      <div class="flex justify-between text-xs text-muted mb-1 font-medium">
+                        <span>Tiến độ học tập khóa học</span>
+                        <strong class="text-heading font-bold">{{ selectedStudent.progress }}%</strong>
+                      </div>
+                      <div class="w-full h-2 surface-input border border-card rounded-full overflow-hidden">
+                        <div class="h-full bg-(--accent-primary) transition-all duration-500" :style="{ width: `${selectedStudent.progress}%` }" />
+                      </div>
+                    </div>
+                  </div>
+                </template>
               </div>
 
               <div v-if="activeTab === 'assignments'" class="drawer-stack">
@@ -521,17 +933,48 @@ const closeDrawer = () => {
                   Đang tải danh sách bài nộp...
                 </div>
                 <template v-else-if="studentAssignmentItems.length > 0">
-                  <article v-for="item in studentAssignmentItems" :key="item.id" class="assignment-row">
-                    <span class="row-icon">
-                      <BookOpen :size="16" />
-                    </span>
-                    <div class="flex-1 min-w-0">
-                      <h3 class="truncate">{{ item.title }}</h3>
-                      <p>{{ item.groupName }}</p>
+                  <article
+                    v-for="item in studentAssignmentItems"
+                    :key="item.id"
+                    class="assignment-row flex items-center justify-between p-3 rounded-xl surface-card border border-card mb-2 hover:surface-card-hover transition-all"
+                  >
+                    <div class="flex items-center gap-3 min-w-0">
+                      <span class="row-icon w-8 h-8 rounded-lg bg-(--accent-primary)/10 text-(--accent-primary) flex items-center justify-center shrink-0">
+                        <BookOpen :size="16" />
+                      </span>
+                      <div class="min-w-0">
+                        <h3 class="truncate text-xs font-bold text-heading">{{ item.title }}</h3>
+                        <div class="flex items-center gap-2 text-[11px] text-muted mt-0.5">
+                          <span>{{ item.groupName }}</span>
+                          <span v-if="item.submittedAt" class="flex items-center gap-1 text-[10px] text-muted">
+                            · <Clock :size="11" /> {{ formatDateTime(item.submittedAt) }}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <strong :class="item.grade !== null ? 'text-heading font-bold' : 'text-muted italic text-xs'">
-                      {{ item.grade !== null ? item.grade : 'Chưa nộp / Chưa chấm' }}
-                    </strong>
+
+                    <div class="shrink-0 ml-3">
+                      <span
+                        v-if="item.status === 'da_cham' || item.grade !== null"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                      >
+                        <CheckCircle2 :size="12" />
+                        {{ item.grade }} / 10 đ
+                      </span>
+                      <span
+                        v-else-if="item.status === 'cho_cham' || item.isSubmitted"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                      >
+                        <Clock :size="12" />
+                        Chờ chấm điểm
+                      </span>
+                      <span
+                        v-else
+                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium text-muted bg-(--surface-input) border border-card"
+                      >
+                        Chưa nộp bài
+                      </span>
+                    </div>
                   </article>
                 </template>
                 <div v-else class="py-8 text-center text-xs text-muted">
@@ -543,6 +986,27 @@ const closeDrawer = () => {
                 <div v-if="studentDetailLoading" class="py-6 text-center text-xs text-muted">
                   Đang tải nhật ký hoạt động...
                 </div>
+                <template v-else-if="studentActivities.length > 0">
+                  <div class="relative pl-4 space-y-3 before:absolute before:left-1.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-(--border-card)">
+                    <div
+                      v-for="(act, idx) in studentActivities"
+                      :key="idx"
+                      class="relative flex items-start gap-3 text-xs"
+                    >
+                      <span class="w-3.5 h-3.5 rounded-full bg-(--accent-primary) ring-4 ring-(--surface-card) shrink-0 mt-0.5" />
+                      <div class="flex-1 p-2.5 rounded-xl surface-card border border-card">
+                        <div class="flex items-center justify-between gap-2 mb-1">
+                          <strong class="text-heading font-semibold truncate">{{ act.title }}</strong>
+                          <small class="text-muted text-[10px] whitespace-nowrap">{{ formatDateTime(act.timestamp) }}</small>
+                        </div>
+                        <p class="text-muted text-[11px]">{{ act.description }}</p>
+                        <div v-if="act.score !== null && act.score !== undefined" class="mt-1">
+                          <span class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">Điểm số: {{ act.score }} đ</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </template>
                 <div v-else class="py-8 text-center text-xs text-muted flex flex-col items-center gap-2">
                   <Activity :size="24" class="text-muted/50" />
                   <p>Chưa ghi nhận nhật ký hoạt động gần đây của sinh viên này.</p>

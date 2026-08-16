@@ -1,10 +1,11 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { 
   Search, Award, Clock, Download, Filter, 
   ChevronRight, User, TrendingUp, CheckCircle2, AlertCircle, Calendar,
   X, CheckCircle, XCircle, FileText, Loader2, HelpCircle
 } from 'lucide-vue-next'
+import LmsSelect from '@/components/LmsSelect.vue'
 import { teacherApi } from '@/services/teacherApi'
 
 const loadingSessions = ref(false)
@@ -22,6 +23,26 @@ const selectedStatusFilter = ref('all')
 const isDrawerOpen = ref(false)
 const selectedStudent = ref(null)
 const studentExamDetail = ref(null)
+
+const examSessionOptions = computed(() => {
+  return examSessions.value.map(s => ({
+    value: s.examId,
+    label: `${s.examTitle} (Môn: ${s.subject} - ${s.date})`
+  }))
+})
+
+const statusFilterOptions = [
+  { value: 'all', label: 'Tất cả sinh viên' },
+  { value: 'pass', label: 'Chỉ sinh viên Đạt (>= 5.0)' },
+  { value: 'fail', label: 'Chỉ sinh viên Trượt (< 5.0)' },
+  { value: 'cheat', label: 'Sinh viên có nghi vấn gian lận' }
+]
+
+watch(selectedExamId, async (newVal) => {
+  if (newVal) {
+    await loadSessionDetail(newVal)
+  }
+})
 
 // 1. Tải danh sách ca thi giảng viên phụ trách
 async function loadSessions() {
@@ -222,18 +243,12 @@ onMounted(() => {
           <label class="text-xs font-semibold text-muted uppercase tracking-wider mb-2 flex items-center gap-2">
             <Calendar :size="16" class="text-link" /> Chọn Ca thi đã canh thi:
           </label>
-          <div class="relative">
-            <select 
-              v-model="selectedExamId" 
-              @change="onExamChange"
-              class="w-full rounded-xl border border-input surface-input pl-4 pr-10 py-3 text-sm font-semibold text-heading outline-none focus:border-(--border-input-focus) transition-colors cursor-pointer appearance-none truncate"
-            >
-              <option v-for="s in examSessions" :key="s.examId" :value="s.examId">
-                {{ s.examTitle }} (Môn: {{ s.subject }} - {{ s.date }})
-              </option>
-            </select>
-            <ChevronRight :size="16" class="absolute right-4 top-1/2 -translate-y-1/2 text-placeholder rotate-90 pointer-events-none" />
-          </div>
+          <LmsSelect 
+            v-model="selectedExamId" 
+            placeholder="Chọn ca thi..."
+            :options="examSessionOptions"
+            searchable
+          />
           <p v-if="activeSessionInfo?.room" class="text-xs text-muted mt-2">
             📍 {{ activeSessionInfo.room }} | ⏰ {{ activeSessionInfo.startTime || '' }} - {{ activeSessionInfo.endTime || '' }}
           </p>
@@ -410,16 +425,14 @@ onMounted(() => {
         />
       </div>
 
-      <div class="flex items-center gap-3 w-full sm:w-auto">
+      <div class="flex items-center gap-3 w-full sm:w-auto min-w-[200px]">
         <span class="text-xs font-semibold text-muted shrink-0 flex items-center gap-1"><Filter :size="14" /> Lọc kết quả:</span>
-        <select 
-          v-model="selectedStatusFilter"
-          class="rounded-xl border border-input surface-input px-3 py-2 text-xs font-semibold text-label outline-none focus:border-(--border-input-focus) cursor-pointer"
-        >
-          <option value="all">Tất cả sinh viên</option>
-          <option value="pass">Chỉ sinh viên Đạt (>= 5.0)</option>
-          <option value="fail">Sinh viên Không đạt (< 5.0)</option>
-        </select>
+        <div class="flex-1">
+          <LmsSelect 
+            v-model="selectedStatusFilter"
+            :options="statusFilterOptions"
+          />
+        </div>
       </div>
     </div>
 

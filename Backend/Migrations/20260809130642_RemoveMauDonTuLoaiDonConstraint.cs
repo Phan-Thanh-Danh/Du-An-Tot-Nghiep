@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -10,10 +10,14 @@ namespace Backend.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropCheckConstraint(
-                name: "CK_MauDonTu_loai_don",
-                schema: "dbo",
-                table: "MauDonTu");
+            migrationBuilder.Sql(@"
+IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_MauDonTu_loai_don')
+BEGIN
+    DECLARE @tableName NVARCHAR(256);
+    SELECT @tableName = OBJECT_NAME(parent_object_id) FROM sys.check_constraints WHERE name = 'CK_MauDonTu_loai_don';
+    EXEC('ALTER TABLE [dbo].[' + @tableName + '] DROP CONSTRAINT [CK_MauDonTu_loai_don]');
+END
+");
         }
 
         /// <inheritdoc />

@@ -9,7 +9,7 @@ namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/teacher/schedule")]
-[Authorize]
+[Authorize(Roles = "Teacher,giao_vien")]
 public class TeacherScheduleController : ControllerBase
 {
     private readonly ITeacherScheduleService _scheduleService;
@@ -22,7 +22,7 @@ public class TeacherScheduleController : ControllerBase
     private int GetCurrentTeacherId()
     {
         var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
-        if (currentUser == null || currentUser.Role != "Teacher")
+        if (currentUser == null || (currentUser.Role != "Teacher" && currentUser.Role != "giao_vien"))
         {
             throw new UnauthorizedAccessException("Người dùng hiện tại không phải là Giảng viên hoặc chưa đăng nhập.");
         }

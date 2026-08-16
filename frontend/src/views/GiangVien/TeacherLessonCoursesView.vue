@@ -21,37 +21,30 @@ const courses = ref([])
 const searchQuery = ref('')
 const filterSemester = ref('')
 
-function mapCourse(course) {
-  return {
-    id: course.courseId || course.CourseId || course.id || course.Id,
-    code: course.subjectCode || course.SubjectCode || course.code || '',
-    name: course.courseName || course.CourseName || course.name || '',
-    className: course.className || course.ClassName || '',
-    subject: course.subjectName || course.SubjectName || course.name || '',
-    students: course.studentCount || course.StudentCount || 35,
-    lessonsCount: course.lessonCount || course.LessonCount || 12,
-    semester: course.semester || course.Semester || 'Học kỳ 1 năm 2026',
-  }
-}
-
 const availableSemesters = computed(() => {
   const set = new Set(courses.value.map(c => c.semester).filter(Boolean))
   return Array.from(set)
 })
 
+const semesterOptions = computed(() => [
+  { value: '', label: 'Tất cả học kỳ' },
+  ...availableSemesters.value.map(s => ({ value: s, label: s }))
+])
+
 const filteredCourses = computed(() => {
   let list = courses.value
   if (filterSemester.value) {
-    list = list.filter(c => c.semester === filterSemester.value)
+    list = list.filter(c => (c.semester || '') === filterSemester.value)
   }
-  if (searchQuery.value.trim()) {
+  if (searchQuery.value && searchQuery.value.trim()) {
     const q = searchQuery.value.trim().toLowerCase()
-    list = list.filter(c =>
-      c.code.toLowerCase().includes(q) ||
-      c.name.toLowerCase().includes(q) ||
-      c.subject.toLowerCase().includes(q) ||
-      c.className.toLowerCase().includes(q)
-    )
+    list = list.filter(c => {
+      const code = (c.code || '').toLowerCase()
+      const name = (c.name || '').toLowerCase()
+      const classesStr = (c.classes || []).join(' ').toLowerCase()
+      const semester = (c.semester || '').toLowerCase()
+      return code.includes(q) || name.includes(q) || classesStr.includes(q) || semester.includes(q)
+    })
   }
   return list
 })
@@ -79,29 +72,33 @@ async function loadCourses() {
       const id = item.subjectId || item.SubjectId || item.courseId || item.CourseId || item.id || item.Id
       const className = item.className || item.ClassName || ''
       const students = item.studentCount ?? item.StudentCount ?? item.siSo ?? 0
-      const semester = item.semester || item.Semester || item.tenHocKy || ''
+      const semester = item.semester || item.Semester || item.tenHocKy || 'Học kỳ 1 năm 2026'
+      const lessonCount = item.lessonCount ?? item.LessonCount ?? 0
 
-      if (!subjectMap.has(code)) {
-        subjectMap.set(code, {
+      const key = `${code}_${semester}`
+      if (!subjectMap.has(key)) {
+        subjectMap.set(key, {
           id: id,
           code: code,
           name: name,
           classes: className ? [className] : [],
           students: students,
+          lessonsCount: lessonCount,
           semester: semester,
         })
       } else {
-        const existing = subjectMap.get(code)
+        const existing = subjectMap.get(key)
         if (className && !existing.classes.includes(className)) {
           existing.classes.push(className)
         }
-        existing.students = Math.max(existing.students, students)
+        existing.students += students
+        if (lessonCount > 0) existing.lessonsCount = lessonCount
       }
     })
 
     courses.value = Array.from(subjectMap.values()).map(s => ({
       ...s,
-      displaySubtitle: `${s.name}${s.classes.length ? ` · Giảng dạy: ${s.classes.join(', ')}` : ''}`
+      displaySubtitle: s.classes.length ? `Lớp: ${s.classes.join(', ')}` : 'Chưa có lớp',
     }))
   } catch (err) {
     console.error('Error loading teacher subjects:', err)
@@ -155,10 +152,12 @@ onMounted(() => {
         />
       </div>
       <div class="flex items-center gap-3 w-full md:w-auto">
-        <LmsSelect v-model="filterSemester" class="w-48">
-          <option value="">Tất cả học kỳ</option>
-          <option v-for="sem in availableSemesters" :key="sem" :value="sem">{{ sem }}</option>
-        </LmsSelect>
+        <LmsSelect
+          v-model="filterSemester"
+          :options="semesterOptions"
+          class="w-56"
+          placeholder="Chọn học kỳ"
+        />
         <button
           @click="searchQuery = ''; filterSemester = ''"
           title="Lọc / Đặt lại bộ lọc"
@@ -200,17 +199,18 @@ onMounted(() => {
       <TeacherClassCard
         v-for="cls in filteredCourses"
         :key="cls.id"
-        :title="cls.code"
-        :subtitle="cls.displaySubtitle || cls.name"
+        :title="`${cls.code} - ${cls.name}`"
+        :subtitle="cls.displaySubtitle"
         :semester="cls.semester"
-        :studentsCount="cls.students"
+        :studentsCount="`${cls.students} (${cls.classes.length} lớp)`"
+        :lessonsCount="cls.lessonsCount > 0 ? cls.lessonsCount : null"
       >
         <template #action>
           <GlassButton
             variant="primary"
             size="sm"
             class="w-full justify-center text-xs font-bold"
-            @click="goToDetail(cls.id)"
+            @click="goToDetail(cls.code || cls.id)"
           >
             <template #leading>
               <BookOpen :size="14" />

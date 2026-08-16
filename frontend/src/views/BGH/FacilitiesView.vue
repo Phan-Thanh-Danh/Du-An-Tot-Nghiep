@@ -1,40 +1,47 @@
 <template>
   <div class="space-y-6 pb-10">
+    <!-- Filter & Action Header: Luôn hiển thị -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div>
+        <h2 class="sr-only text-xl font-bold text-heading">Cơ sở vật chất</h2>
+        <p class="text-xs text-muted">Quản lý tòa nhà, tầng, phòng học và trang thiết bị học vụ trên toàn hệ thống</p>
+      </div>
+      <div class="flex gap-2">
+        <LmsSelect v-model="campusFilter" class="px-3 py-2 bg-(--surface-input) border border-input rounded-xl text-xs font-bold text-body focus:outline-none focus:border-(--lg-primary)">
+          <option value="all">Tất cả cơ sở</option>
+          <option v-for="c in campuses" :key="c.maDonVi" :value="c.maDonVi">{{ c.tenDonVi }}</option>
+        </LmsSelect>
+        <button @click="openAddBuildingModal" class="flex items-center gap-1.5 px-4 py-2 bg-(--lg-primary) hover:bg-(--lg-primary-dark) text-white text-xs font-bold rounded-xl transition-all shadow-sm">
+          <Plus :size="16" />
+          <span>Thêm Tòa nhà</span>
+        </button>
+      </div>
+    </div>
+
     <!-- Loading State -->
     <div v-if="loading" class="p-4">
       <SkeletonTable :rows="6" :columns="4" />
     </div>
 
-    <!-- Error State -->
-    <div v-else-if="error" class="flex items-center justify-center py-20">
-      <div class="flex flex-col items-center gap-3">
-        <AlertCircle :size="32" class="text-(--color-danger-text)" />
-        <p class="text-sm text-(--color-danger-text) font-medium">{{ error }}</p>
-        <button @click="loadData()" class="px-4 py-2 bg-(--lg-primary) text-white text-xs font-bold rounded-lg hover:bg-(--lg-primary-dark) transition-colors">Thử lại</button>
+    <!-- Error State: Hiển thị bên dưới bộ lọc -->
+    <div v-else-if="error" class="surface-card border border-card rounded-3xl p-12 text-center">
+      <div class="flex flex-col items-center gap-3 max-w-md mx-auto">
+        <div class="h-12 w-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-600 dark:text-amber-400">
+          <AlertCircle :size="28" />
+        </div>
+        <p class="text-sm font-bold text-heading">{{ error }}</p>
+        <p class="text-xs text-muted">Bạn có thể chọn cơ sở khác từ danh sách cơ sở phía trên để tiếp tục làm việc.</p>
+        <button @click="loadData()" class="mt-2 px-4 py-2 bg-(--surface-input) hover:bg-(--surface-input-hover) border border-input text-heading text-xs font-bold rounded-lg transition-colors">Thử tải lại</button>
       </div>
     </div>
 
-    <template v-else>
-      <!-- Filter & Action Header -->
-      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 class="sr-only text-xl font-bold text-heading">Cơ sở vật chất</h2>
-          <p class="text-xs text-muted">Quản lý tòa nhà, tầng, phòng học và trang thiết bị học vụ trên toàn hệ thống</p>
-        </div>
-        <div class="flex gap-2">
-          <LmsSelect v-model="campusFilter" class="px-3 py-2 bg-(--surface-input) border border-input rounded-xl text-xs font-bold text-body focus:outline-none focus:border-(--lg-primary)">
-            <option value="all">Tất cả cơ sở</option>
-            <option v-for="c in campuses" :key="c.maDonVi" :value="c.maDonVi">{{ c.tenDonVi }}</option>
-          </LmsSelect>
-          <button @click="openAddBuildingModal" class="flex items-center gap-1.5 px-4 py-2 bg-(--lg-primary) hover:bg-(--lg-primary-dark) text-white text-xs font-bold rounded-xl transition-all shadow-sm">
-            <Plus :size="16" />
-            <span>Thêm Tòa nhà</span>
-          </button>
-        </div>
-      </div>
+    <!-- Empty State -->
+    <div v-else-if="filteredBuildings.length === 0" class="surface-card border border-card rounded-3xl p-12 text-center text-muted">
+      <p class="text-xs">Không tìm thấy tòa nhà hoặc phòng học nào trong cơ sở đã chọn.</p>
+    </div>
 
-      <!-- Buildings Grid Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+    <!-- Buildings Grid Cards -->
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         <div
           v-for="building in filteredBuildings"
           :key="building.maToaNha"
@@ -96,13 +103,6 @@
           </div>
         </div>
       </div>
-
-      <div v-if="filteredBuildings.length === 0" class="text-center py-16 surface-card border border-card rounded-3xl text-muted">
-        <Building2 :size="48" class="mx-auto mb-3 opacity-40" />
-        <p class="font-bold text-heading text-sm">Không tìm thấy tòa nhà nào</p>
-        <p class="text-xs mt-1">Vui lòng thử chọn cơ sở khác.</p>
-      </div>
-    </template>
 
     <!-- Modal Thêm Tòa nhà -->
     <div v-if="showBuildingModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">

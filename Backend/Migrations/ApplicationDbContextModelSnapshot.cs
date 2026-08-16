@@ -6460,6 +6460,54 @@ namespace Backend.Migrations
                     b.ToTable("QuyTrinhDonTu");
                 });
 
+            modelBuilder.Entity("Backend.Models.QuyenHan", b =>
+                {
+                    b.Property<int>("MaQuyenHan")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("ma_quyen_han");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaQuyenHan"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("action");
+
+                    b.Property<string>("MaCode")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("ma_code");
+
+                    b.Property<string>("MoTa")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("mo_ta");
+
+                    b.Property<string>("Module")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("module");
+
+                    b.Property<string>("TenQuyenHan")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("ten_quyen_han");
+
+                    b.HasKey("MaQuyenHan")
+                        .HasName("PK_QuyenHan");
+
+                    b.HasIndex("MaCode")
+                        .IsUnique()
+                        .HasDatabaseName("IX_QuyenHan_MaCode");
+
+                    b.ToTable("QuyenHan", "dbo");
+                });
+
             modelBuilder.Entity("Backend.Models.ScheduleDraftItem", b =>
                 {
                     b.Property<int>("MaDraftItem")
@@ -7856,6 +7904,36 @@ namespace Backend.Migrations
                         .HasDatabaseName("UQ_VaiTro_1");
 
                     b.ToTable("VaiTro", "dbo");
+                });
+
+            modelBuilder.Entity("Backend.Models.VaiTroQuyenHan", b =>
+                {
+                    b.Property<int>("MaVaiTro")
+                        .HasColumnType("int")
+                        .HasColumnName("ma_vai_tro");
+
+                    b.Property<int>("MaQuyenHan")
+                        .HasColumnType("int")
+                        .HasColumnName("ma_quyen_han");
+
+                    b.Property<DateTime>("NgayCap")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ngay_cap")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<int?>("NguoiCap")
+                        .HasColumnType("int")
+                        .HasColumnName("nguoi_cap");
+
+                    b.HasKey("MaVaiTro", "MaQuyenHan")
+                        .HasName("PK_VaiTroQuyenHan");
+
+                    b.HasIndex("MaQuyenHan");
+
+                    b.HasIndex("NguoiCap");
+
+                    b.ToTable("VaiTroQuyenHan", "dbo");
                 });
 
             modelBuilder.Entity("Backend.Models.XuLyViPhamThi", b =>
@@ -10754,6 +10832,35 @@ namespace Backend.Migrations
                     b.Navigation("NguoiTaoNavigation");
                 });
 
+            modelBuilder.Entity("Backend.Models.VaiTroQuyenHan", b =>
+                {
+                    b.HasOne("Backend.Models.QuyenHan", "QuyenHan")
+                        .WithMany("VaiTroQuyenHans")
+                        .HasForeignKey("MaQuyenHan")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_VaiTroQuyenHan_QuyenHan");
+
+                    b.HasOne("Backend.Models.VaiTro", "VaiTro")
+                        .WithMany("VaiTroQuyenHans")
+                        .HasForeignKey("MaVaiTro")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_VaiTroQuyenHan_VaiTro");
+
+                    b.HasOne("Backend.Models.NguoiDung", "NguoiCapNavigation")
+                        .WithMany()
+                        .HasForeignKey("NguoiCap")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("FK_VaiTroQuyenHan_NguoiCap");
+
+                    b.Navigation("NguoiCapNavigation");
+
+                    b.Navigation("QuyenHan");
+
+                    b.Navigation("VaiTro");
+                });
+
             modelBuilder.Entity("Backend.Models.XuLyViPhamThi", b =>
                 {
                     b.HasOne("Backend.Models.NguoiDung", "NguoiXuLy")
@@ -11017,9 +11124,19 @@ namespace Backend.Migrations
                     b.Navigation("BuocQuyTrinhs");
                 });
 
+            modelBuilder.Entity("Backend.Models.QuyenHan", b =>
+                {
+                    b.Navigation("VaiTroQuyenHans");
+                });
+
             modelBuilder.Entity("Backend.Models.ThongBao", b =>
                 {
                     b.Navigation("NguoiNhans");
+                });
+
+            modelBuilder.Entity("Backend.Models.VaiTro", b =>
+                {
+                    b.Navigation("VaiTroQuyenHans");
                 });
 #pragma warning restore 612, 618
         }

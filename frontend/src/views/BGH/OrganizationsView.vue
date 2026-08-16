@@ -234,7 +234,7 @@ import { bghApi } from '@/services/bghApi'
 import { apiRequest, unwrapApiData } from '@/services/apiClient'
 
 const authStore = useAuthStore()
-const canEdit = computed(() => authStore.hasRole('SuperAdmin'))
+const canEdit = computed(() => authStore.hasRole(['SuperAdmin', 'Admin', 'Principal']))
 
 const treeData = ref([])
 const flatOrganizationsList = ref([])

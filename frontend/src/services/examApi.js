@@ -82,6 +82,9 @@ export const examApi = {
       body: JSON.stringify(payload),
     }).then(unwrapApiData)
   },
+  getQuizHistory(quizId) {
+    return apiRequest(`/api/quiz-attempts/${quizId}/history`).then(unwrapApiData)
+  },
 
   // ===== Teacher Proctoring =====
   getCaThis(params) {

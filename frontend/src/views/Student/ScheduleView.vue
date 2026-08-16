@@ -241,34 +241,37 @@ watch(anchorDate, (newDate) => {
     />
 
     <div v-else class="flex-1 min-w-0 overflow-x-auto pb-4">
-      <div class="surface-card border border-(--border-card) rounded-2xl overflow-hidden shadow-sm" style="min-width: 768px">
+      <div class="surface-card border border-(--border-card) rounded-2xl overflow-hidden shadow-sm" style="min-width: 820px">
         <!-- Day headers -->
-        <div class="grid border-b border-(--border-default)" :style="`grid-template-columns: 80px repeat(${weekDays.length}, 1fr)`">
-          <div class="p-2 text-center text-xs font-semibold text-(--text-muted) bg-(--surface-solid) border-r border-(--border-default) flex items-center justify-center">
+        <div class="grid border-b border-(--border-default)" :style="`grid-template-columns: 85px repeat(${weekDays.length}, minmax(0, 1fr))`">
+          <div class="p-2.5 text-center text-xs font-bold text-(--text-muted) bg-(--surface-solid) border-r border-(--border-default) flex items-center justify-center">
             Ca / Thứ
           </div>
           <div
             v-for="day in weekDays" :key="day.format('YYYY-MM-DD')"
-            class="p-2.5 text-center text-xs bg-(--surface-solid) border-r last:border-r-0 border-(--border-default)"
+            class="p-2.5 text-center text-xs bg-(--surface-solid) border-r last:border-r-0 border-(--border-default) min-w-0"
           >
             <div :class="day.isSame(dayjs(), 'day') ? 'text-(--text-link) font-bold' : 'text-(--text-heading) font-semibold'">
               Thứ {{ day.day() === 0 ? 'CN' : day.day() + 1 }}
+            </div>
+            <div class="text-[10px] text-(--text-muted) font-normal mt-0.5">
+              {{ day.format('DD/MM') }}
             </div>
           </div>
         </div>
 
         <!-- Shift rows -->
-        <div v-for="shift in shifts" :key="shift.id" class="grid border-b last:border-b-0 border-(--border-default)" :style="`grid-template-columns: 80px repeat(${weekDays.length}, 1fr)`">
+        <div v-for="shift in shifts" :key="shift.id" class="grid border-b last:border-b-0 border-(--border-default)" :style="`grid-template-columns: 85px repeat(${weekDays.length}, minmax(0, 1fr))`">
           <!-- Shift label -->
-          <div class="p-2 flex flex-col items-center justify-center text-center border-r border-(--border-default) bg-(--surface-solid) select-none">
+          <div class="p-2.5 flex flex-col items-center justify-center text-center border-r border-(--border-default) bg-(--surface-solid) select-none">
             <span class="text-xs font-bold text-(--text-heading)">{{ shift.label }}</span>
-            <span class="text-[10px] text-(--text-muted) leading-tight mt-0.5">{{ shift.start }}<br>{{ shift.end }}</span>
+            <span class="text-[10px] text-(--text-muted) leading-tight mt-0.5">{{ shift.start.substring(0,5) }}<br>{{ shift.end.substring(0,5) }}</span>
           </div>
 
           <!-- Day cells -->
           <div
             v-for="day in weekDays" :key="day.format('YYYY-MM-DD')"
-            class="border-r last:border-r-0 border-(--border-default) p-1 min-h-[100px] transition-colors relative hover:bg-(--surface-hover)"
+            class="border-r last:border-r-0 border-(--border-default) p-1.5 min-h-[110px] min-w-0 flex flex-col gap-1.5 transition-colors relative hover:bg-(--surface-hover)"
           >
             <!-- Empty state placeholder -->
             <div
@@ -282,19 +285,23 @@ watch(anchorDate, (newDate) => {
             <button
               v-for="session in sessionsForCell(day, shift.start)" :key="session.id"
               type="button"
-              class="relative z-10 mb-1 last:mb-0 w-full text-left rounded-lg border px-2 py-1.5 transition-all hover:shadow-md hover:-translate-y-0.5 border-(--border-default) bg-(--surface-card)"
+              class="relative z-10 w-full min-w-0 text-left rounded-xl border border-(--border-card) p-2 transition-all hover:shadow-md hover:-translate-y-0.5 bg-(--surface-card) overflow-hidden group cursor-pointer border-l-4"
+              :class="statusMeta(session.status).variant === 'success' ? 'border-l-emerald-500' : (statusMeta(session.status).variant === 'danger' ? 'border-l-rose-500' : 'border-l-blue-600')"
               @click="openDetail(session)"
             >
-              <div class="flex items-start gap-1.5">
-                <span class="mt-1 shrink-0 w-1.5 h-1.5 rounded-full" :class="statusMeta(session.status).variant === 'success' ? 'bg-emerald-500' : (statusMeta(session.status).variant === 'danger' ? 'bg-red-500' : 'bg-blue-500')"></span>
-                <div class="min-w-0 flex-1">
-                  <div class="text-xs font-bold truncate leading-tight text-(--text-heading)" :title="session.subject">
-                    {{ session.subject }}
-                  </div>
-                  <div class="text-[10px] truncate leading-tight text-(--text-muted) mt-0.5">
-                    {{ session.room }} · {{ session.substituteTeacher || session.teacher }}
-                  </div>
-                </div>
+              <div class="flex items-start justify-between gap-1 min-w-0">
+                <span class="text-xs font-bold truncate leading-tight text-(--text-heading) flex-1" :title="session.subject">
+                  {{ session.subject }}
+                </span>
+                <span class="shrink-0 w-2 h-2 rounded-full mt-0.5" :class="statusMeta(session.status).variant === 'success' ? 'bg-emerald-500' : (statusMeta(session.status).variant === 'danger' ? 'bg-rose-500' : 'bg-blue-600')"></span>
+              </div>
+              <div class="mt-1 flex items-center gap-1 text-[11px] text-(--text-muted) truncate min-w-0">
+                <MapPin :size="11" class="shrink-0 text-blue-500" />
+                <span class="truncate font-medium">{{ session.room || 'Phòng học' }}</span>
+              </div>
+              <div class="mt-0.5 flex items-center gap-1 text-[11px] text-(--text-muted) truncate min-w-0">
+                <User :size="11" class="shrink-0 text-indigo-500" />
+                <span class="truncate">{{ session.substituteTeacher || session.teacher }}</span>
               </div>
             </button>
           </div>

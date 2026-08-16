@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePopupStore } from '@/stores/popup'
@@ -7,9 +7,23 @@ import {
   Layers, Shield, FileText, CheckCircle2
 } from 'lucide-vue-next'
 import GlassButton from '@/components/ui/GlassButton.vue'
+import LmsSelect from '@/components/LmsSelect.vue'
 
 const router = useRouter()
 const popupStore = usePopupStore()
+
+const difficultyOptions = [
+  { value: 'Dễ', label: 'Dễ' },
+  { value: 'Trung bình', label: 'Trung bình' },
+  { value: 'Khó', label: 'Khó' }
+]
+
+const categoryOptions = [
+  { value: 'Web Development', label: 'Web Development' },
+  { value: 'JavaScript', label: 'JavaScript' },
+  { value: 'Algorithms', label: 'Algorithms' },
+  { value: 'Software Engineering', label: 'Software Engineering' }
+]
 
 const form = ref({
   type: 'Trắc nghiệm',
@@ -158,26 +172,23 @@ function saveQuestion() {
                <h2 class="text-lg font-semibold text-heading">Phân loại</h2>
             </div>
 
-            <div class="space-y-4">
-               <div>
-                  <label class="block text-[11px] font-semibold uppercase tracking-widest text-muted mb-2">Độ khó</label>
-                  <select v-model="form.difficulty" class="lg-control w-full appearance-none cursor-pointer">
-                     <option>Dễ</option>
-                     <option>Trung bình</option>
-                     <option>Khó</option>
-                  </select>
-               </div>
-               
-               <div>
-                  <label class="block text-[11px] font-semibold uppercase tracking-widest text-muted mb-2">Môn học / Danh mục</label>
-                  <select v-model="form.category" class="lg-control w-full appearance-none cursor-pointer">
-                     <option>Web Development</option>
-                     <option>JavaScript</option>
-                     <option>Algorithms</option>
-                     <option>Software Engineering</option>
-                  </select>
-               </div>
-            </div>
+             <div class="space-y-4">
+                <div>
+                   <label class="block text-[11px] font-semibold uppercase tracking-widest text-muted mb-2">Độ khó</label>
+                   <LmsSelect
+                      v-model="form.difficulty"
+                      :options="difficultyOptions"
+                   />
+                </div>
+                
+                <div>
+                   <label class="block text-[11px] font-semibold uppercase tracking-widest text-muted mb-2">Môn học / Danh mục</label>
+                   <LmsSelect
+                      v-model="form.category"
+                      :options="categoryOptions"
+                   />
+                </div>
+             </div>
          </div>
          
          <div class="lg-glass-soft rounded-2xl p-5 bg-(--accent-primary)/5 border-(--accent-primary)/20">

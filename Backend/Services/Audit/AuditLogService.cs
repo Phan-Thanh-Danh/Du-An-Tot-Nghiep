@@ -56,13 +56,13 @@ public class AuditLogService : IAuditLogService
             var httpContext = _httpContextAccessor.HttpContext;
             var auditLog = new NhatKyKiemToan
             {
-                MaDonVi = maDonVi,
+                MaDonVi = (maDonVi.HasValue && maDonVi.Value > 0) ? maDonVi.Value : null,
                 LoaiDoiTuong = TruncateRequired(entityType, 100),
                 MaDoiTuong = TruncateRequired(entityId, 100),
                 HanhDong = TruncateRequired(action, 50),
                 GiaTriCu = SerializeSanitized(oldValue),
                 GiaTriMoi = SerializeSanitized(newValue),
-                NguoiThayDoi = changedBy,
+                NguoiThayDoi = (changedBy.HasValue && changedBy.Value > 0) ? changedBy.Value : null,
                 ThoiDiemThayDoi = DateTime.UtcNow,
                 DiaChiIp = Truncate(GetClientIp(httpContext), 45),
                 UserAgent = Truncate(httpContext?.Request.Headers.UserAgent.ToString(), 512),

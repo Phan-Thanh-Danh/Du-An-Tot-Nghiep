@@ -68,23 +68,23 @@ public class AdminUsersController : ControllerBase
     }
 
     [HttpPatch("{id:int}/lock")]
-    [Authorize(Policy = "AdminUsersManagement")]
-    public async Task<ActionResult<ApiResponseDto>> LockUser(int id, [FromBody] LockUserRequest request, CancellationToken cancellationToken)
+    [Authorize(Policy = "AdminUserManagement")]
+    public async Task<ActionResult<ApiResponseDto>> LockUser(int id, [FromBody] LockUserRequest? request, CancellationToken cancellationToken)
     {
-        await _userService.LockAsync(id, request.Reason, cancellationToken);
+        await _userService.LockAsync(id, request?.Reason, cancellationToken);
         return Ok(ApiResponseDto.Ok("Khóa tài khoản thành công"));
     }
 
     [HttpPost("{id:int}/revoke-sessions")]
-    [Authorize(Policy = "AdminUsersManagement")]
+    [Authorize(Policy = "AdminUserManagement")]
     public async Task<ActionResult<ApiResponseDto>> RevokeSessions(int id, CancellationToken cancellationToken)
     {
         await _userService.RevokeSessionsAsync(id, cancellationToken);
         return Ok(ApiResponseDto.Ok("Cưỡng chế đăng xuất thành công"));
     }
 
-
     [HttpPatch("{id:int}/unlock")]
+    [Authorize(Policy = "AdminUserManagement")]
     public async Task<ActionResult<ApiResponseDto>> Unlock(int id, CancellationToken cancellationToken)
     {
         await _userService.UnlockAsync(id, cancellationToken);
@@ -92,6 +92,7 @@ public class AdminUsersController : ControllerBase
     }
 
     [HttpPatch("{id:int}/reset-password")]
+    [Authorize(Policy = "AdminUserManagement")]
     public async Task<ActionResult<ApiResponseDto>> ResetPassword(
         int id,
         ResetPasswordRequest request,

@@ -14,6 +14,48 @@ namespace Backend.Controllers;
 [Route("api/student/courses")]
 public class StudentCoursesController : ControllerBase
 {
+    private static bool TryParseLessonId(string? lessonId, out int parsedLessonId)
+    {
+        parsedLessonId = 0;
+        if (string.IsNullOrWhiteSpace(lessonId)) return false;
+        if (int.TryParse(lessonId, out parsedLessonId)) return true;
+        if ((lessonId.StartsWith("l", StringComparison.OrdinalIgnoreCase) || lessonId.StartsWith("L", StringComparison.OrdinalIgnoreCase)) &&
+            int.TryParse(lessonId[1..], out parsedLessonId))
+        {
+            return true;
+        }
+        return false;
+    }
+
+    private static string ResolveMediaUrl(string? rawUrl, Backend.Services.Storage.IR2StorageService? storageService)
+    {
+        if (string.IsNullOrWhiteSpace(rawUrl)) return string.Empty;
+        if (storageService == null) return rawUrl;
+
+        try
+        {
+            if (rawUrl.Contains("key="))
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(rawUrl, @"key=([^&]+)");
+                if (match.Success)
+                {
+                    var rawKey = Uri.UnescapeDataString(match.Groups[1].Value);
+                    var directUrl = storageService.GetPresignedStreamUrl(rawKey);
+                    if (!string.IsNullOrEmpty(directUrl)) return directUrl;
+                }
+            }
+            else if (rawUrl.StartsWith("videos/", StringComparison.OrdinalIgnoreCase) ||
+                     rawUrl.StartsWith("documents/", StringComparison.OrdinalIgnoreCase))
+            {
+                var directUrl = storageService.GetPresignedStreamUrl(rawUrl);
+                if (!string.IsNullOrEmpty(directUrl)) return directUrl;
+            }
+        }
+        catch { /* fallback to rawUrl */ }
+
+        return rawUrl;
+    }
+
     [HttpGet]
     [Authorize(Roles = "Student")]
     public async Task<ActionResult<ApiResponseDto<List<CourseProgressDto>>>> GetCourses(
@@ -111,7 +153,8 @@ public class StudentCoursesController : ControllerBase
     [Authorize(Roles = "Student")]
     public async Task<ActionResult<ApiResponseDto<CourseDetailResponseDto>>> GetCourseDetail(
         string courseId,
-        [FromServices] Backend.Data.ApplicationDbContext context)
+        [FromServices] Backend.Data.ApplicationDbContext context,
+        [FromServices] Backend.Services.Storage.IR2StorageService storageService)
     {
         var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
         if (currentUser == null) return Unauthorized();
@@ -190,11 +233,15 @@ public class StudentCoursesController : ControllerBase
                 var chProgress = chTotal > 0 ? (int)Math.Round(chProgressSum / chTotal) : 0;
                 var isChapterDone = chTotal > 0 && chCompleted == chTotal;
 
+                var rawTitle = ch.TieuDe ?? string.Empty;
+                var cleanTitle = System.Text.RegularExpressions.Regex.Replace(rawTitle, @"^(Chương|Phần|Bài)\s*\d+\s*[:\-]\s*", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
+                if (string.IsNullOrEmpty(cleanTitle)) cleanTitle = rawTitle;
+
                 return new CourseChapterDto
                 {
                     Id = "ch" + ch.MaChuong,
                     Chapter = "Chương " + ch.ThuTu,
-                    Title = ch.TieuDe,
+                    Title = cleanTitle,
                     Description = "",
                     Status = isChapterDone ? "completed" : "active",
                     Badge = isChapterDone ? "Hoàn thành" : "Đang học",
@@ -207,15 +254,17 @@ public class StudentCoursesController : ControllerBase
                         var prog = studentProgress.GetValueOrDefault(b.MaBaiHoc);
                         var progVal = (int)(prog?.PhanTramTienDo ?? 0m);
                         var isDone = progVal >= 100;
+                        var isSeekDisabled = b.DieuKienMoKhoa != null && (b.DieuKienMoKhoa.Contains("\"allowSeek\":false") || b.DieuKienMoKhoa.Contains("khoa_tua") || b.DieuKienMoKhoa.Contains("no_seek"));
                         return new CourseLessonDto
                         {
                             Id = "l" + b.MaBaiHoc,
                             Title = b.TieuDe,
-                            Duration = b.ThoiLuongGiay.HasValue ? TimeSpan.FromSeconds(b.ThoiLuongGiay.Value).ToString(@"mm\:ss") : "–",
+                            Duration = b.ThoiLuongGiay.HasValue && b.ThoiLuongGiay.Value > 0 ? TimeSpan.FromSeconds(b.ThoiLuongGiay.Value).ToString(@"mm\:ss") : "15:00",
                             Status = isDone ? "completed" : "active",
                             ProgressPercent = isDone ? 100 : progVal,
                             Type = b.LoaiBaiHoc == "trac_nghiem" ? "quiz" : b.LoaiBaiHoc == "van_ban" || b.LoaiBaiHoc == "pdf" || b.LoaiBaiHoc == "slide_html" ? "document" : "video",
-                            Url = b.UrlTapTin ?? string.Empty
+                            Url = ResolveMediaUrl(b.UrlTapTin, storageService),
+                            AllowSeek = !isSeekDisabled
                         };
                     }).ToList()
                 };
@@ -231,13 +280,9 @@ public class StudentCoursesController : ControllerBase
         string courseId, string lessonId,
         [FromServices] Backend.Data.ApplicationDbContext context)
     {
-        if (string.IsNullOrEmpty(lessonId) || !lessonId.StartsWith("l"))
+        if (!TryParseLessonId(lessonId, out int parsedLessonId))
         {
-            return BadRequest();
-        }
-        if (!int.TryParse(lessonId.Substring(1), out int parsedLessonId))
-        {
-            return BadRequest();
+            return BadRequest(ApiResponseDto.Fail("Mã bài học không hợp lệ."));
         }
 
         // Tìm content block có quiz — fallback cả hai loại "quiz" và "trac_nghiem"
@@ -377,10 +422,7 @@ public class StudentCoursesController : ControllerBase
                 Text = q.CauHoi?.NoiDung ?? "",
                 QuestionType = "trac_nghiem",
                 Type = (kieu == "chon_nhieu" || kieu == "multiple") ? "multiple" : "single",
-                Options = options,
-                CorrectAnswer = correctIndex,
-                CorrectAnswerIds = correctIds,
-                CorrectAnswerIndices = correctIndices
+                Options = options
             };
         }).ToList();
 
@@ -400,12 +442,13 @@ public class StudentCoursesController : ControllerBase
     [Authorize(Roles = "Student")]
     public async Task<ActionResult<ApiResponseDto<object>>> GetLessonContent(
         string courseId, string lessonId,
-        [FromServices] Backend.Data.ApplicationDbContext context)
+        [FromServices] Backend.Data.ApplicationDbContext context,
+        [FromServices] Backend.Services.Storage.IR2StorageService storageService)
     {
-        if (string.IsNullOrEmpty(lessonId) || !lessonId.StartsWith("l"))
-            return BadRequest();
-        if (!int.TryParse(lessonId.Substring(1), out int parsedLessonId))
-            return BadRequest();
+        if (!TryParseLessonId(lessonId, out int parsedLessonId))
+        {
+            return BadRequest(ApiResponseDto.Fail("Mã bài học không hợp lệ."));
+        }
 
         // Trả về các content blocks đã xuất bản cho sinh viên
         var contents = await context.BaiHocNoiDungs
@@ -418,8 +461,8 @@ public class StudentCoursesController : ControllerBase
             Id = c.MaNoiDung,
             Type = c.LoaiNoiDung,   // video, slide_html, tai_lieu, quiz, trac_nghiem, van_ban
             Title = c.LoaiNoiDung == "slide_html" ? "Slide HTML" : (c.LoaiNoiDung == "video" ? "Video bài học" : "Tài liệu bài học"),
-            VideoUrl = c.LoaiNoiDung == "video" ? c.UrlTapTin : null,
-            DocumentUrl = (c.LoaiNoiDung == "tai_lieu" || c.LoaiNoiDung == "pdf" || c.LoaiNoiDung == "document") ? c.UrlTapTin : null,
+            VideoUrl = c.LoaiNoiDung == "video" ? ResolveMediaUrl(c.UrlTapTin, storageService) : null,
+            DocumentUrl = (c.LoaiNoiDung == "tai_lieu" || c.LoaiNoiDung == "pdf" || c.LoaiNoiDung == "document") ? ResolveMediaUrl(c.UrlTapTin, storageService) : null,
             SlideHtml = c.LoaiNoiDung == "slide_html" ? c.NoiDungHtml : null,
             NoiDungJson = c.NoiDungJson,
             QuizId = c.MaDeKiemTra,
@@ -436,8 +479,10 @@ public class StudentCoursesController : ControllerBase
         string courseId, string lessonId,
         [FromServices] Backend.Data.ApplicationDbContext context)
     {
-        if (string.IsNullOrEmpty(lessonId) || !lessonId.StartsWith("l")) return BadRequest();
-        if (!int.TryParse(lessonId.Substring(1), out int parsedLessonId)) return BadRequest();
+        if (!TryParseLessonId(lessonId, out int parsedLessonId))
+        {
+            return BadRequest(ApiResponseDto.Fail("Mã bài học không hợp lệ."));
+        }
 
         var comments = await context.BinhLuans
             .Where(b => b.MaBaiHoc == parsedLessonId)
@@ -474,8 +519,10 @@ public class StudentCoursesController : ControllerBase
         var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
         if (currentUser == null) return Unauthorized();
 
-        if (string.IsNullOrEmpty(lessonId) || !lessonId.StartsWith("l")) return BadRequest();
-        if (!int.TryParse(lessonId.Substring(1), out int parsedLessonId)) return BadRequest();
+        if (!TryParseLessonId(lessonId, out int parsedLessonId))
+        {
+            return BadRequest(ApiResponseDto.Fail("Mã bài học không hợp lệ."));
+        }
 
         var existing = await context.TienDoBaiHocs
             .FirstOrDefaultAsync(t => t.MaHocSinh == currentUser.UserId && t.MaBaiHoc == parsedLessonId);

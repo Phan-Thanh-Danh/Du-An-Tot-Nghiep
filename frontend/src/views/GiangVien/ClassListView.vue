@@ -16,13 +16,19 @@ const searchQuery = ref('')
 const filterSemester = ref('')
 
 function mapCourseToClass(course) {
+  const sCount = course.studentCount ?? course.StudentCount ?? course.siSo ?? course.SiSo ?? 0
+  const cId = course.classId ?? course.ClassId ?? course.maKhoaHoc ?? course.MaKhoaHoc ?? course.id ?? course.Id
+  const cName = course.className ?? course.ClassName ?? course.tenLop ?? course.TenLop ?? course.tieuDe ?? course.TieuDe ?? course.name ?? 'Lớp học'
+  const cSubj = course.subjectName ?? course.SubjectName ?? course.tenMonHoc ?? course.TenMonHoc ?? course.subject ?? (course.courseCount || course.CourseCount ? `${course.courseCount || course.CourseCount} môn học` : 'Môn học')
+  const cSem = course.semester ?? course.Semester ?? course.tenHocKy ?? course.TenHocKy ?? 'Học kỳ 1 năm 2026'
+
   return {
-    id: course.maKhoaHoc ?? course.id,
-    code: course.tenLop ?? course.code ?? `LOP_${course.id}`,
-    name: course.tieuDe ?? course.name ?? 'Lớp học phần',
-    subject: course.tenMonHoc ?? course.subject ?? 'Môn học',
-    students: course.siSo ?? course.studentCount ?? 0,
-    semester: course.tenHocKy ?? course.semester ?? 'Học kỳ 1 năm 2026',
+    id: cId,
+    code: cName.split(' - ')[0] || cName,
+    name: cName,
+    subject: cSubj,
+    students: sCount,
+    semester: cSem,
   }
 }
 

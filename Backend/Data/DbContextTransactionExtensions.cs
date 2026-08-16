@@ -19,6 +19,12 @@ public static class DbContextTransactionExtensions
         Func<Task> operation,
         CancellationToken cancellationToken = default)
     {
+        if (context.Database.ProviderName?.Contains("InMemory") == true)
+        {
+            await operation();
+            return;
+        }
+
         var strategy = context.Database.CreateExecutionStrategy();
         await strategy.ExecuteAsync(async () =>
         {
@@ -53,6 +59,11 @@ public static class DbContextTransactionExtensions
         Func<Task<TResult>> operation,
         CancellationToken cancellationToken = default)
     {
+        if (context.Database.ProviderName?.Contains("InMemory") == true)
+        {
+            return await operation();
+        }
+
         var strategy = context.Database.CreateExecutionStrategy();
         return await strategy.ExecuteAsync(async () =>
         {

@@ -26,5 +26,7 @@ public class KhoaHocDto
     public int? GoiYSoBuoiMoiTuan { get; set; }
     public int? GoiYSoCaMoiBuoi { get; set; }
     public DateTime? NgayBatDauBlock { get; set; }
-    public DateTime? NgayKetThucBlock { get; set; }
+    // Thông tin sĩ số sinh viên
+    public int SiSo { get; set; }
+    public int StudentCount { get; set; }
 }

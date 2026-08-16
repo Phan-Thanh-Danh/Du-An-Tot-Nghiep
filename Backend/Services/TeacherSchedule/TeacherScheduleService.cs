@@ -68,9 +68,17 @@ public class TeacherScheduleService : ITeacherScheduleService
 
         // Count weekly shifts from published schedules (any term the teacher owns)
         var schedules = await _context.ThoiKhoaBieus
-            .Where(t => t.KhoaHoc!.MaGiaoVien == teacherId && t.TrangThai == "da_xuat_ban")
+            .Where(t => t.KhoaHoc != null && t.KhoaHoc.MaGiaoVien == teacherId && (t.TrangThai == "da_xuat_ban" || t.TrangThai == "cong_bo"))
             .ToListAsync();
         summary.WeeklyShiftCount = schedules.Count;
+
+        if (summary.WeeklyShiftCount == 0)
+        {
+            var startOfWeek = today.AddDays(-(int)today.DayOfWeek + 1);
+            var endOfWeek = startOfWeek.AddDays(6);
+            summary.WeeklyShiftCount = await _context.BuoiHocs
+                .CountAsync(b => (b.MaGiaoVien == teacherId || b.MaGiaoVienDayThay == teacherId || (b.KhoaHoc != null && b.KhoaHoc.MaGiaoVien == teacherId)) && b.NgayHoc >= startOfWeek && b.NgayHoc <= endOfWeek && b.TrangThaiBuoi != "da_huy");
+        }
 
         // Prefer current-term courses for the detail list, fall back to all courses.
         var displayCourses = currentTerm != null
@@ -113,7 +121,7 @@ public class TeacherScheduleService : ITeacherScheduleService
                 .Include(b => b.CaHoc)
                 .Include(b => b.Phong)
                 .Include(b => b.Tkb)
-                .Where(b => (b.MaGiaoVien == teacherId || b.MaGiaoVienDayThay == teacherId) && b.NgayHoc > today && b.TrangThaiBuoi != "da_huy" && b.Tkb != null && b.Tkb.TrangThai == "da_xuat_ban")
+                .Where(b => (b.MaGiaoVien == teacherId || b.MaGiaoVienDayThay == teacherId || (b.KhoaHoc != null && b.KhoaHoc.MaGiaoVien == teacherId)) && b.NgayHoc > today && b.TrangThaiBuoi != "da_huy" && (b.Tkb == null || b.Tkb.TrangThai == "da_xuat_ban" || b.Tkb.TrangThai == "cong_bo"))
                 .OrderBy(b => b.NgayHoc).ThenBy(b => b.CaHoc!.GioBatDau)
                 .Select(b => new TeacherScheduleItemDto
                 {
@@ -169,7 +177,7 @@ public class TeacherScheduleService : ITeacherScheduleService
             .Include(b => b.CaHoc)
             .Include(b => b.Phong)
             .Include(b => b.Tkb)
-            .Where(b => (b.MaGiaoVien == teacherId || b.MaGiaoVienDayThay == teacherId) && b.Tkb != null && b.Tkb.TrangThai == "da_xuat_ban");
+            .Where(b => (b.MaGiaoVien == teacherId || b.MaGiaoVienDayThay == teacherId || (b.KhoaHoc != null && b.KhoaHoc.MaGiaoVien == teacherId)) && (b.Tkb == null || b.Tkb.TrangThai == "da_xuat_ban" || b.Tkb.TrangThai == "cong_bo"));
 
         if (query.NgayTu.HasValue)
         {

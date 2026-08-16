@@ -22,8 +22,11 @@ public class ExamController : ControllerBase
 
     private int GetCurrentUserId()
     {
-        var userIdClaim = HttpContext.Items["CurrentUser"];
-        if (userIdClaim is Backend.Models.NguoiDung user)
+        var currentUser = HttpContext.Items["CurrentUser"] as Backend.DTOs.Auth.CurrentUserContext;
+        if (currentUser != null && currentUser.UserId > 0)
+            return currentUser.UserId;
+
+        if (HttpContext.Items["CurrentUser"] is Backend.Models.NguoiDung user)
             return user.MaNguoiDung;
 
         var claim = User.FindFirst(CustomClaimTypes.UserId);
@@ -33,7 +36,7 @@ public class ExamController : ControllerBase
     // ===== KyThi =====
 
     [HttpGet("ky-thi")]
-    [Authorize(Policy = "AcademicOperations")]
+    [Authorize(Roles = "Teacher,giao_vien,CampusAdmin,AcademicStaff,nhan_vien,giao_vu,Admin,quan_tri,SuperAdmin,sieu_quan_tri")]
     public async Task<ActionResult<ApiResponseDto<PagedResultDto<KyThiDto>>>> GetKyThis(
         [FromQuery] ExamQueryParameters parameters, CancellationToken ct)
     {
@@ -42,7 +45,7 @@ public class ExamController : ControllerBase
     }
 
     [HttpGet("ky-thi/{id:int}")]
-    [Authorize(Policy = "AcademicOperations")]
+    [Authorize(Roles = "Teacher,giao_vien,CampusAdmin,AcademicStaff,nhan_vien,giao_vu,Admin,quan_tri,SuperAdmin,sieu_quan_tri")]
     public async Task<ActionResult<ApiResponseDto<KyThiDto>>> GetKyThiById(int id, CancellationToken ct)
     {
         var result = await _examService.GetKyThiByIdAsync(id, ct);
@@ -50,7 +53,7 @@ public class ExamController : ControllerBase
     }
 
     [HttpGet("ky-thi/{id:int}/lich-thi-tong")]
-    [Authorize(Policy = "AcademicOperations")]
+    [Authorize(Roles = "Teacher,giao_vien,CampusAdmin,AcademicStaff,nhan_vien,giao_vu,Admin,quan_tri,SuperAdmin,sieu_quan_tri")]
     public async Task<ActionResult<ApiResponseDto<IReadOnlyList<LichThiTongDto>>>> GetLichThiTongsByKyThi(int id, CancellationToken ct)
     {
         var result = await _examService.GetLichThiTongsByKyThiAsync(id, ct);
@@ -104,7 +107,7 @@ public class ExamController : ControllerBase
     }
 
     [HttpGet("lich-thi-tong/{id:int}")]
-    [Authorize(Policy = "AcademicOperations")]
+    [Authorize(Roles = "Teacher,giao_vien,CampusAdmin,AcademicStaff,nhan_vien,giao_vu,Admin,quan_tri,SuperAdmin,sieu_quan_tri")]
     public async Task<ActionResult<ApiResponseDto<LichThiTongDto>>> GetLichThiTongById(int id, CancellationToken ct)
     {
         var result = await _examService.GetLichThiTongByIdAsync(id, ct);
@@ -141,7 +144,7 @@ public class ExamController : ControllerBase
     // ===== CaThi =====
 
     [HttpGet("ca-thi")]
-    [Authorize(Roles = $"{AuthRoles.Teacher},{AuthRoles.CampusAdmin},{AuthRoles.AcademicStaff},{AuthRoles.Admin},{AuthRoles.SuperAdmin}")]
+    [Authorize(Roles = "Teacher,giao_vien,CampusAdmin,AcademicStaff,nhan_vien,giao_vu,Admin,quan_tri,SuperAdmin,sieu_quan_tri")]
     public async Task<ActionResult<ApiResponseDto<PagedResultDto<CaThiDto>>>> GetCaThis(
         [FromQuery] CaThiQueryParameters parameters, CancellationToken ct)
     {
@@ -150,7 +153,7 @@ public class ExamController : ControllerBase
     }
 
     [HttpGet("ca-thi/{id:int}")]
-    [Authorize(Roles = $"{AuthRoles.Teacher},{AuthRoles.CampusAdmin},{AuthRoles.AcademicStaff},{AuthRoles.Admin},{AuthRoles.SuperAdmin}")]
+    [Authorize(Roles = "Teacher,giao_vien,CampusAdmin,AcademicStaff,nhan_vien,giao_vu,Admin,quan_tri,SuperAdmin,sieu_quan_tri")]
     public async Task<ActionResult<ApiResponseDto<CaThiDto>>> GetCaThiById(int id, CancellationToken ct)
     {
         var result = await _examService.GetCaThiByIdAsync(id, ct);
@@ -177,7 +180,7 @@ public class ExamController : ControllerBase
     }
 
     [HttpPost("ca-thi/{id:int}/end-session")]
-    [Authorize(Roles = $"{AuthRoles.Teacher},{AuthRoles.CampusAdmin},{AuthRoles.AcademicStaff},{AuthRoles.Admin},{AuthRoles.SuperAdmin}")]
+    [Authorize(Roles = "Teacher,giao_vien,CampusAdmin,AcademicStaff,nhan_vien,giao_vu,Admin,quan_tri,SuperAdmin,sieu_quan_tri")]
     public async Task<ActionResult<ApiResponseDto>> EndCaThiSession(int id, CancellationToken ct)
     {
         await _examService.EndCaThiAsync(id, ct);
@@ -185,7 +188,7 @@ public class ExamController : ControllerBase
     }
 
     [HttpGet("ca-thi/{id:int}/bien-ban-tong-hop")]
-    [Authorize(Roles = $"{AuthRoles.Teacher},{AuthRoles.CampusAdmin},{AuthRoles.AcademicStaff},{AuthRoles.Admin},{AuthRoles.SuperAdmin}")]
+    [Authorize(Roles = "Teacher,giao_vien,CampusAdmin,AcademicStaff,nhan_vien,giao_vu,Admin,quan_tri,SuperAdmin,sieu_quan_tri")]
     public async Task<ActionResult<ApiResponseDto<BienBanCaThiDto>>> GetBienBanCaThi(int id, CancellationToken ct)
     {
         var result = await _examService.GetBienBanCaThiAsync(id, ct);
@@ -195,7 +198,7 @@ public class ExamController : ControllerBase
     // ===== PhanCongGiamThi =====
 
     [HttpGet("ca-thi/{maCaThi:int}/giam-thi")]
-    [Authorize(Roles = $"{AuthRoles.Teacher},{AuthRoles.CampusAdmin},{AuthRoles.AcademicStaff},{AuthRoles.Admin},{AuthRoles.SuperAdmin}")]
+    [Authorize(Roles = "Teacher,giao_vien,CampusAdmin,AcademicStaff,nhan_vien,giao_vu,Admin,quan_tri,SuperAdmin,sieu_quan_tri")]
     public async Task<ActionResult<ApiResponseDto<IReadOnlyList<PhanCongGiamThiDto>>>> GetGiamThis(
         int maCaThi, CancellationToken ct)
     {
@@ -223,7 +226,7 @@ public class ExamController : ControllerBase
     // ===== ThiSinhCaThi =====
 
     [HttpGet("ca-thi/{maCaThi:int}/thi-sinh")]
-    [Authorize(Roles = $"{AuthRoles.Teacher},{AuthRoles.CampusAdmin},{AuthRoles.AcademicStaff},{AuthRoles.Admin},{AuthRoles.SuperAdmin}")]
+    [Authorize(Roles = "Teacher,giao_vien,CampusAdmin,AcademicStaff,nhan_vien,giao_vu,Admin,quan_tri,SuperAdmin,sieu_quan_tri")]
     public async Task<ActionResult<ApiResponseDto<IReadOnlyList<ThiSinhCaThiDto>>>> GetThiSinhs(
         int maCaThi, CancellationToken ct)
     {
@@ -243,7 +246,7 @@ public class ExamController : ControllerBase
     // ===== DiemDanhThi =====
 
     [HttpGet("ca-thi/{maCaThi:int}/diem-danh")]
-    [Authorize(Roles = $"{AuthRoles.Teacher},{AuthRoles.CampusAdmin},{AuthRoles.AcademicStaff},{AuthRoles.Admin},{AuthRoles.SuperAdmin}")]
+    [Authorize(Roles = "Teacher,giao_vien,CampusAdmin,AcademicStaff,nhan_vien,giao_vu,Admin,quan_tri,SuperAdmin,sieu_quan_tri")]
     public async Task<ActionResult<ApiResponseDto<IReadOnlyList<DiemDanhThiDto>>>> GetDiemDanh(
         int maCaThi, CancellationToken ct)
     {
@@ -252,7 +255,7 @@ public class ExamController : ControllerBase
     }
 
     [HttpPost("ca-thi/diem-danh")]
-    [Authorize(Roles = $"{AuthRoles.Teacher},{AuthRoles.CampusAdmin},{AuthRoles.AcademicStaff},{AuthRoles.Admin},{AuthRoles.SuperAdmin}")]
+    [Authorize(Roles = "Teacher,giao_vien,CampusAdmin,AcademicStaff,nhan_vien,giao_vu,Admin,quan_tri,SuperAdmin,sieu_quan_tri")]
     public async Task<ActionResult<ApiResponseDto<IReadOnlyList<DiemDanhThiDto>>>> BatchDiemDanh(
         BatchDiemDanhRequest request, CancellationToken ct)
     {
@@ -262,7 +265,7 @@ public class ExamController : ControllerBase
     }
 
     [HttpPost("ca-thi/{id:int}/start")]
-    [Authorize(Roles = $"{AuthRoles.Teacher},{AuthRoles.CampusAdmin},{AuthRoles.AcademicStaff},{AuthRoles.Admin},{AuthRoles.SuperAdmin}")]
+    [Authorize(Roles = "Teacher,giao_vien,CampusAdmin,AcademicStaff,nhan_vien,giao_vu,Admin,quan_tri,SuperAdmin,sieu_quan_tri")]
     public async Task<ActionResult<ApiResponseDto>> StartCaThi(int id, CancellationToken ct)
     {
         await _examService.StartCaThiAsync(id, ct);
@@ -270,7 +273,7 @@ public class ExamController : ControllerBase
     }
 
     [HttpPost("ca-thi/{id:int}/end")]
-    [Authorize(Roles = $"{AuthRoles.Teacher},{AuthRoles.CampusAdmin},{AuthRoles.AcademicStaff},{AuthRoles.Admin},{AuthRoles.SuperAdmin}")]
+    [Authorize(Roles = "Teacher,giao_vien,CampusAdmin,AcademicStaff,nhan_vien,giao_vu,Admin,quan_tri,SuperAdmin,sieu_quan_tri")]
     public async Task<ActionResult<ApiResponseDto>> EndCaThi(int id, CancellationToken ct)
     {
         await _examService.EndCaThiAsync(id, ct);
@@ -278,7 +281,7 @@ public class ExamController : ControllerBase
     }
 
     [HttpPost("ca-thi/{id:int}/suspend")]
-    [Authorize(Roles = $"{AuthRoles.Teacher},{AuthRoles.CampusAdmin},{AuthRoles.AcademicStaff},{AuthRoles.Admin},{AuthRoles.SuperAdmin}")]
+    [Authorize(Roles = "Teacher,giao_vien,CampusAdmin,AcademicStaff,nhan_vien,giao_vu,Admin,quan_tri,SuperAdmin,sieu_quan_tri")]
     public async Task<ActionResult<ApiResponseDto>> SuspendCaThi(int id, CancellationToken ct)
     {
         await _examService.SuspendCaThiAsync(id, ct);
@@ -288,7 +291,7 @@ public class ExamController : ControllerBase
     // ===== NhatKyViPhamThi =====
 
     [HttpGet("ca-thi/{maCaThi:int}/vi-pham")]
-    [Authorize(Roles = $"{AuthRoles.Teacher},{AuthRoles.CampusAdmin},{AuthRoles.AcademicStaff},{AuthRoles.Admin},{AuthRoles.SuperAdmin}")]
+    [Authorize(Roles = "Teacher,giao_vien,CampusAdmin,AcademicStaff,nhan_vien,giao_vu,Admin,quan_tri,SuperAdmin,sieu_quan_tri")]
     public async Task<ActionResult<ApiResponseDto<IReadOnlyList<NhatKyViPhamThiDto>>>> GetViPhams(
         int maCaThi, CancellationToken ct)
     {
@@ -297,7 +300,7 @@ public class ExamController : ControllerBase
     }
 
     [HttpPost("vi-pham")]
-    [Authorize(Roles = $"{AuthRoles.Teacher},{AuthRoles.CampusAdmin},{AuthRoles.AcademicStaff},{AuthRoles.Admin},{AuthRoles.SuperAdmin},{AuthRoles.Student}")]
+    [Authorize(Roles = "Teacher,giao_vien,CampusAdmin,AcademicStaff,nhan_vien,giao_vu,Admin,quan_tri,SuperAdmin,sieu_quan_tri,Student,hoc_sinh")]
     public async Task<ActionResult<ApiResponseDto<NhatKyViPhamThiDto>>> CreateViPham(
         CreateNhatKyViPhamRequest request, CancellationToken ct)
     {
@@ -308,7 +311,7 @@ public class ExamController : ControllerBase
     // ===== XuLyViPhamThi =====
 
     [HttpPost("vi-pham/xu-ly")]
-    [Authorize(Roles = $"{AuthRoles.Teacher},{AuthRoles.CampusAdmin},{AuthRoles.AcademicStaff},{AuthRoles.Admin},{AuthRoles.SuperAdmin}")]
+    [Authorize(Roles = "Teacher,giao_vien,CampusAdmin,AcademicStaff,nhan_vien,giao_vu,Admin,quan_tri,SuperAdmin,sieu_quan_tri")]
     public async Task<ActionResult<ApiResponseDto<XuLyViPhamThiDto>>> XuLyViPham(
         CreateXuLyViPhamRequest request, CancellationToken ct)
     {
@@ -320,7 +323,7 @@ public class ExamController : ControllerBase
     // ===== BienBanThi =====
 
     [HttpGet("ca-thi/{maCaThi:int}/bien-ban")]
-    [Authorize(Roles = $"{AuthRoles.Teacher},{AuthRoles.CampusAdmin},{AuthRoles.AcademicStaff},{AuthRoles.Admin},{AuthRoles.SuperAdmin}")]
+    [Authorize(Roles = "Teacher,giao_vien,CampusAdmin,AcademicStaff,nhan_vien,giao_vu,Admin,quan_tri,SuperAdmin,sieu_quan_tri")]
     public async Task<ActionResult<ApiResponseDto<IReadOnlyList<BienBanThiDto>>>> GetBienBans(
         int maCaThi, CancellationToken ct)
     {
@@ -329,7 +332,7 @@ public class ExamController : ControllerBase
     }
 
     [HttpPost("bien-ban")]
-    [Authorize(Roles = $"{AuthRoles.Teacher},{AuthRoles.CampusAdmin},{AuthRoles.AcademicStaff},{AuthRoles.Admin},{AuthRoles.SuperAdmin}")]
+    [Authorize(Roles = "Teacher,giao_vien,CampusAdmin,AcademicStaff,nhan_vien,giao_vu,Admin,quan_tri,SuperAdmin,sieu_quan_tri")]
     public async Task<ActionResult<ApiResponseDto<BienBanThiDto>>> CreateBienBan(
         CreateBienBanThiRequest request, CancellationToken ct)
     {
@@ -341,7 +344,7 @@ public class ExamController : ControllerBase
     // ===== Signature =====
 
     [HttpPost("signature/confirm")]
-    [Authorize(Roles = $"{AuthRoles.Teacher},{AuthRoles.CampusAdmin},{AuthRoles.AcademicStaff},{AuthRoles.Admin},{AuthRoles.SuperAdmin}")]
+    [Authorize(Roles = "Teacher,giao_vien,CampusAdmin,AcademicStaff,nhan_vien,giao_vu,Admin,quan_tri,SuperAdmin,sieu_quan_tri")]
     public async Task<ActionResult<ApiResponseDto<PhienThiDto>>> ConfirmSignature(
         ConfirmSignatureRequest request, CancellationToken ct)
     {
@@ -351,7 +354,7 @@ public class ExamController : ControllerBase
     }
 
     [HttpPost("signature/report-missing")]
-    [Authorize(Roles = $"{AuthRoles.Teacher},{AuthRoles.CampusAdmin},{AuthRoles.AcademicStaff},{AuthRoles.Admin},{AuthRoles.SuperAdmin}")]
+    [Authorize(Roles = "Teacher,giao_vien,CampusAdmin,AcademicStaff,nhan_vien,giao_vu,Admin,quan_tri,SuperAdmin,sieu_quan_tri")]
     public async Task<ActionResult<ApiResponseDto<PhienThiDto>>> ReportMissingSignature(
         ReportMissingSignatureRequest request, CancellationToken ct)
     {
@@ -361,7 +364,7 @@ public class ExamController : ControllerBase
     }
 
     [HttpGet("signature/reports/missing")]
-    [Authorize(Roles = $"{AuthRoles.Teacher},{AuthRoles.CampusAdmin},{AuthRoles.AcademicStaff},{AuthRoles.Admin},{AuthRoles.SuperAdmin}")]
+    [Authorize(Roles = "Teacher,giao_vien,CampusAdmin,AcademicStaff,nhan_vien,giao_vu,Admin,quan_tri,SuperAdmin,sieu_quan_tri")]
     public async Task<ActionResult<ApiResponseDto<IReadOnlyList<PhienThiDto>>>> GetMissingSignatureReports(
         [FromQuery] int? maCaThi, CancellationToken ct)
     {
@@ -370,7 +373,7 @@ public class ExamController : ControllerBase
     }
 
     [HttpGet("signature/reports/signed")]
-    [Authorize(Roles = $"{AuthRoles.Teacher},{AuthRoles.CampusAdmin},{AuthRoles.AcademicStaff},{AuthRoles.Admin},{AuthRoles.SuperAdmin}")]
+    [Authorize(Roles = "Teacher,giao_vien,CampusAdmin,AcademicStaff,nhan_vien,giao_vu,Admin,quan_tri,SuperAdmin,sieu_quan_tri")]
     public async Task<ActionResult<ApiResponseDto<IReadOnlyList<PhienThiDto>>>> GetSignedReports(
         [FromQuery] int? maCaThi, CancellationToken ct)
     {

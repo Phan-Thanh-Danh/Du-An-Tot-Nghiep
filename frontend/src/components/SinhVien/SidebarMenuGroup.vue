@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import * as LucideIcons from 'lucide-vue-next'
 import SidebarMenuItem from './SidebarMenuItem.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps({
   group: { type: Object, required: true },
@@ -10,14 +11,26 @@ const props = defineProps({
 })
 
 const route = useRoute()
+const authStore = useAuthStore()
+
+const visibleChildren = computed(() => {
+  if (!props.group.children) return []
+  return props.group.children.filter(c => !c.permission || authStore.hasPermission(c.permission))
+})
+
+const isGroupVisible = computed(() => {
+  if (props.group.permission && !authStore.hasPermission(props.group.permission)) return false
+  if (props.group.children && props.group.children.length > 0) return visibleChildren.value.length > 0
+  return true
+})
 
 const GroupIcon = computed(() => LucideIcons[props.group.icon] || LucideIcons.Circle)
-const hasChildren = computed(() => props.group.children && props.group.children.length > 0)
+const hasChildren = computed(() => visibleChildren.value.length > 0)
 const isDirectRoute = computed(() => !hasChildren.value && !!props.group.route)
 
 const isGroupActive = computed(() => {
   if (isDirectRoute.value) return route.path === props.group.route || route.path.startsWith(props.group.route + '/')
-  return props.group.children?.some(
+  return visibleChildren.value.some(
     (c) => route.path === c.route || route.path.startsWith(c.route + '/'),
   )
 })
@@ -133,7 +146,7 @@ watch(() => props.collapsed, () => {
 </script>
 
 <template>
-  <div class="relative w-full">
+  <div v-if="isGroupVisible" class="relative w-full">
     <!-- TRƯỜNG HỢP: DASHBOARD -->
     <SidebarMenuItem
       v-if="isDirectRoute"
@@ -190,7 +203,7 @@ watch(() => props.collapsed, () => {
       >
         <div class="border-card ml-3 w-[calc(100%-0.75rem)] min-h-0 space-y-0.5 border-l pl-2">
           <SidebarMenuItem
-            v-for="child in group.children"
+            v-for="child in visibleChildren"
             :key="child.id"
             :item="child"
             :collapsed="false"
@@ -222,7 +235,7 @@ watch(() => props.collapsed, () => {
 
             <div class="space-y-0.5">
               <SidebarMenuItem
-                v-for="child in group.children"
+                v-for="child in visibleChildren"
                 :key="child.id"
                 :item="child"
                 :collapsed="false"

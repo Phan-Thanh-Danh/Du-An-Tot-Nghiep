@@ -10,6 +10,8 @@ import {
   Search,
   Send,
   XCircle,
+  Lock,
+  AlertCircle
 } from 'lucide-vue-next'
 
 import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
@@ -609,6 +611,10 @@ function mapApplication(item) {
 }
 
 async function loadApplications() {
+  if (!authStore.hasPermission('requests.read')) {
+    error.value = 'Tài khoản của bạn hiện không có quyền xem và sử dụng tính năng đơn từ.'
+    return
+  }
   loading.value = true
   error.value = ''
   try {
@@ -649,12 +655,16 @@ onMounted(loadApplications)
           <p>Quản lý bản nháp, đơn đã nộp, yêu cầu bổ sung và tiến độ xử lý.</p>
         </div>
       </div>
-      <GlassButton variant="primary" @click="startCreate">
+      <GlassButton v-if="authStore.hasPermission('requests.create')" variant="primary" @click="startCreate">
         <template #leading>
           <FilePenLine :size="16" />
         </template>
         Tạo đơn mới
       </GlassButton>
+      <div v-else class="px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 text-xs font-bold flex items-center gap-2" title="Quyền tạo đơn từ đã được BGH điều chỉnh">
+        <Lock :size="14" />
+        <span>Tạo đơn đang tạm khóa</span>
+      </div>
     </GlassPanel>
 
     <section class="summary-grid">
@@ -720,7 +730,7 @@ onMounted(loadApplications)
           title="Bạn chưa có đơn từ nào"
           description="Tạo đơn mới để gửi yêu cầu học vụ đến nhà trường."
         >
-          <GlassButton variant="primary" @click="startCreate">Tạo đơn mới</GlassButton>
+          <GlassButton v-if="authStore.hasPermission('requests.create')" variant="primary" @click="startCreate">Tạo đơn mới</GlassButton>
         </EmptyState>
 
         <button

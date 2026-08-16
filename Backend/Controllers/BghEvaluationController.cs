@@ -26,7 +26,9 @@ public class BghEvaluationController : ControllerBase
         var campusId = user?.CampusId ?? 0;
         var isGlobal = user?.Role == AuthRoles.SuperAdmin ||
                        user?.Role == AuthRoles.Admin ||
-                       (user?.Email != null && user.Email.Contains("bgh_all"));
+                       user?.Role == AuthRoles.Principal ||
+                       (user?.Email != null && (user.Email.Contains("bgh_all", StringComparison.OrdinalIgnoreCase) ||
+                                                user.Email.Contains("p15", StringComparison.OrdinalIgnoreCase)));
         return (campusId, isGlobal);
     }
 

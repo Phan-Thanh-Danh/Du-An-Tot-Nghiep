@@ -145,7 +145,7 @@ export const teacherApi = {
     return apiRequest(`/api/exam/ca-thi/${id}/start`, { method: 'POST' })
   },
 
-  endExamSession_old(id) {
+  endExamSession(id) {
     return apiRequest(`/api/exam/ca-thi/${id}/end`, { method: 'POST' })
   },
 
@@ -157,22 +157,45 @@ export const teacherApi = {
     const rawRes = await apiRequest(`/api/exam/ca-thi/${examId}/thi-sinh`)
     const res = unwrapApiData(rawRes)
     let items = Array.isArray(res) ? res : (res?.items || [])
-    
+
+    let attendanceMap = {}
+    try {
+      const attRes = await apiRequest(`/api/exam/ca-thi/${examId}/diem-danh`)
+      const attData = unwrapApiData(attRes)
+      const attItems = Array.isArray(attData) ? attData : (attData?.items || [])
+      attItems.forEach(a => {
+        if (a && a.maHocSinh) {
+          attendanceMap[a.maHocSinh] = a.trangThaiDiemDanh
+        }
+      })
+    } catch {
+      // Bỏ qua lỗi nếu endpoint điểm danh chưa có dữ liệu
+    }
+
     return items.map(c => {
-      let examStatus = 'in_progress'
+      let examStatus = 'not_started'
       const ttdt = (c.trangThaiDuThi || c.trangThai || '').toString().toLowerCase()
       if (['da_nop', 'submitted', 'da_nop_bai', 'da_ket_thuc', 'completed'].includes(ttdt)) examStatus = 'submitted'
       else if (['dinh_chi', 'suspended'].includes(ttdt)) examStatus = 'suspended'
+      else if (['dang_thi', 'in_progress', 'dang_lam'].includes(ttdt)) examStatus = 'in_progress'
+      else if (['vang_thi', 'absent'].includes(ttdt)) examStatus = 'absent'
       else if (['chua_bat_dau', 'chua_thi'].includes(ttdt)) examStatus = 'not_started'
-      
+
+      const rawAtt = attendanceMap[c.maHocSinh]
+      let attStatus = 'not_checked'
+      if (rawAtt === 'co_mat' || rawAtt === 'present') attStatus = 'present'
+      else if (rawAtt === 'mien_thi' || rawAtt === 'exempted') attStatus = 'exempted'
+      else if (rawAtt === 'vang_mat' || rawAtt === 'absent') attStatus = 'absent'
+      else if (examStatus === 'in_progress' || examStatus === 'submitted') attStatus = 'present'
+
       return {
         id: c.maThiSinhCaThi || c.maHocSinh,
         studentId: c.maHocSinh,
         studentCode: (c.email || c.maHocSinh || '').toString().split('@')[0],
         name: c.tenHocSinh || 'Thí sinh',
-        attendanceStatus: 'present', // Assume present for proctoring mockup if they are in the list
-        preflightStatus: 'pass',
-        streamStatus: examStatus === 'in_progress' ? 'streaming' : (examStatus === 'submitted' ? 'stopped' : 'waiting'),
+        attendanceStatus: attStatus,
+        preflightStatus: 'not_checked',
+        streamStatus: 'waiting', // Trạng thái stream chỉ chuyển sang 'streaming' khi có luồng WebRTC/SignalR xác nhận
         examStatus: examStatus,
         score: c.diemSo !== undefined && c.diemSo !== null ? c.diemSo : null,
         logs: []
@@ -550,7 +573,7 @@ export const teacherApi = {
 
   // ── Teacher Attendance History ──
 
-  getAttendanceHistory(params = {}) {
+    getAttendanceHistory(params = {}) {
     const query = new URLSearchParams()
     if (params.fromDate) query.append('fromDate', params.fromDate)
     if (params.toDate) query.append('toDate', params.toDate)
@@ -559,6 +582,21 @@ export const teacherApi = {
     if (params.pageSize) query.append('pageSize', params.pageSize)
     const qs = query.toString()
     return apiRequest(`/api/teacher/attendance/history${qs ? '?' + qs : ''}`)
+  },
+
+  getUnlockRequests(params = {}) {
+    const query = new URLSearchParams()
+    if (params.pageIndex) query.append('pageIndex', params.pageIndex)
+    if (params.pageSize) query.append('pageSize', params.pageSize)
+    const qs = query.toString()
+    return apiRequest(`/api/teacher/attendance/unlock-requests${qs ? '?' + qs : ''}`)
+  },
+
+  createUnlockRequest(sessionId, payload) {
+    return apiRequest(`/api/buoi-hoc/${sessionId}/attendance/unlock-requests`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    })
   },
 
   // ── Teacher Exam Results ──
@@ -598,6 +636,44 @@ export const teacherApi = {
     return unwrapApiData(await apiRequest(`/api/teacher/teaching-preferences/${maHocKy}/submit`, {
       method: 'POST',
       body: JSON.stringify(data)
+    }))
+  },
+
+  // ── Teacher Subjects & Lessons Detail ──
+  async getTeacherSubjects(keyword = '') {
+    const qs = keyword ? `?keyword=${encodeURIComponent(keyword)}` : ''
+    return unwrapApiData(await apiRequest(`/api/teacher/subjects${qs}`))
+  },
+
+  async getTeacherSubjectDetail(subjectId) {
+    return unwrapApiData(await apiRequest(`/api/teacher/subjects/${subjectId}`))
+  },
+
+  async getSubjectLessonsDetail(subjectId) {
+    return unwrapApiData(await apiRequest(`/api/teacher/subjects/${subjectId}`))
+  },
+
+  async toggleLessonSeek(lessonId) {
+    return unwrapApiData(await apiRequest(`/api/teacher/lessons/${lessonId}/toggle-seek`, {
+      method: 'POST'
+    }))
+  },
+
+  async toggleSubjectSeekAll(subjectId, lockAll = null) {
+    return unwrapApiData(await apiRequest(`/api/teacher/subjects/${subjectId}/toggle-seek-all`, {
+      method: 'POST',
+      body: JSON.stringify(lockAll !== null ? { lockAll } : {})
+    }))
+  },
+
+  async getSubjectQuestionBank(subjectId) {
+    return unwrapApiData(await apiRequest(`/api/teacher/subjects/${subjectId}/question-bank`))
+  },
+
+  async addQuizQuestionToLesson(lessonId, questionId) {
+    return unwrapApiData(await apiRequest(`/api/teacher/lessons/${lessonId}/add-quiz-question`, {
+      method: 'POST',
+      body: JSON.stringify({ questionId })
     }))
   }
 }

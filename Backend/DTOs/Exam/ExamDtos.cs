@@ -108,6 +108,12 @@ public class CaThiDto
     public string? GhiChu { get; set; }
     public int SoThiSinh { get; set; }
     public int SoGiamThi { get; set; }
+    public int TongThiSinh { get; set; }
+    public int SoThiSinhCoMat { get; set; }
+    public int SoThiSinhDangLamBai { get; set; }
+    public int SoThiSinhDaNop { get; set; }
+    public int SoThiSinhViPham { get; set; }
+    public List<string> GiamThis { get; set; } = [];
 }
 
 public class CreateCaThiRequest

@@ -92,10 +92,10 @@ function generateDefaultPermissions(code) {
       perms[k] = ['read', 'create', 'update', 'delete']
     })
   } else if (c.includes('giang_vien') || c.includes('teacher') || c.includes('giao_vien')) {
-    // Giảng viên
+    // Giảng viên: Không cấp quyền tạo môn, tạo lịch hay tạo ngân hàng đề (thuộc Giáo vụ)
     perms.training = ['read']
-    perms.exams = ['read', 'create', 'update']
-    perms.requests = ['read', 'create']
+    perms.exams = ['read', 'update']
+    perms.requests = ['read', 'create', 'update']
     perms.reports = ['read']
   } else if (c.includes('sinh_vien') || c.includes('student') || c.includes('hoc_sinh')) {
     // Sinh viên

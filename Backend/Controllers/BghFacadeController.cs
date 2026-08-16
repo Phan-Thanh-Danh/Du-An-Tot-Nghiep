@@ -1,15 +1,18 @@
 using Backend.Constants;
 using Backend.Data;
+using Backend.DTOs.Auth;
+using Backend.DTOs.Rbac;
+using Backend.Models;
+using Backend.Services.Bgh;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Backend.Services.Bgh;
 
 namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/bgh")]
-[Authorize(Roles = AuthRoles.Principal + "," + AuthRoles.SuperAdmin + "," + AuthRoles.Admin)]
+[Authorize(Roles = AuthRoles.Principal + "," + AuthRoles.SuperAdmin + "," + AuthRoles.Admin + ",hieu_truong,sieu_quan_tri,quan_tri")]
 public class BghFacadeController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
@@ -27,7 +30,9 @@ public class BghFacadeController : ControllerBase
         var campusId = user?.CampusId ?? 0;
         var isGlobal = user?.Role == AuthRoles.SuperAdmin ||
                        user?.Role == AuthRoles.Admin ||
-                       (user?.Email != null && user.Email.Contains("bgh_all"));
+                       user?.Role == AuthRoles.Principal ||
+                       (user?.Email != null && (user.Email.Contains("bgh_all", StringComparison.OrdinalIgnoreCase) ||
+                                                user.Email.Contains("p15", StringComparison.OrdinalIgnoreCase)));
         return (campusId, isGlobal);
     }
 
@@ -312,7 +317,8 @@ public class BghFacadeController : ControllerBase
         [FromQuery] int pageSize = 100,
         [FromQuery] string? keyword = null,
         [FromQuery(Name = "role")] string? roleCode = null,
-        [FromQuery] string? status = null)
+        [FromQuery] string? status = null,
+        [FromQuery] int? maDonVi = null)
     {
         var (campusId, isGlobal) = GetUserScope();
         pageIndex = Math.Max(pageIndex, 1);
@@ -324,7 +330,7 @@ public class BghFacadeController : ControllerBase
                 on user.MaDonVi equals organization.MaDonVi
             join role in _db.VaiTros.AsNoTracking()
                 on user.VaiTroChinh equals role.MaCodeVaiTro
-            where isGlobal || user.MaDonVi == campusId
+            where isGlobal || user.MaDonVi == campusId || organization.MaDonViCha == campusId
             select new
             {
                 user.MaNguoiDung,
@@ -338,6 +344,11 @@ public class BghFacadeController : ControllerBase
                 user.TrangThai,
                 user.NgayTao
             };
+
+        if (maDonVi.HasValue && maDonVi.Value > 0)
+        {
+            query = query.Where(x => x.MaDonVi == maDonVi.Value);
+        }
 
         if (!string.IsNullOrWhiteSpace(keyword))
         {
@@ -648,14 +659,243 @@ public class BghFacadeController : ControllerBase
     }
 
     [HttpGet("rbac/roles")]
-    [BghResponseCache(600)]
     public async Task<IActionResult> GetRoles()
     {
-        var data = await _db.VaiTros
+        var (donViId, isGlobal) = GetUserScope();
+
+        var roles = await _db.VaiTros
             .AsNoTracking()
-            .Select(x => new { Id = x.MaVaiTro, MaVaiTro = x.MaVaiTro, MaCode = x.MaCodeVaiTro, MaCodeVaiTro = x.MaCodeVaiTro, TenVaiTro = x.TenVaiTro })
             .ToListAsync();
+
+        var usersQuery = _db.NguoiDungs.AsNoTracking();
+        if (!isGlobal && donViId > 0)
+        {
+            usersQuery = usersQuery.Where(u => u.MaDonVi == donViId);
+        }
+
+        var userCounts = await usersQuery
+            .GroupBy(u => u.VaiTroChinh)
+            .Select(g => new { RoleCode = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(g => g.RoleCode, g => g.Count);
+
+        var data = roles.Select(x =>
+        {
+            userCounts.TryGetValue(x.MaCodeVaiTro, out int count);
+            return new
+            {
+                Id = x.MaVaiTro,
+                MaVaiTro = x.MaVaiTro,
+                MaCode = x.MaCodeVaiTro,
+                MaCodeVaiTro = x.MaCodeVaiTro,
+                TenVaiTro = x.TenVaiTro,
+                MemberCount = count
+            };
+        }).ToList();
+
         return Ok(new { data, message = "Success" });
     }
 
+    [HttpGet("rbac/roles/{roleCode}/members")]
+    public async Task<IActionResult> GetRoleMembers(string roleCode, [FromQuery] string? search = null, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    {
+        var (donViId, isGlobal) = GetUserScope();
+
+        var query = _db.NguoiDungs
+            .AsNoTracking()
+            .Where(u => u.VaiTroChinh == roleCode);
+
+        if (!isGlobal && donViId > 0)
+        {
+            query = query.Where(u => u.MaDonVi == donViId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim().ToLower();
+            query = query.Where(u => u.HoTen.ToLower().Contains(s) || u.Email.ToLower().Contains(s));
+        }
+
+        var total = await query.CountAsync();
+        var items = await query
+            .OrderBy(u => u.MaNguoiDung)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(u => new
+            {
+                Id = u.MaNguoiDung,
+                Name = u.HoTen,
+                Email = u.Email,
+                Role = u.VaiTroChinh,
+                Status = u.TrangThai,
+                CreatedAt = u.NgayTao
+            })
+            .ToListAsync();
+
+        return Ok(new { data = new { items, total, page, pageSize }, message = "Success" });
+    }
+
+    [HttpGet("rbac/permissions")]
+    public async Task<IActionResult> GetPermissionsCatalog()
+    {
+        var permissions = await _db.QuyenHans
+            .AsNoTracking()
+            .OrderBy(p => p.MaQuyenHan)
+            .ToListAsync();
+
+        var moduleNameMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["training"] = "Đào tạo & Khung chương trình",
+            ["schedules"] = "Thời khóa biểu & Lịch học",
+            ["exams"] = "Khảo thí & Điểm số",
+            ["requests"] = "Đơn từ & Học viên",
+            ["reports"] = "Báo cáo & Phân tích"
+        };
+
+        var grouped = permissions
+            .GroupBy(p => p.Module)
+            .Select(g => new ModulePermissionsDto
+            {
+                ModuleKey = g.Key,
+                ModuleName = moduleNameMap.GetValueOrDefault(g.Key, g.Key),
+                Permissions = g.Select(p => new PermissionItemDto
+                {
+                    Id = p.MaQuyenHan,
+                    Code = p.MaCode,
+                    Name = p.TenQuyenHan,
+                    Module = p.Module,
+                    Action = p.Action,
+                    Description = p.MoTa
+                }).ToList()
+            })
+            .ToList();
+
+        return Ok(new { data = grouped, message = "Success" });
+    }
+
+    [HttpGet("rbac/roles/{roleCode}/permissions")]
+    public async Task<IActionResult> GetRolePermissions(string roleCode)
+    {
+        var role = await _db.VaiTros
+            .AsNoTracking()
+            .FirstOrDefaultAsync(r => r.MaCodeVaiTro == roleCode);
+
+        if (role == null)
+            return NotFound(new { message = "Không tìm thấy vai trò", roleCode });
+
+        var permissionCodes = await _db.VaiTroQuyenHans
+            .AsNoTracking()
+            .Where(vp => vp.MaVaiTro == role.MaVaiTro && vp.QuyenHan != null)
+            .Select(vp => vp.QuyenHan!.MaCode)
+            .ToListAsync();
+
+        var result = new RolePermissionsDto
+        {
+            RoleId = role.MaVaiTro,
+            RoleCode = role.MaCodeVaiTro,
+            RoleName = role.TenVaiTro,
+            PermissionCodes = permissionCodes
+        };
+
+        return Ok(new { data = result, message = "Success" });
+    }
+
+    [HttpPut("rbac/roles/{roleCode}/permissions")]
+    public async Task<IActionResult> UpdateRolePermissions(string roleCode, [FromBody] UpdateRolePermissionsDto request)
+    {
+        var (campusId, isGlobal) = GetUserScope();
+        var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+
+        var role = await _db.VaiTros
+            .FirstOrDefaultAsync(r => r.MaCodeVaiTro == roleCode);
+
+        if (role == null)
+            return NotFound(new { message = "Không tìm thấy vai trò", roleCode });
+
+        if (roleCode.Equals("sieu_quan_tri", StringComparison.OrdinalIgnoreCase) ||
+            roleCode.Equals("quan_tri", StringComparison.OrdinalIgnoreCase))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = "BGH không có thẩm quyền chỉnh sửa quyền hạn của vai trò Quản trị hệ thống." });
+        }
+
+        var requestedCodes = request.PermissionCodes?.Distinct(StringComparer.OrdinalIgnoreCase).ToList() ?? new List<string>();
+
+        var matchedPermissions = await _db.QuyenHans
+            .Where(p => requestedCodes.Contains(p.MaCode))
+            .ToListAsync();
+
+        if (roleCode.Equals("hoc_sinh", StringComparison.OrdinalIgnoreCase) ||
+            roleCode.Equals("phu_huynh", StringComparison.OrdinalIgnoreCase))
+        {
+            var forbiddenCodes = matchedPermissions
+                .Where(p => p.Action != "read" && p.MaCode != "requests.create")
+                .Select(p => p.MaCode)
+                .ToList();
+
+            if (forbiddenCodes.Count > 0)
+            {
+                return BadRequest(new { message = $"Không thể gán quyền quản trị / phê duyệt ({string.Join(", ", forbiddenCodes)}) cho vai trò Sinh viên / Phụ huynh để đảm bảo an toàn học vụ." });
+            }
+        }
+        else if (roleCode.Equals("giao_vien", StringComparison.OrdinalIgnoreCase))
+        {
+            var sensitiveTeacherPerms = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "training.create", "training.update", "training.delete", "training.manage_curriculum",
+                "schedules.create", "schedules.update", "schedules.delete", "schedules.approve",
+                "exams.create", "exams.delete", "exams.unlock_grade",
+                "requests.delete", "reports.ai_analysis"
+            };
+
+            var forbiddenCodes = matchedPermissions
+                .Where(p => sensitiveTeacherPerms.Contains(p.MaCode))
+                .Select(p => p.MaCode)
+                .ToList();
+
+            if (forbiddenCodes.Count > 0)
+            {
+                return BadRequest(new { message = $"Không thể gán các quyền nhạy cảm ({string.Join(", ", forbiddenCodes)}) cho vai trò Giảng viên. Các quyền tạo/sửa môn học, tạo/xếp lịch học và tạo đề thi/ngân hàng câu hỏi thuộc thẩm quyền Cán bộ Giáo vụ & BGH." });
+            }
+        }
+
+        var existingRolePerms = await _db.VaiTroQuyenHans
+            .Where(vp => vp.MaVaiTro == role.MaVaiTro)
+            .ToListAsync();
+
+        _db.VaiTroQuyenHans.RemoveRange(existingRolePerms);
+
+        foreach (var perm in matchedPermissions)
+        {
+            _db.VaiTroQuyenHans.Add(new VaiTroQuyenHan
+            {
+                MaVaiTro = role.MaVaiTro,
+                MaQuyenHan = perm.MaQuyenHan,
+                NgayCap = DateTime.UtcNow,
+                NguoiCap = currentUser?.UserId
+            });
+        }
+
+        _db.NhatKyKiemToans.Add(new Models.NhatKyKiemToan
+        {
+            MaDonVi = campusId > 0 ? campusId : 3,
+            LoaiDoiTuong = "VaiTro",
+            MaDoiTuong = role.MaVaiTro.ToString(),
+            HanhDong = "UPDATE_ROLE_PERMISSIONS",
+            MoTa = $"BGH cập nhật {matchedPermissions.Count} quyền hạn cho vai trò {role.TenVaiTro} ({roleCode})",
+            NguoiThayDoi = currentUser?.UserId,
+            ThoiDiemThayDoi = DateTime.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+        _cache.RemoveByPrefix("bgh:");
+
+        var result = new RolePermissionsDto
+        {
+            RoleId = role.MaVaiTro,
+            RoleCode = role.MaCodeVaiTro,
+            RoleName = role.TenVaiTro,
+            PermissionCodes = matchedPermissions.Select(p => p.MaCode).ToList()
+        };
+
+        return Ok(new { data = result, message = "Đã cập nhật ma trận phân quyền thành công" });
+    }
 }

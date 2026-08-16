@@ -24,6 +24,7 @@ public class StudentSupportTicketsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<ApiResponseDto<object>>> GetTickets(CancellationToken ct)
     {
+        await EnsureHasPermissionAsync("requests.read", ct);
         var userId = GetCurrentUserId();
         var tickets = await _db.PhieuHoTros
             .Where(p => p.MaHocSinh == userId)
@@ -60,6 +61,7 @@ public class StudentSupportTicketsController : ControllerBase
     public async Task<ActionResult<ApiResponseDto<object>>> GetTicketDetail(
         int ticketId, CancellationToken ct)
     {
+        await EnsureHasPermissionAsync("requests.read", ct);
         var userId = GetCurrentUserId();
         var ticket = await _db.PhieuHoTros
             .Include(p => p.HocSinh)
@@ -101,6 +103,7 @@ public class StudentSupportTicketsController : ControllerBase
     public async Task<ActionResult<ApiResponseDto<object>>> CreateTicket(
         [FromBody] CreateSupportTicketRequest request, CancellationToken ct)
     {
+        await EnsureHasPermissionAsync("requests.create", ct);
         var userId = GetCurrentUserId();
         var ticket = new Models.PhieuHoTro
         {
@@ -129,6 +132,7 @@ public class StudentSupportTicketsController : ControllerBase
     public async Task<ActionResult<ApiResponseDto<object>>> SendMessage(
         int ticketId, [FromBody] SendTicketMessageRequest request, CancellationToken ct)
     {
+        await EnsureHasPermissionAsync("requests.create", ct);
         var userId = GetCurrentUserId();
         var ticket = await _db.PhieuHoTros
             .FirstOrDefaultAsync(p => p.MaPhieuHt == ticketId && p.MaHocSinh == userId, ct);
@@ -196,6 +200,26 @@ public class StudentSupportTicketsController : ControllerBase
         "da_dong" => "Closed",
         _ => "Open"
     };
+
+    private async Task EnsureHasPermissionAsync(string permissionCode, CancellationToken ct)
+    {
+        var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+        var roleCode = currentUser?.Role ?? "hoc_sinh";
+
+        if (roleCode == "SuperAdmin" || roleCode == "sieu_quan_tri" || roleCode == "Admin" || roleCode == "quan_tri")
+            return;
+
+        var hasPerm = await _db.VaiTroQuyenHans
+            .AsNoTracking()
+            .AnyAsync(vp => vp.VaiTro != null &&
+                           (vp.VaiTro.MaCodeVaiTro == roleCode || vp.VaiTro.MaCodeVaiTro == "hoc_sinh") &&
+                           vp.QuyenHan != null && vp.QuyenHan.MaCode == permissionCode, ct);
+
+        if (!hasPerm)
+        {
+            throw new ApiException(StatusCodes.Status403Forbidden, $"Vai trò của bạn chưa được cấp quyền '{permissionCode}' để thực hiện hành động này.");
+        }
+    }
 }
 
 public class CreateSupportTicketRequest

@@ -21,6 +21,7 @@ export const bghApi = {
     if (params.keyword) query.append('keyword', params.keyword)
     if (params.role) query.append('role', params.role)
     if (params.status) query.append('status', params.status)
+    if (params.maDonVi || params.organizationId) query.append('maDonVi', params.maDonVi || params.organizationId)
     const qs = query.toString()
     return get(`/api/bgh/users${qs ? '?' + qs : ''}`, SHORT, { force: true })
   },
@@ -35,6 +36,30 @@ export const bghApi = {
 
   getRoles() {
     return get('/api/bgh/rbac/roles', MASTER)
+  },
+
+  getRoleMembers(roleCode, params = {}) {
+    const query = new URLSearchParams()
+    if (params.search) query.append('search', params.search)
+    if (params.page) query.append('page', params.page)
+    if (params.pageSize) query.append('pageSize', params.pageSize)
+    const qs = query.toString()
+    return get(`/api/bgh/rbac/roles/${roleCode}/members${qs ? '?' + qs : ''}`)
+  },
+
+  getPermissionsCatalog() {
+    return get('/api/bgh/rbac/permissions', SHORT, { force: true })
+  },
+
+  getRolePermissions(roleCode) {
+    return get(`/api/bgh/rbac/roles/${roleCode}/permissions`, SHORT, { force: true })
+  },
+
+  updateRolePermissions(roleCode, payload) {
+    return apiRequest(`/api/bgh/rbac/roles/${roleCode}/permissions`, {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    })
   },
 
   getAuditLogs(params = {}) {
@@ -217,6 +242,21 @@ export const bghApi = {
 
   getEvaluationAiAnalysis() {
     return get('/api/bgh/evaluations/ai-analysis', REPORT)
+  },
+
+  importTeacherPersonnel(file, options = {}) {
+    const formData = new FormData()
+    formData.append('file', file)
+    if (options.dryRun !== undefined) {
+      formData.append('dryRun', options.dryRun)
+    }
+    if (options.defaultMaDonVi) {
+      formData.append('defaultMaDonVi', options.defaultMaDonVi)
+    }
+    return apiRequest('/api/bgh/teacher-personnel/import-excel', {
+      method: 'POST',
+      body: formData,
+    })
   },
 
   prefetch(path, policy = SHORT) {

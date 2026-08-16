@@ -1,6 +1,7 @@
 using Backend.Data;
 using Backend.DTOs.Auth;
 using Backend.DTOs.Common;
+using Backend.Exceptions;
 using Backend.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,7 +11,7 @@ namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/teacher")]
-[Authorize(Roles = "Teacher")]
+[Authorize(Roles = "Teacher,giao_vien")]
 public class TeacherRequestsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -20,9 +21,30 @@ public class TeacherRequestsController : ControllerBase
         _context = context;
     }
 
+    private async Task EnsureHasPermissionAsync(string permissionCode, CancellationToken ct = default)
+    {
+        var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+        var roleCode = currentUser?.Role ?? "giao_vien";
+
+        if (roleCode == "SuperAdmin" || roleCode == "sieu_quan_tri" || roleCode == "Admin" || roleCode == "quan_tri")
+            return;
+
+        var hasPerm = await _context.VaiTroQuyenHans
+            .AsNoTracking()
+            .AnyAsync(vp => vp.VaiTro != null &&
+                           (vp.VaiTro.MaCodeVaiTro == roleCode || vp.VaiTro.MaCodeVaiTro == "giao_vien") &&
+                           vp.QuyenHan != null && vp.QuyenHan.MaCode == permissionCode, ct);
+
+        if (!hasPerm)
+        {
+            throw new ApiException(StatusCodes.Status403Forbidden, $"Vai trò của bạn chưa được cấp quyền '{permissionCode}' để thực hiện hành động này.");
+        }
+    }
+
     [HttpGet("requests")]
     public async Task<ActionResult<ApiResponseDto<object>>> GetRequests()
     {
+        await EnsureHasPermissionAsync("requests.read");
         try
         {
             var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
@@ -63,6 +85,7 @@ public class TeacherRequestsController : ControllerBase
     [HttpPost("requests")]
     public async Task<ActionResult<ApiResponseDto<object>>> CreateRequest([FromBody] CreateRequestRequest request)
     {
+        await EnsureHasPermissionAsync("requests.create");
         try
         {
             var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
@@ -75,7 +98,7 @@ public class TeacherRequestsController : ControllerBase
                 TieuDe = request.Title,
                 LoaiDon = request.LoaiDon,
                 DuLieuBieuMau = request.NoiDung,
-                TrangThai = "cho_duyet",
+                TrangThai = "da_nop",
                 TrangThaiXuLyNghiepVu = "cho_xu_ly",
                 NgayTao = DateTime.UtcNow,
                 NgayCapNhat = DateTime.UtcNow
@@ -95,6 +118,7 @@ public class TeacherRequestsController : ControllerBase
     [HttpPost("requests/{id:int}/approve")]
     public async Task<ActionResult<ApiResponseDto<object>>> ApproveRequest(int id)
     {
+        await EnsureHasPermissionAsync("requests.process");
         try
         {
             var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
@@ -180,6 +204,7 @@ public class TeacherRequestsController : ControllerBase
     [HttpPost("requests/{id:int}/reject")]
     public async Task<ActionResult<ApiResponseDto<object>>> RejectRequest(int id, [FromBody] RejectRequestDto body)
     {
+        await EnsureHasPermissionAsync("requests.process");
         try
         {
             var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
@@ -209,6 +234,7 @@ public class TeacherRequestsController : ControllerBase
     [HttpGet("requests/history")]
     public async Task<ActionResult<ApiResponseDto<object>>> GetRequestHistory()
     {
+        await EnsureHasPermissionAsync("requests.read");
         try
         {
             var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
