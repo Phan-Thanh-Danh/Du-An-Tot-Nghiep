@@ -229,6 +229,8 @@ builder.Services.Configure<AttendanceAutomationOptions>(
 builder.Services.AddScoped<IAttendanceAutomationService, AttendanceAutomationService>();
 builder.Services.AddHostedService<AttendanceAutomationHostedService>();
 builder.Services.AddHostedService<QuizStatusAutomationHostedService>();
+builder.Services.AddSingleton<Backend.Services.Export.ExportQueueService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<Backend.Services.Export.ExportQueueService>());
 builder.Services.AddScoped<IAttendanceUnlockService, AttendanceUnlockService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IQuestionBankService, QuestionBankService>();

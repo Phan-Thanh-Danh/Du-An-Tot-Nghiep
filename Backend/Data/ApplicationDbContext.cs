@@ -122,6 +122,8 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<KhieuNaiKyLuat> KhieuNaiKyLuats => Set<KhieuNaiKyLuat>();
 
+    public DbSet<YeuCauXuatDuLieu> YeuCauXuatDuLieus => Set<YeuCauXuatDuLieu>();
+    
     // Smart Timetable entities
     public DbSet<ScheduleGenerationJob> ScheduleGenerationJobs => Set<ScheduleGenerationJob>();
     public DbSet<ScheduleDraftItem> ScheduleDraftItems => Set<ScheduleDraftItem>();

@@ -4,12 +4,15 @@
  * Export dữ liệu báo cáo — Form tạo yêu cầu, lịch sử export,
  * lịch export định kỳ. Module M18 Luồng 2.
  */
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import {
   FileDown, FileSpreadsheet, FileText, Clock, CheckCircle, XCircle,
   Loader2, Plus, RotateCcw, Filter, Download, RefreshCw, Calendar,
   Play, Pause, Trash2, AlertTriangle, Info, Settings
 } from 'lucide-vue-next'
+import { superAdminApi } from '@/services/superAdminApi'
+import { academicTermApi } from '@/services/academicTermApi'
+import { organizationApi } from '@/services/organizationService'
 
 // --- Toast ---
 const showToast = ref(false)
@@ -23,11 +26,17 @@ const triggerToast = (msg, type = 'success') => {
 }
 
 // --- KPI ---
-const kpiData = computed(() => ([
-  { label: 'Tổng đã xuất', value: '47', icon: FileDown, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-  { label: 'Đang xử lý', value: '2', icon: Loader2, color: 'text-amber-500', bg: 'bg-amber-500/10' },
-  { label: 'Lỗi gần nhất', value: '1', subValue: '2 ngày trước', icon: XCircle, color: 'text-rose-500', bg: 'bg-rose-500/10' },
-]))
+const kpiData = computed(() => {
+  const total = exportHistory.value.length
+  const completed = exportHistory.value.filter(i => i.status === 'completed').length
+  const processing = exportHistory.value.filter(i => i.status === 'processing' || i.status === 'pending').length
+  const failed = exportHistory.value.filter(i => i.status === 'failed').length
+  return [
+    { label: 'Đã xuất thành công', value: completed.toString(), subValue: `Tổng ${total} yêu cầu`, icon: FileDown, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+    { label: 'Đang xử lý', value: processing.toString(), icon: Loader2, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+    { label: 'Lỗi / Cần thử lại', value: failed.toString(), icon: XCircle, color: 'text-rose-500', bg: 'bg-rose-500/10' },
+  ]
+})
 
 // --- Export Form ---
 const reportTypes = ref([
@@ -37,52 +46,149 @@ const reportTypes = ref([
   { value: 'finance', label: 'Tài chính', icon: FileDown },
   { value: 'awards', label: 'Khen thưởng & Kỷ luật', icon: FileDown },
 ])
-const semesters = ref(['Spring 2026', 'Fall 2025', 'Summer 2025'])
-const campuses = ref(['Toàn hệ thống', 'Hà Nội', 'Hòa Lạc', 'TP.HCM', 'Đà Nẵng', 'Cần Thơ'])
+const semesters = ref([])
+const campuses = ref([])
 
 const formReportType = ref('gradebook')
-const formSemester = ref('Spring 2026')
-const formCampus = ref('Toàn hệ thống')
+const formSemester = ref('')
+const formCampus = ref('')
 const formFormat = ref('excel')
 const formScheduleEnabled = ref(false)
 const formFrequency = ref('weekly')
 
-const handleSubmitExport = () => {
+const handleSubmitExport = async () => {
   const typeName = reportTypes.value.find(t => t.value === formReportType.value)?.label || ''
-  const newExport = {
-    id: `RPT-${Date.now().toString(36).toUpperCase()}`,
-    type: formReportType.value,
-    typeName,
-    campus: formCampus.value,
-    semester: formSemester.value,
-    format: formFormat.value,
-    status: 'queued',
-    requestedAt: new Date().toLocaleString('vi-VN'),
-    fileUrl: null,
+  
+  try {
+    const payload = {
+      type: formReportType.value,
+      semester: formSemester.value,
+      campus: formCampus.value,
+      format: formFormat.value
+    }
+    
+    const response = await superAdminApi.createExportRequest(payload)
+    if (response.success) {
+      triggerToast(`Yêu cầu xuất "${typeName}" đã được gửi thành công.`)
+      // Auto reload after short delay
+      setTimeout(loadHistory, 1000)
+    } else {
+      triggerToast(response.message || 'Lỗi khi tạo yêu cầu', 'error')
+    }
+  } catch (err) {
+    triggerToast('Đã có lỗi xảy ra', 'error')
   }
-  exportHistory.value.unshift(newExport)
-  triggerToast(`Yêu cầu xuất "${typeName}" đã được gửi thành công.`)
-
-  // Simulate processing
-  setTimeout(() => {
-    newExport.status = 'processing'
-  }, 2000)
-  setTimeout(() => {
-    newExport.status = 'completed'
-    newExport.fileUrl = '#'
-  }, 5000)
 }
 
 // --- Export History ---
-const exportHistory = ref([
-  { id: 'RPT-A1B2C3', type: 'gradebook', typeName: 'Bảng điểm toàn kỳ', campus: 'Toàn hệ thống', semester: 'Spring 2026', format: 'excel', status: 'completed', requestedAt: '12/06/2026 09:30', fileUrl: '#' },
-  { id: 'RPT-D4E5F6', type: 'attendance', typeName: 'Chuyên cần', campus: 'Hòa Lạc', semester: 'Spring 2026', format: 'pdf', status: 'completed', requestedAt: '11/06/2026 14:15', fileUrl: '#' },
-  { id: 'RPT-G7H8I9', type: 'teacher_eval', typeName: 'Đánh giá giảng viên', campus: 'TP.HCM', semester: 'Fall 2025', format: 'excel', status: 'processing', requestedAt: '12/06/2026 10:00', fileUrl: null },
-  { id: 'RPT-J0K1L2', type: 'finance', typeName: 'Tài chính', campus: 'Đà Nẵng', semester: 'Spring 2026', format: 'pdf', status: 'queued', requestedAt: '12/06/2026 10:05', fileUrl: null },
-  { id: 'RPT-M3N4O5', type: 'awards', typeName: 'Khen thưởng & Kỷ luật', campus: 'Hà Nội', semester: 'Spring 2026', format: 'excel', status: 'failed', requestedAt: '10/06/2026 08:45', fileUrl: null },
-  { id: 'RPT-P6Q7R8', type: 'gradebook', typeName: 'Bảng điểm toàn kỳ', campus: 'Toàn hệ thống', semester: 'Fall 2025', format: 'pdf', status: 'completed', requestedAt: '09/06/2026 16:20', fileUrl: '#' },
-  { id: 'RPT-S9T0U1', type: 'attendance', typeName: 'Chuyên cần', campus: 'Toàn hệ thống', semester: 'Fall 2025', format: 'excel', status: 'completed', requestedAt: '08/06/2026 11:00', fileUrl: '#' },
-])
+const exportHistory = ref([])
+const isHistoryLoading = ref(false)
+
+const loadHistory = async () => {
+  try {
+    isHistoryLoading.value = true
+    const response = await superAdminApi.getExportHistory()
+    if (response.success) {
+      exportHistory.value = response.data.map(item => ({
+        id: item.maYeuCau,
+        type: item.loaiBaoCao,
+        typeName: item.tenBaoCao,
+        campus: item.capDonVi,
+        semester: item.hocKy,
+        format: item.dinhDang,
+        status: item.trangThai,
+        requestedAt: new Date(item.thoiGianYeuCau).toLocaleString('vi-VN'),
+        fileUrl: item.trangThai === 'completed' ? superAdminApi.getExportDownloadUrl(item.maYeuCau) : null
+      }))
+    }
+  } catch (err) {
+    console.error(err)
+  } finally {
+    isHistoryLoading.value = false
+  }
+}
+
+const loadFilters = async () => {
+  try {
+    // 1. Load academic terms
+    try {
+      const termRes = await academicTermApi.list({ pageSize: 100 })
+      const termList = Array.isArray(termRes) ? termRes : (termRes?.items || termRes?.data || [])
+      if (termList.length > 0) {
+        semesters.value = termList.map(t => ({
+          id: t.maHocKy ?? t.MaHocKy ?? t.id,
+          name: t.tenHocKy ?? t.TenHocKy ?? t.name ?? t.maCodeHocKy ?? `Học kỳ ${t.maHocKy}`
+        }))
+      } else {
+        semesters.value = [
+          { id: 'Spring 2026', name: 'Spring 2026' },
+          { id: 'Fall 2025', name: 'Fall 2025' },
+          { id: 'Summer 2025', name: 'Summer 2025' }
+        ]
+      }
+    } catch (e) {
+      console.warn('Could not load terms, fallback to defaults:', e)
+      semesters.value = [
+        { id: 'Spring 2026', name: 'Spring 2026' },
+        { id: 'Fall 2025', name: 'Fall 2025' },
+        { id: 'Summer 2025', name: 'Summer 2025' }
+      ]
+    }
+    if (semesters.value.length > 0 && !formSemester.value) {
+      formSemester.value = semesters.value[0].name
+    }
+
+    // 2. Load campuses / organizations
+    try {
+      const orgRes = await organizationApi.getAll()
+      const orgList = Array.isArray(orgRes) ? orgRes : (orgRes?.data || orgRes?.Data || [])
+      const campusItems = orgList.filter(o => {
+        const level = (o.organizationLevel || o.OrganizationLevel || '').toLowerCase()
+        const type = (o.type || o.Type || '').toLowerCase()
+        return level === 'campus' || type === 'co_so' || (!level && !type)
+      })
+      const listToUse = campusItems.length > 0 ? campusItems : orgList
+      
+      const mapped = listToUse.map(c => ({
+        id: c.id ?? c.Id ?? c.maDonVi,
+        name: c.name ?? c.Name ?? c.tenDonVi ?? `Cơ sở ${c.id}`
+      }))
+
+      campuses.value = [
+        { id: 'all', name: 'Toàn hệ thống' },
+        ...mapped.filter(m => m.name !== 'Toàn hệ thống')
+      ]
+    } catch (e) {
+      console.warn('Could not load organizations, fallback to defaults:', e)
+      campuses.value = [
+        { id: 'all', name: 'Toàn hệ thống' },
+        { id: 'hn', name: 'Hà Nội' },
+        { id: 'hl', name: 'Hòa Lạc' },
+        { id: 'hcm', name: 'TP.HCM' },
+        { id: 'dn', name: 'Đà Nẵng' },
+        { id: 'ct', name: 'Cần Thơ' }
+      ]
+    }
+    if (campuses.value.length > 0 && !formCampus.value) {
+      formCampus.value = campuses.value[0].name
+    }
+  } catch (err) {
+    console.error('Lỗi tải bộ lọc', err)
+  }
+}
+
+// Polling every 5 seconds
+let pollInterval
+onMounted(() => {
+  loadHistory()
+  loadFilters()
+  pollInterval = setInterval(() => {
+    // Only reload if there are pending items
+    if (exportHistory.value.some(r => r.status === 'queued' || r.status === 'processing')) {
+      loadHistory()
+    }
+  }, 5000)
+})
 
 // --- Scheduled Exports ---
 const scheduledExports = ref([
@@ -96,15 +202,42 @@ const toggleSchedule = (sch) => {
   triggerToast(`Lịch "${sch.name}" đã ${sch.status === 'active' ? 'bật' : 'tạm dừng'}.`, sch.status === 'active' ? 'success' : 'info')
 }
 
-const retryExport = (exp) => {
-  exp.status = 'queued'
-  triggerToast(`Đang thử lại xuất "${exp.typeName}"...`)
-  setTimeout(() => { exp.status = 'processing' }, 1500)
-  setTimeout(() => {
-    exp.status = 'completed'
-    exp.fileUrl = '#'
-    triggerToast(`"${exp.typeName}" đã xuất thành công!`)
-  }, 4000)
+const retryExport = async (exp) => {
+  try {
+    triggerToast(`Đang thử lại xuất "${exp.typeName}"...`)
+    const payload = {
+      type: exp.type,
+      semester: exp.semester,
+      campus: exp.campus,
+      format: exp.format
+    }
+    const response = await superAdminApi.createExportRequest(payload)
+    if (response.success) {
+      triggerToast(`Yêu cầu thử lại đã được gửi vào hàng đợi.`)
+      setTimeout(loadHistory, 1000)
+    } else {
+      triggerToast(response.message || 'Lỗi khi thử lại xuất file', 'error')
+    }
+  } catch (err) {
+    triggerToast('Lỗi khi thử lại xuất file', 'error')
+  }
+}
+
+const downloadingId = ref(null)
+const handleDownload = async (exp) => {
+  try {
+    downloadingId.value = exp.id
+    triggerToast(`Đang chuẩn bị tải "${exp.typeName}"...`, 'info')
+    const ext = exp.format === 'pdf' ? 'pdf' : 'xlsx'
+    const fileName = `${(exp.typeName || 'BaoCao').replace(/\s+/g, '_')}_${exp.id}.${ext}`
+    await superAdminApi.downloadExportFile(exp.id, fileName)
+    triggerToast(`Tải file thành công!`, 'success')
+  } catch (err) {
+    console.error(err)
+    triggerToast(err.message || 'Lỗi khi tải file', 'error')
+  } finally {
+    downloadingId.value = null
+  }
 }
 
 // --- Helpers ---
@@ -196,14 +329,14 @@ const getFormatColor = (format) => format === 'excel' ? 'text-emerald-500' : 'te
           <div>
             <label class="text-xs text-label font-medium mb-1.5 block">Học kỳ</label>
             <select v-model="formSemester" class="lg-control text-sm w-full">
-              <option v-for="s in semesters" :key="s" :value="s">{{ s }}</option>
+              <option v-for="s in semesters" :key="s.id || s.name" :value="s.name">{{ s.name }}</option>
             </select>
           </div>
           <!-- Campus -->
           <div>
             <label class="text-xs text-label font-medium mb-1.5 block">Cơ sở (campus scope)</label>
             <select v-model="formCampus" class="lg-control text-sm w-full">
-              <option v-for="c in campuses" :key="c" :value="c">{{ c }}</option>
+              <option v-for="c in campuses" :key="c.id || c.name" :value="c.name">{{ c.name }}</option>
             </select>
           </div>
           <!-- Format -->
@@ -298,8 +431,15 @@ const getFormatColor = (format) => format === 'excel' ? 'text-emerald-500' : 'te
                 </td>
                 <td class="px-3 py-2.5 text-xs text-muted">{{ exp.requestedAt }}</td>
                 <td class="px-3 py-2.5 text-center">
-                  <button v-if="exp.status === 'completed'" class="text-xs text-link font-medium inline-flex items-center gap-1 hover:underline">
-                    <component :is="Download" :size="13" /> Tải về
+                  <button
+                    v-if="exp.status === 'completed'"
+                    @click="handleDownload(exp)"
+                    :disabled="downloadingId === exp.id"
+                    class="flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors disabled:opacity-50 mx-auto"
+                  >
+                    <Loader2 v-if="downloadingId === exp.id" :size="14" class="animate-spin" />
+                    <Download v-else :size="14" />
+                    Tải về
                   </button>
                   <button v-else-if="exp.status === 'failed'" @click="retryExport(exp)" class="text-xs text-amber-500 font-medium inline-flex items-center gap-1 hover:underline">
                     <component :is="RefreshCw" :size="13" /> Thử lại

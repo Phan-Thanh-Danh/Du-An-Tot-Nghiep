@@ -1321,74 +1321,89 @@ public class BghAcademicController : ControllerBase
         }));
     }
     [HttpGet("academic/campus-comparison")]
+    [BghResponseCache(300)]
     public async Task<ActionResult<ApiResponseDto<List<CampusComparisonDto>>>> GetCampusComparison(CancellationToken cancellationToken)
     {
-        var cacheKey = "bgh:campus-comparison:v2";
+        var cacheKey = "bgh:campus-comparison:v3";
         var cachedData = await _cache.GetOrCreateAsync(
             cacheKey,
-            TimeSpan.FromHours(1),
+            TimeSpan.FromMinutes(30),
             async ct =>
             {
+                // Include both co_so and co_so_con campuses
                 var campuses = await _db.DonVis
-                    .Where(d => d.CapDonVi == "co_so" && d.ConHoatDong)
-                    .ToListAsync(cancellationToken);
+                    .Where(d => (d.CapDonVi == "co_so" || d.CapDonVi == "co_so_con") && d.ConHoatDong)
+                    .OrderBy(d => d.TenDonVi)
+                    .ToListAsync(ct);
 
-                var results = new List<CampusComparisonDto>();
-                foreach (var campus in campuses)
+                // Run all per-campus queries in parallel for performance
+                var tasks = campuses.Select(async campus =>
                 {
-                    // Students
-                    var students = await _db.NguoiDungs
-                        .Where(u => u.MaDonVi == campus.MaDonVi && u.VaiTroChinh == "hoc_sinh" && u.TrangThai == "hoat_dong")
-                        .CountAsync(cancellationToken);
+                    var campusId = campus.MaDonVi;
 
-                    // GPA & PassRate
-                    var diemSos = await _db.DiemSos
-                        .Where(d => d.MaDonVi == campus.MaDonVi && d.TrangThai == "chinh_thuc")
-                        .Select(d => d.GpaMonHoc)
-                        .ToListAsync(cancellationToken);
-                    
-                    decimal gpa = diemSos.Any() ? Math.Round(diemSos.Average(), 2) : 0;
-                    decimal passRate = diemSos.Any() ? Math.Round((decimal)diemSos.Count(d => d >= 4) / diemSos.Count * 100, 1) : 0;
+                    // Students — active hoc_sinh in campus
+                    var studentsTask = _db.NguoiDungs
+                        .Where(u => u.MaDonVi == campusId && u.VaiTroChinh == "hoc_sinh")
+                        .CountAsync(ct);
 
-                    // AttendanceRate
-                    var diemDanhs = await _db.DiemDanhs
-                        .Where(d => d.MaDonVi == campus.MaDonVi)
-                        .Select(d => d.TrangThai)
-                        .ToListAsync(cancellationToken);
-                    
-                    decimal attRate = diemDanhs.Any() ? Math.Round((decimal)diemDanhs.Count(d => d != "vang_mat") / diemDanhs.Count * 100, 1) : 0;
+                    // GPA & PassRate — all grades (no TrangThai filter, matches other bgh endpoints)
+                    var gradeStatsTask = _db.DiemSos
+                        .Where(d => d.MaDonVi == campusId)
+                        .GroupBy(_ => 1)
+                        .Select(g => new
+                        {
+                            Avg = g.Average(d => (decimal?)d.GpaMonHoc) ?? 0m,
+                            Total = g.Count(),
+                            Pass = g.Count(d => d.GpaMonHoc >= 4)
+                        })
+                        .FirstOrDefaultAsync(ct);
 
-                    // Revenue
-                    var hoadons = await _db.HoaDons
-                        .Where(h => h.MaDonVi == campus.MaDonVi && h.TrangThai == "da_thanh_toan")
-                        .Select(h => h.DaThanhToan)
-                        .ToListAsync(cancellationToken);
-                    
-                    decimal revenue = hoadons.Any() ? Math.Round(hoadons.Sum() / 1000000000m, 1) : 0; // Tỷ VNĐ
+                    // AttendanceRate — present = co_mat or di_muon, absent = vang or co_phep
+                    var attendanceStatsTask = _db.DiemDanhs
+                        .Where(d => d.MaDonVi == campusId)
+                        .GroupBy(_ => 1)
+                        .Select(g => new
+                        {
+                            Total = g.Count(),
+                            Present = g.Count(d => d.TrangThai == "co_mat" || d.TrangThai == "di_muon")
+                        })
+                        .FirstOrDefaultAsync(ct);
 
-                    // TeacherScore
-                    var teacherScores = await _db.DanhGiaGiaoViens
-                        .Include(dg => dg.GiaoVien)
-                        .Where(dg => dg.GiaoVien != null && dg.GiaoVien.MaDonVi == campus.MaDonVi)
-                        .Select(dg => dg.DiemSo)
-                        .ToListAsync(cancellationToken);
-                    
-                    decimal teacherScore = teacherScores.Any() ? Math.Round((decimal)teacherScores.Average(), 2) : 0;
+                    // Revenue — paid invoices in billion VND
+                    var revenueTask = _db.HoaDons
+                        .Where(h => h.MaDonVi == campusId && h.TrangThai == "da_thanh_toan")
+                        .SumAsync(h => (decimal?)h.DaThanhToan, ct);
 
-                    results.Add(new CampusComparisonDto
+                    // TeacherScore — avg rating of teachers in campus
+                    var teacherScoreTask = _db.DanhGiaGiaoViens
+                        .Where(dg => dg.GiaoVien != null && dg.GiaoVien.MaDonVi == campusId)
+                        .AverageAsync(dg => (decimal?)dg.DiemSo, ct);
+
+                    await Task.WhenAll(studentsTask, gradeStatsTask, attendanceStatsTask, revenueTask, teacherScoreTask);
+
+                    var gradeStats = await gradeStatsTask;
+                    var attStats = await attendanceStatsTask;
+                    var revenue = await revenueTask ?? 0m;
+                    var teacherScore = await teacherScoreTask ?? 0m;
+
+                    return new CampusComparisonDto
                     {
-                        Id = campus.MaDonVi.ToString(),
+                        Id = campusId.ToString(),
                         Name = campus.TenDonVi,
-                        Students = students,
-                        Gpa = gpa,
-                        PassRate = passRate,
-                        AttendanceRate = attRate,
-                        Revenue = revenue,
-                        TeacherScore = teacherScore
-                    });
-                }
+                        Students = await studentsTask,
+                        Gpa = gradeStats != null ? Math.Round(gradeStats.Avg, 2) : 0m,
+                        PassRate = gradeStats != null && gradeStats.Total > 0
+                            ? Math.Round((decimal)gradeStats.Pass / gradeStats.Total * 100, 1)
+                            : 0m,
+                        AttendanceRate = attStats != null && attStats.Total > 0
+                            ? Math.Round((decimal)attStats.Present / attStats.Total * 100, 1)
+                            : 0m,
+                        Revenue = Math.Round(revenue / 1_000_000_000m, 1),
+                        TeacherScore = Math.Round(teacherScore, 2)
+                    };
+                });
 
-                return results;
+                return (await Task.WhenAll(tasks)).ToList();
             });
 
         return Ok(ApiResponseDto<List<CampusComparisonDto>>.Ok(cachedData!));
