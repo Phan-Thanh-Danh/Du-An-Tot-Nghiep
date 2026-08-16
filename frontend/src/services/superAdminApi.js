@@ -81,7 +81,17 @@ export const superAdminApi = {
 
   // Notification Templates
   getNotificationTemplates(params = {}) {
-    const query = new URLSearchParams(params).toString()
+    const apiParams = {
+      PageIndex: params.PageIndex || 1,
+      PageSize: params.PageSize || 20
+    }
+    
+    if (params.SearchTerm) apiParams.Keyword = params.SearchTerm
+    if (params.Category) apiParams.LoaiThongBao = params.Category
+    if (params.Status === 'active') apiParams.DangHoatDong = true
+    if (params.Status === 'inactive') apiParams.DangHoatDong = false
+
+    const query = new URLSearchParams(apiParams).toString()
     return apiRequest(`/api/admin/notification-templates?${query}`)
   },
   getNotificationTemplateDetail(id) {
