@@ -5,6 +5,7 @@ using Backend.Models;
 using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
 using OfficeOpenXml.Style;
+using OfficeOpenXml.Drawing.Chart;
 
 namespace Backend.Services.Export
 {
@@ -162,6 +163,13 @@ namespace Backend.Services.Export
 
             int currentRow = headerRow + 1;
             int stt = 1;
+            
+            int passedCount = 0;
+            int failedCount = 0;
+            int score0_5 = 0;
+            int score5_7 = 0;
+            int score7_9 = 0;
+            int score9_10 = 0;
 
             if (data.Count == 0)
             {
@@ -179,6 +187,10 @@ namespace Backend.Services.Export
                     sheet.Cells[currentRow, 9].Value = 8.3;
                     sheet.Cells[currentRow, 10].Value = "Đạt";
                     sheet.Cells[currentRow, 10].Style.Font.Color.SetColor(Color.DarkGreen);
+                    
+                    passedCount++;
+                    score7_9++;
+                    
                     currentRow++;
                 }
             }
@@ -211,6 +223,12 @@ namespace Backend.Services.Export
                     sheet.Cells[currentRow, 10].Style.Font.Bold = true;
                     sheet.Cells[currentRow, 10].Style.Font.Color.SetColor(isPassed ? Color.FromArgb(22, 101, 52) : Color.FromArgb(153, 27, 27));
 
+                    if (isPassed) passedCount++; else failedCount++;
+                    if (item.GpaMonHoc < 5.0m) score0_5++;
+                    else if (item.GpaMonHoc < 7.0m) score5_7++;
+                    else if (item.GpaMonHoc < 9.0m) score7_9++;
+                    else score9_10++;
+
                     currentRow++;
                 }
             }
@@ -226,6 +244,52 @@ namespace Backend.Services.Export
             }
 
             sheet.Cells.AutoFitColumns();
+            sheet.Column(1).Width = 8; // Force STT column width
+
+            // Summary Table
+            sheet.Cells[5, 12].Value = "Thống kê Kết quả";
+            sheet.Cells[5, 13].Value = "Số lượng";
+            sheet.Cells[5, 12, 5, 13].Style.Font.Bold = true;
+            sheet.Cells[5, 12, 5, 13].Style.Fill.PatternType = ExcelFillStyle.Solid;
+            sheet.Cells[5, 12, 5, 13].Style.Fill.BackgroundColor.SetColor(Color.FromArgb(37, 99, 235));
+            sheet.Cells[5, 12, 5, 13].Style.Font.Color.SetColor(Color.White);
+            
+            sheet.Cells[6, 12].Value = "Đạt"; sheet.Cells[6, 13].Value = passedCount;
+            sheet.Cells[7, 12].Value = "Học lại"; sheet.Cells[7, 13].Value = failedCount;
+
+            sheet.Cells[9, 12].Value = "Phổ điểm GPA";
+            sheet.Cells[9, 13].Value = "Số lượng";
+            sheet.Cells[9, 12, 9, 13].Style.Font.Bold = true;
+            sheet.Cells[9, 12, 9, 13].Style.Fill.PatternType = ExcelFillStyle.Solid;
+            sheet.Cells[9, 12, 9, 13].Style.Fill.BackgroundColor.SetColor(Color.FromArgb(37, 99, 235));
+            sheet.Cells[9, 12, 9, 13].Style.Font.Color.SetColor(Color.White);
+
+            sheet.Cells[10, 12].Value = "Dưới 5.0"; sheet.Cells[10, 13].Value = score0_5;
+            sheet.Cells[11, 12].Value = "5.0 - 7.0"; sheet.Cells[11, 13].Value = score5_7;
+            sheet.Cells[12, 12].Value = "7.0 - 9.0"; sheet.Cells[12, 13].Value = score7_9;
+            sheet.Cells[13, 12].Value = "Trên 9.0"; sheet.Cells[13, 13].Value = score9_10;
+
+            sheet.Cells[6, 12, 7, 13].Style.Border.BorderAround(ExcelBorderStyle.Thin);
+            sheet.Cells[10, 12, 13, 13].Style.Border.BorderAround(ExcelBorderStyle.Thin);
+            sheet.Column(12).AutoFit();
+            sheet.Column(13).AutoFit();
+
+            // Charts
+            if (passedCount > 0 || failedCount > 0)
+            {
+                var pieChart = sheet.Drawings.AddChart("PassFailChart", eChartType.Pie);
+                pieChart.Title.Text = "Tỷ lệ Đạt / Học lại";
+                pieChart.SetPosition(4, 0, 14, 0); // Row 5, Col 15 (O)
+                pieChart.SetSize(350, 250);
+                pieChart.Series.Add(sheet.Cells["M6:M7"], sheet.Cells["L6:L7"]);
+
+                var barChart = sheet.Drawings.AddChart("GpaDistributionChart", eChartType.ColumnClustered);
+                barChart.Title.Text = "Phổ điểm GPA";
+                barChart.SetPosition(4, 0, 21, 0); // Row 5, Col 22 (V)
+                barChart.SetSize(400, 250);
+                var series = barChart.Series.Add(sheet.Cells["M10:M13"], sheet.Cells["L10:L13"]);
+                series.Header = "Sinh viên";
+            }
         }
         #endregion
 
@@ -652,16 +716,19 @@ namespace Backend.Services.Export
             sheet.Cells["A1"].Style.Font.Size = 11;
             sheet.Cells["A1"].Style.Font.Bold = true;
             sheet.Cells["A1"].Style.Font.Color.SetColor(Color.FromArgb(80, 80, 80));
+            sheet.Cells[1, 1, 1, colCount].Merge = true;
 
             sheet.Cells["A2"].Value = title.ToUpper();
             sheet.Cells["A2"].Style.Font.Size = 15;
             sheet.Cells["A2"].Style.Font.Bold = true;
             sheet.Cells["A2"].Style.Font.Color.SetColor(Color.FromArgb(30, 58, 138));
+            sheet.Cells[2, 1, 2, colCount].Merge = true;
 
             sheet.Cells["A3"].Value = $"Học kỳ: {(string.IsNullOrEmpty(request.HocKy) ? "Tất cả" : request.HocKy)}   |   Cơ sở: {(string.IsNullOrEmpty(request.CapDonVi) ? "Toàn hệ thống" : request.CapDonVi)}   |   Thời điểm xuất: {DateTime.Now:dd/MM/yyyy HH:mm}   |   Mã yêu cầu: {request.MaYeuCau}";
             sheet.Cells["A3"].Style.Font.Size = 9.5f;
             sheet.Cells["A3"].Style.Font.Italic = true;
             sheet.Cells["A3"].Style.Font.Color.SetColor(Color.FromArgb(100, 100, 100));
+            sheet.Cells[3, 1, 3, colCount].Merge = true;
 
             sheet.Row(1).Height = 18;
             sheet.Row(2).Height = 26;
