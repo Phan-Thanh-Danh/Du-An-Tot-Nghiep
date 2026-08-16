@@ -278,7 +278,7 @@ const submitAppeal = async () => {
 
     <ConfirmActionDialog
       v-if="confirmAppeal"
-      :show="true"
+      :modelValue="true"
       title="Xác nhận gửi khiếu nại"
       message="Bạn chắc chắn muốn gửi khiếu nại cho hồ sơ này? Hội đồng kỷ luật sẽ xem xét lại vụ việc."
       confirmLabel="Gửi đi"

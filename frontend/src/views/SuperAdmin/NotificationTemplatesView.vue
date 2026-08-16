@@ -245,7 +245,7 @@ const goToEdit = (id) => {
 
     <ConfirmActionDialog
       v-if="confirmAction"
-      :show="true"
+      :modelValue="true"
       :title="confirmAction.title"
       :message="confirmAction.message"
       :confirmLabel="confirmAction.label"

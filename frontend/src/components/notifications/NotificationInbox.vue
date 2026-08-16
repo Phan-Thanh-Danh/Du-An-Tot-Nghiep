@@ -66,7 +66,16 @@ const fetchNotifications = async () => {
   error.value = null
   try {
     const data = await notificationsApi.getMyNotifications({ pageSize: 50 })
-    notifications.value = data.items || []
+    notifications.value = (data.items || []).map(n => ({
+      ...n,
+      id: n.maThongBao || n.id || n.MaThongBao || n.Id,
+      title: n.tieuDe || n.TieuDe || 'Không có tiêu đề',
+      excerpt: n.tomTat || n.tomTatNoiDung || '',
+      category: n.loaiThongBao || n.LoaiThongBao || 'he_thong',
+      priority: n.mucDo || n.MucDo,
+      createdAt: n.nhanLuc || n.ngayTao || new Date().toISOString(),
+      daDoc: n.daDoc
+    }))
     unreadCount.value = notifications.value.filter(n => !n.daDoc).length
   } catch {
     error.value = 'Không thể tải thông báo. Vui lòng thử lại sau.'
@@ -80,6 +89,20 @@ onMounted(() => {
 })
 
 const selectNotification = async (n) => {
+  // Fetch details to get HTML body and sender
+  try {
+    const detail = await notificationsApi.getNotificationDetail(n.id)
+    if (detail) {
+        console.log("Notification detail:", detail);
+      n.bodyJson = detail.noiDungJson || detail.NoiDungJson || (detail.data && detail.data.noiDungJson)
+      n.body = detail.noiDungText || detail.noiDung || (detail.data && (detail.data.noiDungText || detail.data.noiDung))
+      n.sender = detail.nguoiGui || (detail.data && detail.data.nguoiGui) || 'Hệ thống LMS'
+      n.relatedPath = detail.duongDan || (detail.data && detail.data.duongDan)
+    }
+  } catch (e) {
+    console.error('Failed to fetch notification detail:', e)
+  }
+
   selectedNotification.value = n
   if (!n.daDoc) {
     try {
@@ -193,8 +216,8 @@ const markAllAsRead = async () => {
             <div class="item-excerpt line-clamp-2">{{ item.excerpt }}</div>
             <div class="item-tags">
               <GlassBadge v-if="item.priority === 'KHAN_CAP'" variant="danger" size="sm">Khẩn cấp</GlassBadge>
-              <GlassBadge v-if="item.category" :variant="getStatusMeta('notifCategory', item.category).variant" size="sm">
-                {{ getStatusMeta('notifCategory', item.category).label }}
+              <GlassBadge v-if="item.category" :variant="getStatusMeta('notificationCategory', item.category).variant" size="sm">
+                {{ getStatusMeta('notificationCategory', item.category).label }}
               </GlassBadge>
             </div>
           </button>
