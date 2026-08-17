@@ -3,6 +3,91 @@ export async function exportBghToExcel(data, filename, sheetName) {
   return exportToExcel(data, filename, sheetName)
 }
 
+/**
+ * Xuất báo cáo Tổng quan kết quả học tập ra Excel với định dạng chuyên nghiệp.
+ */
+export async function exportAcademicOverviewToExcelAdvanced(opts = {}) {
+  const XLSX = await import('xlsx')
+  const {
+    kpis = [],
+    distribution = [],
+    chartData = [],
+    topSubjects = [],
+    totalTeachers = 0,
+    totalClasses = 0,
+    semesterLabel = 'Tất cả học kỳ',
+    campusLabel = 'Tất cả cơ sở',
+  } = opts
+
+  const now = new Date()
+  const dateStr = now.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+
+  // Tạo mảng dữ liệu (Array of Arrays)
+  const aoa = []
+
+  // --- HEADER ---
+  aoa.push(['BÁO CÁO HỌC VỤ — HỆ THỐNG LMS'])
+  aoa.push(['Tổng quan kết quả học tập'])
+  aoa.push(['Ngày xuất:', `${dateStr} lúc ${timeStr}`])
+  aoa.push(['Học kỳ:', semesterLabel])
+  aoa.push(['Cơ sở:', campusLabel])
+  aoa.push([])
+
+  // --- TỔNG QUAN KPI ---
+  aoa.push(['1. CHỈ TIÊU ĐÁNH GIÁ CHUNG'])
+  aoa.push(['Chỉ tiêu', 'Giá trị', 'Đánh giá/Xu hướng'])
+  kpis.forEach(k => aoa.push([k.label, k.value, k.trend || '']))
+  aoa.push([])
+
+  // --- NHÂN SỰ ---
+  const abPct = distribution
+    .filter(d => d.range?.startsWith('A') || d.range?.startsWith('B'))
+    .reduce((s, d) => s + (d.percent || 0), 0)
+    .toFixed(0)
+
+  aoa.push(['2. NHÂN SỰ & GIẢNG DẠY'])
+  aoa.push(['Giảng viên đang dạy', 'Lớp học phần đang mở', 'Tỷ lệ sinh viên đạt điểm A/B'])
+  aoa.push([totalTeachers, totalClasses, `${abPct}%`])
+  aoa.push([])
+
+  // --- PHÂN PHỐI ĐIỂM ---
+  aoa.push(['3. PHÂN PHỐI ĐIỂM SỐ'])
+  aoa.push(['Xếp loại', 'Số lượng sinh viên', 'Tỷ lệ phần trăm'])
+  distribution.forEach(d => aoa.push([d.range, d.count, `${d.percent}%`]))
+  aoa.push([])
+
+  // --- XU HƯỚNG GPA ---
+  aoa.push(['4. XU HƯỚNG GPA THEO HỌC KỲ'])
+  aoa.push(['Học kỳ', 'GPA Trung bình toàn trường'])
+  chartData.forEach(d => aoa.push([d.k, Number(d.toanTruong)]))
+  aoa.push([])
+
+  // --- XẾP HẠNG MÔN HỌC ---
+  aoa.push(['5. TOP CÁC MÔN HỌC THEO TỶ LỆ PASS'])
+  aoa.push(['Tên môn học', 'Sĩ số', 'Pass', 'Tỷ lệ rớt'])
+  topSubjects.forEach(s => aoa.push([s.name, s.total, s.pass, `${s.failRate}%`]))
+  aoa.push([])
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa)
+
+  // Chỉnh độ rộng cột
+  ws['!cols'] = [
+    { wch: 35 }, // Cột 1
+    { wch: 20 }, // Cột 2
+    { wch: 25 }, // Cột 3
+    { wch: 15 }  // Cột 4
+  ]
+
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Tổng quan')
+
+  const semShort = semesterLabel.replace(/[^a-zA-Z0-9\u00C0-\u024F]/g, '_').slice(0, 30)
+  const filename = `BaoCao-TongQuan-${semShort}-${now.getFullYear()}.xlsx`
+  
+  XLSX.writeFile(wb, filename)
+}
+
 export function printBghPage() {
   window.print()
 }
