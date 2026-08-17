@@ -60,13 +60,18 @@ const displayedProgress = computed(() => Math.max(savedProgress.value, progressP
 const isCompleted = computed(() => displayedProgress.value >= minWatchPercent.value)
 
 watch(
-  () => [props.lesson.id, props.lesson.videoUrl],
-  () => {
+  () => [props.lesson?.id, props.lesson?.videoUrl],
+  ([newId, newUrl], [oldId, oldUrl] = []) => {
+    // CHỈ pause và reset khi ID của bài học THỰC SỰ THAY ĐỔI sang bài khác!
+    if (oldId && newId && String(oldId) === String(newId)) {
+      return
+    }
+
     if (videoRef.value && !videoRef.value.paused) {
       videoRef.value.pause()
     }
-    durationSeconds.value = props.lesson.durationSeconds || props.lesson.totalSeconds || 0
-    savedProgress.value = props.lesson.progressPercent || 0
+    durationSeconds.value = props.lesson?.durationSeconds || props.lesson?.totalSeconds || 0
+    savedProgress.value = props.lesson?.progressPercent || 0
     const initW = getInitialWatchedSeconds()
     currentTimeSeconds.value = initW
     maxWatchedSeconds.value = initW
@@ -77,10 +82,14 @@ watch(
   }
 )
 
+let previousSeekState = props.lesson?.allowSeek !== false && props.lesson?.AllowSeek !== false
 watch(
   () => [props.lesson?.allowSeek, props.lesson?.AllowSeek],
   ([newSeek]) => {
     const isAllowed = newSeek !== false && props.lesson?.AllowSeek !== false
+    if (isAllowed === previousSeekState) return
+    previousSeekState = isAllowed
+
     if (!isAllowed) {
       seekGuardMessage.value = '🔒 Giảng viên vừa khóa tua video. Video yêu cầu xem tuần tự.'
     } else {

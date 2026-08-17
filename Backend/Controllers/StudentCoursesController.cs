@@ -289,7 +289,7 @@ public class StudentCoursesController : ControllerBase
         var lessonContent = await context.BaiHocNoiDungs
             .FirstOrDefaultAsync(n => n.MaBaiHoc == parsedLessonId
                 && (n.LoaiNoiDung == "quiz" || n.LoaiNoiDung == "trac_nghiem" || n.MaDeKiemTra != null)
-                && (n.TrangThai == "da_xuat_ban" || n.TrangThai == "published"));
+                && (n.TrangThai == "da_xuat_ban" || n.TrangThai == "published" || n.TrangThai == "dang_mo" || n.TrangThai == "active" || n.TrangThai == "hoat_dong" || n.TrangThai == null));
 
         if (lessonContent?.MaDeKiemTra == null)
         {

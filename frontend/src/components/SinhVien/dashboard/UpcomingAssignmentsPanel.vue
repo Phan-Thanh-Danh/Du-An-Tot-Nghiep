@@ -18,7 +18,7 @@ const priorityClass = {
 </script>
 
 <template>
-  <GlassPanel variant="strong" density="none" class="rounded-2xl">
+  <GlassPanel variant="strong" density="none" class="rounded-2xl h-full flex flex-col">
     <div class="flex items-center justify-between gap-3 border-b border-card px-4 py-3.5">
       <div>
         <h2 class="text-base font-semibold text-heading">Bài tập sắp hạn</h2>
@@ -27,7 +27,13 @@ const priorityClass = {
       <ClipboardList :size="18" class="text-link" />
     </div>
 
-    <div class="space-y-2 p-4">
+    <div class="space-y-2 p-4 flex-1">
+      <div v-if="!assignments || assignments.length === 0" class="flex flex-col items-center justify-center py-8 text-center text-muted space-y-2">
+        <ClipboardList :size="28" class="text-placeholder opacity-60" />
+        <p class="text-xs font-medium text-body">Không có bài tập cần xử lý</p>
+        <p class="text-[11px] text-placeholder max-w-[200px]">Tất cả bài tập đã được nộp hoặc chưa có bài tập mới.</p>
+      </div>
+
       <router-link
         v-for="assignment in assignments"
         :key="assignment.id"
@@ -38,7 +44,7 @@ const priorityClass = {
         <div class="min-w-0 flex-1">
           <div class="flex items-start justify-between gap-2">
             <h3 class="min-w-0 flex-1 truncate text-[13px] font-semibold leading-tight text-heading">{{ assignment.title }}</h3>
-            <GlassBadge :variant="assignment.variant" size="sm">{{ assignment.status }}</GlassBadge>
+            <GlassBadge :variant="assignment.variant || 'info'" size="sm">{{ assignment.status }}</GlassBadge>
           </div>
           <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
             <p class="text-xs font-medium text-body">{{ assignment.course }}</p>

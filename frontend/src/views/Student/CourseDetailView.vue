@@ -362,16 +362,20 @@ function getStoredLessonProgress(lessonId) {
 
 function activateLesson(chapter, lesson) {
   if (!canStartLearning(lesson) && lesson.accessStatus !== LEARNING_ACCESS.COMPLETED && lesson.accessStatus !== LEARNING_ACCESS.EARLY_COMPLETED) return
-  expandedChapters.value[chapter.id] = true
+  if (chapter?.id) {
+    expandedChapters.value[chapter.id] = true
+  }
 
-  if (selectedLessonId.value === lesson.id && currentLesson.value?.id === lesson.id && currentLesson.value?.hasVideo !== undefined) {
+  // Nếu bài học đã đang được mở -> KHÔNG reset lại state, giữ nguyên video/quiz
+  if (selectedLessonId.value && String(selectedLessonId.value) === String(lesson.id) && currentLesson.value && String(currentLesson.value.id) === String(lesson.id)) {
     return
   }
 
   selectedLessonId.value = lesson.id
   const storedProg = getStoredLessonProgress(lesson.id)
   const initialProgress = storedProg?.progressPercent ?? (lesson.status === 'completed' ? 100 : (lesson.progressPercent || 0))
-  const vUrl = lesson.url || lesson.videoUrl || lesson.UrlTapTin || ''
+  const existingVideoUrl = (currentLesson.value && String(currentLesson.value.id) === String(lesson.id)) ? (currentLesson.value.videoUrl || currentLesson.value.url) : ''
+  const vUrl = lesson.url || lesson.videoUrl || lesson.UrlTapTin || existingVideoUrl || ''
   const isVideoLesson = lesson.type === 'video' || lesson.lessonType === 'video' || Boolean(vUrl) || (!lesson.type && !lesson.lessonType)
 
   const isSeekAllowed = lesson.allowSeek === false || lesson.AllowSeek === false ? false : true
@@ -529,10 +533,30 @@ function saveLessonCompletedItems(lessonId, items) {
 function calculateLessonProgress(lessonId) {
   const items = getLessonCompletedItems(lessonId)
   const l = currentLesson.value
-  const hasVideo = Boolean(l?.hasVideo || (l?.videoUrl && l?.videoUrl.trim() !== '') || l?.lessonType === 'video')
+  const hasVideo = Boolean(l?.hasVideo || (l?.videoUrl && l?.videoUrl.trim() !== '') || l?.lessonType === 'video' || l?.type === 'video')
   const hasSlide = Boolean(l?.hasSlide || l?.slideHtml)
   const hasDoc = Boolean(l?.hasDoc || (l?.documentUrl && l?.documentUrl.trim() !== '') || l?.lessonType === 'assignment')
   const hasQuiz = Boolean(l?.hasQuiz || (apiQuizData.value?.questions?.length > 0) || l?.lessonType === 'quiz')
+
+  // Nếu bài học là bài Video và video đã xem xong -> 100% hoàn thành bài học
+  if (hasVideo && items.video) {
+    return 100
+  }
+
+  // Nếu bài học thuần Quiz và quiz đã hoàn thành -> 100%
+  if (hasQuiz && (isQuizCompletedFromDb.value || items.quiz)) {
+    return 100
+  }
+
+  // Nếu bài học Slide và slide đã hoàn thành -> 100%
+  if (hasSlide && items.slide) {
+    return 100
+  }
+
+  // Nếu bài học Document và doc đã xem -> 100%
+  if (hasDoc && items.doc) {
+    return 100
+  }
 
   let totalAvailable = 0
   let totalDone = 0
@@ -551,7 +575,7 @@ function calculateLessonProgress(lessonId) {
   }
   if (hasQuiz) {
     totalAvailable += 1
-    if (isQuizCompletedFromDb.value) totalDone += 1
+    if (isQuizCompletedFromDb.value || items.quiz) totalDone += 1
   }
 
   if (totalAvailable === 0) return 100
@@ -573,6 +597,20 @@ async function updateLessonProgressAndSave(itemType) {
   lessonProgressDrafts.value[lessonId] = {
     progressPercent: percent,
     completedAt: percent >= 100 ? new Date().toISOString() : null
+  }
+
+  // Cập nhật ngay vào outline bài học để mở khóa bài tiếp theo tức thì
+  if (apiLessons.value) {
+    apiLessons.value.forEach(ch => {
+      (ch.lessons || []).forEach(l => {
+        if (String(l.id) === String(lessonId)) {
+          l.progressPercent = percent
+          if (percent >= 100) {
+            l.status = 'completed'
+          }
+        }
+      })
+    })
   }
 
   if (courseId.value && lessonId) {
@@ -695,19 +733,26 @@ async function submitQuiz() {
     })
 
     const response = await examApi.submitQuizAttempt(quizAttempt.value.maPhienThi, { answers })
-    const score = response.diemCuoiCung ?? response.diemTuDong ?? 0
+    const totalQ = response.tongSoCau ?? quizQuestions.value.length
+    const correctQ = response.soCauDung ?? 0
+    const calculatedScore = totalQ > 0 ? Number(((correctQ / totalQ) * 10).toFixed(2)) : 10
+    const score = response.diemCuoiCung ?? response.diemTuDong ?? calculatedScore
+    const passThreshold = quizInfo.value?.passScore || 5
+    const isPassed = response.ketQuaDat === true || score >= passThreshold
     quizResult.value = {
-      total: response.tongSoCau ?? quizQuestions.value.length,
-      correctCount: response.soCauDung ?? 0,
+      total: totalQ,
+      correctCount: correctQ,
       score10: score,
-      passScore: quizInfo.value?.passScore || 5,
-      isPassed: response.ketQuaDat === true,
+      passScore: passThreshold,
+      isPassed: isPassed,
       details: response.chiTiet || {},
     }
     quizSubmitted.value = true
-    quizHistory.value = await examApi.getQuizHistory(apiQuizData.value.quizId)
+    try {
+      quizHistory.value = await examApi.getQuizHistory(apiQuizData.value.quizId)
+    } catch (e) {}
 
-    if (quizResult.value.isPassed && currentLesson.value) {
+    if (isPassed && currentLesson.value) {
       await updateLessonProgressAndSave('quiz')
     }
   } catch (err) {
@@ -972,7 +1017,7 @@ watch(() => currentLesson.value?.id, async (newLessonId) => {
   if (newLessonId && courseId.value) {
     const loadVersion = ++lessonLoadVersion
     const isStale = () => loadVersion !== lessonLoadVersion || currentLesson.value?.id !== newLessonId
-    // Reset quiz data khi chuyển bài
+    // Reset quiz answers khi chuyển bài
     apiQuizData.value = null
     quizAnswers.value = {}
     quizSubmitted.value = false
@@ -980,6 +1025,8 @@ watch(() => currentLesson.value?.id, async (newLessonId) => {
     quizAttempt.value = null
     quizHistory.value = null
     quizError.value = ''
+
+    let quizBlockFound = null
 
     // Load content blocks (video, document, slide, quiz) từ API
     try {
@@ -991,13 +1038,15 @@ watch(() => currentLesson.value?.id, async (newLessonId) => {
       const docBlock = isArr ? blocks.find(b => (b.Type || b.type) === 'tai_lieu' || (b.Type || b.type) === 'pdf' || (b.Type || b.type) === 'document') : null
       const slideBlock = isArr ? blocks.find(b => (b.Type || b.type) === 'slide_html') : null
       const quizBlock = isArr ? blocks.find(b => (b.Type || b.type) === 'quiz' || (b.Type || b.type) === 'trac_nghiem' || b.QuizId || b.quizId) : null
+      quizBlockFound = quizBlock
 
       const baseVideoUrl = currentLesson.value?.videoUrl || currentLesson.value?.url || ''
       const finalVideoUrl = videoBlock ? (videoBlock.VideoUrl || videoBlock.videoUrl || videoBlock.UrlTapTin || videoBlock.urlTapTin || baseVideoUrl) : baseVideoUrl
-      const hasVid = Boolean(videoBlock || finalVideoUrl)
+      const isVideoType = currentLesson.value?.type === 'video' || currentLesson.value?.lessonType === 'video' || (!currentLesson.value?.type && !currentLesson.value?.lessonType)
+      const hasVid = Boolean(videoBlock || finalVideoUrl || isVideoType)
       const hasSl = Boolean(slideBlock)
-      const hasD = Boolean(docBlock)
-      const hasQ = Boolean(quizBlock) || currentLesson.value?.lessonType === 'quiz'
+      const hasD = Boolean(docBlock || currentLesson.value?.documentUrl)
+      const hasQ = Boolean(quizBlock || currentLesson.value?.hasQuiz || currentLesson.value?.lessonType === 'quiz')
 
       const docUrl = docBlock ? (docBlock.DocumentUrl || docBlock.documentUrl || docBlock.UrlTapTin || docBlock.urlTapTin || '') : ''
       const docTitle = docBlock ? (docBlock.Title || docBlock.title || docUrl.split('/').pop() || currentLesson.value?.documentTitle) : currentLesson.value?.documentTitle
@@ -1017,13 +1066,13 @@ watch(() => currentLesson.value?.id, async (newLessonId) => {
       }
 
       // Auto switch activeTab to the first available content block type
-      if (hasVid) {
+      if (hasVid && (!activeTab.value || activeTab.value === 'video')) {
         activeTab.value = 'video'
-      } else if (hasSl) {
+      } else if (hasSl && !hasVid) {
         activeTab.value = 'slide'
-      } else if (hasD) {
+      } else if (hasD && !hasVid && !hasSl) {
         activeTab.value = 'document'
-      } else if (hasQ) {
+      } else if (hasQ && !hasVid && !hasSl && !hasD) {
         activeTab.value = 'quiz'
       }
     } catch (err) {
@@ -1067,11 +1116,17 @@ watch(() => currentLesson.value?.id, async (newLessonId) => {
         if (isStale()) return
       } else if (Array.isArray(raw) && raw.length > 0) {
         apiQuizData.value = { questions: raw }
+      } else if (raw?.questions && Array.isArray(raw.questions) && raw.questions.length > 0) {
+        apiQuizData.value = raw
       } else {
-        apiQuizData.value = null
+        if (quizBlockFound?.cauHois || quizBlockFound?.questions) {
+          apiQuizData.value = { questions: quizBlockFound.cauHois || quizBlockFound.questions }
+        }
       }
     } catch (err) {
-      apiQuizData.value = null
+      if (quizBlockFound?.cauHois || quizBlockFound?.questions) {
+        apiQuizData.value = { questions: quizBlockFound.cauHois || quizBlockFound.questions }
+      }
     }
 
     // Load comments
@@ -1226,7 +1281,7 @@ async function handleResetCourseProgress() {
               </div>
               <LessonVideoPlayer
                 v-else
-                :key="`${currentLesson.id}:${currentLesson.videoUrl || ''}`"
+                :key="currentLesson.id"
                 :lesson="currentLesson"
                 @progress="handleVideoProgress"
                 @completed="handleVideoCompleted"

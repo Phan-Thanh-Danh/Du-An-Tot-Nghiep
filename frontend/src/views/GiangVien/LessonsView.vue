@@ -352,6 +352,10 @@ async function loadQuestionBank() {
 }
 
 function selectLesson(lesson) {
+  if (!lesson) return
+  if (activeLessonId.value === lesson.id && activeLesson.value?.id === lesson.id && activeLesson.value?.fileUrl) {
+    return
+  }
   activeLessonId.value = lesson.id
   activeLesson.value = lesson
 }
