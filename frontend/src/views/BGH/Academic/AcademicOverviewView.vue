@@ -21,7 +21,7 @@ import {
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import LmsSelect from '@/components/LmsSelect.vue'
-import { exportBghToExcel, exportAcademicOverviewToPdf } from '@/components/BGH/performance/bghExport.js'
+import { exportBghToExcel, exportAcademicOverviewToPdf, exportAcademicOverviewToExcelAdvanced } from '@/components/BGH/performance/bghExport.js'
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
 

@@ -1,3 +1,5 @@
+import * as XLSX from 'xlsx'
+
 export async function exportBghToExcel(data, filename, sheetName) {
   const { exportToExcel } = await import('@/services/exportService.js')
   return exportToExcel(data, filename, sheetName)
@@ -7,7 +9,6 @@ export async function exportBghToExcel(data, filename, sheetName) {
  * Xuất báo cáo Tổng quan kết quả học tập ra Excel với định dạng chuyên nghiệp.
  */
 export async function exportAcademicOverviewToExcelAdvanced(opts = {}) {
-  const XLSX = await import('xlsx')
   const {
     kpis = [],
     distribution = [],
