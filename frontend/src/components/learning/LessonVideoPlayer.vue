@@ -246,6 +246,23 @@ function buildProgressPayload(completed) {
   }
 }
 
+const videoErrorMessage = ref('')
+
+function onVideoError(e) {
+  const err = videoRef.value?.error
+  if (err) {
+    console.warn('Lesson video stream error:', err.code, err.message)
+    videoErrorMessage.value = 'Không thể tải luồng video từ máy chủ. Vui lòng kiểm tra lại kết nối hoặc thử tải lại bài học.'
+  }
+}
+
+function retryVideoLoad() {
+  videoErrorMessage.value = ''
+  if (videoRef.value) {
+    videoRef.value.load()
+  }
+}
+
 onMounted(() => {
   document.addEventListener('visibilitychange', handleVisibilityChange)
   window.addEventListener('beforeunload', handleBeforeUnload)
@@ -266,7 +283,7 @@ onBeforeUnmount(() => {
   <section class="lesson-video-player" aria-label="Video bài học">
     <div class="video-shell">
       <video
-        v-if="hasVideoSource"
+        v-if="hasVideoSource && !videoErrorMessage"
         ref="videoRef"
         class="lesson-video"
         controls
@@ -278,7 +295,27 @@ onBeforeUnmount(() => {
         @seeked="onSeeked"
         @play="onPlay"
         @pause="persistProgress(true)"
+        @error="onVideoError"
       />
+
+      <div v-else-if="videoErrorMessage" class="video-placeholder">
+        <div class="video-placeholder-icon">
+          <AlertTriangle :size="28" class="text-amber-400" />
+        </div>
+        <div>
+          <strong>Không thể phát video trực tiếp</strong>
+          <span>{{ videoErrorMessage }}</span>
+          <div class="mt-2">
+            <button
+              type="button"
+              class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold"
+              @click="retryVideoLoad"
+            >
+              Thử tải lại video
+            </button>
+          </div>
+        </div>
+      </div>
 
       <div v-else class="video-placeholder">
         <div class="video-placeholder-icon">
