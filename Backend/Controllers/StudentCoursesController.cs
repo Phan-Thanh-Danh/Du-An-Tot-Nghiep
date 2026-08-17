@@ -86,7 +86,14 @@ public class StudentCoursesController : ControllerBase
             .ThenBy(k => k.MonHoc != null ? k.MonHoc.TenMonHoc : k.TieuDe)
             .ToListAsync();
 
-        var subjectIds = courses
+        // Lấy danh sách khóa học duy nhất theo từng môn học của lớp sinh viên (ưu tiên bản ghi phân công mới nhất)
+        var distinctCourses = courses
+            .Where(c => c.MonHoc != null)
+            .GroupBy(c => c.MaMonHoc)
+            .Select(g => g.OrderByDescending(k => k.MaKhoaHoc).First())
+            .ToList();
+
+        var subjectIds = distinctCourses
             .Select(c => c.MaMonHoc)
             .Distinct()
             .ToList();
@@ -106,8 +113,7 @@ public class StudentCoursesController : ControllerBase
             .Select(g => new { MonHocId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(g => g.MonHocId, g => g.Count);
 
-        var result = courses
-            .Where(c => c.MonHoc != null)
+        var result = distinctCourses
             .Select(course =>
             {
                 var total = totalLessons.GetValueOrDefault(course.MaMonHoc);
@@ -171,7 +177,9 @@ public class StudentCoursesController : ControllerBase
                 .Include(k => k.MonHoc)
                 .Include(k => k.GiaoVien)
                 .Include(k => k.HocKy)
-                .FirstOrDefaultAsync(k => k.MaLop == student.MaLop.Value && k.MonHoc!.MaCodeMonHoc == courseCode && k.TrangThai == "da_xuat_ban")
+                .Where(k => k.MaLop == student.MaLop.Value && k.MonHoc!.MaCodeMonHoc == courseCode && k.TrangThai == "da_xuat_ban")
+                .OrderByDescending(k => k.MaKhoaHoc)
+                .FirstOrDefaultAsync()
             : null;
 
         // 2. Nếu không tìm thấy phân công, chỉ cho xem đề cương khi mã môn học thật tồn tại.
