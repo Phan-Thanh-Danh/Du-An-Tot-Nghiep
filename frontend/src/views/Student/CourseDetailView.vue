@@ -353,7 +353,6 @@ function getStoredLessonProgress(lessonId) {
     const raw = localStorage.getItem(`lms_lesson_progress_${lessonId}`)
     if (raw) {
       const parsed = JSON.parse(raw)
-      lessonProgressDrafts.value[lessonId] = parsed
       return parsed
     }
   } catch (e) {}
@@ -1279,10 +1278,10 @@ async function handleResetCourseProgress() {
 
           <div class="lesson-content">
             <div v-if="activeTab === 'video'">
-              <div v-if="!currentLesson.hasVideo" class="p-8 text-center surface-card border border-card rounded-xl text-slate-500 my-4">
+              <div v-if="!currentLesson.hasVideo || !currentLesson.videoUrl" class="p-8 text-center surface-card border border-card rounded-xl text-slate-500 my-4">
                 <component :is="resolveIcon('PlayCircle')" :size="40" class="mx-auto text-slate-300 mb-2" />
-                <p class="font-medium text-base text-slate-700">Bài học này không có Video</p>
-                <p class="text-xs text-slate-400 mt-1">Vui lòng chọn tab Slide, Quiz hoặc Nội dung khác để tiếp tục học.</p>
+                <p class="font-medium text-base text-slate-700">Bài học này chưa có file Video phát</p>
+                <p class="text-xs text-slate-400 mt-1">Giảng viên đang cập nhật nội dung video. Vui lòng chọn tab Slide, Tài liệu hoặc Quiz để tiếp tục học.</p>
               </div>
               <LessonVideoPlayer
                 v-else

@@ -27,8 +27,8 @@ function getInitialWatchedSeconds(customDuration = null) {
   if (props.lesson?.maxWatchedSeconds && props.lesson.maxWatchedSeconds > 0) {
     return Math.min(props.lesson.maxWatchedSeconds, d > 0 ? d : props.lesson.maxWatchedSeconds)
   }
-  if (d > 0 && p > 0) {
-    if (allowSeek.value && (p >= 80 || props.lesson?.status === 'completed')) return d
+  if (d > 0 && p > 0 && allowSeek.value) {
+    if (p >= 80 || props.lesson?.status === 'completed') return d
     return Math.min(d, Math.round((p / 100) * d))
   }
   return 0
