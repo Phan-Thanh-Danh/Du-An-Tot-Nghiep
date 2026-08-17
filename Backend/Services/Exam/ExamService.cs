@@ -1,14 +1,15 @@
 using Backend.Data;
+using Backend.DTOs.Auth;
 using Backend.DTOs.Common;
 using Backend.DTOs.Exam;
 using Backend.DTOs.QuizAttempts;
 using Backend.Exceptions;
 using Backend.Models;
 using Backend.Services.QuizGrading;
-using Microsoft.EntityFrameworkCore;
-
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
 using Backend.Hubs;
+using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Services.Exam;
 
@@ -19,19 +20,22 @@ public class ExamService : IExamService
     private readonly Backend.Services.Grading.IGradeAggregationService _gradeAggregationService;
     private readonly ILogger<ExamService> _logger;
     private readonly IHubContext<ExamMonitoringHub> _hubContext;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
     public ExamService(
         ApplicationDbContext db, 
         IQuizGradingService gradingService,
         Backend.Services.Grading.IGradeAggregationService gradeAggregationService,
         ILogger<ExamService> logger,
-        IHubContext<ExamMonitoringHub> hubContext)
+        IHubContext<ExamMonitoringHub> hubContext,
+        IHttpContextAccessor httpContextAccessor)
     {
         _db = db;
         _gradingService = gradingService;
         _gradeAggregationService = gradeAggregationService;
         _logger = logger;
         _hubContext = hubContext;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     // ===== KyThi =====
@@ -431,12 +435,19 @@ public class ExamService : IExamService
 
     public async Task<PagedResultDto<CaThiDto>> GetCaThisAsync(CaThiQueryParameters parameters, CancellationToken ct)
     {
+        var currentUser = _httpContextAccessor.HttpContext?.Items["CurrentUser"] as CurrentUserContext;
         var query = _db.CaThis
             .Include(c => c.Phong)
             .Include(c => c.DonVi)
-            .Include(c => c.ThiSinhCaThis)
             .Include(c => c.PhanCongGiamThis)
+                .ThenInclude(pc => pc.GiamThi)
+            .AsSplitQuery()
             .AsQueryable();
+
+        if (currentUser != null && (currentUser.Role == "Teacher" || currentUser.Role == "giao_vien"))
+        {
+            query = query.Where(c => c.PhanCongGiamThis.Any(pc => pc.MaGiamThi == currentUser.UserId));
+        }
 
         if (parameters.MaLichThiTong.HasValue)
             query = query.Where(c => c.MaLichThiTong == parameters.MaLichThiTong.Value);
@@ -450,11 +461,47 @@ public class ExamService : IExamService
             query = query.Where(c => c.NgayThi <= parameters.DenNgay.Value);
 
         var totalItems = await query.CountAsync(ct);
-        var items = await query
+        var caThis = await query
             .OrderBy(c => c.NgayThi).ThenBy(c => c.ThoiGianBatDau)
             .Skip((parameters.PageIndex - 1) * parameters.PageSize)
             .Take(parameters.PageSize)
-            .Select(c => new CaThiDto
+            .ToListAsync(ct);
+
+        var caThiIds = caThis.Select(c => c.MaCaThi).ToList();
+
+        var candidateCounts = await _db.ThiSinhCaThis
+            .Where(t => caThiIds.Contains(t.MaCaThi))
+            .GroupBy(t => t.MaCaThi)
+            .Select(g => new { MaCaThi = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.MaCaThi, x => x.Count, ct);
+
+        var coMatStats = await _db.DiemDanhThis
+            .Where(d => caThiIds.Contains(d.MaCaThi) && d.TrangThaiDiemDanh == "co_mat")
+            .GroupBy(d => d.MaCaThi)
+            .Select(g => new { MaCaThi = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.MaCaThi, x => x.Count, ct);
+
+        var viPhamStats = await _db.NhatKyViPhamThis
+            .Where(v => caThiIds.Contains(v.MaCaThi))
+            .GroupBy(v => v.MaCaThi)
+            .Select(g => new { MaCaThi = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.MaCaThi, x => x.Count, ct);
+
+        var phienThiStats = await _db.PhienThiHocSinhs
+            .Where(p => p.MaCaThi.HasValue && caThiIds.Contains(p.MaCaThi.Value))
+            .GroupBy(p => new { MaCaThi = p.MaCaThi!.Value, p.TrangThaiLuong })
+            .Select(g => new { g.Key.MaCaThi, TrangThai = g.Key.TrangThaiLuong, Count = g.Count() })
+            .ToListAsync(ct);
+
+        var items = caThis.Select(c =>
+        {
+            int soThiSinh = candidateCounts.GetValueOrDefault(c.MaCaThi);
+            int soCoMat = coMatStats.GetValueOrDefault(c.MaCaThi);
+            int soViPham = viPhamStats.GetValueOrDefault(c.MaCaThi);
+            int soDaNop = phienThiStats.Where(p => p.MaCaThi == c.MaCaThi && p.TrangThai == "da_nop").Sum(p => p.Count);
+            int soDangLam = phienThiStats.Where(p => p.MaCaThi == c.MaCaThi && p.TrangThai == "dang_lam").Sum(p => p.Count);
+
+            return new CaThiDto
             {
                 MaCaThi = c.MaCaThi,
                 MaLichThiTong = c.MaLichThiTong,
@@ -468,10 +515,16 @@ public class ExamService : IExamService
                 TenDonVi = c.DonVi != null ? c.DonVi.TenDonVi : null,
                 TrangThai = c.TrangThai,
                 GhiChu = c.GhiChu,
-                SoThiSinh = c.ThiSinhCaThis.Count,
-                SoGiamThi = c.PhanCongGiamThis.Count
-            })
-            .ToListAsync(ct);
+                SoThiSinh = soThiSinh,
+                TongThiSinh = soThiSinh,
+                SoGiamThi = c.PhanCongGiamThis.Count,
+                SoThiSinhCoMat = soCoMat,
+                SoThiSinhDangLamBai = soDangLam,
+                SoThiSinhDaNop = soDaNop,
+                SoThiSinhViPham = soViPham,
+                GiamThis = c.PhanCongGiamThis.Select(pc => pc.GiamThi != null ? pc.GiamThi.HoTen : "").Where(n => !string.IsNullOrEmpty(n)).ToList()
+            };
+        }).ToList();
 
         return new PagedResultDto<CaThiDto>
         {
@@ -958,14 +1011,20 @@ public class ExamService : IExamService
         _ = await _db.CaThis.FindAsync(new object[] { request.MaCaThi }, ct)
             ?? throw new ApiException(400, "Ca thi không tồn tại.");
 
+        var validStatuses = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "co_mat", "vang_mat", "di_muon_qua_gio", "su_co" };
+
         foreach (var item in request.DanhSachDiemDanh)
         {
+            var normalizedStatus = validStatuses.Contains(item.TrangThaiDiemDanh)
+                ? item.TrangThaiDiemDanh.ToLowerInvariant()
+                : "vang_mat";
+
             var existing = await _db.DiemDanhThis
                 .FirstOrDefaultAsync(d => d.MaCaThi == request.MaCaThi && d.MaHocSinh == item.MaHocSinh, ct);
 
             if (existing != null)
             {
-                existing.TrangThaiDiemDanh = item.TrangThaiDiemDanh;
+                existing.TrangThaiDiemDanh = normalizedStatus;
                 existing.ThoiDiemDiemDanh = DateTime.UtcNow;
                 existing.MaNguoiDiemDanh = maNguoiDiemDanh;
                 existing.GhiChu = item.GhiChu;
@@ -976,10 +1035,11 @@ public class ExamService : IExamService
                 {
                     MaCaThi = request.MaCaThi,
                     MaHocSinh = item.MaHocSinh,
-                    TrangThaiDiemDanh = item.TrangThaiDiemDanh,
+                    TrangThaiDiemDanh = normalizedStatus,
                     ThoiDiemDiemDanh = DateTime.UtcNow,
                     MaNguoiDiemDanh = maNguoiDiemDanh,
-                    GhiChu = item.GhiChu
+                    GhiChu = item.GhiChu,
+                    NgayTao = DateTime.UtcNow
                 });
             }
 
@@ -988,11 +1048,11 @@ public class ExamService : IExamService
                 .FirstOrDefaultAsync(t => t.MaCaThi == request.MaCaThi && t.MaHocSinh == item.MaHocSinh, ct);
             if (thiSinhCaThi != null)
             {
-                if (item.TrangThaiDiemDanh == "co_mat")
+                if (normalizedStatus == "co_mat")
                 {
                     thiSinhCaThi.TrangThaiDuThi = "duoc_thi";
                 }
-                else if (item.TrangThaiDiemDanh == "vang_mat" && thiSinhCaThi.TrangThaiDuThi != "dinh_chi")
+                else if (normalizedStatus == "vang_mat" && thiSinhCaThi.TrangThaiDuThi != "dinh_chi")
                 {
                     thiSinhCaThi.TrangThaiDuThi = "vang_thi";
                 }

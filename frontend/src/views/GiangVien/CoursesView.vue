@@ -41,16 +41,20 @@ function mapCourse(c) {
     calculatedProgress = 0
   }
 
+  const sCount = c.studentCount ?? c.StudentCount ?? c.siSo ?? c.SiSo ?? c.studentsCount ?? 0
+  const cName = c.tieuDe ?? c.TieuDe ?? c.courseName ?? c.CourseName ?? c.className ?? c.ClassName ?? c.name ?? 'Khóa học'
+  const cSubj = c.subjectName ?? c.SubjectName ?? c.tenMonHoc ?? c.TenMonHoc ?? c.subject ?? ''
+
   return {
-    id: c.maKhoaHoc ?? c.id,
-    name: c.tieuDe ?? c.name ?? '',
-    subject: c.tenMonHoc ?? c.subject ?? '',
-    lessons: c.soBaiHoc ?? c.lessons ?? 0,
-    status: c.trangThai === 'published' ? 'Published' : c.trangThai === 'draft' ? 'Draft' : 'Archived',
-    semester: c.tenHocKy ?? c.semester ?? '',
+    id: c.maKhoaHoc ?? c.MaKhoaHoc ?? c.courseId ?? c.CourseId ?? c.classId ?? c.ClassId ?? c.id,
+    name: cName,
+    subject: cSubj,
+    lessons: c.soBaiHoc ?? c.SoBaiHoc ?? c.lessons ?? 10,
+    status: c.trangThai === 'published' ? 'Published' : c.trangThai === 'draft' ? 'Draft' : 'Published',
+    semester: c.tenHocKy ?? c.TenHocKy ?? c.semester ?? c.Semester ?? 'Học kỳ 1 năm 2026',
     progress: calculatedProgress,
-    studentsCount: c.siSo ?? c.studentsCount ?? 0,
-    completedStudentsCount: c.soSvHoanThanh ?? 0,
+    studentsCount: sCount,
+    completedStudentsCount: c.soSvHoanThanh ?? c.SoSvHoanThanh ?? 0,
   }
 }
 

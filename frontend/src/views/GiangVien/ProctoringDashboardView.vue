@@ -1262,7 +1262,7 @@ function confirmEndExamSession() {
     cancelText: 'Hủy bỏ',
     variant: 'danger',
     onConfirm: async () => {
-      const sId = currentSession.value?.id || sessionId
+      const sId = currentSession.value?.id || route.params.sessionId
       if (sId) {
         try {
           await teacherApi.endExamSession(sId)
@@ -1282,7 +1282,7 @@ async function endExamSession() {
 }
 
 function openExamReportModal() {
-  const sId = currentSession.value?.id || sessionId
+  const sId = currentSession.value?.id || route.params.sessionId
   router.push({ name: 'teacher-proctoring-report', params: { sessionId: sId } })
 }
 

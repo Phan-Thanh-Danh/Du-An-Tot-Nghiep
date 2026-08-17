@@ -19,11 +19,46 @@ import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import TableShell from '@/components/ui/TableShell.vue'
+import LmsSelect from '@/components/LmsSelect.vue'
 import { teacherApi } from '@/services/teacherApi'
 
 const loading = ref(false)
 const error = ref('')
 const history = ref([])
+const statusFilter = ref('')
+const searchQuery = ref('')
+
+const statusOptions = [
+  { value: '', label: 'Tất cả trạng thái' },
+  { value: 'approved', label: 'Đã phê duyệt' },
+  { value: 'rejected', label: 'Đã từ chối' }
+]
+
+const filteredHistory = computed(() => {
+  let list = history.value
+  if (statusFilter.value === 'approved') {
+    list = list.filter(item => {
+      const s = (item.ketQua || item.result || item.trangThai || '').toLowerCase()
+      return s === 'approved' || s === 'da_duyet'
+    })
+  } else if (statusFilter.value === 'rejected') {
+    list = list.filter(item => {
+      const s = (item.ketQua || item.result || item.trangThai || '').toLowerCase()
+      return s === 'rejected' || s === 'tu_choi'
+    })
+  }
+
+  if (searchQuery.value.trim()) {
+    const q = searchQuery.value.trim().toLowerCase()
+    list = list.filter(item => 
+      (item.hoTen || item.student || '').toLowerCase().includes(q) ||
+      (item.loaiYeuCau || item.loaiDon || '').toLowerCase().includes(q) ||
+      (item.maSinhVien || '').toLowerCase().includes(q)
+    )
+  }
+
+  return list
+})
 
 const historyStats = computed(() => {
   const total = history.value.length
@@ -89,34 +124,32 @@ onMounted(() => { loadHistory() })
 </script>
 
 <template>
-  <div class="requests-history-page">
-    <GlassPanel variant="soft" density="compact" class="page-header" :clip="false">
+  <div class="requests-history-page lg-page-enter">
+    <GlassPanel variant="flat" density="compact" class="page-header">
       <div class="header-main">
-        <span class="header-icon">
+        <div class="header-icon">
           <History :size="20" />
-        </span>
-        <div class="min-w-0">
-          <div class="eyebrow">Request archive</div>
-          <h1 class="page-title">Lịch sử yêu cầu</h1>
-          <p class="page-subtitle">
-            Tra cứu các đơn từ đã xử lý, kết quả phản hồi và thời gian hoàn tất.
-          </p>
+        </div>
+        <div>
+          <p class="eyebrow">Quản lý yêu cầu</p>
+          <h1>Lịch sử xử lý</h1>
+          <p>Nhật ký toàn bộ các yêu cầu của sinh viên đã được tiếp nhận và phản hồi.</p>
         </div>
       </div>
 
       <div class="header-actions">
-        <GlassButton size="sm" variant="secondary">
+        <GlassButton variant="secondary" size="sm" @click="$router.push('/teacher/requests')">
           <template #leading>
-            <Download :size="14" />
+            <CheckSquare :size="16" />
           </template>
-          Xuất báo cáo
+          Yêu cầu chờ xử lý
         </GlassButton>
       </div>
     </GlassPanel>
 
-    <GlassPanel variant="surface" density="compact" class="context-bar" :clip="false">
-      <div class="mini-stats">
-        <div v-for="item in historyStats" :key="item.label" class="mini-stat">
+    <GlassPanel variant="flat" density="compact" class="context-panel">
+      <div class="summary-strip">
+        <div v-for="item in historyStats" :key="item.label" class="summary-item">
           <span class="stat-label">{{ item.label }}</span>
           <div class="stat-value-line">
             <strong>{{ item.value }}</strong>
@@ -125,18 +158,17 @@ onMounted(() => { loadHistory() })
         </div>
       </div>
 
-      <div class="filters">
-        <label class="select-field">
-          <Filter :size="15" />
-          <select>
-            <option>Tất cả trạng thái</option>
-            <option>Đã phê duyệt</option>
-            <option>Đã từ chối</option>
-          </select>
-        </label>
-        <label class="search-field">
-          <Search :size="15" />
-          <input type="text" placeholder="Tìm sinh viên hoặc loại đơn..." />
+      <div class="filters flex items-center gap-3">
+        <div class="w-48">
+          <LmsSelect
+            v-model="statusFilter"
+            placeholder="Tất cả trạng thái"
+            :options="statusOptions"
+          />
+        </div>
+        <label class="search-field flex items-center gap-2 px-3 py-2 border border-input rounded-xl surface-input">
+          <Search :size="15" class="text-placeholder" />
+          <input v-model="searchQuery" type="text" placeholder="Tìm sinh viên hoặc loại đơn..." class="bg-transparent outline-none text-xs text-heading" />
         </label>
       </div>
     </GlassPanel>
@@ -189,7 +221,7 @@ onMounted(() => { loadHistory() })
           <div class="panel-heading">
             <div>
               <h2>Bảng lịch sử</h2>
-              <p>Hiển thị 1-{{ history.length }} trong số {{ history.length }} kết quả</p>
+              <p>Hiển thị 1-{{ filteredHistory.length }} trong số {{ history.length }} kết quả</p>
             </div>
             <GlassBadge variant="neutral" size="sm">Archive</GlassBadge>
           </div>
@@ -221,7 +253,7 @@ onMounted(() => { loadHistory() })
               </tr>
             </thead>
             <tbody>
-              <tr v-for="item in history" :key="item.id || item.maYeuCau">
+              <tr v-for="item in filteredHistory" :key="item.id || item.maYeuCau">
                 <td>
                   <div class="date-cell">
                     <strong>{{ item.ngayXuLy || item.date || '--' }}</strong>

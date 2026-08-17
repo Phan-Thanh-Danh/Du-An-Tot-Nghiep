@@ -13,4 +13,5 @@ public class AuthUserDto
     public string Status { get; set; } = string.Empty;
     public string ClassName { get; set; } = string.Empty;
     public string MajorName { get; set; } = string.Empty;
+    public List<string> Permissions { get; set; } = new();
 }

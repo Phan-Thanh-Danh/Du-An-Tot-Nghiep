@@ -16,10 +16,11 @@ export const giangVienMenuGroups = [
     id: 'giang-day',
     label: 'Giảng dạy',
     icon: 'GraduationCap',
+    permission: 'training.read',
     children: [
-      { id: 'schedule', label: 'Lịch giảng dạy', icon: 'Calendar', route: '/teacher/schedule' },
-      { id: 'courses', label: 'Khóa học', icon: 'Book', route: '/teacher/courses' },
-      { id: 'lessons', label: 'Bài học', icon: 'FileVideo', route: '/teacher/lessons' },
+      { id: 'schedule', label: 'Lịch giảng dạy', icon: 'Calendar', route: '/teacher/schedule', permission: 'schedules.read' },
+      { id: 'courses', label: 'Khóa học', icon: 'Book', route: '/teacher/courses', permission: 'training.read' },
+      { id: 'lessons', label: 'Bài học', icon: 'FileVideo', route: '/teacher/lessons', permission: 'training.read' },
     ],
   },
 
@@ -29,10 +30,10 @@ export const giangVienMenuGroups = [
     label: 'Quản lý lớp học',
     icon: 'Users',
     children: [
-      { id: 'classes', label: 'Danh sách lớp', icon: 'LayoutList', route: '/teacher/classes' },
-      { id: 'progress', label: 'Tiến độ học tập', icon: 'Activity', route: '/teacher/class-progress' },
-      { id: 'attendance-history', label: 'Chuyên cần lớp', icon: 'UserCheck', route: '/teacher/class-attendance' },
-      { id: 'class-grades', label: 'Điểm lớp', icon: 'Table', route: '/teacher/class-grades' },
+      { id: 'classes', label: 'Danh sách lớp', icon: 'LayoutList', route: '/teacher/classes', permission: 'training.read' },
+      { id: 'progress', label: 'Tiến độ học tập', icon: 'Activity', route: '/teacher/class-progress', permission: 'training.read' },
+      { id: 'attendance-history', label: 'Chuyên cần lớp', icon: 'UserCheck', route: '/teacher/class-attendance', permission: 'schedules.read' },
+      { id: 'class-grades', label: 'Điểm lớp', icon: 'Table', route: '/teacher/class-grades', permission: 'exams.read' },
     ],
   },
 
@@ -41,8 +42,9 @@ export const giangVienMenuGroups = [
     id: 'bai-tap',
     label: 'Bài tập',
     icon: 'ClipboardList',
+    permission: 'exams.read',
     children: [
-      { id: 'assignments', label: 'Quản lý bài tập', icon: 'FileText', route: '/teacher/assignments' },
+      { id: 'assignments', label: 'Quản lý bài tập', icon: 'FileText', route: '/teacher/assignments', permission: 'exams.read' },
     ],
   },
 
@@ -51,9 +53,10 @@ export const giangVienMenuGroups = [
     id: 'thi-cu',
     label: 'Thi cử',
     icon: 'ShieldCheck',
+    permission: 'exams.read',
     children: [
-      { id: 'exam-results', label: 'Kết quả bài thi', icon: 'Award', route: '/teacher/exam-results' },
-      { id: 'proctoring', label: 'Canh thi', icon: 'Video', route: '/teacher/proctoring', badge: true },
+      { id: 'exam-results', label: 'Kết quả bài thi', icon: 'Award', route: '/teacher/exam-results', permission: 'exams.read' },
+      { id: 'proctoring', label: 'Canh thi', icon: 'Video', route: '/teacher/proctoring', badge: true, permission: 'exams.read' },
     ],
   },
 
@@ -62,9 +65,9 @@ export const giangVienMenuGroups = [
     id: 'diem-danh-diem-so',
     label: 'Điểm danh & Điểm',
     icon: 'Star',
+    permission: 'schedules.read',
     children: [
-
-      { id: 'attendance-history', label: 'Lịch sử điểm danh', icon: 'History', route: '/teacher/attendance-history' },
+      { id: 'attendance-history', label: 'Lịch sử điểm danh', icon: 'History', route: '/teacher/attendance-history', permission: 'schedules.read' },
     ],
   },
 
@@ -84,9 +87,10 @@ export const giangVienMenuGroups = [
     id: 'hanh-chinh',
     label: 'Đơn từ',
     icon: 'FileStack',
+    permission: 'requests.read',
     children: [
-      { id: 'pending-requests', label: 'Đơn cần xử lý', icon: 'FileClock', route: '/teacher/requests' },
-      { id: 'request-history', label: 'Lịch sử xử lý', icon: 'History', route: '/teacher/requests-history' },
+      { id: 'pending-requests', label: 'Đơn cần xử lý', icon: 'FileClock', route: '/teacher/requests', permission: 'requests.read' },
+      { id: 'request-history', label: 'Lịch sử xử lý', icon: 'History', route: '/teacher/requests-history', permission: 'requests.read' },
     ],
   },
 

@@ -435,6 +435,8 @@ const router = createRouter({
           meta: { title: 'Dashboard chiến lược', subtitle: 'Tổng quan hệ thống đào tạo, chất lượng và thống kê', section: 'Dashboard' },
         },
         // Cơ cấu tổ chức
+        { path: 'human-resources', name: 'bgh-human-resources', component: () => import('../views/BGH/HumanResources/TeacherPersonnelListView.vue'), meta: { title: 'Nhân sự Giảng viên', subtitle: 'Quản lý hồ sơ chuyên môn và tải giảng dạy', section: 'Cơ cấu tổ chức' } },
+        { path: 'human-resources/:id', name: 'bgh-human-resources-detail', component: () => import('../views/BGH/HumanResources/TeacherPersonnelDetailView.vue'), meta: { title: 'Chi tiết Giảng viên', subtitle: 'Hồ sơ chuyên môn, tải giảng dạy và nhật ký ca dạy', section: 'Cơ cấu tổ chức' } },
         { path: 'organizations', name: 'bgh-organizations', component: () => import('../views/BGH/OrganizationsView.vue'), meta: { title: 'Quản lý Đơn vị', subtitle: 'Cơ cấu tổ chức các khoa, phòng ban', section: 'Cơ cấu tổ chức' } },
         { path: 'users', name: 'bgh-users', component: () => import('../views/BGH/UsersView.vue'), meta: { title: 'Quản lý Người dùng', subtitle: 'Danh sách tài khoản sinh viên, giảng viên và nhân sự', section: 'Cơ cấu tổ chức' } },
         { path: 'roles', name: 'bgh-roles', component: () => import('../views/BGH/RolesView.vue'), meta: { title: 'Vai trò & Phân quyền', subtitle: 'Cấu hình quyền hạn truy cập hệ thống', section: 'Cơ cấu tổ chức' } },

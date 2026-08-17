@@ -48,20 +48,25 @@ const modules = ref([])
 const classInfo = ref({})
 
 const classCode = computed(() => route.params.id || '')
+const hasAttendanceRecorded = computed(() => {
+  return classInfo.value?.hasAttendanceRecord || students.value.some((s) => s.present)
+})
 const presentCount = computed(() => students.value.filter((student) => student.present).length)
 const absentCount = computed(() => students.value.length - presentCount.value)
-const completedModules = computed(
-  () => modules.value.filter((module) => module.status === 'completed').length,
-)
-const progressPercent = computed(() =>
-  modules.value.length ? Math.round((completedModules.value / modules.value.length) * 100) : 0,
-)
+const completedModules = computed(() => {
+  if (classInfo.value?.completedModules !== undefined) return classInfo.value.completedModules
+  return modules.value.filter((module) => module.status === 'completed').length
+})
+const progressPercent = computed(() => {
+  if (classInfo.value?.progressPercent !== undefined) return classInfo.value.progressPercent
+  return modules.value.length ? Math.round((completedModules.value / modules.value.length) * 100) : 0
+})
 
 function formatSessionDateTime(sessionDate) {
-  if (!sessionDate) return 'Chưa có lịch';
-  const d = new Date(sessionDate);
-  const options = { weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit' };
-  return d.toLocaleDateString('vi-VN', options);
+  if (!sessionDate) return 'Chưa có lịch'
+  const d = new Date(sessionDate)
+  const options = { weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit' }
+  return d.toLocaleDateString('vi-VN', options)
 }
 const currentModule = computed(
   () => modules.value.find((module) => module.status === 'playing') || modules.value[0] || null,
@@ -74,16 +79,16 @@ async function loadWorkspace() {
     const response = await teacherApi.getTeacherClassWorkspace(route.params.id)
     const data = response?.data?.data ?? response?.data ?? response
     classInfo.value = data
-    students.value = (data?.students || []).map(s => ({
+    students.value = (data?.students || []).map((s) => ({
       id: s.maSinhVien ?? s.id,
       name: s.tenSinhVien ?? s.name ?? '',
       present: s.coMat ?? s.present ?? false,
     }))
-    modules.value = (data?.modules || []).map(m => ({
+    modules.value = (data?.modules || []).map((m) => ({
       id: m.id,
       title: m.tieuDe ?? m.title ?? '',
       duration: m.thoiLuong ?? m.duration ?? '',
-      status: m.trangThai ?? m.status ?? 'locked',
+      status: m.trangThai ?? m.status ?? 'available',
       type: m.loai ?? m.type ?? 'video',
     }))
   } catch (e) {
@@ -97,21 +102,21 @@ const workspaceStats = computed(() => [
   {
     label: 'Sĩ số',
     value: students.value.length,
-    hint: `Lớp ${classInfo.value?.className || classCode.value}`,
+    hint: `Lớp ${classInfo.value?.className || classCode.value}${classInfo.value?.chuyenNganh ? ' - ' + classInfo.value.chuyenNganh : ''}`,
     icon: Users,
     tone: 'primary',
   },
   {
     label: 'Có mặt',
-    value: presentCount.value,
-    hint: `${absentCount.value} sinh viên vắng`,
+    value: hasAttendanceRecorded.value ? presentCount.value : '--',
+    hint: hasAttendanceRecorded.value ? `${absentCount.value} sinh viên vắng` : 'Chưa điểm danh',
     icon: UserCheck,
-    tone: 'success',
+    tone: hasAttendanceRecorded.value ? (absentCount.value === 0 ? 'success' : 'warning') : 'primary',
   },
   {
     label: 'Tiến độ',
     value: `${progressPercent.value}%`,
-    hint: `${completedModules.value}/${modules.value.length} nội dung`,
+    hint: `${completedModules.value}/${modules.value.length || classInfo.value?.totalModules || 10} nội dung`,
     icon: BarChart3,
     tone: 'violet',
   },
@@ -520,18 +525,22 @@ onMounted(() => { loadWorkspace() })
               <p class="section-eyebrow">Theo dõi nhanh</p>
               <h2>Cảnh báo lớp</h2>
             </div>
-            <GlassBadge :variant="absentCount > 0 ? 'warning' : 'success'">
-              {{ absentCount > 0 ? '1 mục' : '0 mục' }}
+            <GlassBadge :variant="hasAttendanceRecorded ? (absentCount > 0 ? 'warning' : 'success') : 'secondary'">
+              {{ hasAttendanceRecorded ? (absentCount > 0 ? '1 mục' : '0 mục') : 'Chưa điểm danh' }}
             </GlassBadge>
           </div>
           <div class="notice-list">
-            <div v-if="absentCount > 0" class="notice-item">
+            <div v-if="hasAttendanceRecorded && absentCount > 0" class="notice-item">
               <span class="notice-dot warning" />
-              <p>{{ absentCount }} sinh viên chưa điểm danh / vắng mặt hôm nay.</p>
+              <p>{{ absentCount }} sinh viên vắng mặt trong buổi học đã ghi nhận.</p>
+            </div>
+            <div v-else-if="!hasAttendanceRecorded" class="notice-item">
+              <span class="notice-dot warning" />
+              <p>Buổi học chưa có dữ liệu điểm danh. Vui lòng thực hiện điểm danh.</p>
             </div>
             <div v-else class="notice-item">
               <span class="notice-dot success" />
-              <p>Không có cảnh báo chuyên cần bất thường trong lớp.</p>
+              <p>Toàn bộ sinh viên có mặt đầy đủ trong lớp.</p>
             </div>
           </div>
         </GlassPanel>

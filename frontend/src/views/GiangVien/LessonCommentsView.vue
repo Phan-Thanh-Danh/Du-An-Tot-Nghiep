@@ -19,6 +19,7 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
+import LmsSelect from '@/components/LmsSelect.vue'
 import { teacherApi } from '@/services/teacherApi'
 
 const popupStore = usePopupStore()
@@ -28,12 +29,63 @@ const threads = ref([])
 const replyingId = ref(null)
 const replyTexts = ref({})
 const hidingId = ref(null)
+const searchQuery = ref('')
+const statusFilter = ref('')
+const selectedLesson = ref('')
+
+const statusOptions = [
+  { value: '', label: 'Tất cả trạng thái' },
+  { value: 'unreplied', label: 'Chưa phản hồi' },
+  { value: 'replied', label: 'Đã phản hồi' }
+]
+
+const lessonOptions = computed(() => {
+  const options = [{ value: '', label: 'Tất cả bài học' }]
+  const seen = new Set()
+  threads.value.forEach(t => {
+    const lesson = t.baiHoc || t.lesson || t.tenBaiHoc
+    if (lesson && !seen.has(lesson)) {
+      seen.add(lesson)
+      options.push({ value: lesson, label: lesson })
+    }
+  })
+  return options
+})
+
+const filteredThreads = computed(() => {
+  let list = threads.value
+  if (statusFilter.value === 'unreplied') {
+    list = list.filter(t => (t.replies || []).length === 0)
+  } else if (statusFilter.value === 'replied') {
+    list = list.filter(t => (t.replies || []).length > 0)
+  }
+
+  if (selectedLesson.value) {
+    list = list.filter(t => (t.baiHoc || t.lesson || t.tenBaiHoc) === selectedLesson.value)
+  }
+
+  if (searchQuery.value.trim()) {
+    const q = searchQuery.value.trim().toLowerCase()
+    list = list.filter(t => 
+      (t.noiDung || t.content || '').toLowerCase().includes(q) ||
+      (t.hoTen || t.author || '').toLowerCase().includes(q)
+    )
+  }
+
+  return list
+})
 
 const commentStats = computed(() => [
   { label: 'Tổng bình luận', value: threads.value.length, variant: 'neutral' },
   { label: 'Chưa phản hồi', value: threads.value.filter(thread => (thread.replies || []).length === 0).length, variant: 'warning' },
   { label: 'Đã phản hồi', value: threads.value.filter(thread => (thread.replies || []).length > 0).length, variant: 'success' },
-  { label: 'Hôm nay', value: 2, variant: 'info' },
+  { label: 'Hôm nay', value: threads.value.filter(t => {
+    const raw = t.ngayTao || t.time
+    if (!raw) return false
+    const d = new Date(raw)
+    const now = new Date()
+    return !isNaN(d) && d.toDateString() === now.toDateString()
+  }).length, variant: 'info' },
 ])
 
 async function loadComments() {
@@ -59,19 +111,11 @@ async function replyToComment(thread) {
       noiDung: text,
       content: text,
     })
-    if (!thread.replies) thread.replies = []
-    thread.replies.push({
-      id: Date.now(),
-      user: 'Giảng viên',
-      content: text,
-      time: 'Vừa xong',
-      isTeacher: true,
-      laGiangVien: true,
-    })
+    popupStore.success('Đã gửi phản hồi', 'Phản hồi của bạn đã được gửi thành công.')
     replyTexts.value[thread.id || thread.maBinhLuan] = ''
-    popupStore.success('Đã gửi phản hồi', 'Phản hồi của bạn đã được đăng.')
-  } catch (e) {
-    popupStore.error('Không thể gửi phản hồi', e?.message || 'Lỗi máy chủ.')
+    await loadComments()
+  } catch (err) {
+    popupStore.error('Lỗi', err?.message || 'Không thể gửi phản hồi.')
   } finally {
     replyingId.value = null
   }
@@ -80,23 +124,14 @@ async function replyToComment(thread) {
 async function hideComment(thread) {
   hidingId.value = thread.id || thread.maBinhLuan
   try {
-    await teacherApi.hideLessonComment(thread.id || thread.maBinhLuan, { an: true, hidden: true })
-    thread.biAn = true
-    thread.hidden = true
-    popupStore.success('Đã ẩn bình luận', 'Bình luận đã được ẩn khỏi sinh viên.')
-  } catch (e) {
-    popupStore.error('Không thể ẩn bình luận', e?.message || 'Lỗi máy chủ.')
+    await teacherApi.hideLessonComment(thread.id || thread.maBinhLuan)
+    popupStore.success('Đã ẩn', 'Bình luận đã được ẩn khỏi danh sách.')
+    await loadComments()
+  } catch (err) {
+    popupStore.error('Lỗi', err?.message || 'Không thể ẩn bình luận.')
   } finally {
     hidingId.value = null
   }
-}
-
-function getThreadStatus(thread) {
-  return thread.replies && thread.replies.length > 0 ? 'Đã phản hồi' : 'Chưa phản hồi'
-}
-
-function getThreadVariant(thread) {
-  return thread.replies && thread.replies.length > 0 ? 'success' : 'warning'
 }
 
 onMounted(() => { loadComments() })
@@ -104,33 +139,23 @@ onMounted(() => { loadComments() })
 
 <template>
   <div class="lesson-comments-page">
+    <!-- Header -->
     <GlassPanel variant="soft" density="compact" class="page-header" :clip="false">
       <div class="header-main">
         <span class="header-icon">
           <MessageCircle :size="20" />
         </span>
         <div class="min-w-0">
-          <div class="eyebrow">Lesson discussion</div>
+          <div class="eyebrow">Interactive Hub</div>
           <h1 class="page-title">Bình luận bài học</h1>
           <p class="page-subtitle">
-            Theo dõi thread thảo luận dưới bài giảng, ưu tiên các bình luận chưa được giảng viên phản hồi.
+            Hỏi đáp, trao đổi thắc mắc trực tiếp giữa sinh viên và giảng viên trên từng bài giảng.
           </p>
         </div>
       </div>
-
-      <div class="header-actions">
-        <GlassBadge variant="warning" size="md">
-          {{ threads.filter(thread => thread.replies.length === 0).length }} cần phản hồi
-        </GlassBadge>
-        <GlassButton size="sm" variant="secondary">
-          <template #leading>
-            <Filter :size="14" />
-          </template>
-          Lọc theo bài học
-        </GlassButton>
-      </div>
     </GlassPanel>
 
+    <!-- Context bar (Stats & Filter) -->
     <GlassPanel variant="surface" density="compact" class="context-bar" :clip="false">
       <div class="mini-stats">
         <div v-for="item in commentStats" :key="item.label" class="mini-stat">
@@ -142,26 +167,25 @@ onMounted(() => { loadComments() })
         </div>
       </div>
 
-      <div class="filters">
-        <label class="select-field">
-          <BookOpen :size="15" />
-          <select>
-            <option>Tất cả bài học</option>
-            <option>Bài 2: Cấu trúc HTML5</option>
-            <option>Bài 5: Flexbox Layout</option>
-          </select>
-        </label>
-        <label class="select-field">
-          <Filter :size="15" />
-          <select>
-            <option>Tất cả trạng thái</option>
-            <option>Chưa phản hồi</option>
-            <option>Đã phản hồi</option>
-          </select>
-        </label>
-        <label class="search-field">
-          <Search :size="15" />
-          <input type="text" placeholder="Tìm bình luận, sinh viên..." />
+      <div class="filters flex items-center gap-3">
+        <div class="w-48">
+          <LmsSelect
+            v-model="selectedLesson"
+            placeholder="Tất cả bài học"
+            :options="lessonOptions"
+            searchable
+          />
+        </div>
+        <div class="w-44">
+          <LmsSelect
+            v-model="statusFilter"
+            placeholder="Tất cả trạng thái"
+            :options="statusOptions"
+          />
+        </div>
+        <label class="search-field flex items-center gap-2 px-3 py-2 border border-input rounded-xl surface-input">
+          <Search :size="15" class="text-placeholder" />
+          <input v-model="searchQuery" type="text" placeholder="Tìm bình luận, sinh viên..." class="bg-transparent outline-none text-xs text-heading" />
         </label>
       </div>
     </GlassPanel>
@@ -179,10 +203,10 @@ onMounted(() => { loadComments() })
       <GlassButton variant="primary" size="sm" class="mt-3" @click="loadComments">Thử lại</GlassButton>
     </div>
 
-    <template v-else-if="threads.length">
+    <template v-else-if="filteredThreads.length">
       <div class="threads-shell">
         <GlassPanel
-          v-for="thread in threads"
+          v-for="thread in filteredThreads"
           :key="thread.id || thread.maBinhLuan"
           v-show="!thread.biAn && !thread.hidden"
           variant="surface"

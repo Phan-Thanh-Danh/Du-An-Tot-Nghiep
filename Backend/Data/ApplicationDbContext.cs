@@ -100,6 +100,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<TokenLamMoi> TokenLamMois => Set<TokenLamMoi>();
     public DbSet<TuyChonThongBao> TuyChonThongBaos => Set<TuyChonThongBao>();
     public DbSet<VaiTro> VaiTros => Set<VaiTro>();
+    public DbSet<QuyenHan> QuyenHans => Set<QuyenHan>();
+    public DbSet<VaiTroQuyenHan> VaiTroQuyenHans => Set<VaiTroQuyenHan>();
     public DbSet<XuatBaoCao> XuatBaoCaos => Set<XuatBaoCao>();
     public DbSet<YeuCauDoiLich> YeuCauDoiLichs => Set<YeuCauDoiLich>();
     public DbSet<YeuCauHoanPhi> YeuCauHoanPhis => Set<YeuCauHoanPhi>();
@@ -6043,6 +6045,49 @@ public class ApplicationDbContext : DbContext
 
             entity.HasOne(e => e.DonVi).WithMany().HasForeignKey(e => e.MaDonVi).HasConstraintName("FK_QuyDinhChuyenCan_DonVi");
             entity.HasOne(e => e.NguoiTaoNavigation).WithMany().HasForeignKey(e => e.NguoiTao).HasConstraintName("FK_QuyDinhChuyenCan_NguoiTao");
+        });
+
+        modelBuilder.Entity<QuyenHan>(entity =>
+        {
+            entity.ToTable("QuyenHan", "dbo");
+            entity.HasKey(e => e.MaQuyenHan).HasName("PK_QuyenHan");
+            entity.HasIndex(e => e.MaCode).IsUnique().HasDatabaseName("IX_QuyenHan_MaCode");
+
+            entity.Property(e => e.MaQuyenHan).HasColumnName("ma_quyen_han");
+            entity.Property(e => e.MaCode).HasColumnName("ma_code").HasMaxLength(100).IsRequired();
+            entity.Property(e => e.TenQuyenHan).HasColumnName("ten_quyen_han").HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Module).HasColumnName("module").HasMaxLength(50).IsRequired();
+            entity.Property(e => e.Action).HasColumnName("action").HasMaxLength(50).IsRequired();
+            entity.Property(e => e.MoTa).HasColumnName("mo_ta").HasMaxLength(500);
+        });
+
+        modelBuilder.Entity<VaiTroQuyenHan>(entity =>
+        {
+            entity.ToTable("VaiTroQuyenHan", "dbo");
+            entity.HasKey(e => new { e.MaVaiTro, e.MaQuyenHan }).HasName("PK_VaiTroQuyenHan");
+
+            entity.Property(e => e.MaVaiTro).HasColumnName("ma_vai_tro");
+            entity.Property(e => e.MaQuyenHan).HasColumnName("ma_quyen_han");
+            entity.Property(e => e.NgayCap).HasColumnName("ngay_cap").HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(e => e.NguoiCap).HasColumnName("nguoi_cap");
+
+            entity.HasOne(d => d.VaiTro)
+                .WithMany(p => p.VaiTroQuyenHans)
+                .HasForeignKey(d => d.MaVaiTro)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_VaiTroQuyenHan_VaiTro");
+
+            entity.HasOne(d => d.QuyenHan)
+                .WithMany(p => p.VaiTroQuyenHans)
+                .HasForeignKey(d => d.MaQuyenHan)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_VaiTroQuyenHan_QuyenHan");
+
+            entity.HasOne(d => d.NguoiCapNavigation)
+                .WithMany()
+                .HasForeignKey(d => d.NguoiCap)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_VaiTroQuyenHan_NguoiCap");
         });
     }
 }

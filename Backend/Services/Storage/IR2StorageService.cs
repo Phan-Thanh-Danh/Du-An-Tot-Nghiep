@@ -13,4 +13,8 @@ public interface IR2StorageService
         CancellationToken cancellationToken = default);
 
     Task DeleteFileAsync(string storageKey, CancellationToken cancellationToken = default);
+
+    Task<(Stream Stream, string ContentType, long? ContentLength)> GetFileStreamAsync(string storageKey, CancellationToken cancellationToken = default);
+
+    string? GetPresignedStreamUrl(string storageKey, TimeSpan? expiry = null);
 }

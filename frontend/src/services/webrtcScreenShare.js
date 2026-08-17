@@ -18,26 +18,17 @@ export async function requestScreenShare() {
   try {
     const stream = await navigator.mediaDevices.getDisplayMedia({
       video: {
-        cursor: 'always',
-        displaySurface: 'monitor',
-        logicalSurface: true
+        cursor: 'always'
       },
       audio: false
     })
 
-    // Bắt buộc sinh viên phải chọn "Toàn bộ màn hình" (monitor), không cho chọn Tab hay Window
-    const videoTrack = stream.getVideoTracks()[0]
-    const settings = videoTrack.getSettings()
-    
-    if (settings.displaySurface && settings.displaySurface !== 'monitor') {
-      // Dừng stream ngay lập tức nếu chọn sai
-      stream.getTracks().forEach(track => track.stop())
-      throw new Error('Bạn bắt buộc phải chọn "Toàn bộ màn hình" (Entire Screen). Việc chia sẻ Thẻ (Tab) hoặc Cửa sổ (Window) không được phép.')
-    }
-
     return stream
   } catch (err) {
     console.error('Lỗi khi lấy quyền chia sẻ màn hình:', err)
+    if (err.name === 'NotAllowedError' || err.message?.includes('Permission denied')) {
+      throw new Error('Bạn đã hủy hoặc chưa cấp quyền chia sẻ màn hình. Hãy bấm lại nút và chọn một màn hình / cửa sổ để tiếp tục.')
+    }
     throw err
   }
 }

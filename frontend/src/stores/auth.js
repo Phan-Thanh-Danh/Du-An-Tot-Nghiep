@@ -66,6 +66,12 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => Boolean(accessToken.value) && !isExpired(expiresAt.value))
   const role = computed(() => user.value?.role || user.value?.Role || '')
+  const permissions = computed(() => user.value?.permissions || user.value?.Permissions || [])
+  const hasPermission = (permissionCode) => {
+    const currentRole = role.value
+    if (['SuperAdmin', 'sieu_quan_tri', 'Admin', 'quan_tri'].includes(currentRole)) return true
+    return permissions.value.includes(permissionCode)
+  }
   const displayName = computed(() => user.value?.fullName || user.value?.FullName || user.value?.email || user.value?.Email || 'Người dùng')
   const initials = computed(() => {
     const name = displayName.value.trim()
@@ -200,6 +206,8 @@ export const useAuthStore = defineStore('auth', () => {
     error,
     isAuthenticated,
     role,
+    permissions,
+    hasPermission,
     displayName,
     initials,
     login,

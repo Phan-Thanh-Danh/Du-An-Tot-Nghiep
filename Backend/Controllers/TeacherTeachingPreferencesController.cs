@@ -7,7 +7,7 @@ namespace Backend.Controllers;
 
 [Route("api/teacher/teaching-preferences")]
 [ApiController]
-[Authorize(Roles = "Teacher")]
+[Authorize(Roles = "Teacher,giao_vien")]
 public class TeacherTeachingPreferencesController : ControllerBase
 {
     private readonly ITeachingPreferenceService _service;

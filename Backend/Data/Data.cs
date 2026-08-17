@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Backend.Constants;
+using Backend.Data.Seeders;
 using Backend.Helpers;
 using Backend.Models;
 using Microsoft.EntityFrameworkCore;
@@ -42,6 +43,7 @@ public static class Data
     private static async Task SeedAllAsync(ApplicationDbContext context)
     {
         await SeedRolesAsync(context);
+        await PermissionCatalogSeeder.SeedAsync(context);
 
         var rootCampus = await GetOrCreateRootCampusAsync(context);
         var campuses = await SeedCampusesAsync(context, rootCampus);

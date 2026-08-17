@@ -114,6 +114,12 @@ public class AuthService : IAuthService
             new { user.Email, Status = status },
             "Đăng nhập thành công.");
 
+        var permissions = await _context.VaiTroQuyenHans
+            .AsNoTracking()
+            .Where(vp => vp.VaiTro != null && vp.VaiTro.MaCodeVaiTro == user.VaiTroChinh && vp.QuyenHan != null)
+            .Select(vp => vp.QuyenHan!.MaCode)
+            .ToListAsync();
+
         return new LoginResponseDto
         {
             AccessToken = token.Token,
@@ -121,7 +127,7 @@ public class AuthService : IAuthService
             RefreshToken = refreshToken.Token,
             RefreshTokenExpiresAt = refreshToken.Entity.HetHanLuc,
             RequiresPasswordChange = status == UserStatuses.FirstLogin,
-            User = ToAuthUserDto(user, role, status)
+            User = ToAuthUserDto(user, role, status, permissions)
         };
     }
 
@@ -163,6 +169,12 @@ public class AuthService : IAuthService
             new { user.Email, OldRefreshTokenId = refreshToken.MaTokenLamMoi, NewRefreshTokenId = newRefreshToken.Entity.MaTokenLamMoi },
             "Xoay vòng refresh token.");
 
+        var permissions = await _context.VaiTroQuyenHans
+            .AsNoTracking()
+            .Where(vp => vp.VaiTro != null && vp.VaiTro.MaCodeVaiTro == user.VaiTroChinh && vp.QuyenHan != null)
+            .Select(vp => vp.QuyenHan!.MaCode)
+            .ToListAsync();
+
         return new LoginResponseDto
         {
             AccessToken = accessToken.Token,
@@ -170,7 +182,7 @@ public class AuthService : IAuthService
             RefreshToken = newRefreshToken.Token,
             RefreshTokenExpiresAt = newRefreshToken.Entity.HetHanLuc,
             RequiresPasswordChange = status == UserStatuses.FirstLogin,
-            User = ToAuthUserDto(user, role, status)
+            User = ToAuthUserDto(user, role, status, permissions)
         };
     }
 
@@ -279,7 +291,7 @@ public class AuthService : IAuthService
             "Người dùng đổi mật khẩu.");
     }
 
-    private static AuthUserDto ToAuthUserDto(NguoiDung user, string role, string status)
+    private static AuthUserDto ToAuthUserDto(NguoiDung user, string role, string status, List<string>? permissions = null)
     {
         return new AuthUserDto
         {
@@ -293,7 +305,8 @@ public class AuthService : IAuthService
             CampusName = user.DonVi?.TenDonVi ?? "",
             Status = status,
             ClassName = user.Lop?.TenLop ?? "",
-            MajorName = user.Lop?.ChuongTrinh?.ChuyenNganh?.TenChuyenNganh ?? ""
+            MajorName = user.Lop?.ChuongTrinh?.ChuyenNganh?.TenChuyenNganh ?? "",
+            Permissions = permissions ?? new List<string>()
         };
     }
 

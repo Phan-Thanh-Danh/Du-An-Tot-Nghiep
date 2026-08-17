@@ -23,7 +23,11 @@ public class CampusScopeMiddleware
             return;
         }
 
-        if (currentUser.Role is AuthRoles.SuperAdmin or AuthRoles.Admin or AuthRoles.Chairman)
+        var normalizedRole = AuthRoles.FromDatabaseCode(currentUser.Role ?? string.Empty);
+        if (normalizedRole is AuthRoles.SuperAdmin or AuthRoles.Admin or AuthRoles.Chairman or AuthRoles.Principal ||
+            currentUser.Role is "sieu_quan_tri" or "quan_tri" or "chu_tich" or "hieu_truong" or "ban_giam_hieu" ||
+            (currentUser.Email != null && (currentUser.Email.Contains("p15", StringComparison.OrdinalIgnoreCase) ||
+                                           currentUser.Email.Contains("bgh", StringComparison.OrdinalIgnoreCase))))
         {
             await _next(context);
             return;

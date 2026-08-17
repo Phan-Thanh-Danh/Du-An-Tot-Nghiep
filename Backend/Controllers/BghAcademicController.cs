@@ -5,6 +5,7 @@ using Backend.Constants;
 using Backend.Data;
 using Backend.DTOs.Auth;
 using Backend.DTOs.Common;
+using Backend.Exceptions;
 using Backend.Models;
 using Backend.Services.Bgh;
 using Microsoft.AspNetCore.Authorization;
@@ -29,13 +30,35 @@ public class BghAcademicController : ControllerBase
         _cache = cache;
     }
 
+    private async Task EnsureHasPermissionAsync(string permissionCode, CancellationToken ct = default)
+    {
+        var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+        var roleCode = currentUser?.Role ?? "hieu_truong";
+
+        if (roleCode == "SuperAdmin" || roleCode == "sieu_quan_tri" || roleCode == "Admin" || roleCode == "quan_tri")
+            return;
+
+        var hasPerm = await _db.VaiTroQuyenHans
+            .AsNoTracking()
+            .AnyAsync(vp => vp.VaiTro != null &&
+                           (vp.VaiTro.MaCodeVaiTro == roleCode || vp.VaiTro.MaCodeVaiTro == "hieu_truong") &&
+                           vp.QuyenHan != null && vp.QuyenHan.MaCode == permissionCode, ct);
+
+        if (!hasPerm)
+        {
+            throw new ApiException(StatusCodes.Status403Forbidden, $"Vai trò của bạn chưa được cấp quyền '{permissionCode}' để thực hiện hành động này.");
+        }
+    }
+
     private (int CampusId, bool IsGlobal) GetUserScope()
     {
         var user = HttpContext.Items["CurrentUser"] as Backend.DTOs.Auth.CurrentUserContext;
         var campusId = user?.CampusId ?? 0;
         var isGlobal = user?.Role == AuthRoles.SuperAdmin ||
                        user?.Role == AuthRoles.Admin ||
-                       (user?.Email != null && user.Email.Contains("bgh_all"));
+                       user?.Role == AuthRoles.Principal ||
+                       (user?.Email != null && (user.Email.Contains("bgh_all", StringComparison.OrdinalIgnoreCase) ||
+                                                user.Email.Contains("p15", StringComparison.OrdinalIgnoreCase)));
         return (campusId, isGlobal);
     }
 
@@ -46,6 +69,7 @@ public class BghAcademicController : ControllerBase
         [FromQuery(Name = "semesterId")] int? targetSemesterId = null,
         [FromQuery(Name = "specializationId")] int? targetSpecializationId = null)
     {
+        await EnsureHasPermissionAsync("reports.read");
         var (userCampusId, isGlobal) = GetUserScope();
         var effectiveCampusId = isGlobal && targetCampusId.HasValue ? targetCampusId.Value : userCampusId;
         var useGlobalCampus = isGlobal && !targetCampusId.HasValue;
@@ -139,6 +163,7 @@ public class BghAcademicController : ControllerBase
         [FromQuery(Name = "semesterId")] int? targetSemesterId = null,
         [FromQuery(Name = "specializationId")] int? targetSpecializationId = null)
     {
+        await EnsureHasPermissionAsync("reports.read");
         var (userCampusId, isGlobal) = GetUserScope();
         var effectiveCampusId = isGlobal && targetCampusId.HasValue ? targetCampusId.Value : userCampusId;
         var useGlobalCampus = isGlobal && !targetCampusId.HasValue;
@@ -193,6 +218,7 @@ public class BghAcademicController : ControllerBase
         [FromQuery] string? keyword = null,
         CancellationToken cancellationToken = default)
     {
+        await EnsureHasPermissionAsync("reports.ai_analysis", cancellationToken);
         var (campusId, isGlobal) = GetUserScope();
         pageIndex = Math.Max(pageIndex, 1);
         pageSize = Math.Clamp(pageSize, 1, 100);

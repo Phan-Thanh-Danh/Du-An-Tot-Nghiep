@@ -11,7 +11,7 @@ namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/teacher")]
-[Authorize(Roles = AuthRoles.Teacher)]
+[Authorize(Roles = "Teacher,giao_vien")]
 public class TeacherExamController : ControllerBase
 {
     private readonly ApplicationDbContext _context;

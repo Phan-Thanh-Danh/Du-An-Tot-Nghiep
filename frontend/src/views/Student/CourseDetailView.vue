@@ -1,10 +1,11 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import * as LucideIcons from 'lucide-vue-next'
 import LessonVideoPlayer from '@/components/learning/LessonVideoPlayer.vue'
 import SlideHtmlPreview from '@/components/content-council/editor/content/SlideHtmlPreview.vue'
 import { studentApi } from '@/services/studentApi'
+import { examApi } from '@/services/examApi'
 import {
   canStartLearning,
   getLockedReason,
@@ -24,8 +25,40 @@ const pendingEarlyLesson = ref(null)
 const lessonProgressDrafts = ref({})
 const quizSubmitted = ref(false)
 const apiQuizData = ref(null)  // object: { title, durationMinutes, passScore, totalScore, questions[] }
+const quizAttempt = ref(null)
+const quizHistory = ref(null)
+const quizLoading = ref(false)
+const quizSubmitting = ref(false)
+const quizError = ref('')
+let lessonLoadVersion = 0
 
-// ── DYNAMIC COURSE LOAD LOGIC ─────────────────────────
+function mapCourseLessons(rawLessons) {
+  if (!rawLessons) return null
+  return rawLessons.map(c => ({
+    id: c.id || c.Id,
+    chapter: c.chapter || c.Chapter,
+    title: c.title || c.Title,
+    description: c.description || c.Description,
+    status: c.status || c.Status,
+    badge: c.badge || c.Badge,
+    tone: c.tone || c.Tone,
+    icon: c.icon || c.Icon,
+    meta: c.meta || c.Meta,
+    progress: c.progress || c.Progress,
+    lessons: (c.lessons || c.Lessons || []).map(l => ({
+      id: l.id || l.Id,
+      title: l.title || l.Title,
+      duration: l.duration || l.Duration,
+      status: l.status || l.Status,
+      progressPercent: l.progressPercent ?? l.ProgressPercent ?? (l.status === 'completed' ? 100 : 0),
+      type: l.type || l.Type,
+      url: l.url || l.Url,
+      allowSeek: l.allowSeek !== undefined ? l.allowSeek : (l.AllowSeek !== undefined ? l.AllowSeek : true),
+    })),
+  }))
+}
+
+// ── DYNAMIC COURSE LOAD LOGIC & REAL-TIME SYNC ──────────────
 const route = useRoute()
 const courseId = computed(() => route.params.courseId)
 
@@ -34,68 +67,146 @@ const apiStats = ref(null)
 const apiLessons = ref(null)
 const isLoadingApi = ref(true)
 
-watch(() => courseId.value, async (newId) => {
-  if (newId) {
-    try {
-      isLoadingApi.value = true
-      const res = await studentApi.getCourseDetail(newId)
-      const isSuccess = res.success === true || res.Success === true
-      if (isSuccess) {
-        const data = res.data || res.Data || {}
-        apiCourse.value = data.course || data.Course || null
-        
-        // Cần format lại các key viết hoa từ C# sang camelCase cho Frontend dễ dùng
-        const rawStats = data.stats || data.Stats || null
-        if (rawStats) {
-           apiStats.value = rawStats.map(s => ({
-             label: s.label || s.Label,
-             value: s.value || s.Value,
-             unit: s.unit || s.Unit,
-             icon: s.icon || s.Icon,
-             tone: s.tone || s.Tone,
-             progress: s.progress || s.Progress,
-             hint: s.hint || s.Hint
-           }))
-        } else {
-           apiStats.value = null
-        }
-        
-        const rawLessons = data.lessons || data.Lessons || null
-        if (rawLessons) {
-          apiLessons.value = rawLessons.map(c => ({
-            id: c.id || c.Id,
-            chapter: c.chapter || c.Chapter,
-            title: c.title || c.Title,
-            description: c.description || c.Description,
-            status: c.status || c.Status,
-            badge: c.badge || c.Badge,
-            tone: c.tone || c.Tone,
-            icon: c.icon || c.Icon,
-            meta: c.meta || c.Meta,
-            progress: c.progress || c.Progress,
-            lessons: (c.lessons || c.Lessons || []).map(l => ({
-              id: l.id || l.Id,
-              title: l.title || l.Title,
-              duration: l.duration || l.Duration,
-              status: l.status || l.Status,
-              type: l.type || l.Type,
-              url: l.url || l.Url
-            }))
-          }))
-        } else {
-          apiLessons.value = null
-        }
+async function fetchCourseDetail(silent = false) {
+  const cId = courseId.value
+  if (!cId) return
+  try {
+    if (!silent) isLoadingApi.value = true
+    const res = await studentApi.getCourseDetail(cId)
+    const isSuccess = res.success === true || res.Success === true
+    if (isSuccess) {
+      const data = res.data || res.Data || {}
+      apiCourse.value = data.course || data.Course || null
+      
+      const rawStats = data.stats || data.Stats || null
+      if (rawStats) {
+         apiStats.value = rawStats.map(s => ({
+           label: s.label || s.Label,
+           value: s.value || s.Value,
+           unit: s.unit || s.Unit,
+           icon: s.icon || s.Icon,
+           tone: s.tone || s.Tone,
+           progress: s.progress || s.Progress,
+           hint: s.hint || s.Hint
+         }))
+      } else {
+         apiStats.value = null
       }
-    } catch (err) {
+      
+      const rawLessons = data.lessons || data.Lessons || null
+      if (rawLessons) {
+        const mapped = mapCourseLessons(rawLessons)
+        apiLessons.value = mapped
+        
+        // Đồng bộ thuộc tính allowSeek của bài học hiện tại nếu đang mở
+        if (currentLesson.value && selectedLessonId.value && mapped) {
+          const currentInMapped = mapped.flatMap(ch => ch.lessons).find(l => l.id === selectedLessonId.value)
+          if (currentInMapped) {
+            const isSeekAllowed = currentInMapped.allowSeek === false || currentInMapped.AllowSeek === false ? false : true
+            if (currentLesson.value.allowSeek !== isSeekAllowed) {
+              currentLesson.value.allowSeek = isSeekAllowed
+            }
+          }
+        }
+      } else {
+        apiLessons.value = null
+      }
+    }
+  } catch (err) {
+    if (!silent) {
       console.error('Failed to load course details from API', err)
       apiCourse.value = null
       apiStats.value = null
       apiLessons.value = null
-    } finally {
-      isLoadingApi.value = false
+    }
+  } finally {
+    if (!silent) isLoadingApi.value = false
+  }
+}
+
+watch(() => courseId.value, () => {
+  fetchCourseDetail(false)
+}, { immediate: true })
+
+let syncBroadcastChannel = null
+let syncPollInterval = null
+
+function applyRealtimeSeekSync(eventData) {
+  if (!eventData) return
+  const eventCourse = String(eventData.courseCode || '').toUpperCase()
+  const currentCourse = String(courseId.value || '').toUpperCase()
+  if (eventCourse && currentCourse && eventCourse !== currentCourse) return
+
+  const targetSeek = eventData.allowSeek
+
+  // 1. Cập nhật ngay lập tức bài học đang phát hiện tại
+  if (currentLesson.value) {
+    if (!eventData.lessonId || String(currentLesson.value.id) === String(eventData.lessonId) || String(currentLesson.value.id) === `l${eventData.lessonId}`) {
+      currentLesson.value.allowSeek = targetSeek
     }
   }
-}, { immediate: true })
+
+  // 2. Cập nhật tất cả các bài học trong danh sách chương trình
+  if (apiLessons.value) {
+    apiLessons.value.forEach(ch => {
+      ch.lessons.forEach(l => {
+        if (!eventData.lessonId || String(l.id) === String(eventData.lessonId) || String(l.id) === `l${eventData.lessonId}`) {
+          l.allowSeek = targetSeek
+        }
+      })
+    })
+  }
+
+  // 3. Tải lại ngầm để đảm bảo đồng bộ hoàn hảo với cơ sở dữ liệu
+  fetchCourseDetail(true)
+}
+
+function handleStorageSync(e) {
+  if (e.key === 'lms_seek_sync_event' && e.newValue) {
+    try {
+      const data = JSON.parse(e.newValue)
+      applyRealtimeSeekSync(data)
+    } catch (err) {}
+  }
+}
+
+function handleVisibilitySync() {
+  if (document.visibilityState === 'visible') {
+    fetchCourseDetail(true)
+  }
+}
+
+onMounted(() => {
+  try {
+    syncBroadcastChannel = new BroadcastChannel('lms_seek_sync')
+    syncBroadcastChannel.onmessage = (event) => {
+      applyRealtimeSeekSync(event.data)
+    }
+  } catch (e) {}
+
+  window.addEventListener('storage', handleStorageSync)
+  document.addEventListener('visibilitychange', handleVisibilitySync)
+  window.addEventListener('focus', handleVisibilitySync)
+
+  // Polling nhẹ nhàng mỗi 3.5 giây để luôn bắt kịp thay đổi từ Giảng viên
+  syncPollInterval = setInterval(() => {
+    fetchCourseDetail(true)
+  }, 3500)
+})
+
+onBeforeUnmount(() => {
+  if (syncBroadcastChannel) {
+    syncBroadcastChannel.close()
+    syncBroadcastChannel = null
+  }
+  if (syncPollInterval) {
+    clearInterval(syncPollInterval)
+    syncPollInterval = null
+  }
+  window.removeEventListener('storage', handleStorageSync)
+  document.removeEventListener('visibilitychange', handleVisibilitySync)
+  window.removeEventListener('focus', handleVisibilitySync)
+})
 
 const courseInfo = computed(() => {
   if (!apiCourse.value) return null
@@ -207,19 +318,79 @@ function selectLesson(chapter, lesson) {
   activateLesson(chapter, lesson)
 }
 
+function getCleanChapterTitle(chapter) {
+  if (!chapter) return ''
+  const title = typeof chapter === 'string' ? chapter : (chapter.title || '')
+  return title.replace(/^(Chương|Phần|Bài)\s*\d+\s*[:\-]\s*/i, '').trim() || title
+}
+
+function formatChapterHeading(chapter) {
+  if (!chapter) return ''
+  const num = chapter.chapter || ''
+  const cleanTitle = getCleanChapterTitle(chapter)
+  if (!num) return cleanTitle
+  if (!cleanTitle) return num
+  return `${num}: ${cleanTitle}`
+}
+
+function formatLessonDuration(lesson) {
+  if (!lesson) return '15:00'
+  if (lesson.duration && lesson.duration !== '–' && lesson.duration !== '-' && lesson.duration !== '0:00') {
+    return lesson.duration
+  }
+  if (lesson.durationSeconds && lesson.durationSeconds > 0) {
+    const mins = Math.floor(lesson.durationSeconds / 60)
+    const secs = lesson.durationSeconds % 60
+    return `${mins}:${String(secs).padStart(2, '0')}`
+  }
+  return '15:00'
+}
+
+function getStoredLessonProgress(lessonId) {
+  if (!lessonId) return null
+  if (lessonProgressDrafts.value[lessonId]) return lessonProgressDrafts.value[lessonId]
+  try {
+    const raw = localStorage.getItem(`lms_lesson_progress_${lessonId}`)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      lessonProgressDrafts.value[lessonId] = parsed
+      return parsed
+    }
+  } catch (e) {}
+  return null
+}
+
 function activateLesson(chapter, lesson) {
   if (!canStartLearning(lesson) && lesson.accessStatus !== LEARNING_ACCESS.COMPLETED && lesson.accessStatus !== LEARNING_ACCESS.EARLY_COMPLETED) return
-  selectedLessonId.value = lesson.id
   expandedChapters.value[chapter.id] = true
+
+  if (selectedLessonId.value === lesson.id && currentLesson.value?.id === lesson.id && currentLesson.value?.hasVideo !== undefined) {
+    return
+  }
+
+  selectedLessonId.value = lesson.id
+  const storedProg = getStoredLessonProgress(lesson.id)
+  const initialProgress = storedProg?.progressPercent ?? (lesson.status === 'completed' ? 100 : (lesson.progressPercent || 0))
+  const vUrl = lesson.url || lesson.videoUrl || lesson.UrlTapTin || ''
+  const isVideoLesson = lesson.type === 'video' || lesson.lessonType === 'video' || Boolean(vUrl) || (!lesson.type && !lesson.lessonType)
+
+  const isSeekAllowed = lesson.allowSeek === false || lesson.AllowSeek === false ? false : true
   currentLesson.value = {
     ...lesson,
-    ...lessonProgressDrafts.value[lesson.id],
-    videoUrl: lesson.url || lesson.videoUrl || '',  // map url -> videoUrl cho LessonVideoPlayer
+    ...storedProg,
+    hasVideo: isVideoLesson,
+    hasDoc: lesson.type === 'document' || lesson.lessonType === 'assignment',
+    hasQuiz: lesson.type === 'quiz' || lesson.lessonType === 'quiz',
+    allowSeek: isSeekAllowed,
+    pauseOnBlur: lesson.pauseOnBlur !== undefined ? lesson.pauseOnBlur : true,
+    minWatchPercentToComplete: lesson.minWatchPercentToComplete || 80,
+    progressPercent: initialProgress,
+    videoUrl: vUrl,  // map url -> videoUrl cho LessonVideoPlayer
     id: lesson.id,
     chapterId: chapter.id,
-    chapterTitle: `${chapter.chapter}: ${chapter.title}`,
+    chapterTitle: formatChapterHeading(chapter),
     title: lesson.title,
-    duration: lesson.duration,
+    duration: formatLessonDuration(lesson),
     durationSeconds: parseDurationSeconds(lesson.duration) || lesson.durationSeconds || 0,
   }
   activeTab.value = lesson.lessonType === 'quiz' ? 'quiz' : lesson.lessonType === 'assignment' ? 'document' : 'video'
@@ -231,23 +402,37 @@ function parseDurationSeconds(duration) {
   return (minutes * 60) + (seconds || 0)
 }
 
+let lastApiProgressSavedAt = 0
 async function handleVideoProgress(payload) {
   if (!payload) return
   const lessonId = payload.lessonId || currentLesson.value?.id
-  lessonProgressDrafts.value[lessonId] = {
+  const draft = {
     watchedSeconds: payload.currentTimeSeconds,
     maxWatchedSeconds: payload.maxWatchedSeconds,
     progressPercent: payload.progressPercent,
     completedAt: payload.completed ? new Date().toISOString() : null,
   }
-  if (lessonId === currentLesson.value.id) {
+  lessonProgressDrafts.value[lessonId] = draft
+  try {
+    localStorage.setItem(`lms_lesson_progress_${lessonId}`, JSON.stringify(draft))
+  } catch (e) {}
+
+  if (lessonId === currentLesson.value?.id) {
     currentLesson.value = {
       ...currentLesson.value,
-      ...lessonProgressDrafts.value[lessonId],
+      ...draft,
     }
   }
   if (payload.completed || (payload.progressPercent && payload.progressPercent >= 80)) {
     await handleVideoCompleted(payload)
+  } else if (payload.progressPercent && payload.progressPercent > 0 && courseId.value && lessonId) {
+    const now = Date.now()
+    if (now - lastApiProgressSavedAt > 5000) {
+      lastApiProgressSavedAt = now
+      try {
+        await studentApi.completeLesson(courseId.value, lessonId, payload.progressPercent)
+      } catch (e) {}
+    }
   }
 }
 
@@ -326,7 +511,6 @@ function getLessonCompletedItems(lessonId) {
     if (hasVideo) items.video = true
     if (hasSlide) items.slide = true
     if (hasDoc) items.doc = true
-    if (hasQuiz) items.quiz = true
   }
 
   lessonCompletedItems.value[lessonId] = items
@@ -367,7 +551,7 @@ function calculateLessonProgress(lessonId) {
   }
   if (hasQuiz) {
     totalAvailable += 1
-    if (items.quiz || isQuizCompletedFromDb.value) totalDone += 1
+    if (isQuizCompletedFromDb.value) totalDone += 1
   }
 
   if (totalAvailable === 0) return 100
@@ -420,6 +604,8 @@ function closeEarlyLessonModal() {
 }
 
 function toggleChapter(id) {
+  const chapter = learningLessons.value?.find(c => c.id === id)
+  if (!chapter?.lessons || chapter.lessons.length === 0) return
   expandedChapters.value[id] = !expandedChapters.value[id]
 }
 
@@ -456,69 +642,6 @@ const isQuizFullyAnswered = computed(() => {
 
 const quizResult = ref(null)
 
-function calculateQuizResult() {
-  let correctCount = 0
-  const details = {}
-
-  quizQuestions.value.forEach((q) => {
-    const qId = q.id || q.Id
-    const qType = q.type || q.Type
-    const ans = quizAnswers.value[qId]
-
-    let correctIndices = []
-    const rawIndices = q.correctAnswerIndices || q.CorrectAnswerIndices
-    const rawIds = q.correctAnswerIds || q.CorrectAnswerIds
-    const rawSingle = q.correctAnswer ?? q.CorrectAnswer
-
-    if (Array.isArray(rawIndices) && rawIndices.length > 0) {
-      correctIndices = rawIndices
-    } else if (Array.isArray(rawIds) && rawIds.length > 0) {
-      correctIndices = rawIds.map(id => {
-        const u = String(id).trim().toUpperCase()
-        if (u.length === 1 && u >= 'A' && u <= 'Z') return u.charCodeAt(0) - 65
-        return parseInt(u) || 0
-      })
-    } else if (typeof rawSingle === 'number' && rawSingle >= 0) {
-      correctIndices = [rawSingle]
-    }
-
-    let isCorrect = false
-
-    if (qType === 'multiple') {
-      const studentAnswers = Array.isArray(ans) ? ans : []
-      if (
-        studentAnswers.length === correctIndices.length &&
-        studentAnswers.every(i => correctIndices.includes(i))
-      ) {
-        isCorrect = true
-      }
-      details[qId] = { isCorrect, correctIndices, studentAnswers }
-    } else {
-      const studentAnswer = typeof ans === 'number' ? ans : -1
-      isCorrect = correctIndices.includes(studentAnswer)
-      details[qId] = { isCorrect, correctIndices, studentAnswers: [studentAnswer] }
-    }
-
-    if (isCorrect) correctCount++
-  })
-
-  const total = quizQuestions.value.length
-  const score10 = total > 0 ? Math.round((correctCount / total) * 10 * 10) / 10 : 0
-  const passScore = quizInfo.value?.passScore || 5
-  const isPassed = score10 >= passScore
-
-  quizResult.value = {
-    total,
-    correctCount,
-    score10,
-    passScore,
-    isPassed,
-    details
-  }
-
-  return quizResult.value
-}
-
 async function reloadCourseData() {
   if (!courseId.value) return
   try {
@@ -543,27 +666,7 @@ async function reloadCourseData() {
 
       const rawLessons = data.lessons || data.Lessons || null
       if (rawLessons) {
-        apiLessons.value = rawLessons.map(c => ({
-          id: c.id || c.Id,
-          chapter: c.chapter || c.Chapter,
-          title: c.title || c.Title,
-          description: c.description || c.Description,
-          status: c.status || c.Status,
-          badge: c.badge || c.Badge,
-          tone: c.tone || c.Tone,
-          icon: c.icon || c.Icon,
-          meta: c.meta || c.Meta,
-          progress: c.progress || c.Progress,
-          lessons: (c.lessons || c.Lessons || []).map(l => ({
-            id: l.id || l.Id,
-            title: l.title || l.Title,
-            duration: l.duration || l.Duration,
-            status: l.status || l.Status,
-            progressPercent: l.progressPercent || l.ProgressPercent || (l.status === 'completed' ? 100 : 0),
-            type: l.type || l.Type,
-            url: l.url || l.Url
-          }))
-        }))
+        apiLessons.value = mapCourseLessons(rawLessons)
       }
     }
   } catch (err) {
@@ -572,10 +675,94 @@ async function reloadCourseData() {
 }
 
 async function submitQuiz() {
-  const result = calculateQuizResult()
-  quizSubmitted.value = true
-  if (result.isPassed && currentLesson.value) {
-    await updateLessonProgressAndSave('quiz')
+  if (!quizAttempt.value || quizSubmitting.value) return
+
+  quizSubmitting.value = true
+  quizError.value = ''
+  try {
+    const answers = quizQuestions.value.map(q => {
+      const answer = quizAnswers.value[q.id]
+      const options = q.options || []
+      const selectedIndexes = Array.isArray(answer) ? answer : (Number.isInteger(answer) ? [answer] : [])
+      return {
+        maCauHoi: Number(q.id),
+        selectedOptionIds: selectedIndexes.map(index => {
+          const option = options[index]
+          return String(option?.id ?? option?.Id ?? String.fromCharCode(65 + index))
+        }),
+        essayText: q.type === 'essay' ? String(answer || '') : null,
+      }
+    })
+
+    const response = await examApi.submitQuizAttempt(quizAttempt.value.maPhienThi, { answers })
+    const score = response.diemCuoiCung ?? response.diemTuDong ?? 0
+    quizResult.value = {
+      total: response.tongSoCau ?? quizQuestions.value.length,
+      correctCount: response.soCauDung ?? 0,
+      score10: score,
+      passScore: quizInfo.value?.passScore || 5,
+      isPassed: response.ketQuaDat === true,
+      details: response.chiTiet || {},
+    }
+    quizSubmitted.value = true
+    quizHistory.value = await examApi.getQuizHistory(apiQuizData.value.quizId)
+
+    if (quizResult.value.isPassed && currentLesson.value) {
+      await updateLessonProgressAndSave('quiz')
+    }
+  } catch (err) {
+    quizError.value = err?.message || 'Không thể nộp bài Quiz. Vui lòng thử lại.'
+  } finally {
+    quizSubmitting.value = false
+  }
+}
+
+function mapAttemptQuestions(startResponse) {
+  const rawQuestions = startResponse?.cauHoi || startResponse?.CauHoi || []
+  return rawQuestions.map(q => {
+    const questionType = q.loaiCauHoi || q.LoaiCauHoi
+    const selectionType = q.kieuLuaChon || q.KieuLuaChon
+    return {
+      id: q.maCauHoi || q.MaCauHoi,
+      text: q.noiDung || q.NoiDung,
+      type: questionType === 'tu_luan'
+        ? 'essay'
+        : ((selectionType === 'chon_nhieu' || selectionType === 'multiple') ? 'multiple' : 'single'),
+      options: q.luaChon || q.LuaChon || [],
+    }
+  })
+}
+
+async function startQuizAttempt(quizId, expectedLessonId = currentLesson.value?.id) {
+  const isStale = () => currentLesson.value?.id !== expectedLessonId
+  quizLoading.value = true
+  quizError.value = ''
+  try {
+    await examApi.getQuizAvailability(quizId)
+    if (isStale()) return
+    quizHistory.value = await examApi.getQuizHistory(quizId)
+    if (isStale()) return
+    const started = await examApi.startQuizAttempt(quizId)
+    if (isStale()) return
+    quizAttempt.value = started
+    apiQuizData.value = {
+      ...apiQuizData.value,
+      questions: mapAttemptQuestions(started),
+    }
+  } catch (err) {
+    quizAttempt.value = null
+    quizError.value = err?.message || 'Quiz hiện chưa thể bắt đầu.'
+  } finally {
+    quizLoading.value = false
+  }
+}
+
+async function retryQuiz() {
+  quizAnswers.value = {}
+  quizResult.value = null
+  quizSubmitted.value = false
+  if (apiQuizData.value?.quizId) {
+    await startQuizAttempt(apiQuizData.value.quizId)
   }
 }
 
@@ -681,6 +868,9 @@ watch(
     quizAnswers.value = {}
     quizSubmitted.value = false
     apiQuizData.value = null
+    quizAttempt.value = null
+    quizHistory.value = null
+    quizError.value = ''
     accessNotice.value = null
     pendingEarlyLesson.value = null
 
@@ -707,22 +897,30 @@ watch(
         expandedChapters.value = { [foundChapter.id]: true }
         selectedLessonId.value = foundLesson.id
         
+        const storedProg = getStoredLessonProgress(foundLesson.id)
+        const initialProg = storedProg?.progressPercent ?? (foundLesson.status === 'completed' ? 100 : (foundLesson.progressPercent || 0))
+        const fvUrl = foundLesson.url || foundLesson.videoUrl || ''
+        const isSeekAllowed = foundLesson.allowSeek === false || foundLesson.AllowSeek === false ? false : true
         currentLesson.value = {
+          ...foundLesson,
+          ...storedProg,
+          hasVideo: Boolean(fvUrl || foundLesson.type === 'video' || foundLesson.lessonType === 'video' || (!foundLesson.type && !foundLesson.lessonType)),
+          hasDoc: foundLesson.type === 'document' || foundLesson.lessonType === 'assignment',
+          hasQuiz: foundLesson.type === 'quiz' || foundLesson.lessonType === 'quiz',
           durationSeconds: 1200,
-          allowSeek: true,
+          allowSeek: isSeekAllowed,
           pauseOnBlur: true,
           minWatchPercentToComplete: 80,
-          progressPercent: foundLesson.status === 'completed' ? 100 : (foundLesson.progressPercent || 0),
+          progressPercent: initialProg,
           documentTitle: foundLesson.url ? foundLesson.url.split('/').pop() : `${foundLesson.title}.pdf`,
           documentPages: 10,
           documentCurrentPage: 1,
-          ...foundLesson,
-          videoUrl: foundLesson.url || '',    // map url -> videoUrl cho LessonVideoPlayer
+          videoUrl: fvUrl,    // map url -> videoUrl cho LessonVideoPlayer
           id: foundLesson.id,
           chapterId: foundChapter.id,
-          chapterTitle: `${foundChapter.chapter}: ${foundChapter.title}`,
+          chapterTitle: formatChapterHeading(foundChapter),
           title: foundLesson.title,
-          duration: foundLesson.duration || '20:00',
+          duration: formatLessonDuration(foundLesson),
         }
         
         activeTab.value = foundLesson.lessonType === 'quiz' ? 'quiz' : foundLesson.lessonType === 'assignment' ? 'document' : 'video'
@@ -740,22 +938,30 @@ watch(learningLessons, (lessons) => {
     if (firstLesson && firstChapter) {
       expandedChapters.value = { [firstChapter.id]: true }
       selectedLessonId.value = firstLesson.id
+      const storedProg = getStoredLessonProgress(firstLesson.id)
+      const initialProg = storedProg?.progressPercent ?? (firstLesson.status === 'completed' ? 100 : (firstLesson.progressPercent || 0))
+      const fvUrl = firstLesson.url || firstLesson.videoUrl || ''
+      const isSeekAllowed = firstLesson.allowSeek === false || firstLesson.AllowSeek === false ? false : true
       currentLesson.value = {
+        ...firstLesson,
+        ...storedProg,
+        hasVideo: Boolean(fvUrl || firstLesson.type === 'video' || firstLesson.lessonType === 'video' || (!firstLesson.type && !firstLesson.lessonType)),
+        hasDoc: firstLesson.type === 'document' || firstLesson.lessonType === 'assignment',
+        hasQuiz: firstLesson.type === 'quiz' || firstLesson.lessonType === 'quiz',
         durationSeconds: 1200,
-        allowSeek: true,
+        allowSeek: isSeekAllowed,
         pauseOnBlur: true,
         minWatchPercentToComplete: 80,
-        progressPercent: firstLesson.progressPercent || 0,
+        progressPercent: initialProg,
         documentTitle: firstLesson.url ? firstLesson.url.split('/').pop() : `${firstLesson.title}.pdf`,
         documentPages: 10,
         documentCurrentPage: 1,
-        ...firstLesson,
-        videoUrl: firstLesson.url || '',       // map url -> videoUrl cho LessonVideoPlayer
+        videoUrl: fvUrl,       // map url -> videoUrl cho LessonVideoPlayer
         id: firstLesson.id,
         chapterId: firstChapter.id,
-        chapterTitle: `${firstChapter.chapter}: ${firstChapter.title}`,
+        chapterTitle: formatChapterHeading(firstChapter),
         title: firstLesson.title,
-        duration: firstLesson.duration || '20:00',
+        duration: formatLessonDuration(firstLesson),
       }
       activeTab.value = firstLesson.lessonType === 'quiz' ? 'quiz' : firstLesson.lessonType === 'assignment' ? 'document' : 'video'
     }
@@ -764,14 +970,21 @@ watch(learningLessons, (lessons) => {
 
 watch(() => currentLesson.value?.id, async (newLessonId) => {
   if (newLessonId && courseId.value) {
+    const loadVersion = ++lessonLoadVersion
+    const isStale = () => loadVersion !== lessonLoadVersion || currentLesson.value?.id !== newLessonId
     // Reset quiz data khi chuyển bài
     apiQuizData.value = null
     quizAnswers.value = {}
     quizSubmitted.value = false
+    quizResult.value = null
+    quizAttempt.value = null
+    quizHistory.value = null
+    quizError.value = ''
 
     // Load content blocks (video, document, slide, quiz) từ API
     try {
       const contentRes = await studentApi.getLessonContent(courseId.value, newLessonId)
+      if (isStale()) return
       const blocks = contentRes.data || contentRes.Data || []
       const isArr = Array.isArray(blocks)
       const videoBlock = isArr ? blocks.find(b => (b.Type || b.type) === 'video') : null
@@ -779,7 +992,9 @@ watch(() => currentLesson.value?.id, async (newLessonId) => {
       const slideBlock = isArr ? blocks.find(b => (b.Type || b.type) === 'slide_html') : null
       const quizBlock = isArr ? blocks.find(b => (b.Type || b.type) === 'quiz' || (b.Type || b.type) === 'trac_nghiem' || b.QuizId || b.quizId) : null
 
-      const hasVid = Boolean(videoBlock)
+      const baseVideoUrl = currentLesson.value?.videoUrl || currentLesson.value?.url || ''
+      const finalVideoUrl = videoBlock ? (videoBlock.VideoUrl || videoBlock.videoUrl || videoBlock.UrlTapTin || videoBlock.urlTapTin || baseVideoUrl) : baseVideoUrl
+      const hasVid = Boolean(videoBlock || finalVideoUrl)
       const hasSl = Boolean(slideBlock)
       const hasD = Boolean(docBlock)
       const hasQ = Boolean(quizBlock) || currentLesson.value?.lessonType === 'quiz'
@@ -795,7 +1010,7 @@ watch(() => currentLesson.value?.id, async (newLessonId) => {
         hasDoc: hasD,
         hasQuiz: hasQ,
         slideJsonData: rawSlideData,
-        videoUrl: videoBlock ? (videoBlock.VideoUrl || videoBlock.videoUrl || videoBlock.UrlTapTin || videoBlock.urlTapTin || '') : '',
+        videoUrl: finalVideoUrl,
         documentTitle: docTitle || '',
         documentUrl: docUrl || '',
         slideHtml: slideBlock ? (slideBlock.SlideHtml || slideBlock.slideHtml || slideBlock.NoiDungHtml || slideBlock.noiDungHtml || '') : undefined,
@@ -825,7 +1040,6 @@ watch(() => currentLesson.value?.id, async (newLessonId) => {
     if (existingP >= 100) {
       if (hV) items.video = true
       if (hD) items.doc = true
-      if (hQ) items.quiz = true
     } else {
       if (!hV) items.video = false
       if (!hD) items.doc = false
@@ -844,9 +1058,13 @@ watch(() => currentLesson.value?.id, async (newLessonId) => {
     // Load quiz cho bài học (thử gọi API getLessonQuiz cho mọi bài học có quiz)
     try {
       const res = await studentApi.getLessonQuiz(courseId.value, newLessonId)
+      if (isStale()) return
       const raw = res.data || res.Data
-      if (raw && typeof raw === 'object' && !Array.isArray(raw) && raw.questions && raw.questions.length > 0) {
-        apiQuizData.value = raw
+      const quizId = raw?.quizId || raw?.QuizId
+      if (raw && typeof raw === 'object' && !Array.isArray(raw) && quizId) {
+        apiQuizData.value = { ...raw, quizId, questions: [] }
+        await startQuizAttempt(quizId, newLessonId)
+        if (isStale()) return
       } else if (Array.isArray(raw) && raw.length > 0) {
         apiQuizData.value = { questions: raw }
       } else {
@@ -859,6 +1077,7 @@ watch(() => currentLesson.value?.id, async (newLessonId) => {
     // Load comments
     try {
       const res = await studentApi.getLessonComments(courseId.value, newLessonId)
+      if (isStale()) return
       apiComments.value = res.data || res.Data || []
     } catch (err) {
       console.error(err)
@@ -868,9 +1087,8 @@ watch(() => currentLesson.value?.id, async (newLessonId) => {
 })
 
 const isQuizCompletedFromDb = computed(() => {
-  const p = currentLesson.value?.progressPercent ?? 0
-  const items = getLessonCompletedItems(currentLesson.value?.id)
-  return p >= 100 || items.quiz
+  const attempts = quizHistory.value?.lanLam || quizHistory.value?.LanLam || []
+  return attempts.some(item => (item.trangThaiLuong || item.TrangThaiLuong) === 'da_dung')
 })
 
 async function handleResetCourseProgress() {
@@ -900,38 +1118,49 @@ async function handleResetCourseProgress() {
 
 <template>
   <div class="course-player-page" v-if="courseInfo">
-    <header class="course-header">
-      <div class="course-header-actions">
-        <router-link to="/student/courses" class="ghost-action">
-          <component :is="resolveIcon('ArrowLeft')" :size="14" />
-          Tất cả khóa học
-        </router-link>
-        <router-link to="/student/assignments" class="secondary-action">
-          <component :is="resolveIcon('ClipboardList')" :size="14" />
-          Bài tập
-        </router-link>
-        <button type="button" class="secondary-action text-xs text-amber-700 border-amber-300 bg-amber-50" @click="handleResetCourseProgress">
-          <component :is="resolveIcon('RotateCcw')" :size="13" />
-          Reset tiến độ (0%)
-        </button>
-      </div>
-
-      <div class="course-header-main">
-        <div class="course-eyebrow">
-          <component :is="resolveIcon('BookOpenCheck')" :size="14" />
-          {{ courseInfo?.code || '—' }} · {{ courseInfo?.semester || '—' }}
+    <header class="course-hero-banner">
+      <div class="course-hero-top">
+        <div class="course-hero-nav">
+          <router-link to="/student/courses" class="hero-nav-btn">
+            <component :is="resolveIcon('ArrowLeft')" :size="14" />
+            <span>Tất cả khóa học</span>
+          </router-link>
+          <router-link to="/student/assignments" class="hero-nav-btn">
+            <component :is="resolveIcon('ClipboardList')" :size="14" />
+            <span>Bài tập</span>
+          </router-link>
+          <button type="button" class="hero-nav-btn hero-reset-btn" @click="handleResetCourseProgress">
+            <component :is="resolveIcon('RotateCcw')" :size="13" />
+            <span>Reset tiến độ (0%)</span>
+          </button>
         </div>
-        <h1>{{ courseInfo?.title || 'Chi tiết khóa học' }}</h1>
-        <p>
-          <component :is="resolveIcon('UserRound')" :size="14" />
-          {{ courseInfo?.teacher || '—' }} · {{ courseInfo?.credits || '—' }} tín chỉ
-        </p>
+
+        <div class="course-hero-semester-badge">
+          <component :is="resolveIcon('Sparkles')" :size="12" />
+          <span>{{ courseInfo?.semester || 'Học kỳ hiện tại' }}</span>
+        </div>
       </div>
 
-      <div class="course-mini-stats" aria-label="Tổng quan khóa học">
-        <div v-for="stat in miniStats" :key="stat.label" class="mini-stat">
-          <span>{{ stat.label }}</span>
-          <strong>{{ stat.value }}</strong>
+      <div class="course-hero-main-row">
+        <div class="course-hero-info">
+          <div class="course-hero-code-chip">
+            <component :is="resolveIcon('BookOpenCheck')" :size="13" />
+            <span>{{ courseInfo?.code || '—' }}</span>
+            <span class="dot-separator">•</span>
+            <span>{{ courseInfo?.credits || 3 }} tín chỉ</span>
+          </div>
+          <h1 class="course-hero-title">{{ courseInfo?.title || 'Chi tiết khóa học' }}</h1>
+          <div class="course-hero-teacher">
+            <component :is="resolveIcon('UserRound')" :size="14" />
+            <span>Giảng viên: <strong>{{ courseInfo?.teacher || 'Chưa phân công' }}</strong></span>
+          </div>
+        </div>
+
+        <div class="course-hero-stats-grid" aria-label="Tổng quan khóa học">
+          <div v-for="stat in miniStats" :key="stat.label" class="hero-stat-card">
+            <span class="hero-stat-label">{{ stat.label }}</span>
+            <strong class="hero-stat-value">{{ stat.value }}</strong>
+          </div>
         </div>
       </div>
     </header>
@@ -941,26 +1170,31 @@ async function handleResetCourseProgress() {
         <article class="lesson-panel">
           <div class="lesson-heading">
             <div class="lesson-title-block">
-              <span class="chapter-chip">{{ currentLesson.chapterTitle }}</span>
-              <h2>{{ currentLesson.title }}</h2>
-              <div class="lesson-meta-row">
-                <span>
-                  <component :is="resolveIcon(typeConfig[currentLesson.lessonType]?.icon || 'PlayCircle')" :size="14" />
+              <div class="lesson-badge-row">
+                <span class="chapter-chip">
+                  <component :is="resolveIcon('Bookmark')" :size="12" />
+                  {{ currentLesson.chapterTitle }}
+                </span>
+                <span :class="['learning-access-badge', accessTone(currentLesson.accessStatus)]">
+                  {{ currentLessonStatusLabel }}
+                </span>
+              </div>
+              <h2 class="lesson-main-title">{{ currentLesson.title }}</h2>
+              <div class="lesson-meta-pills">
+                <span class="meta-pill">
+                  <component :is="resolveIcon(typeConfig[currentLesson.lessonType]?.icon || 'PlayCircle')" :size="13" />
                   {{ lessonTypeLabel(currentLesson) }}
                 </span>
-                <span>
-                  <component :is="resolveIcon('Clock3')" :size="14" />
+                <span class="meta-pill">
+                  <component :is="resolveIcon('Clock3')" :size="13" />
                   {{ currentLesson.duration }}
                 </span>
-                <span>
-                  <component :is="resolveIcon('Gauge')" :size="14" />
+                <span class="meta-pill">
+                  <component :is="resolveIcon('Gauge')" :size="13" />
                   {{ currentLesson.progressPercent || 0 }}%
                 </span>
               </div>
             </div>
-            <span :class="['learning-access-badge', accessTone(currentLesson.accessStatus)]">
-              {{ currentLessonStatusLabel }}
-            </span>
           </div>
 
           <div class="lesson-tabs" aria-label="Nội dung bài học">
@@ -969,7 +1203,7 @@ async function handleResetCourseProgress() {
                 { key: 'video', label: 'Video', icon: 'PlayCircle', done: Boolean(currentLesson.hasVideo && getLessonCompletedItems(currentLesson.id).video) },
                 { key: 'slide', label: 'Slide', icon: 'PlaySquare', done: Boolean(currentLesson.hasSlide && getLessonCompletedItems(currentLesson.id).slide) },
                 { key: 'document', label: 'Tài liệu', icon: 'FileText', done: Boolean(currentLesson.hasDoc && getLessonCompletedItems(currentLesson.id).doc) },
-                { key: 'quiz', label: 'Quiz', icon: 'ListChecks', done: Boolean(currentLesson.hasQuiz && (isQuizCompletedFromDb || getLessonCompletedItems(currentLesson.id).quiz)) },
+                { key: 'quiz', label: 'Quiz', icon: 'ListChecks', done: Boolean(currentLesson.hasQuiz && isQuizCompletedFromDb) },
                 { key: 'discussion', label: 'Thảo luận', icon: 'MessagesSquare', done: false },
               ]"
               :key="tab.key"
@@ -992,7 +1226,7 @@ async function handleResetCourseProgress() {
               </div>
               <LessonVideoPlayer
                 v-else
-                :key="currentLesson.id"
+                :key="`${currentLesson.id}:${currentLesson.videoUrl || ''}`"
                 :lesson="currentLesson"
                 @progress="handleVideoProgress"
                 @completed="handleVideoCompleted"
@@ -1078,13 +1312,17 @@ async function handleResetCourseProgress() {
                   </div>
                   <div>
                     <h3 class="text-base font-bold text-green-900 flex items-center gap-2">
-                      ✓ Bạn đã hoàn thành bài Quiz này trước đó
+                      ✓ Bạn đã nộp bài Quiz này trước đó
                     </h3>
                     <p class="text-xs mt-0.5 text-green-700">
                       Bạn có thể chọn đáp án và bấm Nộp bài Quiz bên dưới nếu muốn làm lại bài Quiz.
                     </p>
                   </div>
                 </div>
+              </div>
+
+              <div v-if="quizError" class="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                {{ quizError }}
               </div>
 
               <!-- Auto grading result banner -->
@@ -1140,11 +1378,11 @@ async function handleResetCourseProgress() {
                   </button>
                 </div>
               </div>
-              <div v-if="quizQuestions.length === 0 && !apiQuizData" class="quiz-empty-state">
+              <div v-if="quizQuestions.length === 0 && quizLoading" class="quiz-empty-state">
                 <component :is="resolveIcon('HelpCircle')" :size="28" />
                 <p>Đang tải câu hỏi...</p>
               </div>
-              <div v-else-if="quizQuestions.length === 0 && apiQuizData" class="quiz-empty-state">
+              <div v-else-if="quizQuestions.length === 0 && apiQuizData && !quizError" class="quiz-empty-state">
                 <component :is="resolveIcon('AlertCircle')" :size="28" />
                 <p>Bài học này chưa có câu hỏi Quiz.</p>
               </div>
@@ -1152,11 +1390,21 @@ async function handleResetCourseProgress() {
                 v-if="quizQuestions.length > 0 && !quizSubmitted"
                 type="button"
                 class="primary-action w-full justify-center"
-                :disabled="!isQuizFullyAnswered"
+                :disabled="!isQuizFullyAnswered || quizSubmitting || quizLoading || !quizAttempt"
                 @click="submitQuiz"
               >
                 <component :is="resolveIcon('Send')" :size="15" />
-                Nộp bài Quiz
+                {{ quizSubmitting ? 'Đang chấm và lưu...' : 'Nộp bài Quiz' }}
+              </button>
+              <button
+                v-else-if="quizSubmitted"
+                type="button"
+                class="primary-action w-full justify-center"
+                :disabled="quizLoading"
+                @click="retryQuiz"
+              >
+                <component :is="resolveIcon('RotateCcw')" :size="15" />
+                {{ quizLoading ? 'Đang tạo lượt mới...' : 'Làm lại Quiz' }}
               </button>
             </div>
 
@@ -1245,15 +1493,24 @@ async function handleResetCourseProgress() {
 
           <div class="chapter-list">
             <article v-for="chapter in learningLessons" :key="chapter.id" class="chapter-block">
-              <button type="button" class="chapter-header" @click="toggleChapter(chapter.id)">
-                <div>
-                  <strong>{{ chapter.chapter }}</strong>
-                  <span>{{ chapter.title }}</span>
+              <button
+                type="button"
+                class="chapter-header"
+                :class="{ 'cursor-default': !chapter.lessons || chapter.lessons.length === 0 }"
+                @click="toggleChapter(chapter.id)"
+              >
+                <div class="chapter-title-wrap">
+                  <span class="chapter-num-badge">{{ chapter.chapter }}</span>
+                  <strong class="chapter-main-title">{{ getCleanChapterTitle(chapter) }}</strong>
                 </div>
-                <component :is="resolveIcon(expandedChapters[chapter.id] ? 'ChevronUp' : 'ChevronDown')" :size="15" />
+                <component
+                  v-if="chapter.lessons && chapter.lessons.length > 0"
+                  :is="resolveIcon(expandedChapters[chapter.id] ? 'ChevronUp' : 'ChevronDown')"
+                  :size="15"
+                />
               </button>
 
-              <div v-if="expandedChapters[chapter.id]" class="lesson-list">
+              <div v-if="expandedChapters[chapter.id] && chapter.lessons && chapter.lessons.length > 0" class="lesson-list">
                 <button
                   v-for="lesson in chapter.lessons"
                   :key="lesson.id"
@@ -1266,7 +1523,7 @@ async function handleResetCourseProgress() {
                   <span class="outline-lesson-main">
                     <strong>{{ lesson.title }}</strong>
                     <small>
-                      {{ lessonTypeLabel(lesson) }} · {{ lesson.duration }}
+                      {{ lessonTypeLabel(lesson) }} · {{ formatLessonDuration(lesson) }}
                       <template v-if="isLocked(lesson)"> · {{ getLockedReason(lesson) }}</template>
                     </small>
                     <span class="outline-progress" aria-hidden="true">
@@ -1357,72 +1614,187 @@ async function handleResetCourseProgress() {
   padding-bottom: 1rem;
 }
 
-.course-header {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: start;
-  gap: 0.75rem 1rem;
+.course-hero-banner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
   overflow: hidden;
   border: 1px solid var(--border-card);
-  border-radius: var(--radius-xl);
+  border-radius: 20px;
+  background: linear-gradient(135deg, var(--surface-card) 0%, var(--surface-input) 100%);
+  color: var(--text-heading);
+  padding: 1.25rem 1.5rem;
+  box-shadow: var(--lg-shadow-md);
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+}
+
+.course-hero-banner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--lg-primary), var(--lg-cyan), var(--lg-secondary));
+}
+
+.course-hero-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.course-hero-nav {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.hero-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
   background: var(--surface-card);
   color: var(--text-heading);
-  padding: var(--card-padding-md);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.hero-nav-btn:hover {
+  border-color: var(--border-input-focus);
+  background: var(--color-info-bg);
+  color: var(--text-link);
+  transform: translateY(-1px);
+}
+
+.hero-reset-btn {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.08);
+  color: #f59e0b;
+}
+
+.hero-reset-btn:hover {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.16);
+  color: #d97706;
+}
+
+.course-hero-semester-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-card);
+  background: var(--surface-card);
+  color: var(--text-link);
+  font-size: 0.72rem;
+  font-weight: 800;
   box-shadow: var(--lg-shadow-sm);
 }
 
-.course-eyebrow,
-.lesson-meta-row,
-.chapter-chip,
-.section-kicker {
-  display: inline-flex;
+.course-hero-main-row {
+  display: flex;
   align-items: center;
-  gap: 0.35rem;
+  justify-content: space-between;
+  gap: 1.75rem;
+  flex-wrap: wrap;
 }
 
-.course-eyebrow {
+.course-hero-info {
+  flex: 1 1 340px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.course-hero-code-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: fit-content;
   color: var(--text-link);
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
 }
 
-.course-header h1,
-.lesson-heading h2,
-.lesson-body h3,
-.side-heading h3 {
+.course-hero-code-chip .dot-separator {
+  color: var(--text-placeholder);
+}
+
+.course-hero-title {
   margin: 0;
-  color: inherit;
+  font-size: clamp(1.4rem, 2.2vw, 1.85rem);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: var(--text-heading);
 }
 
-.course-header h1 {
-  margin-top: 0.25rem;
-  font-size: clamp(1.25rem, 2vw, 1.5rem);
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-.course-header p {
+.course-hero-teacher {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  margin: 0.35rem 0 0;
+  gap: 0.4rem;
   color: var(--text-label);
   font-size: 0.82rem;
   font-weight: 600;
 }
 
-.course-header-actions {
-  display: flex;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 0.45rem;
+.course-hero-teacher strong {
+  color: var(--text-heading);
+  font-weight: 750;
 }
 
-.course-mini-stats {
-  grid-column: 2;
+.course-hero-stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.45rem;
+  grid-template-columns: repeat(4, minmax(85px, 1fr));
+  gap: 0.65rem;
+  flex-shrink: 0;
+}
+
+.hero-stat-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.2rem;
+  border: 1px solid var(--border-card);
+  border-radius: 14px;
+  background: var(--surface-card);
+  padding: 0.55rem 0.85rem;
+  min-width: 85px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  transition: border-color 0.2s ease;
+}
+
+.hero-stat-card:hover {
+  border-color: var(--border-input-focus);
+}
+
+.hero-stat-label {
+  color: var(--text-placeholder);
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.hero-stat-value {
+  color: var(--text-heading);
+  font-size: 1.05rem;
+  font-weight: 900;
+  line-height: 1.2;
 }
 
 .mini-stat {
@@ -1483,49 +1855,68 @@ async function handleResetCourseProgress() {
 
 .lesson-heading {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.8rem;
+  flex-direction: column;
+  gap: 0.65rem;
   border-bottom: 1px solid var(--border-card);
   background: var(--surface-card);
-  padding: 0.85rem 0.9rem 0.7rem;
+  padding: 1.15rem 1.35rem 0.95rem;
 }
 
 .lesson-title-block {
   min-width: 0;
+  width: 100%;
+}
+
+.lesson-badge-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
 }
 
 .chapter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   width: fit-content;
   border: 1px solid var(--border-card);
   border-radius: 999px;
   background: var(--surface-input);
   color: var(--text-link);
-  padding: 0.22rem 0.55rem;
-  font-size: 0.68rem;
-  font-weight: 850;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 800;
 }
 
-.lesson-heading h2 {
-  margin-top: 0.5rem;
+.lesson-main-title {
+  margin: 0.45rem 0 0;
   color: var(--text-heading);
-  font-size: 1.05rem;
-  font-weight: 700;
-  line-height: 1.25;
+  font-size: 1.25rem;
+  font-weight: 850;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
 }
 
-.lesson-meta-row {
+.lesson-meta-pills {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
   flex-wrap: wrap;
-  margin-top: 0.45rem;
-  color: var(--text-label);
-  font-size: 0.75rem;
-  font-weight: 600;
+  margin-top: 0.55rem;
 }
 
-.lesson-meta-row span {
+.meta-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.28rem;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 8px;
+  background: var(--surface-input);
+  border: 1px solid var(--border-card);
+  color: var(--text-label);
+  font-size: 0.74rem;
+  font-weight: 700;
 }
 
 .lesson-tabs,
@@ -1851,16 +2242,38 @@ textarea::placeholder {
 
 .chapter-header {
   display: flex;
-  width: 100%;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
+  width: 100%;
   border: 0;
   background: transparent;
-  color: var(--text-heading);
-  cursor: pointer;
-  padding: 0.6rem 0.65rem;
+  padding: 0.75rem 0.85rem;
   text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.chapter-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.chapter-num-badge {
+  color: var(--text-link);
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.chapter-main-title {
+  color: var(--text-heading);
+  font-size: 0.88rem;
+  font-weight: 750;
+  line-height: 1.3;
 }
 
 .chapter-header strong,
@@ -1930,14 +2343,16 @@ textarea::placeholder {
 }
 
 .outline-lesson-main strong {
-  display: block;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
   color: var(--text-heading);
-  font-size: 0.77rem;
+  font-size: 0.78rem;
   font-weight: 700;
-  line-height: 1.28;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.35;
+  word-break: break-word;
+  white-space: normal;
 }
 
 .outline-lesson-main small {

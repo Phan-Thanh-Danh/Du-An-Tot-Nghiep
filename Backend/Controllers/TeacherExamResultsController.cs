@@ -10,7 +10,7 @@ namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/teacher/exam-results")]
-[Authorize(Roles = "Teacher,CampusAdmin,AcademicStaff,Admin,SuperAdmin")]
+[Authorize(Roles = "Teacher,giao_vien,CampusAdmin,AcademicStaff,Admin,SuperAdmin")]
 public class TeacherExamResultsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -41,41 +41,50 @@ public class TeacherExamResultsController : ControllerBase
             List<int> targetCaIds = caThiIds;
             if (!targetCaIds.Any())
             {
-                targetCaIds = await _context.CaThis
-                    .OrderByDescending(c => c.MaCaThi)
-                    .Take(20)
-                    .Select(c => c.MaCaThi)
-                    .ToListAsync();
+                return Ok(new ApiResponseDto<List<object>>
+                {
+                    Success = true,
+                    Data = new List<object>()
+                });
             }
 
             var caThis = await _context.CaThis
                 .Include(c => c.Phong)
                 .Include(c => c.LichThiTong)
                     .ThenInclude(l => l!.MonHoc)
-                .Include(c => c.ThiSinhCaThis)
                 .Where(c => targetCaIds.Contains(c.MaCaThi))
                 .OrderByDescending(c => c.NgayThi)
                 .ThenByDescending(c => c.MaCaThi)
                 .ToListAsync();
 
-            var phienThis = await _context.PhienThiHocSinhs
-                .Where(p => targetCaIds.Contains(p.MaCaThi ?? 0))
-                .ToListAsync();
+            var candidateCounts = await _context.ThiSinhCaThis
+                .Where(t => targetCaIds.Contains(t.MaCaThi))
+                .GroupBy(t => t.MaCaThi)
+                .Select(g => new { MaCaThi = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.MaCaThi, x => x.Count);
+
+            var phienStats = await _context.PhienThiHocSinhs
+                .Where(p => p.MaCaThi.HasValue && targetCaIds.Contains(p.MaCaThi.Value))
+                .GroupBy(p => p.MaCaThi!.Value)
+                .Select(g => new
+                {
+                    MaCaThi = g.Key,
+                    SubmittedCount = g.Count(p => p.NopLuc != null || p.DiemCuoiCung != null || p.DiemTuDong != null),
+                    AvgScore = g.Average(p => (decimal?)(p.DiemCuoiCung ?? p.DiemTuDong ?? 0m)) ?? 0m,
+                    MaxScore = g.Max(p => (decimal?)(p.DiemCuoiCung ?? p.DiemTuDong ?? 0m)) ?? 0m,
+                    PassedCount = g.Count(p => (p.DiemCuoiCung ?? p.DiemTuDong ?? 0m) >= 5.0m),
+                    TotalCount = g.Count()
+                })
+                .ToDictionaryAsync(x => x.MaCaThi);
 
             var result = caThis.Select(c =>
             {
-                var phienInCa = phienThis.Where(p => p.MaCaThi == c.MaCaThi).ToList();
-                var totalStudents = c.ThiSinhCaThis.Count;
-                var submittedCount = phienInCa.Count(p => p.NopLuc.HasValue || p.DiemCuoiCung.HasValue || p.DiemTuDong.HasValue);
-
-                var scores = phienInCa
-                    .Select(p => p.DiemCuoiCung ?? p.DiemTuDong ?? 0m)
-                    .ToList();
-
-                decimal avgScore = scores.Any() ? Math.Round(scores.Average(), 1) : 0m;
-                decimal highestScore = scores.Any() ? scores.Max() : 0m;
-                int passedCount = scores.Count(s => s >= 5.0m);
-                int passRate = scores.Any() ? (int)Math.Round((double)passedCount / scores.Count * 100) : 0;
+                var stats = phienStats.GetValueOrDefault(c.MaCaThi);
+                var totalStudents = candidateCounts.GetValueOrDefault(c.MaCaThi);
+                var submittedCount = stats?.SubmittedCount ?? 0;
+                decimal avgScore = stats != null ? Math.Round(stats.AvgScore, 1) : 0m;
+                decimal highestScore = stats?.MaxScore ?? 0m;
+                int passRate = (stats != null && stats.TotalCount > 0) ? (int)Math.Round((double)stats.PassedCount / stats.TotalCount * 100) : 0;
 
                 return new
                 {

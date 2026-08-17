@@ -109,6 +109,43 @@ public class StorageController : ControllerBase
         return Ok(new { success = true, message = "Xóa file thành công." });
     }
 
+    [HttpGet("stream")]
+    [AllowAnonymous]
+    public async Task<IActionResult> StreamFile([FromQuery] string key, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            return BadRequest("Tham số 'key' là bắt buộc.");
+        }
+
+        try
+        {
+            var directUrl = _storage.GetPresignedStreamUrl(key);
+            if (!string.IsNullOrEmpty(directUrl))
+            {
+                return Redirect(directUrl);
+            }
+
+            var (stream, contentType, _) = await _storage.GetFileStreamAsync(key, ct);
+            return File(stream, contentType, enableRangeProcessing: true);
+        }
+        catch (FileNotFoundException)
+        {
+            return NotFound("Không tìm thấy file trên hệ thống lưu trữ.");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Lỗi khi tải file: {ex.Message}");
+        }
+    }
+
+    [HttpGet("file/{*key}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetFile(string key, CancellationToken ct)
+    {
+        return await StreamFile(key, ct);
+    }
+
     private static long GetMaxSize(string contentType)
     {
         if (AllowedVideoTypes.Contains(contentType)) return MaxVideoSize;

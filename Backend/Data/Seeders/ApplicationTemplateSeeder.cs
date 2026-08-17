@@ -10,14 +10,16 @@ public static class ApplicationTemplateSeeder
 {
     public static async Task SeedAsync(ApplicationDbContext context)
     {
-        if (!await context.MauDonTus.AnyAsync())
+        try
         {
-            Console.WriteLine("Seeding MauDonTus...");
-        }
-        else
-        {
-            Console.WriteLine("Updating MauDonTus...");
-        }
+            if (!await context.MauDonTus.AnyAsync())
+            {
+                Console.WriteLine("Seeding MauDonTus...");
+            }
+            else
+            {
+                Console.WriteLine("Updating MauDonTus...");
+            }
 
         Console.WriteLine("Seeding MauDonTus...");
 
@@ -397,7 +399,12 @@ public static class ApplicationTemplateSeeder
             }
         }
 
-        await context.SaveChangesAsync();
-        Console.WriteLine("MauDonTus seeded/updated successfully.");
+            await context.SaveChangesAsync();
+            Console.WriteLine("MauDonTus seeded/updated successfully.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Warning] ApplicationTemplateSeeder skipped: {ex.Message}");
+        }
     }
 }

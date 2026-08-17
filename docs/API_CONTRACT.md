@@ -52,10 +52,11 @@ Ghi chú thuật ngữ: `DonVi` là tên bảng/entity kỹ thuật trong backen
 | PATCH | `/api/admin/users/{id}/unlock` | Admin/SuperAdmin/CampusAdmin/AcademicStaff | Mở khóa tài khoản bằng trạng thái `hoat_dong`. |
 | PATCH | `/api/admin/users/{id}/reset-password` | Admin/SuperAdmin/CampusAdmin/AcademicStaff | Admin đặt lại mật khẩu user và ghi audit. |
 | GET | `/api/bgh/users` | Principal/Admin/SuperAdmin | Danh sách user read-only cho BGH, scope theo cơ sở của người dùng hiện tại; không cho mutation qua endpoint BGH. |
+| POST | `/api/bgh/teacher-personnel/import-excel` | Principal/AcademicStaff | Upsert người dùng từ `.xlsx`/`.csv` bằng multipart (`file`, `dryRun`, `defaultMaDonVi`), tối đa 10 MB/1.000 dòng. Email mới được tạo; email đã tồn tại trong phạm vi quản lý được cập nhật họ tên, mật khẩu, role, đơn vị và số điện thoại sau khi toàn bộ trường hợp lệ. Chỉ nhận `Teacher`, `Student`, `AcademicStaff`; chặn BGH/Admin/SuperAdmin. BGH/giáo vụ quản lý đơn vị hiện tại và đơn vị con. Một dòng lỗi khiến toàn file không được ghi. |
 
 ### Dự kiến/cần bổ sung
 
-- Import CSV tài khoản.
+- File mẫu tải xuống cho import tài khoản nếu frontend cần chuẩn hóa thao tác người dùng.
 
 ## RBAC APIs
 
@@ -593,6 +594,17 @@ Roadmap: Sau MVP cần hỗ trợ cấu hình quiz/bài tập theo `KhoaHoc` đ�
 - Kiểm tra cơ sở/học kỳ đã có; kiểm tra chuyên ngành hiện mới ở mức hạn chế vì `LopHocPhan` chưa gắn chương trình/ngành.
 - Kiểm tra trùng lịch chỉ chạy khi lớp học phần có `KhoaHoc.MaLopHocPhan` và `ThoiKhoaBieu`; lớp chưa map course/TKB sẽ bỏ qua conflict check thay vì đoán lịch.
 
+## Storage và phát video
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| POST | `/api/storage/upload?folder={folder}` | Authenticated | Upload một hoặc nhiều file multipart field `file`; video tối đa 500 MB, tài liệu 50 MB, ảnh 10 MB. |
+| GET | `/api/storage/stream?key={storageKey}` | Anonymous | Trả redirect tới URL playback trực tiếp của R2 để hỗ trợ HTTP Range/`206 Partial Content`; nếu dùng local fallback thì trả `FileStreamResult` có range processing. |
+| GET | `/api/storage/file/{*key}` | Anonymous | Alias dạng route cho endpoint stream. |
+| DELETE | `/api/storage?storageKey={storageKey}` | AcademicOperations | Xóa object theo storage key. |
+
+Ghi chú phát video: khi cấu hình `R2Storage__PublicDomain`, backend mã hóa từng phần của object key và trả URL R2 trực tiếp. Không proxy toàn bộ response stream R2 qua ASP.NET vì stream tuần tự không đảm bảo tua video. Tiến trình học vẫn được lưu riêng, không phụ thuộc URL playback.
+
 ## Lessons APIs
 
 ### Đã có
@@ -685,11 +697,13 @@ Luồng làm quiz bài học dành cho `Student`:
 
 | Method | Endpoint | Auth | Ghi chú |
 |---|---|---|---|
-| GET | `/api/quiz-attempts/{quizId}/availability` | Student | Kiểm tra quiz có thể làm không, số lượt đã làm, giới hạn lượt, giờ mở/đóng và kết quả hiện tại. Chỉ áp dụng quiz được gắn trong `BaiHocNoiDung` với `LoaiNoiDung = quiz`. |
-| POST | `/api/quiz-attempts/{quizId}/start` | Student | Tạo hoặc trả lại lượt làm đang hoạt động; enforce `SoLanLamToiDa`, `KhongGioiHanSoLan`, `MoLuc`, `DongLuc`, deadline theo thời lượng quiz. |
+| GET | `/api/quiz-attempts/{quizId}/availability` | Student | Kiểm tra quiz bài học có thể làm không, số lượt đã làm, giờ mở/đóng và kết quả hiện tại. Quiz bài học (`quiz`/`trac_nghiem`) cho phép làm lại không giới hạn đến khi đạt. |
+| POST | `/api/quiz-attempts/{quizId}/start` | Student | Tạo hoặc trả lại lượt làm đang hoạt động; quiz bài học không giới hạn số lượt nhưng vẫn tuân thủ giờ mở/đóng và deadline theo thời lượng. |
 | PUT | `/api/quiz-attempts/sessions/{attemptId}/autosave` | Student | Lưu tạm câu trả lời JSON typed; không chấm điểm. |
-| POST | `/api/quiz-attempts/sessions/{attemptId}/submit` | Student | Nộp bài và chấm trắc nghiệm thật theo `DapAnDung`; kết quả/đáp án đúng chỉ trả nếu cấu hình cho phép. |
+| POST | `/api/quiz-attempts/sessions/{attemptId}/submit` | Student | Nộp, lưu DB và chấm quiz bài học ngay theo `DapAnDung`; trả kết quả và đáp án để sinh viên sửa rồi làm lại đến khi đạt. |
 | GET | `/api/quiz-attempts/{quizId}/history` | Student | Lịch sử các lượt làm và kết quả cuối theo cấu hình `CachTinhDiemCuoi`. |
+
+`GET /api/student/courses/{courseId}/lessons/{lessonId}/quiz` chỉ trả metadata và câu hỏi để hiển thị, không trả `DapAnDung`. Việc chấm điểm có thẩm quyền luôn thực hiện tại endpoint submit của backend.
 
 Luồng thi chính thức vẫn dùng `CaThi`:
 
@@ -701,6 +715,8 @@ Luồng thi chính thức vẫn dùng `CaThi`:
 | POST | `/api/exam/taking/submit` | Student | Nộp bài thi chính thức. |
 | POST | `/api/exam/grading/auto/{maCaThi}` | Teacher/CampusAdmin/AcademicStaff/Admin/SuperAdmin | Chấm tự động phần trắc nghiệm theo đáp án thật, không dùng điểm ngẫu nhiên. |
 | POST | `/api/exam/grading/essay` | Teacher/CampusAdmin/AcademicStaff/Admin/SuperAdmin | Nhập điểm cuối cùng cho bài có tự luận. |
+
+SignalR giám sát thi được ánh xạ tại `/api/hubs/exam-monitoring`. Request `negotiate` và kết nối WebSocket/SSE đi qua cùng reverse proxy `/api`; JWT cho WebSocket được nhận từ query string `access_token`.
 
 ### Dự kiến/cần bổ sung
 

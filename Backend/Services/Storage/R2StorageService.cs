@@ -354,6 +354,89 @@ public class R2StorageService : IR2StorageService
         }
     }
 
+    public async Task<(Stream Stream, string ContentType, long? ContentLength)> GetFileStreamAsync(
+        string storageKey, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(storageKey))
+            throw new ArgumentException("Storage key cannot be empty", nameof(storageKey));
+
+        if (_s3Client != null)
+        {
+            try
+            {
+                var getObj = await _s3Client.GetObjectAsync(_settings.BucketName, storageKey, cancellationToken);
+                var contentType = getObj.Headers.ContentType ?? "video/mp4";
+                return (getObj.ResponseStream, contentType, getObj.ContentLength);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to get object from R2: {StorageKey}. Checking local fallback.", storageKey);
+            }
+        }
+
+        var localPath = Path.Combine(_localFallbackRoot, storageKey.Replace('/', Path.DirectorySeparatorChar));
+        if (File.Exists(localPath))
+        {
+            var fs = new FileStream(localPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            var ext = Path.GetExtension(localPath).ToLowerInvariant();
+            var contentType = ext switch
+            {
+                ".mp4" => "video/mp4",
+                ".webm" => "video/webm",
+                ".pdf" => "application/pdf",
+                ".png" => "image/png",
+                ".jpg" or ".jpeg" => "image/jpeg",
+                _ => "application/octet-stream"
+            };
+            return (fs, contentType, fs.Length);
+        }
+
+        throw new FileNotFoundException($"File '{storageKey}' not found in storage.");
+    }
+
+    public string? GetPresignedStreamUrl(string storageKey, TimeSpan? expiry = null)
+    {
+        if (string.IsNullOrWhiteSpace(storageKey))
+            return null;
+
+        var normalizedKey = storageKey.TrimStart('/');
+
+        // Khi bucket đã có public domain, cho trình duyệt đọc trực tiếp từ R2.
+        // R2 xử lý Range/206 ở tầng object storage nên thanh tua hoạt động ổn định,
+        // đồng thời backend không phải proxy toàn bộ stream video dung lượng lớn.
+        if (!string.IsNullOrWhiteSpace(_settings.PublicDomain))
+        {
+            return $"{_settings.PublicDomain.TrimEnd('/')}/{EncodeObjectKey(normalizedKey)}";
+        }
+
+        if (_s3Client == null)
+            return null;
+
+        try
+        {
+            var presignedReq = new GetPreSignedUrlRequest
+            {
+                BucketName = _settings.BucketName,
+                Key = normalizedKey,
+                Expires = DateTime.UtcNow.Add(expiry ?? TimeSpan.FromHours(2))
+            };
+
+            return _s3Client.GetPreSignedURL(presignedReq);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to generate presigned URL for key {StorageKey}", storageKey);
+            return null;
+        }
+    }
+
+    private static string EncodeObjectKey(string storageKey)
+    {
+        return string.Join("/", storageKey
+            .Split('/', StringSplitOptions.RemoveEmptyEntries)
+            .Select(Uri.EscapeDataString));
+    }
+
     private static string SanitizeFileName(string fileName)
     {
         // Tách tên file và extension
