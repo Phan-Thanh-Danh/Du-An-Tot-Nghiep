@@ -17,9 +17,18 @@ const SAVE_INTERVAL_MS = 5000
 const durationSeconds = ref(props.lesson?.durationSeconds || props.lesson?.totalSeconds || 0)
 const videoRef = ref(null)
 
+const allowSeek = computed(() => {
+  if (props.lesson?.allowSeek === false || props.lesson?.AllowSeek === false) return false
+  return true
+})
+const pauseOnBlur = computed(() => props.lesson?.pauseOnBlur !== false)
+const minWatchPercent = computed(() => props.lesson?.minWatchPercentToComplete || 80)
+const hasVideoSource = computed(() => Boolean(props.lesson?.videoUrl))
+
 function getInitialWatchedSeconds(customDuration = null) {
   const p = Number(props.lesson?.progressPercent) || 0
   const d = customDuration || durationSeconds.value || props.lesson?.durationSeconds || props.lesson?.totalSeconds || 0
+  const isSeekAllowed = props.lesson?.allowSeek !== false && props.lesson?.AllowSeek !== false
 
   if (props.lesson?.watchedSeconds && props.lesson.watchedSeconds > 0) {
     return Math.min(props.lesson.watchedSeconds, d > 0 ? d : props.lesson.watchedSeconds)
@@ -27,7 +36,7 @@ function getInitialWatchedSeconds(customDuration = null) {
   if (props.lesson?.maxWatchedSeconds && props.lesson.maxWatchedSeconds > 0) {
     return Math.min(props.lesson.maxWatchedSeconds, d > 0 ? d : props.lesson.maxWatchedSeconds)
   }
-  if (d > 0 && p > 0 && allowSeek.value) {
+  if (d > 0 && p > 0 && isSeekAllowed) {
     if (p >= 80 || props.lesson?.status === 'completed') return d
     return Math.min(d, Math.round((p / 100) * d))
   }
@@ -43,15 +52,8 @@ const seekGuardMessage = ref('')
 const isRestoringSeek = ref(false)
 let lastSavedAt = 0
 
-const allowSeek = computed(() => {
-  if (props.lesson?.allowSeek === false || props.lesson?.AllowSeek === false) return false
-  return true
-})
-const pauseOnBlur = computed(() => props.lesson.pauseOnBlur !== false)
-const minWatchPercent = computed(() => props.lesson.minWatchPercentToComplete || 80)
-const hasVideoSource = computed(() => Boolean(props.lesson.videoUrl))
 const progressPercent = computed(() => {
-  const duration = durationSeconds.value || props.lesson.durationSeconds || props.lesson.totalSeconds || 0
+  const duration = durationSeconds.value || props.lesson?.durationSeconds || props.lesson?.totalSeconds || 0
   if (!duration) return savedProgress.value
   const watched = allowSeek.value ? Math.max(currentTimeSeconds.value, maxWatchedSeconds.value) : maxWatchedSeconds.value
   return Math.min(100, Math.round((watched / duration) * 100))
