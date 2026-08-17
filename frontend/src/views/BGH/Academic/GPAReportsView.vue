@@ -187,6 +187,27 @@ function prepareExcelData() {
 function exportExcel() {
   exportBghToExcel(prepareExcelData(), `BaoCao-GPA-${semesterFilter.value}.xlsx`, 'GPA')
 }
+
+const exportingPdf = ref(false)
+
+async function exportPdf() {
+  if (exportingPdf.value) return
+  exportingPdf.value = true
+  try {
+    const { exportGpaReportToPdf } = await import('@/components/BGH/performance/bghExport.js')
+    await exportGpaReportToPdf({
+      filteredStats: filteredStats.value,
+      overallAvgGpa: overallAvgGpa.value,
+      highGpaRate: highGpaRate.value,
+      maxGpaValue: maxGpaValue.value,
+      semesterLabel: semesters.value.find(s => s.value === semesterFilter.value)?.label || 'Tất cả học kỳ',
+      industryLabel: industries.value.find(i => i.value === industryFilter.value)?.label || 'Tất cả Ngành',
+      campusLabel: campuses.value.find(c => c.value === campusFilter.value)?.label || 'Tất cả Cơ sở',
+    })
+  } finally {
+    exportingPdf.value = false
+  }
+}
 </script>
 
 <template>
@@ -196,8 +217,9 @@ function exportExcel() {
   >
     <template #actions>
       <div class="flex items-center gap-3">
-         <button @click="triggerPrint" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
-            <FileText :size="18" /> PDF Report
+         <button @click="exportPdf" :disabled="exportingPdf" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2 disabled:opacity-50">
+            <Loader2 v-if="exportingPdf" :size="18" class="animate-spin" />
+            <FileText v-else :size="18" /> {{ exportingPdf ? 'Đang xuất...' : 'PDF Report' }}
          </button>
          <button @click="exportExcel" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
             <Download :size="18" /> Excel Data
