@@ -145,6 +145,23 @@ export const sinhVienMenuGroups = [
     ],
   },
 
+  // ── CƠ SỞ ─────────────────────────────────────────────────
+  {
+    id: 'co-so',
+    label: 'Cơ sở',
+    icon: 'Building2',
+    permission: 'campus.read',
+    children: [
+      {
+        id: 'organizations',
+        label: 'Quản lý Cơ sở',
+        icon: 'MapPin',
+        route: '/student/organizations',
+        permission: 'campus.read',
+      },
+    ],
+  },
+
   // ── CÁ NHÂN ───────────────────────────────────────────────
   {
     id: 'ca-nhan',

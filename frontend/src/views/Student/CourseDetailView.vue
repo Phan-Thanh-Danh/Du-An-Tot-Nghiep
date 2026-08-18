@@ -321,7 +321,7 @@ function selectLesson(chapter, lesson) {
 function getCleanChapterTitle(chapter) {
   if (!chapter) return ''
   const title = typeof chapter === 'string' ? chapter : (chapter.title || '')
-  return title.replace(/^(Chương|Phần|Bài)\s*\d+\s*[:\-]\s*/i, '').trim() || title
+  return title.replace(/^(Chương|Phần|Bài)\s*\d+\s*[:-]\s*/i, '').trim() || title
 }
 
 function formatChapterHeading(chapter) {

@@ -253,6 +253,129 @@ public class RbacService : IRbacService
         return await ToUserRoleAssignmentDtoAsync(user, cancellationToken);
     }
 
+    public async Task<RolePermissionsDto> GetRolePermissionsAsync(
+        int roleId,
+        CancellationToken cancellationToken = default)
+    {
+        var role = await GetExistingRoleAsync(roleId, cancellationToken);
+        
+        var permissionCodes = await _repository.QueryVaiTroQuyenHans()
+            .AsNoTracking()
+            .Where(vp => vp.MaVaiTro == roleId && vp.QuyenHan != null)
+            .Select(vp => vp.QuyenHan!.MaCode)
+            .ToListAsync(cancellationToken);
+
+        return new RolePermissionsDto
+        {
+            RoleId = role.MaVaiTro,
+            RoleCode = role.MaCodeVaiTro,
+            RoleName = role.TenVaiTro,
+            PermissionCodes = permissionCodes
+        };
+    }
+
+    public async Task<RolePermissionsDto> UpdateRolePermissionsAsync(
+        int roleId,
+        UpdateRolePermissionsRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var currentUser = GetCurrentUser();
+        EnsureCanManageRoleCatalog(currentUser);
+
+        var role = await GetExistingRoleAsync(roleId, cancellationToken);
+
+        // Safety constraint check? The user asked whether to apply constraints.
+        // For SuperAdmin, we generally allow full control, but modifying SuperAdmin/Admin roles
+        // themselves is dangerous. Let's prevent removing permissions from sieu_quan_tri/quan_tri.
+        var roleCode = role.MaCodeVaiTro;
+        if (roleCode.Equals("sieu_quan_tri", StringComparison.OrdinalIgnoreCase) ||
+            roleCode.Equals("quan_tri", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ApiException(StatusCodes.Status403Forbidden, "Không được phép chỉnh sửa ma trận quyền của vai trò Quản trị hệ thống.");
+        }
+
+        var requestedCodes = request.PermissionCodes?.Distinct(StringComparer.OrdinalIgnoreCase).ToList() ?? new List<string>();
+
+        var matchedPermissions = await _repository.QueryQuyenHans()
+            .Where(p => requestedCodes.Contains(p.MaCode))
+            .ToListAsync(cancellationToken);
+
+        // [SAFETY CONSTRAINT] Đảm bảo an toàn học vụ (Academic Integrity)
+        // Ngay cả SuperAdmin cũng không được cấp quyền sai lệch cho các vai trò Core.
+        if (roleCode.Equals("hoc_sinh", StringComparison.OrdinalIgnoreCase) ||
+            roleCode.Equals("phu_huynh", StringComparison.OrdinalIgnoreCase))
+        {
+            var forbiddenCodes = matchedPermissions
+                .Where(p => p.Action != "read" && p.MaCode != "requests.create")
+                .Select(p => p.MaCode)
+                .ToList();
+
+            if (forbiddenCodes.Count > 0)
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest, $"Không thể gán quyền quản trị / phê duyệt ({string.Join(", ", forbiddenCodes)}) cho vai trò Sinh viên / Phụ huynh để đảm bảo an toàn học vụ.");
+            }
+        }
+        else if (roleCode.Equals("giao_vien", StringComparison.OrdinalIgnoreCase))
+        {
+            var sensitiveTeacherPerms = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "training.create", "training.update", "training.delete", "training.manage_curriculum",
+                "schedules.create", "schedules.update", "schedules.delete", "schedules.approve",
+                "exams.create", "exams.delete", "exams.unlock_grade",
+                "requests.delete", "reports.ai_analysis"
+            };
+
+            var forbiddenCodes = matchedPermissions
+                .Where(p => sensitiveTeacherPerms.Contains(p.MaCode))
+                .Select(p => p.MaCode)
+                .ToList();
+
+            if (forbiddenCodes.Count > 0)
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest, $"Không thể gán các quyền nhạy cảm ({string.Join(", ", forbiddenCodes)}) cho vai trò Giảng viên. Các quyền này thuộc thẩm quyền của Cán bộ Giáo vụ & BGH.");
+            }
+        }
+
+        var existingRolePerms = await _repository.QueryVaiTroQuyenHans()
+            .Where(vp => vp.MaVaiTro == roleId)
+            .ToListAsync(cancellationToken);
+
+        _repository.RemoveVaiTroQuyenHans(existingRolePerms);
+
+        foreach (var perm in matchedPermissions)
+        {
+            _repository.AddVaiTroQuyenHan(new VaiTroQuyenHan
+            {
+                MaVaiTro = roleId,
+                MaQuyenHan = perm.MaQuyenHan,
+                NgayCap = DateTime.UtcNow,
+                NguoiCap = currentUser?.UserId
+            });
+        }
+
+        await _repository.SaveChangesAsync(cancellationToken);
+
+        // Audit Logging
+        await _auditLogService.LogAsync(
+            "VaiTro",
+            role.MaVaiTro.ToString(),
+            "UPDATE_ROLE_PERMISSIONS",
+            null,
+            null,
+            currentUser.UserId,
+            currentUser.CampusId,
+            string.IsNullOrWhiteSpace(request.AuditReason) ? $"SuperAdmin cập nhật {matchedPermissions.Count} quyền hạn cho vai trò {role.TenVaiTro}" : request.AuditReason,
+            cancellationToken);
+
+        return new RolePermissionsDto
+        {
+            RoleId = role.MaVaiTro,
+            RoleCode = role.MaCodeVaiTro,
+            RoleName = role.TenVaiTro,
+            PermissionCodes = matchedPermissions.Select(p => p.MaCode).ToList()
+        };
+    }
+
     private async Task<VaiTro> GetExistingRoleAsync(int roleId, CancellationToken cancellationToken)
     {
         var role = await _repository.GetRoleByIdAsync(roleId, cancellationToken);

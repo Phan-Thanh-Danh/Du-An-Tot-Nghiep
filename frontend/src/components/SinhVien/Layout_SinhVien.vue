@@ -69,6 +69,7 @@ const pageTitleMap = {
   '/student/tuition': { title: 'Học phí & Thanh toán', subtitle: 'Thông tin học phí và lịch sử giao dịch' },
   '/student/support-tickets': { title: 'Hỗ trợ & Ticket', subtitle: 'Gửi yêu cầu hỗ trợ và theo dõi xử lý' },
   '/student/requests': { title: 'Đơn từ', subtitle: 'Quản lý các đơn từ và yêu cầu' },
+  '/student/organizations': { title: 'Quản lý Cơ sở', subtitle: 'Xem cơ cấu tổ chức và phòng học' },
   '/student/profile': { title: 'Hồ sơ cá nhân', subtitle: 'Thông tin cá nhân và cài đặt tài khoản' },
   '/student/notifications': { title: 'Trung tâm thông báo', subtitle: 'Theo dõi các nhắc nhở, lịch thi, deadline và học phí' },
 }

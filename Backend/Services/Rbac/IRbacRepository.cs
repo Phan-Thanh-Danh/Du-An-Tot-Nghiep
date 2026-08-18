@@ -8,6 +8,8 @@ public interface IRbacRepository
     IQueryable<NguoiDung> QueryUsers();
     IQueryable<DonVi> QueryOrganizations();
     IQueryable<PhanQuyenNguoiDung> QueryRoleAssignments();
+    IQueryable<QuyenHan> QueryQuyenHans();
+    IQueryable<VaiTroQuyenHan> QueryVaiTroQuyenHans();
 
     Task<VaiTro?> GetRoleByIdAsync(int roleId, CancellationToken cancellationToken = default);
     Task<VaiTro?> GetRoleByCodeAsync(string roleCode, CancellationToken cancellationToken = default);
@@ -18,5 +20,7 @@ public interface IRbacRepository
     Task AddRoleAssignmentAsync(PhanQuyenNguoiDung roleAssignment, CancellationToken cancellationToken = default);
     void RemoveRole(VaiTro role);
     void RemoveRoleAssignments(IEnumerable<PhanQuyenNguoiDung> roleAssignments);
+    void RemoveVaiTroQuyenHans(IEnumerable<VaiTroQuyenHan> vaiTroQuyenHans);
+    void AddVaiTroQuyenHan(VaiTroQuyenHan vaiTroQuyenHan);
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

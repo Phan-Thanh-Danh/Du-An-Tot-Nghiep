@@ -43,6 +43,24 @@ public static class PermissionCatalogSeeder
             ("requests.delete", "Hủy bỏ đơn từ", "requests", "delete", "Cho phép xóa đơn từ không hợp lệ hoặc hủy mẫu đơn"),
             ("requests.process", "Phê duyệt / Từ chối đơn từ", "requests", "approve", "Cho phép ra quyết định chấp thuận hoặc từ chối đơn từ học vụ"),
 
+            // Accounts & RBAC
+            ("accounts.read", "Xem Tài Khoản & Phân Quyền", "accounts", "read", "Cho phép xem danh sách người dùng, vai trò và phân quyền"),
+            ("accounts.create", "Tạo Mới Tài Khoản", "accounts", "create", "Cho phép tạo mới tài khoản người dùng và vai trò"),
+            ("accounts.update", "Chỉnh Sửa Tài Khoản", "accounts", "update", "Cho phép cập nhật thông tin tài khoản, phân quyền"),
+            ("accounts.delete", "Xóa Tài Khoản", "accounts", "delete", "Cho phép vô hiệu hóa hoặc xóa tài khoản"),
+
+            // Campus
+            ("campus.read", "Xem Cơ Sở (Campus)", "campus", "read", "Cho phép xem danh sách cơ sở, phòng học, trang thiết bị"),
+            ("campus.create", "Tạo Mới Cơ Sở", "campus", "create", "Cho phép tạo mới cơ sở, chi nhánh, phòng ban"),
+            ("campus.update", "Chỉnh Sửa Cơ Sở", "campus", "update", "Cho phép cập nhật thông tin cơ sở, cơ sở vật chất"),
+            ("campus.delete", "Xóa Cơ Sở", "campus", "delete", "Cho phép đóng cửa hoặc xóa bỏ cơ sở, phòng học"),
+
+            // Finance
+            ("finance.read", "Xem Tài Chính & Học Phí", "finance", "read", "Cho phép xem các khoản thu học phí, công nợ, học bổng"),
+            ("finance.create", "Tạo Giao Dịch Tài Chính", "finance", "create", "Cho phép lập hóa đơn, tạo khoản thu, biên lai thu tiền"),
+            ("finance.update", "Chỉnh Sửa Giao Dịch", "finance", "update", "Cho phép cập nhật trạng thái thanh toán, điều chỉnh công nợ"),
+            ("finance.delete", "Xóa / Hủy Giao Dịch", "finance", "delete", "Cho phép hủy giao dịch sai, hoàn trả học phí"),
+
             // Reports & Analytics
             ("reports.read", "Xem báo cáo học vụ & GPA", "reports", "read", "Cho phép xem biểu đồ GPA, tỷ lệ đạt/rớt, chuyên cần toàn trường"),
             ("reports.export", "Xuất dữ liệu báo cáo (Excel/PDF)", "reports", "export", "Cho phép xuất danh sách điểm, danh sách sinh viên ra file"),

@@ -180,6 +180,12 @@ const router = createRouter({
           meta: { title: 'Đánh giá giảng viên' },
         },
         {
+          path: 'organizations',
+          name: 'student-organizations',
+          component: () => import('../views/SuperAdmin/OrganizationsView.vue'),
+          meta: { title: 'Quản lý Cơ sở' },
+        },
+        {
           path: 'profile',
           name: 'student-profile',
           component: () => import('../views/Student/ProfileView.vue'),
