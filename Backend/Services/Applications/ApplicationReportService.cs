@@ -291,7 +291,7 @@ public class ApplicationReportService : IApplicationReportService
                         .Max(log => (DateTime?)log.NgayTao) ?? x.NgayDuyet)
             })
             .Where(x => x.DecisionAt.HasValue && x.DecisionAt.Value >= x.SubmittedAt)
-            .Select(x => (double?)EF.Functions.DateDiffMinute(x.SubmittedAt, x.DecisionAt!.Value))
+            .Select(x => (double?)((x.DecisionAt!.Value) - (x.SubmittedAt)).TotalMinutes)
             .AverageAsync(cancellationToken);
 
         return averageMinutes.HasValue
@@ -519,7 +519,7 @@ public class ApplicationReportService : IApplicationReportService
                 Rejected = g.Count(a => a.TrangThai == ApplicationStatuses.Rejected),
                 Canceled = g.Count(a => a.TrangThai == ApplicationStatuses.Cancelled),
                 Overdue = g.Count(a => a.HanXuLyLuc.HasValue && a.HanXuLyLuc < DateTime.UtcNow && RunningSlaStatuses.Contains(a.TrangThai)),
-                TotalHours = g.Where(a => a.NgayDuyet.HasValue && a.NgayNop.HasValue).Sum(a => EF.Functions.DateDiffHour(a.NgayNop.Value, a.NgayDuyet.Value)),
+                TotalHours = g.Where(a => a.NgayDuyet.HasValue && a.NgayNop.HasValue).Sum(a => ((a.NgayDuyet.Value) - (a.NgayNop.Value)).TotalHours),
                 CountWithHours = g.Count(a => a.NgayDuyet.HasValue && a.NgayNop.HasValue)
             })
             .ToListAsync(cancellationToken);
@@ -576,7 +576,7 @@ public class ApplicationReportService : IApplicationReportService
                 ReceivedAt = a.NgayCapNhat,
                 AssignedToName = a.NguoiDuyetHienTaiNavigation != null ? a.NguoiDuyetHienTaiNavigation.HoTen : null,
                 CurrentStep = a.TrangThaiXuLyNghiepVu,
-                AgeHours = a.NgayNop.HasValue ? (decimal)EF.Functions.DateDiffHour(a.NgayNop.Value, DateTime.UtcNow) : 0,
+                AgeHours = a.NgayNop.HasValue ? (decimal)((DateTime.UtcNow) - (a.NgayNop.Value)).TotalHours : 0,
                 CampusId = a.MaDonVi,
                 CampusName = a.DonVi != null ? a.DonVi.TenDonVi : null
             })
@@ -609,7 +609,7 @@ public class ApplicationReportService : IApplicationReportService
         // Overdue logic: if HanXuLyLuc has value, use it. Otherwise, use NgayNop + defaultSlaHours
         var overdueQuery = query.Where(a => 
             (a.HanXuLyLuc.HasValue && a.HanXuLyLuc < now) ||
-            (!a.HanXuLyLuc.HasValue && a.NgayNop.HasValue && EF.Functions.DateDiffHour(a.NgayNop.Value, now) > defaultSlaHours)
+            (!a.HanXuLyLuc.HasValue && a.NgayNop.HasValue && ((now) - (a.NgayNop.Value)).TotalHours > defaultSlaHours)
         );
 
         var total = await overdueQuery.CountAsync(cancellationToken);
@@ -626,10 +626,10 @@ public class ApplicationReportService : IApplicationReportService
                 Status = a.TrangThai,
                 SubmittedAt = a.NgayNop,
                 AssignedToName = a.NguoiDuyetHienTaiNavigation != null ? a.NguoiDuyetHienTaiNavigation.HoTen : null,
-                AgeHours = a.NgayNop.HasValue ? (decimal)EF.Functions.DateDiffHour(a.NgayNop.Value, now) : 0,
+                AgeHours = a.NgayNop.HasValue ? (decimal)((now) - (a.NgayNop.Value)).TotalHours : 0,
                 OverdueHours = a.HanXuLyLuc.HasValue 
-                    ? (decimal)EF.Functions.DateDiffHour(a.HanXuLyLuc.Value, now)
-                    : (a.NgayNop.HasValue ? (decimal)EF.Functions.DateDiffHour(a.NgayNop.Value, now) - defaultSlaHours : 0)
+                    ? (decimal)((now) - (a.HanXuLyLuc.Value)).TotalHours
+                    : (a.NgayNop.HasValue ? (decimal)((now) - (a.NgayNop.Value)).TotalHours - defaultSlaHours : 0)
             })
             .ToListAsync(cancellationToken);
 
@@ -658,13 +658,13 @@ public class ApplicationReportService : IApplicationReportService
             (a.TrangThai == ApplicationStatuses.Approved || a.TrangThai == ApplicationStatuses.Rejected));
 
         var stats = await query
-            .Select(a => EF.Functions.DateDiffHour(a.NgayNop!.Value, a.NgayDuyet!.Value))
+            .Select(a => ((a.NgayDuyet!.Value) - (a.NgayNop!.Value)).TotalHours)
             .ToListAsync(cancellationToken);
 
         var count = stats.Count;
         decimal avg = count > 0 ? (decimal)stats.Average() : 0;
-        decimal min = count > 0 ? stats.Min() : 0;
-        decimal max = count > 0 ? stats.Max() : 0;
+        decimal min = count > 0 ? (decimal)stats.Min() : 0;
+        decimal max = count > 0 ? (decimal)stats.Max() : 0;
         decimal? median = null;
 
         if (count > 0)
@@ -672,11 +672,11 @@ public class ApplicationReportService : IApplicationReportService
             var sorted = stats.OrderBy(x => x).ToList();
             if (count % 2 == 0)
             {
-                median = (sorted[(count / 2) - 1] + sorted[count / 2]) / 2.0m;
+                median = (decimal)(sorted[(count / 2) - 1] + sorted[count / 2]) / 2.0m;
             }
             else
             {
-                median = sorted[count / 2];
+                median = (decimal)sorted[count / 2];
             }
         }
 
@@ -687,7 +687,7 @@ public class ApplicationReportService : IApplicationReportService
                 GroupKey = g.Key,
                 GroupLabel = g.Key,
                 ApplicationCount = g.Count(),
-                AverageProcessingHours = (decimal)g.Average(a => EF.Functions.DateDiffHour(a.NgayNop!.Value, a.NgayDuyet!.Value))
+                AverageProcessingHours = (decimal)g.Average(a => ((a.NgayDuyet!.Value) - (a.NgayNop!.Value)).TotalHours)
             })
             .ToListAsync(cancellationToken);
 
@@ -699,7 +699,7 @@ public class ApplicationReportService : IApplicationReportService
                 GroupKey = g.Key,
                 GroupLabel = g.Key,
                 ApplicationCount = g.Count(),
-                AverageProcessingHours = (decimal)g.Average(a => EF.Functions.DateDiffHour(a.NgayNop!.Value, a.NgayDuyet!.Value))
+                AverageProcessingHours = (decimal)g.Average(a => ((a.NgayDuyet!.Value) - (a.NgayNop!.Value)).TotalHours)
             })
             .ToListAsync(cancellationToken);
 
@@ -710,7 +710,7 @@ public class ApplicationReportService : IApplicationReportService
                 GroupKey = g.Key.MaDonVi.ToString(),
                 GroupLabel = g.Key.TenDonVi,
                 ApplicationCount = g.Count(),
-                AverageProcessingHours = (decimal)g.Average(a => EF.Functions.DateDiffHour(a.NgayNop!.Value, a.NgayDuyet!.Value))
+                AverageProcessingHours = (decimal)g.Average(a => ((a.NgayDuyet!.Value) - (a.NgayNop!.Value)).TotalHours)
             })
             .ToListAsync(cancellationToken);
 
@@ -721,7 +721,7 @@ public class ApplicationReportService : IApplicationReportService
                 GroupKey = $"{g.Key.Year}-{g.Key.Month:D2}",
                 GroupLabel = $"{g.Key.Year}-{g.Key.Month:D2}",
                 ApplicationCount = g.Count(),
-                AverageProcessingHours = (decimal)g.Average(a => EF.Functions.DateDiffHour(a.NgayNop!.Value, a.NgayDuyet!.Value))
+                AverageProcessingHours = (decimal)g.Average(a => ((a.NgayDuyet!.Value) - (a.NgayNop!.Value)).TotalHours)
             })
             .ToListAsync(cancellationToken);
 
@@ -765,7 +765,7 @@ public class ApplicationReportService : IApplicationReportService
                 Approved = g.Count(a => a.TrangThai == ApplicationStatuses.Approved),
                 Rejected = g.Count(a => a.TrangThai == ApplicationStatuses.Rejected),
                 Overdue = g.Count(a => a.HanXuLyLuc.HasValue && a.HanXuLyLuc < DateTime.UtcNow && RunningSlaStatuses.Contains(a.TrangThai)),
-                TotalHours = g.Where(a => a.NgayDuyet.HasValue && a.NgayNop.HasValue).Sum(a => EF.Functions.DateDiffHour(a.NgayNop.Value, a.NgayDuyet.Value)),
+                TotalHours = g.Where(a => a.NgayDuyet.HasValue && a.NgayNop.HasValue).Sum(a => ((a.NgayDuyet.Value) - (a.NgayNop.Value)).TotalHours),
                 CountWithHours = g.Count(a => a.NgayDuyet.HasValue && a.NgayNop.HasValue)
             })
             .ToListAsync(cancellationToken);

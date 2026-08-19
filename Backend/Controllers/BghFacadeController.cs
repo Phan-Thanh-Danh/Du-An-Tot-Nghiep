@@ -473,9 +473,8 @@ public class BghFacadeController : ControllerBase
                     ? useClientTimeCalculation
                         ? (x.Schedule.CaHoc.GioKetThuc.ToTimeSpan() -
                            x.Schedule.CaHoc.GioBatDau.ToTimeSpan()).TotalHours
-                        : EF.Functions.DateDiffMinute(
-                            x.Schedule.CaHoc.GioBatDau,
-                            x.Schedule.CaHoc.GioKetThuc) / 60.0
+                        : ((x.Schedule.CaHoc.GioKetThuc) - (
+                            x.Schedule.CaHoc.GioBatDau)).TotalMinutes / 60.0
                     : 0,
                 Campus = x.Course.DonVi != null ? x.Course.DonVi.TenDonVi : "",
                 Created = x.Schedule.NgayTao

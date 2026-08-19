@@ -642,7 +642,7 @@ public class RewardDisciplineReportService : IRewardDisciplineReportService
     {
         var average = await query
             .Where(x => x.NgayApDung.HasValue && (x.NgayGoKyLuat.HasValue || x.NgayCapNhat.HasValue))
-            .Select(x => (double?)EF.Functions.DateDiffDay(x.NgayApDung!.Value, (x.NgayGoKyLuat ?? x.NgayCapNhat)!.Value))
+            .Select(x => (double?)(((x.NgayGoKyLuat ?? x.NgayCapNhat)!.Value - x.NgayApDung!.Value).TotalDays))
             .AverageAsync(cancellationToken);
         return average.HasValue
             ? Math.Round((decimal)average.Value, 2, MidpointRounding.AwayFromZero)
@@ -653,7 +653,7 @@ public class RewardDisciplineReportService : IRewardDisciplineReportService
     {
         var average = await query
             .Where(x => x.NgayXuLy.HasValue && x.NgayXuLy.Value >= x.NgayTao)
-            .Select(x => (double?)EF.Functions.DateDiffMinute(x.NgayTao, x.NgayXuLy!.Value))
+            .Select(x => (double?)((x.NgayXuLy!.Value) - (x.NgayTao)).TotalMinutes)
             .AverageAsync(cancellationToken);
         return average.HasValue
             ? Math.Round((decimal)(average.Value / 60d), 2, MidpointRounding.AwayFromZero)

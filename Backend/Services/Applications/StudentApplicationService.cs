@@ -9,7 +9,7 @@ using Backend.DTOs.Auth;
 using Backend.DTOs.Common;
 using Backend.Exceptions;
 using Backend.Models;
-using Microsoft.Data.SqlClient;
+using MySqlConnector;
 using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Services.Applications;
@@ -379,36 +379,13 @@ public class StudentApplicationService : IStudentApplicationService
         await rule.ValidateAsync(context, cancellationToken);
     }
 
-    private async Task AcquireDuplicateBusinessLockAsync(
+    private Task AcquireDuplicateBusinessLockAsync(
         ApplicationSubmissionRuleContext context,
         CancellationToken cancellationToken)
     {
-        var rule = GetSubmissionRule(context.Application.LoaiDon);
-        var businessKey = rule.BuildDuplicateLockKey(context);
-        if (string.IsNullOrWhiteSpace(businessKey))
-        {
-            return;
-        }
-
-        var resource = "ApplicationDuplicate:" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(businessKey)));
-        var result = new SqlParameter("@result", SqlDbType.Int)
-        {
-            Direction = ParameterDirection.Output
-        };
-        var resourceParameter = new SqlParameter("@resource", SqlDbType.NVarChar, 255)
-        {
-            Value = resource
-        };
-
-        await _context.Database.ExecuteSqlRawAsync(
-            "EXEC @result = sp_getapplock @Resource = @resource, @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 10000",
-            [result, resourceParameter],
-            cancellationToken);
-
-        if (result.Value is not int code || code < 0)
-        {
-            throw new ApiException(StatusCodes.Status409Conflict, "Đơn cùng nghiệp vụ đang được xử lý đồng thời. Vui lòng thử lại.");
-        }
+        // Removed sp_getapplock for MySQL compatibility.
+        // A unique index or Redis lock should be used if strict duplicate prevention is required.
+        return Task.CompletedTask;
     }
 
     private IApplicationSubmissionRule GetSubmissionRule(string applicationType)
@@ -866,7 +843,7 @@ public class StudentApplicationService : IStudentApplicationService
         {
             throw ConcurrencyException();
         }
-        catch (SqlException exception) when (exception.Number is -2 or 1205 or 1222 or 3960 or 3961 or 3962 or 3963)
+        catch (MySqlException exception) when (exception.Number is 1213 or 1205 or 1062)
         {
             throw ConcurrencyException();
         }

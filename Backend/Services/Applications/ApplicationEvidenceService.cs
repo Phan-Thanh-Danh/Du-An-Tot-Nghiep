@@ -7,7 +7,7 @@ using Backend.DTOs.Auth;
 using Backend.Exceptions;
 using Backend.Models;
 using Backend.Services.Storage;
-using Microsoft.Data.SqlClient;
+using MySqlConnector;
 using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Services.Applications;
@@ -398,24 +398,9 @@ public class ApplicationEvidenceService : IApplicationEvidenceService
 
     private async Task AcquireEvidenceLockAsync(int applicationId, CancellationToken cancellationToken)
     {
-        var result = new SqlParameter("@result", SqlDbType.Int)
-        {
-            Direction = ParameterDirection.Output
-        };
-        var resource = new SqlParameter("@resource", SqlDbType.NVarChar, 255)
-        {
-            Value = $"ApplicationEvidence:{applicationId}"
-        };
-
         await _context.Database.ExecuteSqlRawAsync(
-            "EXEC @result = sp_getapplock @Resource = @resource, @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 10000",
-            [result, resource],
-            cancellationToken);
-
-        if (result.Value is not int code || code < 0)
-        {
-            throw new ApiException(StatusCodes.Status409Conflict, "Minh chứng đơn từ đang được xử lý đồng thời. Vui lòng thử lại.");
-        }
+            "SELECT 1 FROM DonTus WHERE MaDonTu = {0} FOR UPDATE",
+            applicationId);
     }
 
     private static void EnsureEditableState(string status)
@@ -537,7 +522,7 @@ public class ApplicationEvidenceService : IApplicationEvidenceService
         {
             throw ConcurrencyException();
         }
-        catch (SqlException exception) when (exception.Number is -2 or 1205 or 1222 or 2601 or 2627 or 3960 or 3961 or 3962 or 3963)
+        catch (MySqlException exception) when (exception.Number is 1213 or 1205 or 1062)
         {
             throw ConcurrencyException();
         }

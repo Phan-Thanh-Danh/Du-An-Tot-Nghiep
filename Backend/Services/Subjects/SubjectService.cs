@@ -30,8 +30,8 @@ public class SubjectService : ISubjectService
         {
             var keyword = parameters.Keyword.Trim();
             query = query.Where(x =>
-                EF.Functions.Collate(x.MaCodeMonHoc, "SQL_Latin1_General_CP1_CI_AI").Contains(keyword) ||
-                EF.Functions.Collate(x.TenMonHoc, "SQL_Latin1_General_CP1_CI_AI").Contains(keyword));
+                x.MaCodeMonHoc.Contains(keyword) ||
+                x.TenMonHoc.Contains(keyword));
         }
 
         if (parameters.ConHoatDong.HasValue)

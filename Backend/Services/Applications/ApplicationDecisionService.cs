@@ -5,7 +5,7 @@ using Backend.Data;
 using Backend.DTOs.Applications;
 using Backend.Exceptions;
 using Backend.Models;
-using Microsoft.Data.SqlClient;
+using MySqlConnector;
 using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Services.Applications;
@@ -225,30 +225,11 @@ public class ApplicationDecisionService : IApplicationDecisionService
         return application;
     }
 
-    private async Task AcquireWorkflowLockAsync(int applicationId, CancellationToken cancellationToken)
+        private async Task AcquireWorkflowLockAsync(int applicationId, CancellationToken cancellationToken)
     {
-        var result = new SqlParameter("@result", SqlDbType.Int)
-        {
-            Direction = ParameterDirection.Output
-        };
-        var resource = new SqlParameter("@resource", SqlDbType.NVarChar, 255)
-        {
-            Value = $"ApplicationWorkflow:{applicationId}"
-        };
-        var timeout = new SqlParameter("@timeout", SqlDbType.Int)
-        {
-            Value = LockTimeoutMs
-        };
-
         await _context.Database.ExecuteSqlRawAsync(
-            "EXEC @result = sp_getapplock @Resource = @resource, @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = @timeout",
-            [result, resource, timeout],
-            cancellationToken);
-
-        if (result.Value is not int code || code < 0)
-        {
-            throw ConcurrencyException();
-        }
+            "SELECT 1 FROM DonTus WHERE MaDonTu = {0} FOR UPDATE",
+            applicationId);
     }
 
     private void AddTimeline(
@@ -410,7 +391,7 @@ public class ApplicationDecisionService : IApplicationDecisionService
         {
             throw ConcurrencyException();
         }
-        catch (SqlException exception) when (exception.Number is -2 or 1205 or 1222 or 2601 or 2627 or 3960 or 3961 or 3962 or 3963)
+        catch (MySqlException exception) when (exception.Number is 1213 or 1205 or 1062)
         {
             throw ConcurrencyException();
         }

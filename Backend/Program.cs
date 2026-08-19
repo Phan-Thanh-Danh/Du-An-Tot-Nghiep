@@ -104,15 +104,19 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 });
 builder.Services.AddOpenApi();
 
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        sqlOptions =>
-            sqlOptions.EnableRetryOnFailure(
+    options.UseMySql(
+        connectionString,
+        new MariaDbServerVersion(new Version(10, 11)),
+        mySqlOptions => {
+            mySqlOptions.EnableRetryOnFailure(
                 maxRetryCount: 5,
                 maxRetryDelay: TimeSpan.FromSeconds(10),
                 errorNumbersToAdd: null
-            )
+            );
+            mySqlOptions.SchemaBehavior(Pomelo.EntityFrameworkCore.MySql.Infrastructure.MySqlSchemaBehavior.Ignore);
+        }
     )
 );
 

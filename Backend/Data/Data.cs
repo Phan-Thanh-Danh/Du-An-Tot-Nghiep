@@ -520,8 +520,9 @@ public static class Data
 
         if (campus is null && plan.Aliases.Length > 0)
         {
+            var aliases = plan.Aliases.ToList();
             campus = await context.DonVis.FirstOrDefaultAsync(x =>
-                plan.Aliases.Contains(x.TenDonVi)
+                aliases.Contains(x.TenDonVi)
             );
         }
 

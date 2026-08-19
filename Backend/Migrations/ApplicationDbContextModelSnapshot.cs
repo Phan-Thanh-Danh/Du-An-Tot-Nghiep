@@ -17,10 +17,10 @@ namespace Backend.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.6")
-                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+                .HasAnnotation("ProductVersion", "9.0.0")
+                .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
-            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+            MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
             modelBuilder.Entity("Backend.Models.AnhChupPhanTich", b =>
                 {
@@ -29,10 +29,10 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_anh_chup");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaAnhChup"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaAnhChup"));
 
                     b.Property<string>("ChieuLocJson")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("chieu_loc_json");
 
                     b.Property<decimal>("GiaTriChiSo")
@@ -42,7 +42,7 @@ namespace Backend.Migrations
                     b.Property<string>("LoaiChiSo")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("loai_chi_so");
 
                     b.Property<int>("MaDonVi")
@@ -59,9 +59,9 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.HasKey("MaAnhChup")
                         .HasName("PK_AnhChupPhanTich");
@@ -70,12 +70,11 @@ namespace Backend.Migrations
 
                     b.HasIndex("MaDonVi", "MaHocKy", "NgayAnhChup", "LoaiChiSo")
                         .IsUnique()
-                        .HasDatabaseName("UQ_AnhChupPhanTich_1")
-                        .HasFilter("[ma_hoc_ky] IS NOT NULL");
+                        .HasDatabaseName("UQ_AnhChupPhanTich_1");
 
                     b.ToTable("AnhChupPhanTich", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_AnhChupPhanTich_chieu_loc_json_ISJSON", "[chieu_loc_json] IS NULL OR ISJSON([chieu_loc_json]) = 1");
+                            t.HasCheckConstraint("CK_AnhChupPhanTich_chieu_loc_json_ISJSON", "`chieu_loc_json` IS NULL OR JSON_VALID(`chieu_loc_json`) = 1");
                         });
                 });
 
@@ -86,22 +85,22 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_bai_hoc");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaBaiHoc"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaBaiHoc"));
 
                     b.Property<bool>("DaAn")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false)
                         .HasColumnName("da_an");
 
                     b.Property<string>("DieuKienMoKhoa")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("dieu_kien_mo_khoa");
 
                     b.Property<string>("LoaiBaiHoc")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasColumnName("loai_bai_hoc");
 
                     b.Property<int>("MaChuong")
@@ -109,17 +108,17 @@ namespace Backend.Migrations
                         .HasColumnName("ma_chuong");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<string>("NoiDungVanBan")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("noi_dung_van_ban");
 
                     b.Property<int?>("ThoiLuongGiay")
@@ -135,22 +134,22 @@ namespace Backend.Migrations
                     b.Property<string>("TieuDe")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("tieu_de");
 
                     b.Property<string>("TomTatAi")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("tom_tat_ai");
 
                     b.Property<string>("TrangThai")
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasDefaultValue("nhap")
                         .HasColumnName("trang_thai");
 
                     b.Property<string>("UrlTapTin")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("url_tap_tin");
 
                     b.HasKey("MaBaiHoc")
@@ -160,13 +159,13 @@ namespace Backend.Migrations
 
                     b.ToTable("BaiHoc", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_BaiHoc_dieu_kien_mo_khoa_ISJSON", "[dieu_kien_mo_khoa] IS NULL OR ISJSON([dieu_kien_mo_khoa]) = 1");
+                            t.HasCheckConstraint("CK_BaiHoc_dieu_kien_mo_khoa_ISJSON", "`dieu_kien_mo_khoa` IS NULL OR JSON_VALID(`dieu_kien_mo_khoa`) = 1");
 
-                            t.HasCheckConstraint("CK_BaiHoc_loai_bai_hoc_1", "[loai_bai_hoc] IN (N'video', N'pdf', N'van_ban', N'trac_nghiem', N'slide_html')");
+                            t.HasCheckConstraint("CK_BaiHoc_loai_bai_hoc_1", "`loai_bai_hoc` IN ('video', 'pdf', 'van_ban', 'trac_nghiem', 'slide_html')");
 
-                            t.HasCheckConstraint("CK_BaiHoc_thoi_luong_giay_2", "[thoi_luong_giay] >= 0");
+                            t.HasCheckConstraint("CK_BaiHoc_thoi_luong_giay_2", "`thoi_luong_giay` >= 0");
 
-                            t.HasCheckConstraint("CK_BaiHoc_trang_thai", "[trang_thai] IS NULL OR [trang_thai] IN (N'nhap', N'da_xuat_ban')");
+                            t.HasCheckConstraint("CK_BaiHoc_trang_thai", "`trang_thai` IS NULL OR `trang_thai` IN ('nhap', 'da_xuat_ban')");
                         });
                 });
 
@@ -177,7 +176,7 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_noi_dung");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaNoiDung"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaNoiDung"));
 
                     b.Property<long?>("KichThuocByte")
                         .HasColumnType("bigint")
@@ -186,7 +185,7 @@ namespace Backend.Migrations
                     b.Property<string>("LoaiNoiDung")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasColumnName("loai_noi_dung");
 
                     b.Property<int>("MaBaiHoc")
@@ -199,26 +198,26 @@ namespace Backend.Migrations
 
                     b.Property<DateTime?>("NgayCapNhat")
                         .IsConcurrencyToken()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<string>("NoiDungHtml")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("noi_dung_html");
 
                     b.Property<string>("NoiDungJson")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("noi_dung_json");
 
                     b.Property<string>("StorageKey")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
+                        .HasColumnType("varchar(500)")
                         .HasColumnName("storage_key");
 
                     b.Property<int?>("ThoiLuongGiay")
@@ -234,12 +233,12 @@ namespace Backend.Migrations
                     b.Property<string>("TrangThai")
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasDefaultValue("nhap")
                         .HasColumnName("trang_thai");
 
                     b.Property<string>("UrlTapTin")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("url_tap_tin");
 
                     b.HasKey("MaNoiDung")
@@ -251,13 +250,13 @@ namespace Backend.Migrations
 
                     b.ToTable("BaiHocNoiDung", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_BaiHocNoiDung_loai_noi_dung", "[loai_noi_dung] IN (N'video', N'slide_html', N'tai_lieu', N'quiz', N'van_ban')");
+                            t.HasCheckConstraint("CK_BaiHocNoiDung_loai_noi_dung", "`loai_noi_dung` IN ('video', 'slide_html', 'tai_lieu', 'quiz', 'van_ban')");
 
-                            t.HasCheckConstraint("CK_BaiHocNoiDung_noi_dung_json_ISJSON", "[noi_dung_json] IS NULL OR ISJSON([noi_dung_json]) = 1");
+                            t.HasCheckConstraint("CK_BaiHocNoiDung_noi_dung_json_ISJSON", "`noi_dung_json` IS NULL OR JSON_VALID(`noi_dung_json`) = 1");
 
-                            t.HasCheckConstraint("CK_BaiHocNoiDung_thoi_luong_giay", "[thoi_luong_giay] IS NULL OR [thoi_luong_giay] >= 0");
+                            t.HasCheckConstraint("CK_BaiHocNoiDung_thoi_luong_giay", "`thoi_luong_giay` IS NULL OR `thoi_luong_giay` >= 0");
 
-                            t.HasCheckConstraint("CK_BaiHocNoiDung_trang_thai", "[trang_thai] IS NULL OR [trang_thai] IN (N'nhap', N'da_xuat_ban')");
+                            t.HasCheckConstraint("CK_BaiHocNoiDung_trang_thai", "`trang_thai` IS NULL OR `trang_thai` IN ('nhap', 'da_xuat_ban')");
                         });
                 });
 
@@ -268,11 +267,11 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_bai_nop");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaBaiNop"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaBaiNop"));
 
                     b.Property<bool>("DaCongBo")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false)
                         .HasColumnName("da_cong_bo");
 
@@ -297,12 +296,12 @@ namespace Backend.Migrations
                         .HasColumnName("ma_hoc_sinh");
 
                     b.Property<string>("NhanXet")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("nhan_xet");
 
                     b.Property<bool>("NopTre")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false)
                         .HasColumnName("nop_tre");
 
@@ -312,13 +311,13 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("ThoiDiemNop")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("thoi_diem_nop")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<string>("UrlTapTin")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("url_tap_tin");
 
                     b.HasKey("MaBaiNop")
@@ -332,13 +331,13 @@ namespace Backend.Migrations
 
                     b.ToTable("BaiNop", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_BaiNop_diem_ai_de_xuat_4", "[diem_ai_de_xuat] BETWEEN 0 AND 10");
+                            t.HasCheckConstraint("CK_BaiNop_diem_ai_de_xuat_4", "`diem_ai_de_xuat` BETWEEN 0 AND 10");
 
-                            t.HasCheckConstraint("CK_BaiNop_diem_dao_van_2", "[diem_dao_van] BETWEEN 0 AND 100");
+                            t.HasCheckConstraint("CK_BaiNop_diem_dao_van_2", "`diem_dao_van` BETWEEN 0 AND 100");
 
-                            t.HasCheckConstraint("CK_BaiNop_diem_so_3", "[diem_so] BETWEEN 0 AND 10");
+                            t.HasCheckConstraint("CK_BaiNop_diem_so_3", "`diem_so` BETWEEN 0 AND 10");
 
-                            t.HasCheckConstraint("CK_BaiNop_so_lan_nop_1", "[so_lan_nop] > 0");
+                            t.HasCheckConstraint("CK_BaiNop_so_lan_nop_1", "`so_lan_nop` > 0");
                         });
                 });
 
@@ -349,12 +348,12 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_bai_tap");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaBaiTap"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaBaiTap"));
 
                     b.Property<string>("DinhDangChoPhep")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
+                        .HasColumnType("varchar(200)")
                         .HasColumnName("dinh_dang_cho_phep");
 
                     b.Property<int>("DungLuongToiDaMB")
@@ -364,11 +363,11 @@ namespace Backend.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("HanNop")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("han_nop");
 
                     b.Property<string>("HuongDanChamDiem")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("huong_dan_cham_diem");
 
                     b.Property<int?>("MaCauHinhDauDiem")
@@ -379,7 +378,7 @@ namespace Backend.Migrations
                         .HasColumnName("ma_mon_hoc");
 
                     b.Property<string>("MoTa")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("mo_ta");
 
                     b.Property<int>("SoLanNopToiDa")
@@ -391,14 +390,14 @@ namespace Backend.Migrations
                     b.Property<string>("TieuDe")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("tieu_de");
 
                     b.Property<string>("TrangThai")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasDefaultValue("nhap")
                         .HasColumnName("trang_thai");
 
@@ -411,11 +410,11 @@ namespace Backend.Migrations
 
                     b.ToTable("BaiTap", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_BaiTap_dinh_dang_cho_phep_ISJSON", "[dinh_dang_cho_phep] IS NULL OR ISJSON([dinh_dang_cho_phep]) = 1");
+                            t.HasCheckConstraint("CK_BaiTap_dinh_dang_cho_phep_ISJSON", "`dinh_dang_cho_phep` IS NULL OR JSON_VALID(`dinh_dang_cho_phep`) = 1");
 
-                            t.HasCheckConstraint("CK_BaiTap_so_lan_nop_toi_da_1", "[so_lan_nop_toi_da] > 0");
+                            t.HasCheckConstraint("CK_BaiTap_so_lan_nop_toi_da_1", "`so_lan_nop_toi_da` > 0");
 
-                            t.HasCheckConstraint("CK_BaiTap_trang_thai_2", "[trang_thai] IN (N'nhap', N'da_xuat_ban', N'da_dong')");
+                            t.HasCheckConstraint("CK_BaiTap_trang_thai_2", "`trang_thai` IN ('nhap', 'da_xuat_ban', 'da_dong')");
                         });
                 });
 
@@ -426,10 +425,10 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_bao_cao_rot");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaBaoCaoRot"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaBaoCaoRot"));
 
                     b.Property<string>("DacTrungJson")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("dac_trung_json");
 
                     b.Property<int>("MaHocKy")
@@ -446,9 +445,9 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("TaoLuc")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("tao_luc")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<decimal>("XacSuatRotMon")
                         .HasColumnType("decimal(5,2)")
@@ -465,9 +464,9 @@ namespace Backend.Migrations
 
                     b.ToTable("BaoCaoRuiRoRotMon", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_BaoCaoRuiRoRotMon_dac_trung_json_ISJSON", "[dac_trung_json] IS NULL OR ISJSON([dac_trung_json]) = 1");
+                            t.HasCheckConstraint("CK_BaoCaoRuiRoRotMon_dac_trung_json_ISJSON", "`dac_trung_json` IS NULL OR JSON_VALID(`dac_trung_json`) = 1");
 
-                            t.HasCheckConstraint("CK_BaoCaoRuiRoRotMon_xac_suat_rot_mon_1", "[xac_suat_rot_mon] BETWEEN 0 AND 1");
+                            t.HasCheckConstraint("CK_BaoCaoRuiRoRotMon_xac_suat_rot_mon_1", "`xac_suat_rot_mon` BETWEEN 0 AND 1");
                         });
                 });
 
@@ -478,10 +477,10 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_bao_cao");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaBaoCao"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaBaoCao"));
 
                     b.Property<string>("DacTrungJson")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("dac_trung_json");
 
                     b.Property<decimal>("DiemRuiRo")
@@ -498,9 +497,9 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("TaoLuc")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("tao_luc")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.HasKey("MaBaoCao")
                         .HasName("PK_BaoCaoRuiRoVang");
@@ -511,9 +510,9 @@ namespace Backend.Migrations
 
                     b.ToTable("BaoCaoRuiRoVang", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_BaoCaoRuiRoVang_dac_trung_json_ISJSON", "[dac_trung_json] IS NULL OR ISJSON([dac_trung_json]) = 1");
+                            t.HasCheckConstraint("CK_BaoCaoRuiRoVang_dac_trung_json_ISJSON", "`dac_trung_json` IS NULL OR JSON_VALID(`dac_trung_json`) = 1");
 
-                            t.HasCheckConstraint("CK_BaoCaoRuiRoVang_diem_rui_ro_1", "[diem_rui_ro] BETWEEN 0 AND 1");
+                            t.HasCheckConstraint("CK_BaoCaoRuiRoVang_diem_rui_ro_1", "`diem_rui_ro` BETWEEN 0 AND 1");
                         });
                 });
 
@@ -524,7 +523,7 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_bc_su_dung_phong");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaBcSuDungPhong"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaBcSuDungPhong"));
 
                     b.Property<DateOnly>("DenNgay")
                         .HasColumnType("date")
@@ -546,9 +545,9 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("TaoLuc")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("tao_luc")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<decimal?>("TiLeSuDung")
                         .HasColumnType("decimal(5,2)")
@@ -567,7 +566,7 @@ namespace Backend.Migrations
 
                     b.ToTable("BaoCaoSuDungPhong", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_BaoCaoSuDungPhong_ti_le_su_dung_1", "[ti_le_su_dung] BETWEEN 0 AND 100");
+                            t.HasCheckConstraint("CK_BaoCaoSuDungPhong_ti_le_su_dung_1", "`ti_le_su_dung` BETWEEN 0 AND 100");
                         });
                 });
 
@@ -578,12 +577,12 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_bien_ban");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaBienBan"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaBienBan"));
 
                     b.Property<string>("LoaiBienBan")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasColumnName("loai_bien_ban");
 
                     b.Property<int>("MaCaThi")
@@ -600,24 +599,24 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<string>("NoiDung")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("noi_dung");
 
                     b.Property<DateTime>("ThoiDiemLap")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("thoi_diem_lap");
 
                     b.Property<string>("TrangThaiXuLy")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasDefaultValue("cho_xu_ly")
                         .HasColumnName("trang_thai_xu_ly");
 
@@ -632,9 +631,9 @@ namespace Backend.Migrations
 
                     b.ToTable("BienBanThi", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_BienBanThi_loai_bien_ban", "[loai_bien_ban] IN (N'gian_lan', N'su_co_diem_danh', N'quen_ky_ten', N'su_co_he_thong', N'khac')");
+                            t.HasCheckConstraint("CK_BienBanThi_loai_bien_ban", "`loai_bien_ban` IN ('gian_lan', 'su_co_diem_danh', 'quen_ky_ten', 'su_co_he_thong', 'khac')");
 
-                            t.HasCheckConstraint("CK_BienBanThi_trang_thai_xu_ly", "[trang_thai_xu_ly] IN (N'cho_xu_ly', N'da_xu_ly', N'huy_bo')");
+                            t.HasCheckConstraint("CK_BienBanThi_trang_thai_xu_ly", "`trang_thai_xu_ly` IN ('cho_xu_ly', 'da_xu_ly', 'huy_bo')");
                         });
                 });
 
@@ -645,11 +644,11 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_binh_luan");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaBinhLuan"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaBinhLuan"));
 
                     b.Property<bool>("DaGhim")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false)
                         .HasColumnName("da_ghim");
 
@@ -671,13 +670,13 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<string>("NoiDung")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("noi_dung");
 
                     b.Property<int?>("SoTrangPdf")
@@ -695,9 +694,9 @@ namespace Backend.Migrations
 
                     b.ToTable("BinhLuan", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_BinhLuan_giay_trong_video_1", "[giay_trong_video] >= 0");
+                            t.HasCheckConstraint("CK_BinhLuan_giay_trong_video_1", "`giay_trong_video` >= 0");
 
-                            t.HasCheckConstraint("CK_BinhLuan_so_trang_pdf_2", "[so_trang_pdf] > 0");
+                            t.HasCheckConstraint("CK_BinhLuan_so_trang_pdf_2", "`so_trang_pdf` > 0");
                         });
                 });
 
@@ -708,7 +707,7 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_block");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaBlock"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaBlock"));
 
                     b.Property<int>("MaHocKy")
                         .HasColumnType("int")
@@ -725,7 +724,7 @@ namespace Backend.Migrations
                     b.Property<string>("TenBlock")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("ten_block");
 
                     b.Property<int>("ThuTuBlock")
@@ -746,30 +745,30 @@ namespace Backend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaBuoc"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaBuoc"));
 
                     b.Property<string>("KieuBuoc")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("varchar(20)");
 
                     b.Property<int>("MaQuyTrinh")
                         .HasColumnType("int");
 
                     b.Property<string>("SlaKhoangThoiGian")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("varchar(50)");
 
                     b.Property<string>("TenBuoc")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<int>("ThuTu")
                         .HasColumnType("int");
 
                     b.Property<string>("VaiTroXuLy")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("varchar(50)");
 
                     b.HasKey("MaBuoc");
 
@@ -785,43 +784,43 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_buoi_hoc");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaBuoiHoc"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaBuoiHoc"));
 
                     b.Property<DateTime?>("DiemDanhBatDauLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("diem_danh_bat_dau_luc");
 
                     b.Property<DateTime?>("DiemDanhDaGuiLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("diem_danh_da_gui_luc");
 
                     b.Property<DateTime?>("DiemDanhHanChinhSuaLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("diem_danh_han_chinh_sua_luc");
 
                     b.Property<DateTime?>("DiemDanhHanGuiLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("diem_danh_han_gui_luc");
 
                     b.Property<DateTime?>("DiemDanhKhoaLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("diem_danh_khoa_luc");
 
                     b.Property<string>("GhiChu")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ghi_chu");
 
                     b.Property<DateTime?>("KhoaLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("khoa_luc");
 
                     b.Property<string>("LoaiThayDoi")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasColumnName("loai_thay_doi");
 
                     b.Property<string>("LyDoThayDoi")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ly_do_thay_doi");
 
                     b.Property<int>("MaCaHoc")
@@ -849,7 +848,7 @@ namespace Backend.Migrations
                         .HasColumnName("ma_tkb");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateOnly>("NgayHoc")
@@ -858,15 +857,15 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<string>("TrangThaiBuoi")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("du_kien")
                         .HasColumnName("trang_thai_buoi");
 
@@ -874,7 +873,7 @@ namespace Backend.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("chua_mo")
                         .HasColumnName("trang_thai_diem_danh");
 
@@ -909,11 +908,11 @@ namespace Backend.Migrations
 
                     b.ToTable("BuoiHoc", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_BuoiHoc_loai_thay_doi", "[loai_thay_doi] IS NULL OR [loai_thay_doi] IN (N'doi_giang_vien', N'doi_phong', N'doi_ca', N'huy_buoi', N'doi_lich')");
+                            t.HasCheckConstraint("CK_BuoiHoc_loai_thay_doi", "`loai_thay_doi` IS NULL OR `loai_thay_doi` IN ('doi_giang_vien', 'doi_phong', 'doi_ca', 'huy_buoi', 'doi_lich')");
 
-                            t.HasCheckConstraint("CK_BuoiHoc_trang_thai_buoi", "[trang_thai_buoi] IN (N'du_kien', N'da_dien_ra', N'da_huy', N'doi_lich', N'day_thay')");
+                            t.HasCheckConstraint("CK_BuoiHoc_trang_thai_buoi", "`trang_thai_buoi` IN ('du_kien', 'da_dien_ra', 'da_huy', 'doi_lich', 'day_thay')");
 
-                            t.HasCheckConstraint("CK_BuoiHoc_trang_thai_diem_danh", "[trang_thai_diem_danh] IN (N'chua_mo', N'dang_diem_danh', N'da_gui', N'da_khoa')");
+                            t.HasCheckConstraint("CK_BuoiHoc_trang_thai_diem_danh", "`trang_thai_diem_danh` IN ('chua_mo', 'dang_diem_danh', 'da_gui', 'da_khoa')");
                         });
                 });
 
@@ -924,17 +923,17 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_ca_hoc");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaCaHoc"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaCaHoc"));
 
                     b.Property<string>("Buoi")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasColumnName("buoi");
 
                     b.Property<bool>("ConHoatDong")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
                         .HasColumnName("con_hoat_dong");
 
@@ -949,7 +948,7 @@ namespace Backend.Migrations
                     b.Property<string>("TenCa")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("ten_ca");
 
                     b.Property<int>("ThuTu")
@@ -965,11 +964,11 @@ namespace Backend.Migrations
 
                     b.ToTable("CaHoc", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_CaHoc_buoi", "[buoi] IN (N'sang', N'chieu', N'toi')");
+                            t.HasCheckConstraint("CK_CaHoc_buoi", "`buoi` IN ('sang', 'chieu', 'toi')");
 
-                            t.HasCheckConstraint("CK_CaHoc_gio", "[gio_ket_thuc] > [gio_bat_dau]");
+                            t.HasCheckConstraint("CK_CaHoc_gio", "`gio_ket_thuc` > `gio_bat_dau`");
 
-                            t.HasCheckConstraint("CK_CaHoc_thu_tu", "[thu_tu] > 0");
+                            t.HasCheckConstraint("CK_CaHoc_thu_tu", "`thu_tu` > 0");
                         });
                 });
 
@@ -980,14 +979,14 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_ca_thi");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaCaThi"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaCaThi"));
 
                     b.Property<string>("GhiChu")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ghi_chu");
 
                     b.Property<string>("LyDoDieuChinh")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ly_do_dieu_chinh");
 
                     b.Property<int>("MaDonVi")
@@ -1003,38 +1002,38 @@ namespace Backend.Migrations
                         .HasColumnName("ma_phong");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<DateTime>("NgayThi")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_thi");
 
                     b.Property<string>("TenCaThi")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("ten_ca_thi");
 
                     b.Property<DateTime>("ThoiGianBatDau")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("thoi_gian_bat_dau");
 
                     b.Property<DateTime>("ThoiGianKetThuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("thoi_gian_ket_thuc");
 
                     b.Property<string>("TrangThai")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("nhap")
                         .HasColumnName("trang_thai");
 
@@ -1049,9 +1048,9 @@ namespace Backend.Migrations
 
                     b.ToTable("CaThi", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_CaThi_thoi_gian", "[thoi_gian_ket_thuc] > [thoi_gian_bat_dau]");
+                            t.HasCheckConstraint("CK_CaThi_thoi_gian", "`thoi_gian_ket_thuc` > `thoi_gian_bat_dau`");
 
-                            t.HasCheckConstraint("CK_CaThi_trang_thai", "[trang_thai] IN (N'nhap', N'cho_phan_cong', N'da_san_sang', N'dang_diem_danh', N'dang_thi', N'da_ket_thuc', N'da_huy', N'su_co')");
+                            t.HasCheckConstraint("CK_CaThi_trang_thai", "`trang_thai` IN ('nhap', 'cho_phan_cong', 'da_san_sang', 'dang_diem_danh', 'dang_thi', 'da_ket_thuc', 'da_huy', 'su_co')");
                         });
                 });
 
@@ -1062,11 +1061,11 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_canh_bao");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaCanhBao"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaCanhBao"));
 
                     b.Property<string>("DiaChiIp")
                         .HasMaxLength(45)
-                        .HasColumnType("nvarchar(45)")
+                        .HasColumnType("varchar(45)")
                         .HasColumnName("dia_chi_ip");
 
                     b.Property<decimal>("DiemRuiRo")
@@ -1079,20 +1078,20 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<string>("ThongTinTrinhDuyet")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
+                        .HasColumnType("varchar(500)")
                         .HasColumnName("thong_tin_trinh_duyet");
 
                     b.Property<string>("TrangThai")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasDefaultValue("mo")
                         .HasColumnName("trang_thai");
 
@@ -1103,9 +1102,9 @@ namespace Backend.Migrations
 
                     b.ToTable("CanhBaoBaoMat", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_CanhBaoBaoMat_diem_rui_ro_1", "[diem_rui_ro] BETWEEN 0 AND 1");
+                            t.HasCheckConstraint("CK_CanhBaoBaoMat_diem_rui_ro_1", "`diem_rui_ro` BETWEEN 0 AND 1");
 
-                            t.HasCheckConstraint("CK_CanhBaoBaoMat_trang_thai_2", "[trang_thai] IN (N'mo', N'da_xem', N'bo_qua')");
+                            t.HasCheckConstraint("CK_CanhBaoBaoMat_trang_thai_2", "`trang_thai` IN ('mo', 'da_xem', 'bo_qua')");
                         });
                 });
 
@@ -1116,10 +1115,10 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_canh_bao");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaCanhBao"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaCanhBao"));
 
                     b.Property<string>("ChiTiet")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("chi_tiet");
 
                     b.Property<decimal>("DiemDaoVan")
@@ -1132,9 +1131,9 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.HasKey("MaCanhBao")
                         .HasName("PK_CanhBaoDaoVan");
@@ -1143,9 +1142,9 @@ namespace Backend.Migrations
 
                     b.ToTable("CanhBaoDaoVan", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_CanhBaoDaoVan_chi_tiet_ISJSON", "[chi_tiet] IS NULL OR ISJSON([chi_tiet]) = 1");
+                            t.HasCheckConstraint("CK_CanhBaoDaoVan_chi_tiet_ISJSON", "`chi_tiet` IS NULL OR JSON_VALID(`chi_tiet`) = 1");
 
-                            t.HasCheckConstraint("CK_CanhBaoDaoVan_diem_dao_van_1", "[diem_dao_van] BETWEEN 0 AND 100");
+                            t.HasCheckConstraint("CK_CanhBaoDaoVan_diem_dao_van_1", "`diem_dao_van` BETWEEN 0 AND 100");
                         });
                 });
 
@@ -1155,25 +1154,25 @@ namespace Backend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaCauHinh"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaCauHinh"));
 
                     b.Property<string>("DieuKienKichHoat")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("KenhNhan")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("longtext");
 
                     b.Property<DateTime>("NgayTao")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("datetime(6)");
 
                     b.Property<int>("NguongTriSo")
                         .HasColumnType("int");
 
                     b.Property<string>("TenQuyTac")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("longtext");
 
                     b.HasKey("MaCauHinh");
 
@@ -1187,7 +1186,7 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_cau_hinh_dau_diem");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaCauHinhDauDiem"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaCauHinhDauDiem"));
 
                     b.Property<int>("MaHocKy")
                         .HasColumnType("int")
@@ -1220,9 +1219,9 @@ namespace Backend.Migrations
 
                     b.ToTable("CauHinhDauDiemQuaTrinh", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_CauHinhDauDiemQuaTrinh_so_luong_cot", "[so_luong_cot] > 0");
+                            t.HasCheckConstraint("CK_CauHinhDauDiemQuaTrinh_so_luong_cot", "`so_luong_cot` > 0");
 
-                            t.HasCheckConstraint("CK_CauHinhDauDiemQuaTrinh_trong_so_noi_bo", "[trong_so_noi_bo] BETWEEN 0 AND 100");
+                            t.HasCheckConstraint("CK_CauHinhDauDiemQuaTrinh_trong_so_noi_bo", "`trong_so_noi_bo` BETWEEN 0 AND 100");
                         });
                 });
 
@@ -1233,10 +1232,10 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_cau_hinh_diem");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaCauHinhDiem"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaCauHinhDiem"));
 
                     b.Property<DateTime?>("CapNhatLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime(6)")
                         .HasColumnName("cap_nhat_luc");
 
                     b.Property<int>("MaHocKy")
@@ -1286,15 +1285,15 @@ namespace Backend.Migrations
 
                     b.ToTable("CauHinhDiemMonHoc", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_CauHinhDiemMonHoc_nguong_dat_4", "[nguong_dat] BETWEEN 0 AND 10");
+                            t.HasCheckConstraint("CK_CauHinhDiemMonHoc_nguong_dat_4", "`nguong_dat` BETWEEN 0 AND 10");
 
-                            t.HasCheckConstraint("CK_CauHinhDiemMonHoc_ti_le_chuyen_can_toi_thieu_5", "[ti_le_chuyen_can_toi_thieu] BETWEEN 0 AND 100");
+                            t.HasCheckConstraint("CK_CauHinhDiemMonHoc_ti_le_chuyen_can_toi_thieu_5", "`ti_le_chuyen_can_toi_thieu` BETWEEN 0 AND 100");
 
-                            t.HasCheckConstraint("CK_CauHinhDiemMonHoc_trong_so_cuoi_ky_3", "[trong_so_cuoi_ky] BETWEEN 0 AND 100");
+                            t.HasCheckConstraint("CK_CauHinhDiemMonHoc_trong_so_cuoi_ky_3", "`trong_so_cuoi_ky` BETWEEN 0 AND 100");
 
-                            t.HasCheckConstraint("CK_CauHinhDiemMonHoc_trong_so_giua_ky_2", "[trong_so_giua_ky] BETWEEN 0 AND 100");
+                            t.HasCheckConstraint("CK_CauHinhDiemMonHoc_trong_so_giua_ky_2", "`trong_so_giua_ky` BETWEEN 0 AND 100");
 
-                            t.HasCheckConstraint("CK_CauHinhDiemMonHoc_trong_so_qua_trinh_1", "[trong_so_qua_trinh] BETWEEN 0 AND 100");
+                            t.HasCheckConstraint("CK_CauHinhDiemMonHoc_trong_so_qua_trinh_1", "`trong_so_qua_trinh` BETWEEN 0 AND 100");
                         });
                 });
 
@@ -1305,16 +1304,16 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_cau_hinh_hoc_phi");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaCauHinhHocPhi"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaCauHinhHocPhi"));
 
                     b.Property<bool>("ConHoatDong")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
                         .HasColumnName("con_hoat_dong");
 
                     b.Property<string>("GhiChu")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ghi_chu");
 
                     b.Property<int>("HocKyTrongNam")
@@ -1325,7 +1324,7 @@ namespace Backend.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("co_dinh_theo_hoc_ky")
                         .HasColumnName("loai_cach_tinh_hoc_phi");
 
@@ -1346,14 +1345,14 @@ namespace Backend.Migrations
                         .HasColumnName("nam_hoc_trong_chuong_trinh");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<int>("SoThuTuHocKy")
                         .HasColumnType("int")
@@ -1385,23 +1384,23 @@ namespace Backend.Migrations
                     b.HasIndex("MaDonVi", "MaChuongTrinhDaoTao", "MaHocKy")
                         .IsUnique()
                         .HasDatabaseName("UQ_CauHinhHocPhiChuongTrinh_active_scope")
-                        .HasFilter("[con_hoat_dong] = 1");
+                        .HasFilter("`con_hoat_dong` = 1");
 
                     b.ToTable("CauHinhHocPhiChuongTrinh", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_CauHinhHocPhiChuongTrinh_hoc_ky_trong_nam", "[hoc_ky_trong_nam] IN (1, 2, 3)");
+                            t.HasCheckConstraint("CK_CauHinhHocPhiChuongTrinh_hoc_ky_trong_nam", "`hoc_ky_trong_nam` IN (1, 2, 3)");
 
-                            t.HasCheckConstraint("CK_CauHinhHocPhiChuongTrinh_loai_cach_tinh", "[loai_cach_tinh_hoc_phi] IN (N'co_dinh_theo_hoc_ky', N'theo_tin_chi', N'theo_mon_hoc')");
+                            t.HasCheckConstraint("CK_CauHinhHocPhiChuongTrinh_loai_cach_tinh", "`loai_cach_tinh_hoc_phi` IN ('co_dinh_theo_hoc_ky', 'theo_tin_chi', 'theo_mon_hoc')");
 
-                            t.HasCheckConstraint("CK_CauHinhHocPhiChuongTrinh_nam_hoc", "[nam_hoc_trong_chuong_trinh] >= 1");
+                            t.HasCheckConstraint("CK_CauHinhHocPhiChuongTrinh_nam_hoc", "`nam_hoc_trong_chuong_trinh` >= 1");
 
-                            t.HasCheckConstraint("CK_CauHinhHocPhiChuongTrinh_so_thu_tu", "[so_thu_tu_hoc_ky] >= 1");
+                            t.HasCheckConstraint("CK_CauHinhHocPhiChuongTrinh_so_thu_tu", "`so_thu_tu_hoc_ky` >= 1");
 
-                            t.HasCheckConstraint("CK_CauHinhHocPhiChuongTrinh_so_tien_hoc_phi", "[so_tien_hoc_phi] >= 0");
+                            t.HasCheckConstraint("CK_CauHinhHocPhiChuongTrinh_so_tien_hoc_phi", "`so_tien_hoc_phi` >= 0");
 
-                            t.HasCheckConstraint("CK_CauHinhHocPhiChuongTrinh_tien_hoc_lieu", "[tien_hoc_lieu] >= 0");
+                            t.HasCheckConstraint("CK_CauHinhHocPhiChuongTrinh_tien_hoc_lieu", "`tien_hoc_lieu` >= 0");
 
-                            t.HasCheckConstraint("CK_CauHinhHocPhiChuongTrinh_tong_tien", "[tong_tien_du_kien] = [so_tien_hoc_phi] + [tien_hoc_lieu]");
+                            t.HasCheckConstraint("CK_CauHinhHocPhiChuongTrinh_tong_tien", "`tong_tien_du_kien` = `so_tien_hoc_phi` + `tien_hoc_lieu`");
                         });
                 });
 
@@ -1412,11 +1411,11 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_cau_hinh_kt");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaCauHinhKt"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaCauHinhKt"));
 
                     b.Property<bool>("ConHoatDong")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
                         .HasColumnName("con_hoat_dong");
 
@@ -1427,7 +1426,7 @@ namespace Backend.Migrations
                     b.Property<string>("LoaiKhenThuong")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasColumnName("loai_khen_thuong");
 
                     b.Property<int>("MaDonVi")
@@ -1441,7 +1440,7 @@ namespace Backend.Migrations
 
                     b.ToTable("CauHinhKhenThuong", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_CauHinhKhenThuong_gpa_toi_thieu_1", "[gpa_toi_thieu] BETWEEN 0 AND 10");
+                            t.HasCheckConstraint("CK_CauHinhKhenThuong_gpa_toi_thieu_1", "`gpa_toi_thieu` BETWEEN 0 AND 10");
                         });
                 });
 
@@ -1452,41 +1451,41 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_cau_hoi");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaCauHoi"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaCauHoi"));
 
                     b.Property<bool>("ConHoatDong")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
                         .HasColumnName("con_hoat_dong");
 
                     b.Property<string>("DapAnDung")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("dap_an_dung");
 
                     b.Property<string>("DoKho")
                         .IsRequired()
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasColumnType("varchar(10)")
                         .HasColumnName("do_kho");
 
                     b.Property<string>("GiaiThichDapAn")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("giai_thich_dap_an");
 
                     b.Property<string>("KieuLuaChon")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasColumnName("kieu_lua_chon");
 
                     b.Property<string>("LoaiCauHoi")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasColumnName("loai_cau_hoi");
 
                     b.Property<string>("LuaChon")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("lua_chon");
 
                     b.Property<int?>("MaMonHoc")
@@ -1494,14 +1493,14 @@ namespace Backend.Migrations
                         .HasColumnName("ma_mon_hoc");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<int?>("NguoiTao")
                         .HasColumnType("int")
@@ -1509,7 +1508,7 @@ namespace Backend.Migrations
 
                     b.Property<string>("NoiDung")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("noi_dung");
 
                     b.HasKey("MaCauHoi")
@@ -1521,15 +1520,15 @@ namespace Backend.Migrations
 
                     b.ToTable("CauHoi", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_CauHoi_dap_an_dung_ISJSON", "[dap_an_dung] IS NULL OR ISJSON([dap_an_dung]) = 1");
+                            t.HasCheckConstraint("CK_CauHoi_dap_an_dung_ISJSON", "`dap_an_dung` IS NULL OR JSON_VALID(`dap_an_dung`) = 1");
 
-                            t.HasCheckConstraint("CK_CauHoi_do_kho_2", "[do_kho] IN (N'de', N'trung_binh', N'kho')");
+                            t.HasCheckConstraint("CK_CauHoi_do_kho_2", "`do_kho` IN ('de', 'trung_binh', 'kho')");
 
-                            t.HasCheckConstraint("CK_CauHoi_kieu_lua_chon", "[kieu_lua_chon] IS NULL OR [kieu_lua_chon] IN (N'chon_mot', N'chon_nhieu')");
+                            t.HasCheckConstraint("CK_CauHoi_kieu_lua_chon", "`kieu_lua_chon` IS NULL OR `kieu_lua_chon` IN ('chon_mot', 'chon_nhieu')");
 
-                            t.HasCheckConstraint("CK_CauHoi_loai_cau_hoi_1", "[loai_cau_hoi] IN (N'trac_nghiem', N'tu_luan')");
+                            t.HasCheckConstraint("CK_CauHoi_loai_cau_hoi_1", "`loai_cau_hoi` IN ('trac_nghiem', 'tu_luan')");
 
-                            t.HasCheckConstraint("CK_CauHoi_lua_chon_ISJSON", "[lua_chon] IS NULL OR ISJSON([lua_chon]) = 1");
+                            t.HasCheckConstraint("CK_CauHoi_lua_chon_ISJSON", "`lua_chon` IS NULL OR JSON_VALID(`lua_chon`) = 1");
                         });
                 });
 
@@ -1540,18 +1539,18 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_cau_hoi_dg");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaCauHoiDg"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaCauHoiDg"));
 
                     b.Property<bool>("ConHoatDong")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
                         .HasColumnName("con_hoat_dong");
 
                     b.Property<string>("NoiDungCauHoi")
                         .IsRequired()
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
+                        .HasColumnType("varchar(500)")
                         .HasColumnName("noi_dung_cau_hoi");
 
                     b.HasKey("MaCauHoiDg")
@@ -1595,29 +1594,29 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_cau_hoi_faq");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaCauHoiFaq"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaCauHoiFaq"));
 
                     b.Property<string>("CauHoi")
                         .IsRequired()
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
+                        .HasColumnType("varchar(500)")
                         .HasColumnName("cau_hoi");
 
                     b.Property<bool>("ConHoatDong")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
                         .HasColumnName("con_hoat_dong");
 
                     b.Property<string>("DanhMuc")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasColumnName("danh_muc");
 
                     b.Property<string>("TraLoi")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("tra_loi");
 
                     b.HasKey("MaCauHoiFaq")
@@ -1633,11 +1632,11 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_chuong");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaChuong"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaChuong"));
 
                     b.Property<bool>("DaAn")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false)
                         .HasColumnName("da_an");
 
@@ -1646,14 +1645,14 @@ namespace Backend.Migrations
                         .HasColumnName("ma_mon_hoc");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<int>("ThuTu")
                         .ValueGeneratedOnAdd()
@@ -1664,7 +1663,7 @@ namespace Backend.Migrations
                     b.Property<string>("TieuDe")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("tieu_de");
 
                     b.HasKey("MaChuong")
@@ -1682,24 +1681,24 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_chuong_trinh");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaChuongTrinh"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaChuongTrinh"));
 
                     b.Property<bool>("ConHoatDong")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
                         .HasColumnName("con_hoat_dong");
 
                     b.Property<string>("GhiChuDuyet")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ghi_chu_duyet");
 
                     b.Property<string>("GhiChuThayDoi")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ghi_chu_thay_doi");
 
                     b.Property<string>("LyDoTuChoi")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ly_do_tu_choi");
 
                     b.Property<int>("MaChuyenNganh")
@@ -1709,7 +1708,7 @@ namespace Backend.Migrations
                     b.Property<string>("MaCodeChuongTrinh")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("ma_code_chuong_trinh");
 
                     b.Property<int>("MaKhoaTuyenSinh")
@@ -1717,11 +1716,11 @@ namespace Backend.Migrations
                         .HasColumnName("ma_khoa_tuyen_sinh");
 
                     b.Property<string>("MoTa")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("mo_ta");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateOnly?>("NgayHetHieuLuc")
@@ -1734,9 +1733,9 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<int?>("NguoiDuyetId")
                         .HasColumnType("int")
@@ -1769,7 +1768,7 @@ namespace Backend.Migrations
                     b.Property<string>("TenChuongTrinh")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("ten_chuong_trinh");
 
                     b.Property<int>("ThoiGianDaoTaoThang")
@@ -1777,15 +1776,15 @@ namespace Backend.Migrations
                         .HasColumnName("thoi_gian_dao_tao_thang");
 
                     b.Property<DateTime?>("ThoiGianDuyet")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("thoi_gian_duyet");
 
                     b.Property<DateTime?>("ThoiGianGuiDuyet")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("thoi_gian_gui_duyet");
 
                     b.Property<DateTime?>("ThoiGianTuChoi")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("thoi_gian_tu_choi");
 
                     b.Property<int?>("TongTinChiYeuCau")
@@ -1795,13 +1794,13 @@ namespace Backend.Migrations
                     b.Property<string>("TrangThai")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasColumnName("trang_thai");
 
                     b.Property<string>("Version")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("version");
 
                     b.HasKey("MaChuongTrinh")
@@ -1827,17 +1826,17 @@ namespace Backend.Migrations
 
                     b.ToTable("ChuongTrinhDaoTao", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_ChuongTrinhDaoTao_so_hoc_ky", "[so_hoc_ky] > 0");
+                            t.HasCheckConstraint("CK_ChuongTrinhDaoTao_so_hoc_ky", "`so_hoc_ky` > 0");
 
-                            t.HasCheckConstraint("CK_ChuongTrinhDaoTao_thoi_gian_dao_tao_thang", "[thoi_gian_dao_tao_thang] > 0");
+                            t.HasCheckConstraint("CK_ChuongTrinhDaoTao_thoi_gian_dao_tao_thang", "`thoi_gian_dao_tao_thang` > 0");
 
-                            t.HasCheckConstraint("CK_ChuongTrinhDaoTao_tin_chi_toi_da_moi_ky", "[so_tin_chi_toi_da_moi_ky] IS NULL OR [so_tin_chi_toi_da_moi_ky] > 0");
+                            t.HasCheckConstraint("CK_ChuongTrinhDaoTao_tin_chi_toi_da_moi_ky", "`so_tin_chi_toi_da_moi_ky` IS NULL OR `so_tin_chi_toi_da_moi_ky` > 0");
 
-                            t.HasCheckConstraint("CK_ChuongTrinhDaoTao_tin_chi_toi_thieu_moi_ky", "[so_tin_chi_toi_thieu_moi_ky] IS NULL OR [so_tin_chi_toi_thieu_moi_ky] >= 0");
+                            t.HasCheckConstraint("CK_ChuongTrinhDaoTao_tin_chi_toi_thieu_moi_ky", "`so_tin_chi_toi_thieu_moi_ky` IS NULL OR `so_tin_chi_toi_thieu_moi_ky` >= 0");
 
-                            t.HasCheckConstraint("CK_ChuongTrinhDaoTao_tong_tin_chi_yeu_cau", "[tong_tin_chi_yeu_cau] IS NULL OR [tong_tin_chi_yeu_cau] > 0");
+                            t.HasCheckConstraint("CK_ChuongTrinhDaoTao_tong_tin_chi_yeu_cau", "`tong_tin_chi_yeu_cau` IS NULL OR `tong_tin_chi_yeu_cau` > 0");
 
-                            t.HasCheckConstraint("CK_ChuongTrinhDaoTao_trang_thai", "[trang_thai] IN (N'draft', N'pending_approval', N'approved', N'rejected', N'active', N'inactive', N'archived')");
+                            t.HasCheckConstraint("CK_ChuongTrinhDaoTao_trang_thai", "`trang_thai` IN ('draft', 'pending_approval', 'approved', 'rejected', 'active', 'inactive', 'archived')");
                         });
                 });
 
@@ -1848,7 +1847,7 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_chuong_trinh_hoc_ky");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaChuongTrinhHocKy"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaChuongTrinhHocKy"));
 
                     b.Property<int>("MaChuongTrinh")
                         .HasColumnType("int")
@@ -1877,7 +1876,7 @@ namespace Backend.Migrations
 
                     b.ToTable("ChuongTrinhHocKy", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_ChuongTrinhHocKy_thu_tu_hoc_ky_1", "[thu_tu_hoc_ky] > 0");
+                            t.HasCheckConstraint("CK_ChuongTrinhHocKy_thu_tu_hoc_ky_1", "`thu_tu_hoc_ky` > 0");
                         });
                 });
 
@@ -1888,11 +1887,11 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_chuyen_nganh");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaChuyenNganh"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaChuyenNganh"));
 
                     b.Property<bool>("ConHoatDong")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
                         .HasColumnName("con_hoat_dong");
 
@@ -1901,23 +1900,23 @@ namespace Backend.Migrations
                         .HasColumnName("ma_nganh");
 
                     b.Property<string>("MoTa")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("mo_ta");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<string>("TenChuyenNganh")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("ten_chuyen_nganh");
 
                     b.HasKey("MaChuyenNganh")
@@ -1937,7 +1936,7 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_chuyen_nganh_co_so");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaChuyenNganhCoSo"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaChuyenNganhCoSo"));
 
                     b.Property<int?>("ChiTieuDuKien")
                         .HasColumnType("int")
@@ -1945,12 +1944,12 @@ namespace Backend.Migrations
 
                     b.Property<bool>("ConHoatDong")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
                         .HasColumnName("con_hoat_dong");
 
                     b.Property<string>("GhiChu")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ghi_chu");
 
                     b.Property<int>("MaChuyenNganh")
@@ -1966,19 +1965,19 @@ namespace Backend.Migrations
                         .HasColumnName("nam_bat_dau");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<string>("TrangThai")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasColumnName("trang_thai");
 
                     b.HasKey("MaChuyenNganhCoSo")
@@ -1992,11 +1991,11 @@ namespace Backend.Migrations
 
                     b.ToTable("ChuyenNganhTheoCoSo", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_ChuyenNganhTheoCoSo_chi_tieu_du_kien_1", "[chi_tieu_du_kien] IS NULL OR [chi_tieu_du_kien] >= 0");
+                            t.HasCheckConstraint("CK_ChuyenNganhTheoCoSo_chi_tieu_du_kien_1", "`chi_tieu_du_kien` IS NULL OR `chi_tieu_du_kien` >= 0");
 
-                            t.HasCheckConstraint("CK_ChuyenNganhTheoCoSo_nam_bat_dau_1", "[nam_bat_dau] IS NULL OR [nam_bat_dau] >= 2000");
+                            t.HasCheckConstraint("CK_ChuyenNganhTheoCoSo_nam_bat_dau_1", "`nam_bat_dau` IS NULL OR `nam_bat_dau` >= 2000");
 
-                            t.HasCheckConstraint("CK_ChuyenNganhTheoCoSo_trang_thai_1", "[trang_thai] IN (N'draft', N'pending_approval', N'approved', N'active', N'inactive', N'rejected')");
+                            t.HasCheckConstraint("CK_ChuyenNganhTheoCoSo_trang_thai_1", "`trang_thai` IN ('draft', 'pending_approval', 'approved', 'active', 'inactive', 'rejected')");
                         });
                 });
 
@@ -2007,17 +2006,17 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_syllabus");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaSyllabus"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaSyllabus"));
 
                     b.Property<bool>("BatBuoc")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
                         .HasColumnName("bat_buoc");
 
                     b.Property<bool>("ConHoatDong")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
                         .HasColumnName("con_hoat_dong");
 
@@ -2042,31 +2041,31 @@ namespace Backend.Migrations
                         .HasColumnName("ma_mon_hoc");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<string>("TenSyllabus")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("ten_syllabus");
 
                     b.Property<string>("TrangThai")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasColumnName("trang_thai");
 
                     b.Property<string>("Version")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("version");
 
                     b.HasKey("MaSyllabus")
@@ -2081,14 +2080,13 @@ namespace Backend.Migrations
 
                     b.HasIndex("MaMonHoc", "MaChuyenNganh", "MaDonVi", "Version")
                         .IsUnique()
-                        .HasDatabaseName("UQ_DeCuongMonHoc_1")
-                        .HasFilter("[ma_don_vi] IS NOT NULL");
+                        .HasDatabaseName("UQ_DeCuongMonHoc_1");
 
                     b.ToTable("DeCuongMonHoc", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_DeCuongMonHoc_hoc_ky_du_kien_1", "[hoc_ky_du_kien] IS NULL OR [hoc_ky_du_kien] > 0");
+                            t.HasCheckConstraint("CK_DeCuongMonHoc_hoc_ky_du_kien_1", "`hoc_ky_du_kien` IS NULL OR `hoc_ky_du_kien` > 0");
 
-                            t.HasCheckConstraint("CK_DeCuongMonHoc_trang_thai_1", "[trang_thai] IN (N'draft', N'pending_approval', N'approved', N'active', N'inactive', N'archived')");
+                            t.HasCheckConstraint("CK_DeCuongMonHoc_trang_thai_1", "`trang_thai` IN ('draft', 'pending_approval', 'approved', 'active', 'inactive', 'archived')");
                         });
                 });
 
@@ -2099,21 +2097,21 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_dang_ky");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaDangKy"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaDangKy"));
 
                     b.Property<bool>("DaKiemTraTienQuyet")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false)
                         .HasColumnName("da_kiem_tra_tien_quyet");
 
                     b.Property<bool>("KiemTraTienQuyet")
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasColumnName("kiem_tra_tien_quyet");
 
                     b.Property<bool>("LaHocLai")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false)
                         .HasColumnName("la_hoc_lai");
 
@@ -2127,14 +2125,14 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<string>("TrangThai")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasColumnName("trang_thai");
 
                     b.Property<int?>("ViTriCho")
@@ -2153,9 +2151,9 @@ namespace Backend.Migrations
 
                     b.ToTable("DangKyHocPhan", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_DangKyHocPhan_trang_thai_1", "[trang_thai] IN (N'da_dang_ky', N'danh_sach_cho', N'da_rut', N'lop_bi_huy')");
+                            t.HasCheckConstraint("CK_DangKyHocPhan_trang_thai_1", "`trang_thai` IN ('da_dang_ky', 'danh_sach_cho', 'da_rut', 'lop_bi_huy')");
 
-                            t.HasCheckConstraint("CK_DangKyHocPhan_vi_tri_cho_2", "[vi_tri_cho] > 0");
+                            t.HasCheckConstraint("CK_DangKyHocPhan_vi_tri_cho_2", "`vi_tri_cho` > 0");
                         });
                 });
 
@@ -2166,20 +2164,20 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_danh_gia");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaDanhGia"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaDanhGia"));
 
                     b.Property<string>("AiCamXuc")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasColumnName("ai_cam_xuc");
 
                     b.Property<string>("AiChuDe")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ai_chu_de");
 
                     b.Property<string>("CohortHash")
                         .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)")
+                        .HasColumnType("varchar(128)")
                         .HasColumnName("cohort_hash");
 
                     b.Property<int>("DiemSo")
@@ -2200,12 +2198,12 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<string>("NhanXetTuDo")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("nhan_xet_tu_do");
 
                     b.HasKey("MaDanhGia")
@@ -2219,11 +2217,11 @@ namespace Backend.Migrations
 
                     b.ToTable("DanhGiaGiaoVien", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_DanhGiaGiaoVien_ai_cam_xuc_2", "[ai_cam_xuc] IN (N'tich_cuc', N'trung_tinh', N'tieu_cuc')");
+                            t.HasCheckConstraint("CK_DanhGiaGiaoVien_ai_cam_xuc_2", "`ai_cam_xuc` IN ('tich_cuc', 'trung_tinh', 'tieu_cuc')");
 
-                            t.HasCheckConstraint("CK_DanhGiaGiaoVien_ai_chu_de_ISJSON", "[ai_chu_de] IS NULL OR ISJSON([ai_chu_de]) = 1");
+                            t.HasCheckConstraint("CK_DanhGiaGiaoVien_ai_chu_de_ISJSON", "`ai_chu_de` IS NULL OR JSON_VALID(`ai_chu_de`) = 1");
 
-                            t.HasCheckConstraint("CK_DanhGiaGiaoVien_diem_so_1", "[diem_so] BETWEEN 1 AND 5");
+                            t.HasCheckConstraint("CK_DanhGiaGiaoVien_diem_so_1", "`diem_so` BETWEEN 1 AND 5");
                         });
                 });
 
@@ -2234,11 +2232,11 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_mon_hoc");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaMonHoc"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaMonHoc"));
 
                     b.Property<bool>("ConHoatDong")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
                         .HasColumnName("con_hoat_dong");
 
@@ -2249,7 +2247,7 @@ namespace Backend.Migrations
                     b.Property<string>("MaCodeMonHoc")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("ma_code_mon_hoc");
 
                     b.Property<int?>("MaNganh")
@@ -2263,7 +2261,7 @@ namespace Backend.Migrations
                     b.Property<string>("TenMonHoc")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("ten_mon_hoc");
 
                     b.HasKey("MaMonHoc")
@@ -2281,7 +2279,7 @@ namespace Backend.Migrations
 
                     b.ToTable("DanhMucMonHoc", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_DanhMucMonHoc_so_tin_chi_1", "[so_tin_chi] > 0");
+                            t.HasCheckConstraint("CK_DanhMucMonHoc_so_tin_chi_1", "`so_tin_chi` > 0");
                         });
                 });
 
@@ -2292,7 +2290,7 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_rui_ro_rot");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaRuiRoRot"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaRuiRoRot"));
 
                     b.Property<int?>("MaHocKy")
                         .HasColumnType("int")
@@ -2308,9 +2306,9 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("TaoLuc")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("tao_luc")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<decimal>("XacSuatRotMon")
                         .HasColumnType("decimal(5,2)")
@@ -2327,7 +2325,7 @@ namespace Backend.Migrations
 
                     b.ToTable("DanhSachRuiRoRotMon", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_DanhSachRuiRoRotMon_xac_suat_rot_mon_1", "[xac_suat_rot_mon] BETWEEN 0 AND 1");
+                            t.HasCheckConstraint("CK_DanhSachRuiRoRotMon_xac_suat_rot_mon_1", "`xac_suat_rot_mon` BETWEEN 0 AND 1");
                         });
                 });
 
@@ -2338,14 +2336,14 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_dat_phong");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaDatPhong"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaDatPhong"));
 
                     b.Property<DateTime>("BatDauLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("bat_dau_luc");
 
                     b.Property<DateTime>("KetThucLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ket_thuc_luc");
 
                     b.Property<int>("MaDonVi")
@@ -2359,14 +2357,14 @@ namespace Backend.Migrations
                     b.Property<string>("MucDich")
                         .IsRequired()
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
+                        .HasColumnType("varchar(500)")
                         .HasColumnName("muc_dich");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<int?>("NguoiDuyet")
                         .HasColumnType("int")
@@ -2384,7 +2382,7 @@ namespace Backend.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("cho_duyet")
                         .HasColumnName("trang_thai");
 
@@ -2401,11 +2399,11 @@ namespace Backend.Migrations
 
                     b.ToTable("DatPhong", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_DatPhong_ket_thuc_luc_1", "[ket_thuc_luc] > [bat_dau_luc]");
+                            t.HasCheckConstraint("CK_DatPhong_ket_thuc_luc_1", "`ket_thuc_luc` > `bat_dau_luc`");
 
-                            t.HasCheckConstraint("CK_DatPhong_so_nguoi_tham_du_2", "[so_nguoi_tham_du] >= 0");
+                            t.HasCheckConstraint("CK_DatPhong_so_nguoi_tham_du_2", "`so_nguoi_tham_du` >= 0");
 
-                            t.HasCheckConstraint("CK_DatPhong_trang_thai_3", "[trang_thai] IN (N'cho_duyet', N'da_xac_nhan', N'tu_choi', N'da_huy')");
+                            t.HasCheckConstraint("CK_DatPhong_trang_thai_3", "`trang_thai` IN ('cho_duyet', 'da_xac_nhan', 'tu_choi', 'da_huy')");
                         });
                 });
 
@@ -2416,21 +2414,21 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_de_kiem_tra");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaDeKiemTra"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaDeKiemTra"));
 
                     b.Property<string>("CauHinhDeThi")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("cau_hinh_de_thi");
 
                     b.Property<string>("HinhThucThi")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasColumnName("hinh_thuc_thi");
 
                     b.Property<string>("LoaiDeThi")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasColumnName("loai_de_thi");
 
                     b.Property<int?>("MaHocKy")
@@ -2450,14 +2448,14 @@ namespace Backend.Migrations
                         .HasColumnName("ma_nguoi_soan");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<int>("ThoiGianPhut")
                         .HasColumnType("int")
@@ -2466,20 +2464,20 @@ namespace Backend.Migrations
                     b.Property<string>("TieuDe")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("tieu_de");
 
                     b.Property<string>("TrangThai")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("nhap")
                         .HasColumnName("trang_thai");
 
                     b.Property<string>("TrangThaiDuyet")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasColumnName("trang_thai_duyet");
 
                     b.Property<decimal?>("TyLeTracNghiem")
@@ -2503,23 +2501,23 @@ namespace Backend.Migrations
 
                     b.ToTable("DeKiemTra", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_DeKiemTra_cau_hinh_de_thi_ISJSON", "[cau_hinh_de_thi] IS NULL OR ISJSON([cau_hinh_de_thi]) = 1");
+                            t.HasCheckConstraint("CK_DeKiemTra_cau_hinh_de_thi_ISJSON", "`cau_hinh_de_thi` IS NULL OR JSON_VALID(`cau_hinh_de_thi`) = 1");
 
-                            t.HasCheckConstraint("CK_DeKiemTra_hinh_thuc_thi", "[hinh_thuc_thi] IS NULL OR [hinh_thuc_thi] IN (N'online_tap_trung', N'online_tu_do', N'van_dap')");
+                            t.HasCheckConstraint("CK_DeKiemTra_hinh_thuc_thi", "`hinh_thuc_thi` IS NULL OR `hinh_thuc_thi` IN ('online_tap_trung', 'online_tu_do', 'van_dap')");
 
-                            t.HasCheckConstraint("CK_DeKiemTra_loai_de_thi", "[loai_de_thi] IS NULL OR [loai_de_thi] IN (N'trac_nghiem', N'tu_luan', N'ket_hop', N'quiz_bai_hoc', N'progress_test')");
+                            t.HasCheckConstraint("CK_DeKiemTra_loai_de_thi", "`loai_de_thi` IS NULL OR `loai_de_thi` IN ('trac_nghiem', 'tu_luan', 'ket_hop', 'quiz_bai_hoc', 'progress_test')");
 
-                            t.HasCheckConstraint("CK_DeKiemTra_thoi_gian_phut", "[thoi_gian_phut] > 0");
+                            t.HasCheckConstraint("CK_DeKiemTra_thoi_gian_phut", "`thoi_gian_phut` > 0");
 
-                            t.HasCheckConstraint("CK_DeKiemTra_thoi_gian_phut_1", "[thoi_gian_phut] BETWEEN 1 AND 240");
+                            t.HasCheckConstraint("CK_DeKiemTra_thoi_gian_phut_1", "`thoi_gian_phut` BETWEEN 1 AND 240");
 
-                            t.HasCheckConstraint("CK_DeKiemTra_trang_thai_2", "[trang_thai] IN (N'nhap', N'da_len_lich', N'dang_mo', N'da_dong', N'da_cong_bo')");
+                            t.HasCheckConstraint("CK_DeKiemTra_trang_thai_2", "`trang_thai` IN ('nhap', 'da_len_lich', 'dang_mo', 'da_dong', 'da_cong_bo')");
 
-                            t.HasCheckConstraint("CK_DeKiemTra_trang_thai_duyet", "[trang_thai_duyet] IS NULL OR [trang_thai_duyet] IN (N'nhap', N'cho_duyet', N'da_duyet', N'tu_choi')");
+                            t.HasCheckConstraint("CK_DeKiemTra_trang_thai_duyet", "`trang_thai_duyet` IS NULL OR `trang_thai_duyet` IN ('nhap', 'cho_duyet', 'da_duyet', 'tu_choi')");
 
-                            t.HasCheckConstraint("CK_DeKiemTra_ty_le_trac_nghiem", "[ty_le_trac_nghiem] IS NULL OR [ty_le_trac_nghiem] BETWEEN 0 AND 100");
+                            t.HasCheckConstraint("CK_DeKiemTra_ty_le_trac_nghiem", "`ty_le_trac_nghiem` IS NULL OR `ty_le_trac_nghiem` BETWEEN 0 AND 100");
 
-                            t.HasCheckConstraint("CK_DeKiemTra_ty_le_tu_luan", "[ty_le_tu_luan] IS NULL OR [ty_le_tu_luan] BETWEEN 0 AND 100");
+                            t.HasCheckConstraint("CK_DeKiemTra_ty_le_tu_luan", "`ty_le_tu_luan` IS NULL OR `ty_le_tu_luan` BETWEEN 0 AND 100");
                         });
                 });
 
@@ -2530,20 +2528,20 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_diem_danh");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaDiemDanh"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaDiemDanh"));
 
                     b.Property<DateTime>("GhiNhanLuc")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ghi_nhan_luc")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<int>("HeSoVang")
                         .HasColumnType("int")
                         .HasColumnName("he_so_vang");
 
                     b.Property<DateTime?>("KhoaLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("khoa_luc");
 
                     b.Property<int>("MaBuoiHoc")
@@ -2569,7 +2567,7 @@ namespace Backend.Migrations
                     b.Property<string>("TrangThai")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasColumnName("trang_thai");
 
                     b.HasKey("MaDiemDanh")
@@ -2596,9 +2594,9 @@ namespace Backend.Migrations
 
                     b.ToTable("DiemDanh", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_DiemDanh_he_so_vang_2", "[he_so_vang] >= 0");
+                            t.HasCheckConstraint("CK_DiemDanh_he_so_vang_2", "`he_so_vang` >= 0");
 
-                            t.HasCheckConstraint("CK_DiemDanh_trang_thai_1", "[trang_thai] IN (N'co_mat', N'vang', N'di_muon', N'co_phep')");
+                            t.HasCheckConstraint("CK_DiemDanh_trang_thai_1", "`trang_thai` IN ('co_mat', 'vang', 'di_muon', 'co_phep')");
                         });
                 });
 
@@ -2609,10 +2607,10 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_diem_danh_thi");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaDiemDanhThi"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaDiemDanhThi"));
 
                     b.Property<string>("GhiChu")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ghi_chu");
 
                     b.Property<int>("MaCaThi")
@@ -2629,19 +2627,19 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<DateTime?>("ThoiDiemDiemDanh")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("thoi_diem_diem_danh");
 
                     b.Property<string>("TrangThaiDiemDanh")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("vang_mat")
                         .HasColumnName("trang_thai_diem_danh");
 
@@ -2658,7 +2656,7 @@ namespace Backend.Migrations
 
                     b.ToTable("DiemDanhThi", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_DiemDanhThi_trang_thai", "[trang_thai_diem_danh] IN (N'co_mat', N'vang_mat', N'di_muon_qua_gio', N'su_co')");
+                            t.HasCheckConstraint("CK_DiemDanhThi_trang_thai", "`trang_thai_diem_danh` IN ('co_mat', 'vang_mat', 'di_muon_qua_gio', 'su_co')");
                         });
                 });
 
@@ -2669,11 +2667,11 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_diem_so");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaDiemSo"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaDiemSo"));
 
                     b.Property<bool>("DaKhoa")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false)
                         .HasColumnName("da_khoa");
 
@@ -2696,7 +2694,7 @@ namespace Backend.Migrations
                         .HasColumnName("gpa_mon_hoc");
 
                     b.Property<string>("LyDoRot")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ly_do_rot");
 
                     b.Property<int>("MaDonVi")
@@ -2723,7 +2721,7 @@ namespace Backend.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasDefaultValue("chua_hoan_thanh")
                         .HasColumnName("trang_thai");
 
@@ -2746,17 +2744,17 @@ namespace Backend.Migrations
 
                     b.ToTable("DiemSo", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_DiemSo_diem_cuoi_ky_3", "[diem_cuoi_ky] BETWEEN 0 AND 10");
+                            t.HasCheckConstraint("CK_DiemSo_diem_cuoi_ky_3", "`diem_cuoi_ky` BETWEEN 0 AND 10");
 
-                            t.HasCheckConstraint("CK_DiemSo_diem_giua_ky_2", "[diem_giua_ky] BETWEEN 0 AND 10");
+                            t.HasCheckConstraint("CK_DiemSo_diem_giua_ky_2", "`diem_giua_ky` BETWEEN 0 AND 10");
 
-                            t.HasCheckConstraint("CK_DiemSo_diem_qua_trinh_1", "[diem_qua_trinh] BETWEEN 0 AND 10");
+                            t.HasCheckConstraint("CK_DiemSo_diem_qua_trinh_1", "`diem_qua_trinh` BETWEEN 0 AND 10");
 
-                            t.HasCheckConstraint("CK_DiemSo_gpa_mon_hoc_4", "[gpa_mon_hoc] BETWEEN 0 AND 10");
+                            t.HasCheckConstraint("CK_DiemSo_gpa_mon_hoc_4", "`gpa_mon_hoc` BETWEEN 0 AND 10");
 
-                            t.HasCheckConstraint("CK_DiemSo_ly_do_rot_ISJSON", "[ly_do_rot] IS NULL OR ISJSON([ly_do_rot]) = 1");
+                            t.HasCheckConstraint("CK_DiemSo_ly_do_rot_ISJSON", "`ly_do_rot` IS NULL OR JSON_VALID(`ly_do_rot`) = 1");
 
-                            t.HasCheckConstraint("CK_DiemSo_trang_thai_5", "[trang_thai] IN (N'dat', N'rot', N'chua_hoan_thanh', N'cho_hoan_thanh_bo_sung')");
+                            t.HasCheckConstraint("CK_DiemSo_trang_thai_5", "`trang_thai` IN ('dat', 'rot', 'chua_hoan_thanh', 'cho_hoan_thanh_bo_sung')");
                         });
                 });
 
@@ -2767,28 +2765,28 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_don_tu");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaDonTu"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaDonTu"));
 
                     b.Property<string>("DuLieuBieuMau")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("du_lieu_bieu_mau");
 
                     b.Property<DateTime?>("HanXuLyLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("han_xu_ly_luc");
 
                     b.Property<string>("KetQuaXuLyJson")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ket_qua_xu_ly_json");
 
                     b.Property<string>("LoaiDon")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("loai_don");
 
                     b.Property<string>("LyDoTuChoi")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ly_do_tu_choi");
 
                     b.Property<int>("MaDonVi")
@@ -2805,23 +2803,23 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("NgayCapNhat")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<DateTime?>("NgayDuyet")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_duyet");
 
                     b.Property<DateTime?>("NgayNop")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_nop");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<int?>("NguoiDuyetHienTai")
                         .HasColumnType("int")
@@ -2832,31 +2830,30 @@ namespace Backend.Migrations
                         .HasColumnName("nguoi_xu_ly_cuoi");
 
                     b.Property<string>("NhatKyTuDong")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("nhat_ky_tu_dong");
 
                     b.Property<string>("NoiDungYeuCauBoSung")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("noi_dung_yeu_cau_bo_sung");
 
-                    b.Property<byte[]>("RowVersion")
+                    b.Property<DateTime>("RowVersion")
                         .IsConcurrencyToken()
-                        .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion")
+                        .HasColumnType("timestamp(6)")
                         .HasColumnName("row_version");
 
                     b.Property<string>("TieuDe")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("tieu_de");
 
                     b.Property<string>("TrangThai")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("nhap")
                         .HasColumnName("trang_thai");
 
@@ -2864,12 +2861,12 @@ namespace Backend.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasDefaultValue("chua_xu_ly")
                         .HasColumnName("trang_thai_xu_ly_nghiep_vu");
 
                     b.Property<string>("UrlBangChung")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("url_bang_chung");
 
                     b.HasKey("MaDonTu")
@@ -2896,17 +2893,17 @@ namespace Backend.Migrations
 
                     b.ToTable("DonTu", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_DonTu_du_lieu_bieu_mau_ISJSON", "[du_lieu_bieu_mau] IS NULL OR ISJSON([du_lieu_bieu_mau]) = 1");
+                            t.HasCheckConstraint("CK_DonTu_du_lieu_bieu_mau_ISJSON", "`du_lieu_bieu_mau` IS NULL OR JSON_VALID(`du_lieu_bieu_mau`) = 1");
 
-                            t.HasCheckConstraint("CK_DonTu_ket_qua_xu_ly_json_ISJSON", "[ket_qua_xu_ly_json] IS NULL OR ISJSON([ket_qua_xu_ly_json]) = 1");
+                            t.HasCheckConstraint("CK_DonTu_ket_qua_xu_ly_json_ISJSON", "`ket_qua_xu_ly_json` IS NULL OR JSON_VALID(`ket_qua_xu_ly_json`) = 1");
 
-                            t.HasCheckConstraint("CK_DonTu_loai_don_1", "[loai_don] IN (N'nghi_phep', N'thi_lai', N'chuyen_truong', N'cap_chung_chi', N'khac', N'phuc_tra_diem', N'bao_luu', N'chuyen_nganh', N'chuyen_co_so', N'xac_nhan', N'rut_hoc')");
+                            t.HasCheckConstraint("CK_DonTu_loai_don_1", "`loai_don` IN ('nghi_phep', 'thi_lai', 'chuyen_truong', 'cap_chung_chi', 'khac', 'phuc_tra_diem', 'bao_luu', 'chuyen_nganh', 'chuyen_co_so', 'xac_nhan', 'rut_hoc')");
 
-                            t.HasCheckConstraint("CK_DonTu_nhat_ky_tu_dong_ISJSON", "[nhat_ky_tu_dong] IS NULL OR ISJSON([nhat_ky_tu_dong]) = 1");
+                            t.HasCheckConstraint("CK_DonTu_nhat_ky_tu_dong_ISJSON", "`nhat_ky_tu_dong` IS NULL OR JSON_VALID(`nhat_ky_tu_dong`) = 1");
 
-                            t.HasCheckConstraint("CK_DonTu_trang_thai_2", "[trang_thai] IN (N'nhap', N'da_nop', N'dang_xem_xet', N'yeu_cau_bo_sung', N'da_duyet', N'tu_choi', N'da_huy')");
+                            t.HasCheckConstraint("CK_DonTu_trang_thai_2", "`trang_thai` IN ('nhap', 'da_nop', 'dang_xem_xet', 'yeu_cau_bo_sung', 'da_duyet', 'tu_choi', 'da_huy')");
 
-                            t.HasCheckConstraint("CK_DonTu_trang_thai_xu_ly_nghiep_vu", "[trang_thai_xu_ly_nghiep_vu] IN (N'chua_xu_ly', N'cho_xu_ly', N'da_ghi_nhan', N'xu_ly_thanh_cong', N'xu_ly_that_bai', N'can_xu_ly_thu_cong')");
+                            t.HasCheckConstraint("CK_DonTu_trang_thai_xu_ly_nghiep_vu", "`trang_thai_xu_ly_nghiep_vu` IN ('chua_xu_ly', 'cho_xu_ly', 'da_ghi_nhan', 'xu_ly_thanh_cong', 'xu_ly_that_bai', 'can_xu_ly_thu_cong')");
                         });
                 });
 
@@ -2917,17 +2914,17 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_don_vi");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaDonVi"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaDonVi"));
 
                     b.Property<string>("CapDonVi")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasColumnName("cap_don_vi");
 
                     b.Property<bool>("ConHoatDong")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
                         .HasColumnName("con_hoat_dong");
 
@@ -2936,19 +2933,19 @@ namespace Backend.Migrations
                         .HasColumnName("ma_don_vi_cha");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<string>("TenDonVi")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("ten_don_vi");
 
                     b.HasKey("MaDonVi")
@@ -2965,7 +2962,7 @@ namespace Backend.Migrations
 
                     b.ToTable("DonVi", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_DonVi_cap_don_vi_1", "[cap_don_vi] IN (N'root', N'co_so', N'co_so_con')");
+                            t.HasCheckConstraint("CK_DonVi_cap_don_vi_1", "`cap_don_vi` IN ('root', 'co_so', 'co_so_con')");
                         });
                 });
 
@@ -2976,17 +2973,17 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_dot_khen_thuong");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaDotKhenThuong"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaDotKhenThuong"));
 
                     b.Property<string>("GhiChu")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ghi_chu");
 
                     b.Property<string>("LoaiDot")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasDefaultValue("TOP_100_HOC_KY")
                         .HasColumnName("loai_dot");
 
@@ -3003,18 +3000,18 @@ namespace Backend.Migrations
                         .HasColumnName("ma_mau_bang_khen");
 
                     b.Property<DateTime?>("NgayCongBo")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cong_bo");
 
                     b.Property<DateTime?>("NgayDuyet")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_duyet");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<int?>("NguoiDuyet")
                         .HasColumnType("int")
@@ -3033,18 +3030,18 @@ namespace Backend.Migrations
                     b.Property<string>("TenDot")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("ten_dot");
 
                     b.Property<string>("TieuChiXetJson")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("tieu_chi_xet_json");
 
                     b.Property<string>("TrangThai")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("nhap")
                         .HasColumnName("trang_thai");
 
@@ -3062,20 +3059,20 @@ namespace Backend.Migrations
                     b.HasIndex("MaHocKy", "MaDonVi", "LoaiDot")
                         .IsUnique()
                         .HasDatabaseName("UX_DotKhenThuong_active_hoc_ky_don_vi_loai")
-                        .HasFilter("[trang_thai] <> N'da_huy'");
+                        .HasFilter("`trang_thai` <> 'da_huy'");
 
                     b.HasIndex("MaHocKy", "MaDonVi", "LoaiDot", "TrangThai")
                         .HasDatabaseName("IX_DotKhenThuong_hoc_ky_don_vi_loai_trang_thai");
 
                     b.ToTable("DotKhenThuong", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_DotKhenThuong_loai_dot", "[loai_dot] IN (N'TOP_100_HOC_KY')");
+                            t.HasCheckConstraint("CK_DotKhenThuong_loai_dot", "`loai_dot` IN ('TOP_100_HOC_KY')");
 
-                            t.HasCheckConstraint("CK_DotKhenThuong_so_luong_toi_da", "[so_luong_toi_da] > 0");
+                            t.HasCheckConstraint("CK_DotKhenThuong_so_luong_toi_da", "`so_luong_toi_da` > 0");
 
-                            t.HasCheckConstraint("CK_DotKhenThuong_tieu_chi_xet_json", "[tieu_chi_xet_json] IS NULL OR ISJSON([tieu_chi_xet_json]) = 1");
+                            t.HasCheckConstraint("CK_DotKhenThuong_tieu_chi_xet_json", "`tieu_chi_xet_json` IS NULL OR JSON_VALID(`tieu_chi_xet_json`) = 1");
 
-                            t.HasCheckConstraint("CK_DotKhenThuong_trang_thai", "[trang_thai] IN (N'nhap', N'dang_xet', N'cho_duyet', N'da_duyet', N'da_cong_bo', N'da_huy')");
+                            t.HasCheckConstraint("CK_DotKhenThuong_trang_thai", "`trang_thai` IN ('nhap', 'dang_xet', 'cho_duyet', 'da_duyet', 'da_cong_bo', 'da_huy')");
                         });
                 });
 
@@ -3086,14 +3083,14 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_giai_doan_dk");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaGiaiDoanDk"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaGiaiDoanDk"));
 
                     b.Property<DateTime>("BatDauLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("bat_dau_luc");
 
                     b.Property<DateTime>("KetThucLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ket_thuc_luc");
 
                     b.Property<int>("MaDonVi")
@@ -3112,7 +3109,7 @@ namespace Backend.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasDefaultValue("nhap")
                         .HasColumnName("trang_thai");
 
@@ -3125,7 +3122,7 @@ namespace Backend.Migrations
 
                     b.ToTable("GiaiDoanDangKy", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_GiaiDoanDangKy_trang_thai_1", "[trang_thai] IN (N'nhap', N'dang_mo', N'da_dong')");
+                            t.HasCheckConstraint("CK_GiaiDoanDangKy_trang_thai_1", "`trang_thai` IN ('nhap', 'dang_mo', 'da_dong')");
                         });
                 });
 
@@ -3136,24 +3133,24 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_giao_dich");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaGiaoDich"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaGiaoDich"));
 
                     b.Property<string>("CallbackPayloadJson")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("callback_payload_json");
 
                     b.Property<string>("CheckoutUrl")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("checkout_url");
 
                     b.Property<string>("ChuThich")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("chu_thich");
 
                     b.Property<string>("LoaiGiaoDich")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("loai_giao_dich");
 
                     b.Property<int>("MaHoaDon")
@@ -3170,56 +3167,56 @@ namespace Backend.Migrations
 
                     b.Property<string>("MaThamChieuCong")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("ma_tham_chieu_cong");
 
                     b.Property<string>("MaThamChieuNoiBo")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("ma_tham_chieu_noi_bo");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime?>("NgayHetHan")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_het_han");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<DateTime?>("NgayThanhToan")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_thanh_toan");
 
                     b.Property<string>("NhaCungCapThanhToan")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasColumnName("nha_cung_cap_thanh_toan");
 
                     b.Property<string>("NoiDungChuyenKhoan")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("noi_dung_chuyen_khoan");
 
                     b.Property<string>("QrPayload")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("qr_payload");
 
                     b.Property<string>("QrUrl")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("qr_url");
 
                     b.Property<string>("RequestPayloadJson")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("request_payload_json");
 
                     b.Property<string>("ResponsePayloadJson")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("response_payload_json");
 
                     b.Property<decimal>("SoTien")
@@ -3229,7 +3226,7 @@ namespace Backend.Migrations
                     b.Property<string>("TrangThai")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("trang_thai");
 
                     b.HasKey("MaGiaoDich")
@@ -3242,29 +3239,28 @@ namespace Backend.Migrations
                     b.HasIndex("MaThamChieuCong")
                         .IsUnique()
                         .HasDatabaseName("UQ_GiaoDich_ma_tham_chieu_cong")
-                        .HasFilter("[ma_tham_chieu_cong] IS NOT NULL");
+                        .HasFilter("`ma_tham_chieu_cong` IS NOT NULL");
 
                     b.HasIndex("MaThamChieuNoiBo")
                         .IsUnique()
-                        .HasDatabaseName("UQ_GiaoDich_ma_tham_chieu_noi_bo")
-                        .HasFilter("[ma_tham_chieu_noi_bo] IS NOT NULL");
+                        .HasDatabaseName("UQ_GiaoDich_ma_tham_chieu_noi_bo");
 
                     b.HasIndex("MaHoaDon", "TrangThai")
                         .HasDatabaseName("IX_GiaoDich_HoaDon_TrangThai");
 
                     b.ToTable("GiaoDich", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_GiaoDich_callback_payload_json", "[callback_payload_json] IS NULL OR ISJSON([callback_payload_json]) = 1");
+                            t.HasCheckConstraint("CK_GiaoDich_callback_payload_json", "`callback_payload_json` IS NULL OR JSON_VALID(`callback_payload_json`) = 1");
 
-                            t.HasCheckConstraint("CK_GiaoDich_loai_giao_dich", "[loai_giao_dich] IN (N'phat_sinh_hoc_phi', N'thanh_toan_hoc_phi', N'dieu_chinh_cong_no', N'hoan_tien', N'huy_hoa_don')");
+                            t.HasCheckConstraint("CK_GiaoDich_loai_giao_dich", "`loai_giao_dich` IN ('phat_sinh_hoc_phi', 'thanh_toan_hoc_phi', 'dieu_chinh_cong_no', 'hoan_tien', 'huy_hoa_don')");
 
-                            t.HasCheckConstraint("CK_GiaoDich_provider", "[nha_cung_cap_thanh_toan] IS NULL OR [nha_cung_cap_thanh_toan] IN (N'payos', N'vietqr')");
+                            t.HasCheckConstraint("CK_GiaoDich_provider", "`nha_cung_cap_thanh_toan` IS NULL OR `nha_cung_cap_thanh_toan` IN ('payos', 'vietqr')");
 
-                            t.HasCheckConstraint("CK_GiaoDich_request_payload_json", "[request_payload_json] IS NULL OR ISJSON([request_payload_json]) = 1");
+                            t.HasCheckConstraint("CK_GiaoDich_request_payload_json", "`request_payload_json` IS NULL OR JSON_VALID(`request_payload_json`) = 1");
 
-                            t.HasCheckConstraint("CK_GiaoDich_response_payload_json", "[response_payload_json] IS NULL OR ISJSON([response_payload_json]) = 1");
+                            t.HasCheckConstraint("CK_GiaoDich_response_payload_json", "`response_payload_json` IS NULL OR JSON_VALID(`response_payload_json`) = 1");
 
-                            t.HasCheckConstraint("CK_GiaoDich_trang_thai", "[trang_thai] IN (N'phat_sinh', N'cho_thanh_toan', N'dang_xu_ly', N'thanh_cong', N'that_bai', N'het_han', N'da_huy', N'sai_so_tien', N'cho_xu_ly_thu_cong')");
+                            t.HasCheckConstraint("CK_GiaoDich_trang_thai", "`trang_thai` IN ('phat_sinh', 'cho_thanh_toan', 'dang_xu_ly', 'thanh_cong', 'that_bai', 'het_han', 'da_huy', 'sai_so_tien', 'cho_xu_ly_thu_cong')");
                         });
                 });
 
@@ -3279,11 +3275,11 @@ namespace Backend.Migrations
                         .HasColumnName("ma_chuyen_nganh");
 
                     b.Property<bool>("ConHoatDong")
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasColumnName("con_hoat_dong");
 
                     b.Property<bool>("LaChuyenMonChinh")
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasColumnName("la_chuyen_mon_chinh");
 
                     b.Property<int>("MucDoPhuHop")
@@ -3291,11 +3287,11 @@ namespace Backend.Migrations
                         .HasColumnName("muc_do_phu_hop");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime>("NgayTao")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao");
 
                     b.Property<int?>("SoNamKinhNghiem")
@@ -3313,9 +3309,9 @@ namespace Backend.Migrations
 
                     b.ToTable("GiaoVienChuyenNganh", t =>
                         {
-                            t.HasCheckConstraint("CK_GiaoVienChuyenNganh_muc_do_phu_hop", "[muc_do_phu_hop] BETWEEN 0 AND 100");
+                            t.HasCheckConstraint("CK_GiaoVienChuyenNganh_muc_do_phu_hop", "`muc_do_phu_hop` BETWEEN 0 AND 100");
 
-                            t.HasCheckConstraint("CK_GiaoVienChuyenNganh_so_nam_kinh_nghiem", "[so_nam_kinh_nghiem] IS NULL OR [so_nam_kinh_nghiem] >= 0");
+                            t.HasCheckConstraint("CK_GiaoVienChuyenNganh_so_nam_kinh_nghiem", "`so_nam_kinh_nghiem` IS NULL OR `so_nam_kinh_nghiem` >= 0");
                         });
                 });
 
@@ -3330,11 +3326,11 @@ namespace Backend.Migrations
                         .HasColumnName("ma_mon_hoc");
 
                     b.Property<bool>("ConHoatDong")
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasColumnName("con_hoat_dong");
 
                     b.Property<bool>("LaMonChinh")
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasColumnName("la_mon_chinh");
 
                     b.Property<int>("MucDoPhuHop")
@@ -3342,11 +3338,11 @@ namespace Backend.Migrations
                         .HasColumnName("muc_do_phu_hop");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime>("NgayTao")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao");
 
                     b.Property<int>("SoLanDaDay")
@@ -3368,11 +3364,11 @@ namespace Backend.Migrations
 
                     b.ToTable("GiaoVienMonHoc", t =>
                         {
-                            t.HasCheckConstraint("CK_GiaoVienMonHoc_muc_do_phu_hop", "[muc_do_phu_hop] BETWEEN 0 AND 100");
+                            t.HasCheckConstraint("CK_GiaoVienMonHoc_muc_do_phu_hop", "`muc_do_phu_hop` BETWEEN 0 AND 100");
 
-                            t.HasCheckConstraint("CK_GiaoVienMonHoc_so_lan_da_day", "[so_lan_da_day] >= 0");
+                            t.HasCheckConstraint("CK_GiaoVienMonHoc_so_lan_da_day", "`so_lan_da_day` >= 0");
 
-                            t.HasCheckConstraint("CK_GiaoVienMonHoc_so_nam_kinh_nghiem", "[so_nam_kinh_nghiem] IS NULL OR [so_nam_kinh_nghiem] >= 0");
+                            t.HasCheckConstraint("CK_GiaoVienMonHoc_so_nam_kinh_nghiem", "`so_nam_kinh_nghiem` IS NULL OR `so_nam_kinh_nghiem` >= 0");
                         });
                 });
 
@@ -3382,20 +3378,20 @@ namespace Backend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<int>("MaCaHoc")
                         .HasColumnType("int");
 
                     b.Property<string>("MucDo")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("longtext");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("datetime(6)");
 
                     b.Property<DateTime>("NgayTao")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("datetime(6)");
 
                     b.Property<int>("NguyenVongId")
                         .HasColumnType("int");
@@ -3420,10 +3416,10 @@ namespace Backend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("GhiChu")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("longtext");
 
                     b.Property<int>("MaDonVi")
                         .HasColumnType("int");
@@ -3435,18 +3431,18 @@ namespace Backend.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("datetime(6)");
 
                     b.Property<DateTime?>("NgayGui")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("datetime(6)");
 
                     b.Property<DateTime>("NgayTao")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("datetime(6)");
 
-                    b.Property<byte[]>("RowVersion")
+                    b.Property<DateTime?>("RowVersion")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
+                        .HasColumnType("timestamp(6)");
 
                     b.Property<int?>("SoCaToiDaMoiTuan")
                         .HasColumnType("int");
@@ -3456,7 +3452,7 @@ namespace Backend.Migrations
 
                     b.Property<string>("TrangThai")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("longtext");
 
                     b.HasKey("Id");
 
@@ -3478,63 +3474,63 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_ky_luat");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaKyLuat"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaKyLuat"));
 
                     b.Property<string>("CanCuXuLy")
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)")
+                        .HasColumnType("varchar(2000)")
                         .HasColumnName("can_cu_xu_ly");
 
                     b.Property<string>("ChungTuJson")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("chung_tu_json");
 
                     b.Property<bool>("DaGoKyLuat")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false)
                         .HasColumnName("da_go_ky_luat");
 
                     b.Property<string>("GhiChuDuyet")
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)")
+                        .HasColumnType("varchar(2000)")
                         .HasColumnName("ghi_chu_duyet");
 
                     b.Property<string>("GhiChuNoiBo")
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)")
+                        .HasColumnType("varchar(2000)")
                         .HasColumnName("ghi_chu_noi_bo");
 
                     b.Property<string>("HinhThucXuLy")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("nhac_nho")
                         .HasColumnName("hinh_thuc_xu_ly");
 
                     b.Property<string>("LoaiDoiTuongLienKet")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("loai_doi_tuong_lien_ket");
 
                     b.Property<string>("LoaiKyLuat")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("loai_ky_luat");
 
                     b.Property<string>("LyDoGoKyLuat")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ly_do_go_ky_luat");
 
                     b.Property<string>("LyDoHuy")
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)")
+                        .HasColumnType("varchar(1000)")
                         .HasColumnName("ly_do_huy");
 
                     b.Property<string>("LyDoTuChoi")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ly_do_tu_choi");
 
                     b.Property<int?>("MaDoiTuongLienKet")
@@ -3555,31 +3551,31 @@ namespace Backend.Migrations
 
                     b.Property<string>("MoTa")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("mo_ta");
 
                     b.Property<string>("MucDoViPham")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("nhe")
                         .HasColumnName("muc_do_vi_pham");
 
                     b.Property<DateTime?>("NgayApDung")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_ap_dung");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime?>("NgayDuyet")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_duyet");
 
                     b.Property<DateTime?>("NgayGoKyLuat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_go_ky_luat");
 
                     b.Property<DateOnly?>("NgayHetHieuLuc")
@@ -3591,20 +3587,20 @@ namespace Backend.Migrations
                         .HasColumnName("ngay_hieu_luc");
 
                     b.Property<DateTime?>("NgayHuy")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime(6)")
                         .HasColumnName("ngay_huy");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<DateOnly>("NgayViPham")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("date")
                         .HasColumnName("ngay_vi_pham")
-                        .HasDefaultValueSql("CONVERT(date, SYSUTCDATETIME())");
+                        .HasDefaultValueSql("DATE(UTC_TIMESTAMP())");
 
                     b.Property<int?>("NguoiApDung")
                         .HasColumnType("int")
@@ -3629,14 +3625,14 @@ namespace Backend.Migrations
                     b.Property<string>("TieuDe")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("tieu_de");
 
                     b.Property<string>("TrangThai")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("nhap")
                         .HasColumnName("trang_thai");
 
@@ -3667,13 +3663,13 @@ namespace Backend.Migrations
 
                     b.ToTable("HoSoKyLuat", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_HoSoKyLuat_chung_tu_json", "[chung_tu_json] IS NULL OR ISJSON([chung_tu_json]) = 1");
+                            t.HasCheckConstraint("CK_HoSoKyLuat_chung_tu_json", "`chung_tu_json` IS NULL OR JSON_VALID(`chung_tu_json`) = 1");
 
-                            t.HasCheckConstraint("CK_HoSoKyLuat_hinh_thuc_xu_ly", "[hinh_thuc_xu_ly] IN (N'nhac_nho', N'khien_trach', N'canh_cao', N'dinh_chi', N'khac')");
+                            t.HasCheckConstraint("CK_HoSoKyLuat_hinh_thuc_xu_ly", "`hinh_thuc_xu_ly` IN ('nhac_nho', 'khien_trach', 'canh_cao', 'dinh_chi', 'khac')");
 
-                            t.HasCheckConstraint("CK_HoSoKyLuat_muc_do_vi_pham", "[muc_do_vi_pham] IN (N'nhe', N'trung_binh', N'nghiem_trong')");
+                            t.HasCheckConstraint("CK_HoSoKyLuat_muc_do_vi_pham", "`muc_do_vi_pham` IN ('nhe', 'trung_binh', 'nghiem_trong')");
 
-                            t.HasCheckConstraint("CK_HoSoKyLuat_trang_thai", "[trang_thai] IN (N'nhap', N'cho_duyet', N'da_duyet', N'tu_choi', N'dang_hieu_luc', N'het_hieu_luc', N'da_go_hieu_luc', N'da_huy')");
+                            t.HasCheckConstraint("CK_HoSoKyLuat_trang_thai", "`trang_thai` IN ('nhap', 'cho_duyet', 'da_duyet', 'tu_choi', 'dang_hieu_luc', 'het_hieu_luc', 'da_go_hieu_luc', 'da_huy')");
                         });
                 });
 
@@ -3684,7 +3680,7 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_hoa_don");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaHoaDon"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaHoaDon"));
 
                     b.Property<decimal>("DaThanhToan")
                         .ValueGeneratedOnAdd()
@@ -3693,7 +3689,7 @@ namespace Backend.Migrations
                         .HasColumnName("da_thanh_toan");
 
                     b.Property<string>("GhiChu")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ghi_chu");
 
                     b.Property<decimal>("GiamTru")
@@ -3710,12 +3706,12 @@ namespace Backend.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("hoc_phi")
                         .HasColumnName("loai_hoa_don");
 
                     b.Property<string>("LyDoHuy")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ly_do_huy");
 
                     b.Property<int>("MaDonVi")
@@ -3725,7 +3721,7 @@ namespace Backend.Migrations
                     b.Property<string>("MaHoaDonCode")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("ma_hoa_don_code");
 
                     b.Property<int?>("MaHocKy")
@@ -3737,18 +3733,18 @@ namespace Backend.Migrations
                         .HasColumnName("ma_hoc_sinh");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime?>("NgayHuy")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_huy");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<int?>("NguoiCapNhat")
                         .HasColumnType("int")
@@ -3770,12 +3766,12 @@ namespace Backend.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("chua_thanh_toan")
                         .HasColumnName("trang_thai");
 
                     b.Property<string>("UrlHoaDonPdf")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("url_hoa_don_pdf");
 
                     b.HasKey("MaHoaDon")
@@ -3798,19 +3794,19 @@ namespace Backend.Migrations
                     b.HasIndex("MaHocSinh", "MaHocKy", "LoaiHoaDon")
                         .IsUnique()
                         .HasDatabaseName("UQ_HoaDon_HocSinh_HocKy_LoaiHoaDon")
-                        .HasFilter("[ma_hoc_ky] IS NOT NULL");
+                        .HasFilter("`ma_hoc_ky` IS NOT NULL");
 
                     b.ToTable("HoaDon", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_HoaDon_da_thanh_toan", "[da_thanh_toan] >= 0");
+                            t.HasCheckConstraint("CK_HoaDon_da_thanh_toan", "`da_thanh_toan` >= 0");
 
-                            t.HasCheckConstraint("CK_HoaDon_giam_tru", "[giam_tru] >= 0");
+                            t.HasCheckConstraint("CK_HoaDon_giam_tru", "`giam_tru` >= 0");
 
-                            t.HasCheckConstraint("CK_HoaDon_loai_hoa_don", "[loai_hoa_don] IN (N'hoc_phi', N'le_phi', N'tai_lieu', N'khac')");
+                            t.HasCheckConstraint("CK_HoaDon_loai_hoa_don", "`loai_hoa_don` IN ('hoc_phi', 'le_phi', 'tai_lieu', 'khac')");
 
-                            t.HasCheckConstraint("CK_HoaDon_so_tien", "[so_tien] >= 0");
+                            t.HasCheckConstraint("CK_HoaDon_so_tien", "`so_tien` >= 0");
 
-                            t.HasCheckConstraint("CK_HoaDon_trang_thai", "[trang_thai] IN (N'chua_thanh_toan', N'thanh_toan_mot_phan', N'da_thanh_toan', N'qua_han', N'da_huy')");
+                            t.HasCheckConstraint("CK_HoaDon_trang_thai", "`trang_thai` IN ('chua_thanh_toan', 'thanh_toan_mot_phan', 'da_thanh_toan', 'qua_han', 'da_huy')");
                         });
                 });
 
@@ -3821,11 +3817,11 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_hoc_ky");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaHocKy"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaHocKy"));
 
                     b.Property<bool>("DaKhoa")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false)
                         .HasColumnName("da_khoa");
 
@@ -3836,7 +3832,7 @@ namespace Backend.Migrations
                     b.Property<string>("MaCodeHocKy")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasColumnName("ma_code_hoc_ky");
 
                     b.Property<int>("MaDonVi")
@@ -3846,7 +3842,7 @@ namespace Backend.Migrations
                     b.Property<string>("NamHoc")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasColumnName("nam_hoc");
 
                     b.Property<DateOnly>("NgayBatDau")
@@ -3868,7 +3864,7 @@ namespace Backend.Migrations
                     b.Property<string>("TenHocKy")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("ten_hoc_ky");
 
                     b.Property<int>("ThuTuTrongNam")
@@ -3884,7 +3880,7 @@ namespace Backend.Migrations
 
                     b.ToTable("HocKy", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_HocKy_thu_tu_trong_nam_1", "[thu_tu_trong_nam] IN (1, 2, 3)");
+                            t.HasCheckConstraint("CK_HocKy_thu_tu_trong_nam_1", "`thu_tu_trong_nam` IN (1, 2, 3)");
                         });
                 });
 
@@ -3895,23 +3891,23 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_khen_thuong");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaKhenThuong"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaKhenThuong"));
 
                     b.Property<DateTime>("CapLuc")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("cap_luc")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<bool>("DaHuy")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false)
                         .HasColumnName("da_huy");
 
                     b.Property<string>("DanhHieuSnapshot")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("danh_hieu_snapshot");
 
                     b.Property<decimal?>("DiemXet")
@@ -3919,12 +3915,12 @@ namespace Backend.Migrations
                         .HasColumnName("diem_xet");
 
                     b.Property<string>("GhiChuHuy")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ghi_chu_huy");
 
                     b.Property<string>("GhiChuVongDoi")
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)")
+                        .HasColumnType("varchar(2000)")
                         .HasColumnName("ghi_chu_vong_doi");
 
                     b.Property<decimal?>("GpaDatDuoc")
@@ -3933,22 +3929,22 @@ namespace Backend.Migrations
 
                     b.Property<string>("HoTenSnapshot")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
+                        .HasColumnType("varchar(200)")
                         .HasColumnName("ho_ten_snapshot");
 
                     b.Property<string>("LoaiKhenThuong")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("loai_khen_thuong");
 
                     b.Property<string>("LoiSinhPdf")
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)")
+                        .HasColumnType("varchar(2000)")
                         .HasColumnName("loi_sinh_pdf");
 
                     b.Property<string>("LyDoHuy")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ly_do_huy");
 
                     b.Property<int>("MaDonVi")
@@ -3973,23 +3969,23 @@ namespace Backend.Migrations
 
                     b.Property<string>("MssvSnapshot")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("mssv_snapshot");
 
                     b.Property<DateTime?>("NgayCap")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime?>("NgayHuy")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_huy");
 
                     b.Property<DateTime?>("NgaySinhPdf")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_sinh_pdf");
 
                     b.Property<int?>("NguoiCap")
@@ -4012,25 +4008,25 @@ namespace Backend.Migrations
 
                     b.Property<string>("TenHocKySnapshot")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
+                        .HasColumnType("varchar(200)")
                         .HasColumnName("ten_hoc_ky_snapshot");
 
                     b.Property<string>("TrangThai")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("nhap")
                         .HasColumnName("trang_thai");
 
                     b.Property<string>("UrlChungTu")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("url_chung_tu");
 
                     b.Property<string>("UrlPdfBangKhen")
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)")
+                        .HasColumnType("varchar(1000)")
                         .HasColumnName("url_pdf_bang_khen");
 
                     b.Property<int?>("XepHang")
@@ -4061,17 +4057,17 @@ namespace Backend.Migrations
 
                     b.ToTable("KhenThuong", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_KhenThuong_diem_xet", "[diem_xet] IS NULL OR [diem_xet] >= 0");
+                            t.HasCheckConstraint("CK_KhenThuong_diem_xet", "`diem_xet` IS NULL OR `diem_xet` >= 0");
 
-                            t.HasCheckConstraint("CK_KhenThuong_gpa_dat_duoc_2", "[gpa_dat_duoc] BETWEEN 0 AND 10");
+                            t.HasCheckConstraint("CK_KhenThuong_gpa_dat_duoc_2", "`gpa_dat_duoc` BETWEEN 0 AND 10");
 
-                            t.HasCheckConstraint("CK_KhenThuong_loai_khen_thuong_1", "[loai_khen_thuong] IN (N'hoc_luc', N'dac_biet', N'thi_dau', N'TOP_100_HOC_KY', N'KHAC')");
+                            t.HasCheckConstraint("CK_KhenThuong_loai_khen_thuong_1", "`loai_khen_thuong` IN ('hoc_luc', 'dac_biet', 'thi_dau', 'TOP_100_HOC_KY', 'KHAC')");
 
-                            t.HasCheckConstraint("CK_KhenThuong_so_lan_sinh_pdf", "[so_lan_sinh_pdf] >= 0");
+                            t.HasCheckConstraint("CK_KhenThuong_so_lan_sinh_pdf", "`so_lan_sinh_pdf` >= 0");
 
-                            t.HasCheckConstraint("CK_KhenThuong_trang_thai", "[trang_thai] IN (N'nhap', N'cho_duyet', N'da_duyet', N'da_cap', N'da_sinh_pdf', N'loi_sinh_pdf', N'da_huy')");
+                            t.HasCheckConstraint("CK_KhenThuong_trang_thai", "`trang_thai` IN ('nhap', 'cho_duyet', 'da_duyet', 'da_cap', 'da_sinh_pdf', 'loi_sinh_pdf', 'da_huy')");
 
-                            t.HasCheckConstraint("CK_KhenThuong_xep_hang", "[xep_hang] IS NULL OR [xep_hang] > 0");
+                            t.HasCheckConstraint("CK_KhenThuong_xep_hang", "`xep_hang` IS NULL OR `xep_hang` > 0");
                         });
                 });
 
@@ -4082,26 +4078,26 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_khieu_nai_ky_luat");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaKhieuNaiKyLuat"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaKhieuNaiKyLuat"));
 
                     b.Property<string>("ChungTuJson")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("chung_tu_json");
 
                     b.Property<string>("GhiChuXuLy")
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)")
+                        .HasColumnType("varchar(2000)")
                         .HasColumnName("ghi_chu_xu_ly");
 
                     b.Property<string>("LyDoKhieuNai")
                         .IsRequired()
                         .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)")
+                        .HasColumnType("varchar(2000)")
                         .HasColumnName("ly_do_khieu_nai");
 
                     b.Property<string>("LyDoXuLy")
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)")
+                        .HasColumnType("varchar(1000)")
                         .HasColumnName("ly_do_xu_ly");
 
                     b.Property<int?>("MaDonVi")
@@ -4117,17 +4113,17 @@ namespace Backend.Migrations
                         .HasColumnName("ma_hoc_sinh");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<DateTime?>("NgayXuLy")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_xu_ly");
 
                     b.Property<int?>("NguoiXuLy")
@@ -4137,7 +4133,7 @@ namespace Backend.Migrations
                     b.Property<string>("TrangThai")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("trang_thai");
 
                     b.HasKey("MaKhieuNaiKyLuat")
@@ -4159,7 +4155,7 @@ namespace Backend.Migrations
 
                     b.ToTable("KhieuNaiKyLuat", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_KhieuNaiKyLuat_chung_tu_json_ISJSON", "[chung_tu_json] IS NULL OR ISJSON([chung_tu_json]) = 1");
+                            t.HasCheckConstraint("CK_KhieuNaiKyLuat_chung_tu_json_ISJSON", "`chung_tu_json` IS NULL OR JSON_VALID(`chung_tu_json`) = 1");
                         });
                 });
 
@@ -4170,7 +4166,7 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_khoa_hoc");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaKhoaHoc"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaKhoaHoc"));
 
                     b.Property<int?>("MaBlockBatDau")
                         .HasColumnType("int")
@@ -4201,14 +4197,14 @@ namespace Backend.Migrations
                         .HasColumnName("ma_mon_hoc");
 
                     b.Property<string>("MoTa")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("mo_ta");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<int>("SoBlockHoc")
                         .HasColumnType("int");
@@ -4216,19 +4212,19 @@ namespace Backend.Migrations
                     b.Property<string>("TieuDe")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("tieu_de");
 
                     b.Property<string>("TrangThai")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasDefaultValue("nhap")
                         .HasColumnName("trang_thai");
 
                     b.Property<string>("UrlAnhBia")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("url_anh_bia");
 
                     b.HasKey("MaKhoaHoc")
@@ -4252,7 +4248,7 @@ namespace Backend.Migrations
 
                     b.ToTable("KhoaHoc", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_KhoaHoc_trang_thai_1", "[trang_thai] IN (N'nhap', N'da_xuat_ban', N'luu_tru')");
+                            t.HasCheckConstraint("CK_KhoaHoc_trang_thai_1", "`trang_thai` IN ('nhap', 'da_xuat_ban', 'luu_tru')");
                         });
                 });
 
@@ -4263,22 +4259,22 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_khoa_tuyen_sinh");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaKhoaTuyenSinh"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaKhoaTuyenSinh"));
 
                     b.Property<bool>("ConHoatDong")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
                         .HasColumnName("con_hoat_dong");
 
                     b.Property<string>("MaCodeKhoa")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("ma_code_khoa");
 
                     b.Property<string>("MoTa")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("mo_ta");
 
                     b.Property<int>("NamBatDau")
@@ -4290,19 +4286,19 @@ namespace Backend.Migrations
                         .HasColumnName("nam_ket_thuc_du_kien");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<string>("TenKhoa")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("ten_khoa");
 
                     b.HasKey("MaKhoaTuyenSinh")
@@ -4322,13 +4318,13 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_ky_thi");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaKyThi"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaKyThi"));
 
                     b.Property<string>("LoaiKyThi")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasDefaultValue("cuoi_ky")
                         .HasColumnName("loai_ky_thi");
 
@@ -4341,26 +4337,26 @@ namespace Backend.Migrations
                         .HasColumnName("ma_nganh");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<string>("TenKyThi")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("ten_ky_thi");
 
                     b.Property<string>("TrangThai")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("nhap")
                         .HasColumnName("trang_thai");
 
@@ -4375,7 +4371,7 @@ namespace Backend.Migrations
                         {
                             t.HasCheckConstraint("CK_KyThi_LoaiKyThi", "loai_ky_thi IN ('giua_ky', 'cuoi_ky')");
 
-                            t.HasCheckConstraint("CK_KyThi_trang_thai", "[trang_thai] IN (N'nhap', N'dang_dien_ra', N'da_ket_thuc')");
+                            t.HasCheckConstraint("CK_KyThi_trang_thai", "`trang_thai` IN ('nhap', 'dang_dien_ra', 'da_ket_thuc')");
                         });
                 });
 
@@ -4386,12 +4382,12 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_lich_thi_tong");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaLichThiTong"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaLichThiTong"));
 
                     b.Property<string>("HinhThucThi")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasColumnName("hinh_thuc_thi");
 
                     b.Property<int?>("MaDeKiemTra")
@@ -4407,24 +4403,24 @@ namespace Backend.Migrations
                         .HasColumnName("ma_mon_hoc");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<DateTime>("NgayThiDuKien")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_thi_du_kien");
 
                     b.Property<string>("TrangThai")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("nhap")
                         .HasColumnName("trang_thai");
 
@@ -4439,9 +4435,9 @@ namespace Backend.Migrations
 
                     b.ToTable("LichThiTong", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_LichThiTong_hinh_thuc_thi", "[hinh_thuc_thi] IN (N'online_tap_trung', N'online_tu_do', N'van_dap')");
+                            t.HasCheckConstraint("CK_LichThiTong_hinh_thuc_thi", "`hinh_thuc_thi` IN ('online_tap_trung', 'online_tu_do', 'van_dap')");
 
-                            t.HasCheckConstraint("CK_LichThiTong_trang_thai", "[trang_thai] IN (N'nhap', N'da_gui_ve_co_so', N'da_huy')");
+                            t.HasCheckConstraint("CK_LichThiTong_trang_thai", "`trang_thai` IN ('nhap', 'da_gui_ve_co_so', 'da_huy')");
                         });
                 });
 
@@ -4452,10 +4448,10 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_lien_ket_ph");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaLienKetPh"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaLienKetPh"));
 
                     b.Property<DateTime?>("LienKetLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("lien_ket_luc");
 
                     b.Property<int>("MaHocSinh")
@@ -4468,14 +4464,14 @@ namespace Backend.Migrations
 
                     b.Property<string>("QuyenXem")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("quyen_xem");
 
                     b.Property<string>("TrangThai")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasDefaultValue("cho_duyet")
                         .HasColumnName("trang_thai");
 
@@ -4490,9 +4486,9 @@ namespace Backend.Migrations
 
                     b.ToTable("LienKetPhuHuynh", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_LienKetPhuHuynh_quyen_xem_ISJSON", "[quyen_xem] IS NULL OR ISJSON([quyen_xem]) = 1");
+                            t.HasCheckConstraint("CK_LienKetPhuHuynh_quyen_xem_ISJSON", "`quyen_xem` IS NULL OR JSON_VALID(`quyen_xem`) = 1");
 
-                            t.HasCheckConstraint("CK_LienKetPhuHuynh_trang_thai_1", "[trang_thai] IN (N'cho_duyet', N'hoat_dong', N'da_thu_hoi')");
+                            t.HasCheckConstraint("CK_LienKetPhuHuynh_trang_thai_1", "`trang_thai` IN ('cho_duyet', 'hoat_dong', 'da_thu_hoi')");
                         });
                 });
 
@@ -4503,18 +4499,18 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_loai_dau_diem");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaLoaiDauDiem"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaLoaiDauDiem"));
 
                     b.Property<string>("MaCode")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("ma_code");
 
                     b.Property<string>("TenLoai")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("ten_loai");
 
                     b.Property<int>("ThuTuHienThi")
@@ -4571,11 +4567,11 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_lop");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaLop"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaLop"));
 
                     b.Property<bool>("ConHoatDong")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
                         .HasColumnName("con_hoat_dong");
 
@@ -4586,7 +4582,7 @@ namespace Backend.Migrations
                     b.Property<string>("MaCodeLop")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("ma_code_lop");
 
                     b.Property<int>("MaDonVi")
@@ -4608,7 +4604,7 @@ namespace Backend.Migrations
                     b.Property<string>("TenLop")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("ten_lop");
 
                     b.HasKey("MaLop")
@@ -4635,12 +4631,12 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_lop_hoc_phan");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaLopHocPhan"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaLopHocPhan"));
 
                     b.Property<string>("MaCodeLopHocPhan")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("ma_code_lop_hoc_phan");
 
                     b.Property<int>("MaDonVi")
@@ -4677,7 +4673,7 @@ namespace Backend.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("mo")
                         .HasColumnName("trang_thai");
 
@@ -4696,9 +4692,9 @@ namespace Backend.Migrations
 
                     b.ToTable("LopHocPhan", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_LopHocPhan_suc_chua_1", "[suc_chua] > 0");
+                            t.HasCheckConstraint("CK_LopHocPhan_suc_chua_1", "`suc_chua` > 0");
 
-                            t.HasCheckConstraint("CK_LopHocPhan_trang_thai_2", "[trang_thai] IN (N'mo', N'dong', N'cho_huy', N'da_huy')");
+                            t.HasCheckConstraint("CK_LopHocPhan_trang_thai_2", "`trang_thai` IN ('mo', 'dong', 'cho_huy', 'da_huy')");
                         });
                 });
 
@@ -4709,10 +4705,10 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_mau_bang_khen");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaMauBangKhen"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaMauBangKhen"));
 
                     b.Property<string>("CauHinhJson")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("cau_hinh_json");
 
                     b.Property<int>("ChieuCao")
@@ -4725,37 +4721,37 @@ namespace Backend.Migrations
 
                     b.Property<bool>("ConHoatDong")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
                         .HasColumnName("con_hoat_dong");
 
                     b.Property<string>("FileNenUrl")
                         .IsRequired()
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)")
+                        .HasColumnType("varchar(1000)")
                         .HasColumnName("file_nen_url");
 
                     b.Property<string>("HuongGiay")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasColumnName("huong_giay");
 
                     b.Property<string>("LoaiMau")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("loai_mau");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<int>("NguoiTao")
                         .HasColumnType("int")
@@ -4764,7 +4760,7 @@ namespace Backend.Migrations
                     b.Property<string>("TenMau")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
+                        .HasColumnType("varchar(200)")
                         .HasColumnName("ten_mau");
 
                     b.HasKey("MaMauBangKhen")
@@ -4777,13 +4773,13 @@ namespace Backend.Migrations
 
                     b.ToTable("MauBangKhen", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_MauBangKhen_cau_hinh_json", "[cau_hinh_json] IS NULL OR ISJSON([cau_hinh_json]) = 1");
+                            t.HasCheckConstraint("CK_MauBangKhen_cau_hinh_json", "`cau_hinh_json` IS NULL OR JSON_VALID(`cau_hinh_json`) = 1");
 
-                            t.HasCheckConstraint("CK_MauBangKhen_huong_giay", "[huong_giay] IN (N'A4_NGANG', N'A4_DOC')");
+                            t.HasCheckConstraint("CK_MauBangKhen_huong_giay", "`huong_giay` IN ('A4_NGANG', 'A4_DOC')");
 
-                            t.HasCheckConstraint("CK_MauBangKhen_kich_thuoc", "[chieu_rong] > 0 AND [chieu_cao] > 0");
+                            t.HasCheckConstraint("CK_MauBangKhen_kich_thuoc", "`chieu_rong` > 0 AND `chieu_cao` > 0");
 
-                            t.HasCheckConstraint("CK_MauBangKhen_loai_mau", "[loai_mau] IN (N'TOP_100_HOC_KY')");
+                            t.HasCheckConstraint("CK_MauBangKhen_loai_mau", "`loai_mau` IN ('TOP_100_HOC_KY')");
                         });
                 });
 
@@ -4794,35 +4790,35 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_mau_danh_gia");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaMauDanhGia"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaMauDanhGia"));
 
                     b.Property<string>("CauHinhJson")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("cau_hinh_json");
 
                     b.Property<bool>("DangHoatDong")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
                         .HasColumnName("dang_hoat_dong");
 
                     b.Property<DateTime>("NgayCapNhat")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<string>("TenMau")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
+                        .HasColumnType("varchar(200)")
                         .HasColumnName("ten_mau");
 
                     b.HasKey("MaMauDanhGia")
@@ -4830,7 +4826,7 @@ namespace Backend.Migrations
 
                     b.ToTable("MauDanhGia", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_MauDanhGia_cau_hinh_json_ISJSON", "ISJSON([cau_hinh_json]) = 1");
+                            t.HasCheckConstraint("CK_MauDanhGia_cau_hinh_json_ISJSON", "JSON_VALID(`cau_hinh_json`) = 1");
                         });
                 });
 
@@ -4841,22 +4837,22 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_mau_don");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaMauDon"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaMauDon"));
 
                     b.Property<bool>("BatBuocMinhChung")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false)
                         .HasColumnName("bat_buoc_minh_chung");
 
                     b.Property<string>("CauHinhJson")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("cau_hinh_json");
 
                     b.Property<bool>("DangHoatDong")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
                         .HasColumnName("dang_hoat_dong");
 
@@ -4869,20 +4865,20 @@ namespace Backend.Migrations
                     b.Property<string>("LoaiDon")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("loai_don");
 
                     b.Property<DateTime>("NgayCapNhat")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<int>("PhienBan")
                         .HasColumnType("int")
@@ -4901,7 +4897,7 @@ namespace Backend.Migrations
                     b.Property<string>("TenMau")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
+                        .HasColumnType("varchar(200)")
                         .HasColumnName("ten_mau");
 
                     b.Property<long>("TongDungLuongToiDaByte")
@@ -4916,7 +4912,7 @@ namespace Backend.Migrations
                     b.HasIndex("LoaiDon")
                         .IsUnique()
                         .HasDatabaseName("UX_MauDonTu_loai_don_active")
-                        .HasFilter("[dang_hoat_dong] = 1");
+                        .HasFilter("`dang_hoat_dong` = 1");
 
                     b.HasIndex("LoaiDon", "PhienBan")
                         .IsUnique()
@@ -4924,17 +4920,17 @@ namespace Backend.Migrations
 
                     b.ToTable("MauDonTu", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_MauDonTu_cau_hinh_json_ISJSON", "ISJSON([cau_hinh_json]) = 1");
+                            t.HasCheckConstraint("CK_MauDonTu_cau_hinh_json_ISJSON", "JSON_VALID(`cau_hinh_json`) = 1");
 
-                            t.HasCheckConstraint("CK_MauDonTu_dung_luong_tep", "[dung_luong_tep_toi_da_byte] > 0");
+                            t.HasCheckConstraint("CK_MauDonTu_dung_luong_tep", "`dung_luong_tep_toi_da_byte` > 0");
 
-                            t.HasCheckConstraint("CK_MauDonTu_phien_ban", "[phien_ban] > 0");
+                            t.HasCheckConstraint("CK_MauDonTu_phien_ban", "`phien_ban` > 0");
 
-                            t.HasCheckConstraint("CK_MauDonTu_sla_gio", "[sla_gio] IS NULL OR [sla_gio] >= 0");
+                            t.HasCheckConstraint("CK_MauDonTu_sla_gio", "`sla_gio` IS NULL OR `sla_gio` >= 0");
 
-                            t.HasCheckConstraint("CK_MauDonTu_so_tep_toi_da", "[so_tep_toi_da] BETWEEN 0 AND 5");
+                            t.HasCheckConstraint("CK_MauDonTu_so_tep_toi_da", "`so_tep_toi_da` BETWEEN 0 AND 5");
 
-                            t.HasCheckConstraint("CK_MauDonTu_tong_dung_luong", "[tong_dung_luong_toi_da_byte] >= [dung_luong_tep_toi_da_byte]");
+                            t.HasCheckConstraint("CK_MauDonTu_tong_dung_luong", "`tong_dung_luong_toi_da_byte` >= `dung_luong_tep_toi_da_byte`");
                         });
                 });
 
@@ -4945,44 +4941,44 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_mau_tb");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaMauTb"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaMauTb"));
 
                     b.Property<string>("BienChoPhepJson")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("bien_cho_phep_json");
 
                     b.Property<bool>("DangHoatDong")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
                         .HasColumnName("dang_hoat_dong");
 
                     b.Property<string>("DoiTuongMacDinh")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("doi_tuong_mac_dinh");
 
                     b.Property<string>("KenhGui")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasColumnName("kenh_gui");
 
                     b.Property<bool>("LaHeThong")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false)
                         .HasColumnName("la_he_thong");
 
                     b.Property<string>("LoaiSuKien")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("loai_su_kien");
 
                     b.Property<string>("LoaiThongBao")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("loai_thong_bao");
 
                     b.Property<int?>("MaDonVi")
@@ -4991,33 +4987,33 @@ namespace Backend.Migrations
 
                     b.Property<string>("MaMau")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("ma_mau");
 
                     b.Property<string>("MauNoiDung")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("mau_noi_dung");
 
                     b.Property<string>("MauTieuDe")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
+                        .HasColumnType("varchar(500)")
                         .HasColumnName("mau_tieu_de");
 
                     b.Property<string>("MucDoUuTien")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("muc_do_uu_tien");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<int?>("NguoiCapNhat")
                         .HasColumnType("int")
@@ -5029,7 +5025,7 @@ namespace Backend.Migrations
 
                     b.Property<string>("TenMau")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
+                        .HasColumnType("varchar(200)")
                         .HasColumnName("ten_mau");
 
                     b.HasKey("MaMauTb")
@@ -5057,7 +5053,7 @@ namespace Backend.Migrations
 
                     b.ToTable("MauThongBao", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_MauThongBao_kenh_gui_1", "[kenh_gui] IN (N'email', N'thong_bao_day', N'sms', N'in_app')");
+                            t.HasCheckConstraint("CK_MauThongBao_kenh_gui_1", "`kenh_gui` IN ('email', 'thong_bao_day', 'sms', 'in_app')");
                         });
                 });
 
@@ -5082,7 +5078,7 @@ namespace Backend.Migrations
 
                     b.ToTable("MonHocTienQuyet", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_MonHocTienQuyet_diem_toi_thieu_1", "[diem_toi_thieu] BETWEEN 0 AND 10");
+                            t.HasCheckConstraint("CK_MonHocTienQuyet_diem_toi_thieu_1", "`diem_toi_thieu` BETWEEN 0 AND 10");
                         });
                 });
 
@@ -5093,22 +5089,22 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_chuong_trinh_mon_hoc");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaChuongTrinhMonHoc"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaChuongTrinhMonHoc"));
 
                     b.Property<bool>("BatBuoc")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
                         .HasColumnName("bat_buoc");
 
                     b.Property<bool>("ConHoatDong")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
                         .HasColumnName("con_hoat_dong");
 
                     b.Property<string>("GhiChu")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ghi_chu");
 
                     b.Property<int>("HocKyDuKien")
@@ -5118,7 +5114,7 @@ namespace Backend.Migrations
                     b.Property<string>("LoaiMonHoc")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasColumnName("loai_mon_hoc");
 
                     b.Property<int>("MaChuongTrinh")
@@ -5130,14 +5126,14 @@ namespace Backend.Migrations
                         .HasColumnName("ma_mon_hoc");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<int>("SoTinChi")
                         .HasColumnType("int")
@@ -5164,11 +5160,11 @@ namespace Backend.Migrations
 
                     b.ToTable("MonHocTrongChuongTrinh", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_MonHocTrongChuongTrinh_hoc_ky_du_kien", "[hoc_ky_du_kien] > 0");
+                            t.HasCheckConstraint("CK_MonHocTrongChuongTrinh_hoc_ky_du_kien", "`hoc_ky_du_kien` > 0");
 
-                            t.HasCheckConstraint("CK_MonHocTrongChuongTrinh_loai_mon_hoc", "[loai_mon_hoc] IN (N'bat_buoc', N'tu_chon', N'thay_the')");
+                            t.HasCheckConstraint("CK_MonHocTrongChuongTrinh_loai_mon_hoc", "`loai_mon_hoc` IN ('bat_buoc', 'tu_chon', 'thay_the')");
 
-                            t.HasCheckConstraint("CK_MonHocTrongChuongTrinh_so_tin_chi", "[so_tin_chi] > 0");
+                            t.HasCheckConstraint("CK_MonHocTrongChuongTrinh_so_tin_chi", "`so_tin_chi` > 0");
                         });
                 });
 
@@ -5179,38 +5175,38 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_nganh");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaNganh"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaNganh"));
 
                     b.Property<bool>("ConHoatDong")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
                         .HasColumnName("con_hoat_dong");
 
                     b.Property<string>("MaCodeNganh")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("ma_code_nganh");
 
                     b.Property<string>("MoTa")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("mo_ta");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<string>("TenNganh")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("ten_nganh");
 
                     b.HasKey("MaNganh")
@@ -5230,28 +5226,28 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_nguoi_dung");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaNguoiDung"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaNguoiDung"));
 
                     b.Property<bool>("DangNhapLanDau")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
                         .HasColumnName("dang_nhap_lan_dau");
 
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("email");
 
                     b.Property<string>("HoTen")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("ho_ten");
 
                     b.Property<DateTime?>("LanDangNhapCuoi")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("lan_dang_nhap_cuoi");
 
                     b.Property<int>("MaDonVi")
@@ -5263,7 +5259,7 @@ namespace Backend.Migrations
                         .HasColumnName("ma_lop");
 
                     b.Property<string>("MatKhauHash")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("mat_khau_hash");
 
                     b.Property<int?>("NamNhapHoc")
@@ -5272,13 +5268,13 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<string>("SoDienThoai")
                         .HasMaxLength(15)
-                        .HasColumnType("nvarchar(15)")
+                        .HasColumnType("varchar(15)")
                         .HasColumnName("so_dien_thoai");
 
                     b.Property<int>("SoLanSaiMatKhau")
@@ -5291,14 +5287,14 @@ namespace Backend.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasDefaultValue("dang_nhap_lan_dau")
                         .HasColumnName("trang_thai");
 
                     b.Property<string>("VaiTroChinh")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("vai_tro_chinh");
 
                     b.HasKey("MaNguoiDung")
@@ -5315,9 +5311,9 @@ namespace Backend.Migrations
 
                     b.ToTable("NguoiDung", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_NguoiDung_trang_thai_2", "[trang_thai] IN (N'hoat_dong', N'bi_khoa', N'dang_nhap_lan_dau')");
+                            t.HasCheckConstraint("CK_NguoiDung_trang_thai_2", "`trang_thai` IN ('hoat_dong', 'bi_khoa', 'dang_nhap_lan_dau')");
 
-                            t.HasCheckConstraint("CK_NguoiDung_vai_tro_chinh_1", "[vai_tro_chinh] IN (N'quan_tri', N'giao_vien', N'hoc_sinh', N'nhan_vien', N'hieu_truong', N'phu_huynh', N'sieu_quan_tri', N'quan_tri_co_so', N'quan_tri_co_so_con', N'chu_tich', N'hoidong_quanly_noidung', N'admin_tai_chinh', N'ke_toan_co_so', N'ke_toan_truong_co_so')");
+                            t.HasCheckConstraint("CK_NguoiDung_vai_tro_chinh_1", "`vai_tro_chinh` IN ('quan_tri', 'giao_vien', 'hoc_sinh', 'nhan_vien', 'hieu_truong', 'phu_huynh', 'sieu_quan_tri', 'quan_tri_co_so', 'quan_tri_co_so_con', 'chu_tich', 'hoidong_quanly_noidung', 'admin_tai_chinh', 'ke_toan_co_so', 'ke_toan_truong_co_so')");
                         });
                 });
 
@@ -5328,29 +5324,29 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_nk_duyet");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaNkDuyet"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaNkDuyet"));
 
                     b.Property<string>("GhiChu")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ghi_chu");
 
                     b.Property<string>("GhiChuCongKhai")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ghi_chu_cong_khai");
 
                     b.Property<string>("GhiChuNoiBo")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ghi_chu_noi_bo");
 
                     b.Property<string>("HanhDong")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("hanh_dong");
 
                     b.Property<bool>("HienThiChoHocSinh")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false)
                         .HasColumnName("hien_thi_cho_hoc_sinh");
 
@@ -5364,30 +5360,30 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<string>("NguonThucHien")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasDefaultValue("user")
                         .HasColumnName("nguon_thuc_hien");
 
                     b.Property<string>("SnapshotJson")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("snapshot_json");
 
                     b.Property<string>("TrangThaiCu")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasColumnName("trang_thai_cu");
 
                     b.Property<string>("TrangThaiMoi")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasColumnName("trang_thai_moi");
 
                     b.HasKey("MaNkDuyet")
@@ -5400,11 +5396,11 @@ namespace Backend.Migrations
 
                     b.ToTable("NhatKyDuyetDon", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_NhatKyDuyetDon_hanh_dong_1", "[hanh_dong] IN (N'tao_nhap', N'cap_nhat', N'nop', N'nop_lai', N'phan_cong', N'phan_cong_lai', N'tiep_nhan', N'yeu_cau_bo_sung', N'bo_sung', N'phe_duyet', N'tu_choi', N'leo_thang', N'huy', N'xu_ly_nghiep_vu')");
+                            t.HasCheckConstraint("CK_NhatKyDuyetDon_hanh_dong_1", "`hanh_dong` IN ('tao_nhap', 'cap_nhat', 'nop', 'nop_lai', 'phan_cong', 'phan_cong_lai', 'tiep_nhan', 'yeu_cau_bo_sung', 'bo_sung', 'phe_duyet', 'tu_choi', 'leo_thang', 'huy', 'xu_ly_nghiep_vu')");
 
-                            t.HasCheckConstraint("CK_NhatKyDuyetDon_nguon_thuc_hien", "[nguon_thuc_hien] IN (N'user', N'system')");
+                            t.HasCheckConstraint("CK_NhatKyDuyetDon_nguon_thuc_hien", "`nguon_thuc_hien` IN ('user', 'system')");
 
-                            t.HasCheckConstraint("CK_NhatKyDuyetDon_snapshot_json_ISJSON", "[snapshot_json] IS NULL OR ISJSON([snapshot_json]) = 1");
+                            t.HasCheckConstraint("CK_NhatKyDuyetDon_snapshot_json_ISJSON", "`snapshot_json` IS NULL OR JSON_VALID(`snapshot_json`) = 1");
                         });
                 });
 
@@ -5415,37 +5411,37 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_kiem_toan");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaKiemToan"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaKiemToan"));
 
                     b.Property<string>("DiaChiIp")
                         .HasMaxLength(45)
-                        .HasColumnType("nvarchar(45)")
+                        .HasColumnType("varchar(45)")
                         .HasColumnName("dia_chi_ip");
 
                     b.Property<string>("GiaTriCu")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("gia_tri_cu");
 
                     b.Property<string>("GiaTriMoi")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("gia_tri_moi");
 
                     b.Property<string>("HanhDong")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("hanh_dong");
 
                     b.Property<string>("LoaiDoiTuong")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("loai_doi_tuong");
 
                     b.Property<string>("MaDoiTuong")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("ma_doi_tuong");
 
                     b.Property<int?>("MaDonVi")
@@ -5454,7 +5450,7 @@ namespace Backend.Migrations
 
                     b.Property<string>("MoTa")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
+                        .HasColumnType("varchar(500)")
                         .HasColumnName("mo_ta");
 
                     b.Property<int?>("NguoiThayDoi")
@@ -5463,18 +5459,18 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("ThoiDiemThayDoi")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("thoi_diem_thay_doi")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<string>("TraceId")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("trace_id");
 
                     b.Property<string>("UserAgent")
                         .HasMaxLength(512)
-                        .HasColumnType("nvarchar(512)")
+                        .HasColumnType("varchar(512)")
                         .HasColumnName("user_agent");
 
                     b.HasKey("MaKiemToan")
@@ -5487,9 +5483,9 @@ namespace Backend.Migrations
 
                     b.ToTable("NhatKyKiemToan", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_NhatKyKiemToan_gia_tri_cu_ISJSON", "[gia_tri_cu] IS NULL OR ISJSON([gia_tri_cu]) = 1");
+                            t.HasCheckConstraint("CK_NhatKyKiemToan_gia_tri_cu_ISJSON", "`gia_tri_cu` IS NULL OR JSON_VALID(`gia_tri_cu`) = 1");
 
-                            t.HasCheckConstraint("CK_NhatKyKiemToan_gia_tri_moi_ISJSON", "[gia_tri_moi] IS NULL OR ISJSON([gia_tri_moi]) = 1");
+                            t.HasCheckConstraint("CK_NhatKyKiemToan_gia_tri_moi_ISJSON", "`gia_tri_moi` IS NULL OR JSON_VALID(`gia_tri_moi`) = 1");
                         });
                 });
 
@@ -5500,21 +5496,21 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_nk_thay_doi");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaNkThayDoi"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaNkThayDoi"));
 
                     b.Property<string>("GiaTriCu")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("gia_tri_cu");
 
                     b.Property<string>("GiaTriMoi")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("gia_tri_moi");
 
                     b.Property<string>("LyDo")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ly_do");
 
                     b.Property<int>("MaDiemSo")
@@ -5531,9 +5527,9 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("ThayDoiLuc")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("thay_doi_luc")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.HasKey("MaNkThayDoi")
                         .HasName("PK_NhatKyThayDoiDiem");
@@ -5546,9 +5542,9 @@ namespace Backend.Migrations
 
                     b.ToTable("NhatKyThayDoiDiem", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_NhatKyThayDoiDiem_gia_tri_cu_ISJSON", "[gia_tri_cu] IS NULL OR ISJSON([gia_tri_cu]) = 1");
+                            t.HasCheckConstraint("CK_NhatKyThayDoiDiem_gia_tri_cu_ISJSON", "`gia_tri_cu` IS NULL OR JSON_VALID(`gia_tri_cu`) = 1");
 
-                            t.HasCheckConstraint("CK_NhatKyThayDoiDiem_gia_tri_moi_ISJSON", "[gia_tri_moi] IS NULL OR ISJSON([gia_tri_moi]) = 1");
+                            t.HasCheckConstraint("CK_NhatKyThayDoiDiem_gia_tri_moi_ISJSON", "`gia_tri_moi` IS NULL OR JSON_VALID(`gia_tri_moi`) = 1");
                         });
                 });
 
@@ -5559,16 +5555,16 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_nk_thong_bao");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaNkThongBao"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaNkThongBao"));
 
                     b.Property<DateTime?>("GuiLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("gui_luc");
 
                     b.Property<string>("KenhGui")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasColumnName("kenh_gui");
 
                     b.Property<int>("MaDonVi")
@@ -5586,7 +5582,7 @@ namespace Backend.Migrations
                     b.Property<string>("TrangThai")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasColumnName("trang_thai");
 
                     b.HasKey("MaNkThongBao")
@@ -5601,9 +5597,9 @@ namespace Backend.Migrations
 
                     b.ToTable("NhatKyThongBao", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_NhatKyThongBao_kenh_gui_2", "[kenh_gui] IN (N'email', N'thong_bao_day', N'sms')");
+                            t.HasCheckConstraint("CK_NhatKyThongBao_kenh_gui_2", "`kenh_gui` IN ('email', 'thong_bao_day', 'sms')");
 
-                            t.HasCheckConstraint("CK_NhatKyThongBao_trang_thai_1", "[trang_thai] IN (N'cho_gui', N'da_gui', N'da_nhan', N'that_bai', N'bo_qua')");
+                            t.HasCheckConstraint("CK_NhatKyThongBao_trang_thai_1", "`trang_thai` IN ('cho_gui', 'da_gui', 'da_nhan', 'that_bai', 'bo_qua')");
                         });
                 });
 
@@ -5614,16 +5610,16 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_vi_pham");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaViPham"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaViPham"));
 
                     b.Property<string>("ChiTietJson")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("chi_tiet_json");
 
                     b.Property<string>("LoaiViPham")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasColumnName("loai_vi_pham");
 
                     b.Property<int>("MaCaThi")
@@ -5642,18 +5638,18 @@ namespace Backend.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasDefaultValue("nhac_nho")
                         .HasColumnName("muc_do");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<DateTime>("ThoiDiem")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("thoi_diem");
 
                     b.HasKey("MaViPham")
@@ -5668,11 +5664,11 @@ namespace Backend.Migrations
 
                     b.ToTable("NhatKyViPhamThi", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_NhatKyViPhamThi_chi_tiet_json_ISJSON", "[chi_tiet_json] IS NULL OR ISJSON([chi_tiet_json]) = 1");
+                            t.HasCheckConstraint("CK_NhatKyViPhamThi_chi_tiet_json_ISJSON", "`chi_tiet_json` IS NULL OR JSON_VALID(`chi_tiet_json`) = 1");
 
-                            t.HasCheckConstraint("CK_NhatKyViPhamThi_loai_vi_pham", "[loai_vi_pham] IN (N'chuyen_tab', N'mat_focus', N'mat_camera', N'tieng_on', N'khac')");
+                            t.HasCheckConstraint("CK_NhatKyViPhamThi_loai_vi_pham", "`loai_vi_pham` IN ('chuyen_tab', 'mat_focus', 'mat_camera', 'tieng_on', 'khac')");
 
-                            t.HasCheckConstraint("CK_NhatKyViPhamThi_muc_do", "[muc_do] IN (N'nhac_nho', N'nghiem_trong')");
+                            t.HasCheckConstraint("CK_NhatKyViPhamThi_muc_do", "`muc_do` IN ('nhac_nho', 'nghiem_trong')");
                         });
                 });
 
@@ -5683,13 +5679,13 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_nop_dg");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaNopDg"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaNopDg"));
 
                     b.Property<DateTime>("CapNhatLuc")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("cap_nhat_luc")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<int>("MaGiaoVien")
                         .HasColumnType("int")
@@ -5728,7 +5724,7 @@ namespace Backend.Migrations
 
                     b.ToTable("NopBaiDanhGia", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_NopBaiDanhGia_so_lan_nop_1", "[so_lan_nop] BETWEEN 0 AND 2");
+                            t.HasCheckConstraint("CK_NopBaiDanhGia_so_lan_nop_1", "`so_lan_nop` BETWEEN 0 AND 2");
                         });
                 });
 
@@ -5739,40 +5735,40 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("Id");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("CreatedAt")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("Email");
 
                     b.Property<DateTime>("ExpiredAt")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ExpiredAt");
 
                     b.Property<bool>("IsUsed")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false)
                         .HasColumnName("IsUsed");
 
                     b.Property<bool>("IsVerified")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false)
                         .HasColumnName("IsVerified");
 
                     b.Property<string>("OtpCode")
                         .IsRequired()
                         .HasMaxLength(512)
-                        .HasColumnType("nvarchar(512)")
+                        .HasColumnType("varchar(512)")
                         .HasColumnName("OtpCode");
 
                     b.HasKey("Id")
@@ -5794,10 +5790,10 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_phan_cong");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaPhanCong"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaPhanCong"));
 
                     b.Property<string>("LyDoThayDoi")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ly_do_thay_doi");
 
                     b.Property<int>("MaCaThi")
@@ -5810,15 +5806,15 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<string>("TrangThai")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("du_kien")
                         .HasColumnName("trang_thai");
 
@@ -5826,7 +5822,7 @@ namespace Backend.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("giam_thi_phu")
                         .HasColumnName("vai_tro_giam_thi");
 
@@ -5841,9 +5837,9 @@ namespace Backend.Migrations
 
                     b.ToTable("PhanCongGiamThi", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_PhanCongGiamThi_trang_thai", "[trang_thai] IN (N'du_kien', N'da_xac_nhan', N'thay_the', N'huy_phan_cong')");
+                            t.HasCheckConstraint("CK_PhanCongGiamThi_trang_thai", "`trang_thai` IN ('du_kien', 'da_xac_nhan', 'thay_the', 'huy_phan_cong')");
 
-                            t.HasCheckConstraint("CK_PhanCongGiamThi_vai_tro", "[vai_tro_giam_thi] IN (N'giam_thi_chinh', N'giam_thi_phu', N'ho_tro_ky_thuat')");
+                            t.HasCheckConstraint("CK_PhanCongGiamThi_vai_tro", "`vai_tro_giam_thi` IN ('giam_thi_chinh', 'giam_thi_phu', 'ho_tro_ky_thuat')");
                         });
                 });
 
@@ -5859,9 +5855,9 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("NgayGan")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_gan")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.HasKey("MaNguoiDung", "MaVaiTro")
                         .HasName("PK_PhanQuyenNguoiDung");
@@ -5878,19 +5874,19 @@ namespace Backend.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("ma_phien_hoc");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("MaPhienHoc"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("MaPhienHoc"));
 
                     b.Property<DateTime>("BatDauLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("bat_dau_luc");
 
                     b.Property<string>("DiaChiIpHash")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("dia_chi_ip_hash");
 
                     b.Property<DateTime?>("KetThucLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ket_thuc_luc");
 
                     b.Property<int>("MaHocSinh")
@@ -5903,12 +5899,12 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<DateTime?>("NhipTimCuoiLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("nhip_tim_cuoi_luc");
 
                     b.Property<decimal?>("PhanTramCuonLonNhat")
@@ -5916,7 +5912,7 @@ namespace Backend.Migrations
                         .HasColumnName("phan_tram_cuon_lon_nhat");
 
                     b.Property<Guid>("SessionToken")
-                        .HasColumnType("uniqueidentifier")
+                        .HasColumnType("char(36)")
                         .HasColumnName("session_token");
 
                     b.Property<int>("SoGiayHoatDongDaXacNhan")
@@ -5935,13 +5931,13 @@ namespace Backend.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("dang_hoat_dong")
                         .HasColumnName("trang_thai");
 
                     b.Property<string>("UserAgentHash")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("user_agent_hash");
 
                     b.Property<int?>("ViTriVideoCuoiGiay")
@@ -5965,7 +5961,7 @@ namespace Backend.Migrations
 
                     b.ToTable("PhienHocNoiDung", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_PhienHocNoiDung_TrangThai", "[trang_thai] IN (N'dang_hoat_dong', N'da_ket_thuc', N'het_han', N'bi_thay_the')");
+                            t.HasCheckConstraint("CK_PhienHocNoiDung_TrangThai", "`trang_thai` IN ('dang_hoat_dong', 'da_ket_thuc', 'het_ha', 'bi_thay_the')");
                         });
                 });
 
@@ -5976,18 +5972,18 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_phien_thi");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaPhienThi"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaPhienThi"));
 
                     b.Property<DateTime?>("BatDauLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("bat_dau_luc");
 
                     b.Property<string>("CauTraLoiJson")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("cau_tra_loi_json");
 
                     b.Property<string>("DeThiSnapshotJson")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("de_thi_snapshot_json");
 
                     b.Property<decimal?>("DiemCuoiCung")
@@ -6003,11 +5999,11 @@ namespace Backend.Migrations
                         .HasColumnName("diem_tu_luan_ai_goi_y");
 
                     b.Property<DateTime?>("HanNopLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("han_nop_luc");
 
                     b.Property<bool?>("KetQuaDat")
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasColumnName("ket_qua_dat");
 
                     b.Property<int>("LanThu")
@@ -6029,7 +6025,7 @@ namespace Backend.Migrations
                         .HasColumnName("ma_hoc_sinh");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<int?>("NguoiXacNhanKyTen")
@@ -6037,15 +6033,15 @@ namespace Backend.Migrations
                         .HasColumnName("nguoi_xac_nhan_ky_ten");
 
                     b.Property<string>("NhatKyViPham")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("nhat_ky_vi_pham");
 
                     b.Property<DateTime?>("NopLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("nop_luc");
 
                     b.Property<string>("SaoLuuCucBo")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("sao_luu_cuc_bo");
 
                     b.Property<int?>("SoCauDung")
@@ -6053,24 +6049,24 @@ namespace Backend.Migrations
                         .HasColumnName("so_cau_dung");
 
                     b.Property<DateTime?>("ThoiDiemKy")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("thoi_diem_ky");
 
                     b.Property<string>("TrangThaiCongBo")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasColumnName("trang_thai_cong_bo");
 
                     b.Property<string>("TrangThaiKyTen")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasColumnName("trang_thai_ky_ten");
 
                     b.Property<string>("TrangThaiLuong")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("dang_hoat_dong")
                         .HasColumnName("trang_thai_luong");
 
@@ -6084,7 +6080,7 @@ namespace Backend.Migrations
                     b.HasIndex("MaCaThi", "MaHocSinh")
                         .IsUnique()
                         .HasDatabaseName("UQ_PhienThiHocSinh_CaThi_HocSinh")
-                        .HasFilter("[ma_ca_thi] IS NOT NULL");
+                        .HasFilter("`ma_ca_thi` IS NOT NULL");
 
                     b.HasIndex("MaDeKiemTra", "MaHocSinh", "LanThu")
                         .IsUnique()
@@ -6092,29 +6088,29 @@ namespace Backend.Migrations
 
                     b.ToTable("PhienThiHocSinh", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_PhienThiHocSinh_cau_tra_loi_json_ISJSON", "[cau_tra_loi_json] IS NULL OR ISJSON([cau_tra_loi_json]) = 1");
+                            t.HasCheckConstraint("CK_PhienThiHocSinh_cau_tra_loi_json_ISJSON", "`cau_tra_loi_json` IS NULL OR JSON_VALID(`cau_tra_loi_json`) = 1");
 
-                            t.HasCheckConstraint("CK_PhienThiHocSinh_de_thi_snapshot_json_ISJSON", "[de_thi_snapshot_json] IS NULL OR ISJSON([de_thi_snapshot_json]) = 1");
+                            t.HasCheckConstraint("CK_PhienThiHocSinh_de_thi_snapshot_json_ISJSON", "`de_thi_snapshot_json` IS NULL OR JSON_VALID(`de_thi_snapshot_json`) = 1");
 
-                            t.HasCheckConstraint("CK_PhienThiHocSinh_diem_cuoi_cung", "[diem_cuoi_cung] IS NULL OR [diem_cuoi_cung] BETWEEN 0 AND 10");
+                            t.HasCheckConstraint("CK_PhienThiHocSinh_diem_cuoi_cung", "`diem_cuoi_cung` IS NULL OR `diem_cuoi_cung` BETWEEN 0 AND 10");
 
-                            t.HasCheckConstraint("CK_PhienThiHocSinh_diem_tu_dong", "[diem_tu_dong] IS NULL OR [diem_tu_dong] BETWEEN 0 AND 10");
+                            t.HasCheckConstraint("CK_PhienThiHocSinh_diem_tu_dong", "`diem_tu_dong` IS NULL OR `diem_tu_dong` BETWEEN 0 AND 10");
 
-                            t.HasCheckConstraint("CK_PhienThiHocSinh_diem_tu_luan_ai_goi_y", "[diem_tu_luan_ai_goi_y] IS NULL OR [diem_tu_luan_ai_goi_y] BETWEEN 0 AND 10");
+                            t.HasCheckConstraint("CK_PhienThiHocSinh_diem_tu_luan_ai_goi_y", "`diem_tu_luan_ai_goi_y` IS NULL OR `diem_tu_luan_ai_goi_y` BETWEEN 0 AND 10");
 
-                            t.HasCheckConstraint("CK_PhienThiHocSinh_lan_thu", "[lan_thu] > 0");
+                            t.HasCheckConstraint("CK_PhienThiHocSinh_lan_thu", "`lan_thu` > 0");
 
-                            t.HasCheckConstraint("CK_PhienThiHocSinh_nhat_ky_vi_pham_ISJSON", "[nhat_ky_vi_pham] IS NULL OR ISJSON([nhat_ky_vi_pham]) = 1");
+                            t.HasCheckConstraint("CK_PhienThiHocSinh_nhat_ky_vi_pham_ISJSON", "`nhat_ky_vi_pham` IS NULL OR JSON_VALID(`nhat_ky_vi_pham`) = 1");
 
-                            t.HasCheckConstraint("CK_PhienThiHocSinh_sao_luu_cuc_bo_ISJSON", "[sao_luu_cuc_bo] IS NULL OR ISJSON([sao_luu_cuc_bo]) = 1");
+                            t.HasCheckConstraint("CK_PhienThiHocSinh_sao_luu_cuc_bo_ISJSON", "`sao_luu_cuc_bo` IS NULL OR JSON_VALID(`sao_luu_cuc_bo`) = 1");
 
-                            t.HasCheckConstraint("CK_PhienThiHocSinh_so_cau_dung", "[so_cau_dung] IS NULL OR [so_cau_dung] >= 0");
+                            t.HasCheckConstraint("CK_PhienThiHocSinh_so_cau_dung", "`so_cau_dung` IS NULL OR `so_cau_dung` >= 0");
 
-                            t.HasCheckConstraint("CK_PhienThiHocSinh_trang_thai_cong_bo", "[trang_thai_cong_bo] IS NULL OR [trang_thai_cong_bo] IN (N'chua_co_diem', N'da_cham_xong', N'da_doc_diem', N'da_cong_bo')");
+                            t.HasCheckConstraint("CK_PhienThiHocSinh_trang_thai_cong_bo", "`trang_thai_cong_bo` IS NULL OR `trang_thai_cong_bo` IN ('chua_co_diem', 'da_cham_xong', 'da_doc_diem', 'da_cong_bo')");
 
-                            t.HasCheckConstraint("CK_PhienThiHocSinh_trang_thai_ky_ten", "[trang_thai_ky_ten] IS NULL OR [trang_thai_ky_ten] IN (N'chua_ky', N'da_ky', N'quen_ky', N'su_co')");
+                            t.HasCheckConstraint("CK_PhienThiHocSinh_trang_thai_ky_ten", "`trang_thai_ky_ten` IS NULL OR `trang_thai_ky_ten` IN ('chua_ky', 'da_ky', 'quen_ky', 'su_co')");
 
-                            t.HasCheckConstraint("CK_PhienThiHocSinh_trang_thai_luong_1", "[trang_thai_luong] IN (N'dang_hoat_dong', N'bi_gian_doan', N'da_dung')");
+                            t.HasCheckConstraint("CK_PhienThiHocSinh_trang_thai_luong_1", "`trang_thai_luong` IN ('dang_hoat_dong', 'bi_gian_doan', 'da_dung')");
                         });
                 });
 
@@ -6125,7 +6121,7 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_phieu_ht");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaPhieuHt"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaPhieuHt"));
 
                     b.Property<int?>("DanhGiaHaiLong")
                         .HasColumnType("int")
@@ -6134,19 +6130,19 @@ namespace Backend.Migrations
                     b.Property<string>("DanhMuc")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasColumnName("danh_muc");
 
                     b.Property<string>("DoUuTien")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasDefaultValue("medium")
                         .HasColumnName("do_uu_tien");
 
                     b.Property<DateTime?>("HanXuLy")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("han_xu_ly");
 
                     b.Property<int>("MaHocSinh")
@@ -6155,14 +6151,14 @@ namespace Backend.Migrations
 
                     b.Property<string>("MoTa")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("mo_ta");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<int?>("PhanCongCho")
                         .HasColumnType("int")
@@ -6171,19 +6167,19 @@ namespace Backend.Migrations
                     b.Property<string>("TieuDe")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("tieu_de");
 
                     b.Property<string>("TrangThai")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasDefaultValue("mo")
                         .HasColumnName("trang_thai");
 
                     b.Property<string>("UrlDinhKem")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("longtext");
 
                     b.HasKey("MaPhieuHt")
                         .HasName("PK_PhieuHoTro");
@@ -6194,11 +6190,11 @@ namespace Backend.Migrations
 
                     b.ToTable("PhieuHoTro", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_PhieuHoTro_danh_gia_hai_long_3", "[danh_gia_hai_long] BETWEEN 1 AND 5");
+                            t.HasCheckConstraint("CK_PhieuHoTro_danh_gia_hai_long_3", "`danh_gia_hai_long` BETWEEN 1 AND 5");
 
-                            t.HasCheckConstraint("CK_PhieuHoTro_danh_muc_1", "[danh_muc] IN (N'ky_thuat', N'hoc_vu', N'tai_chinh', N'khac')");
+                            t.HasCheckConstraint("CK_PhieuHoTro_danh_muc_1", "`danh_muc` IN ('ky_thuat', 'hoc_vu', 'tai_chinh', 'khac')");
 
-                            t.HasCheckConstraint("CK_PhieuHoTro_trang_thai_2", "[trang_thai] IN (N'mo', N'dang_xu_ly', N'da_giai_quyet', N'da_dong')");
+                            t.HasCheckConstraint("CK_PhieuHoTro_trang_thai_2", "`trang_thai` IN ('mo', 'dang_xu_ly', 'da_giai_quyet', 'da_dong')");
                         });
                 });
 
@@ -6209,22 +6205,22 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_phong");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaPhong"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaPhong"));
 
                     b.Property<string>("GhiChu")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ghi_chu");
 
                     b.Property<string>("LoaiPhong")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasColumnName("loai_phong");
 
                     b.Property<string>("MaCodePhong")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("ma_code_phong");
 
                     b.Property<int>("MaDonVi")
@@ -6246,14 +6242,14 @@ namespace Backend.Migrations
                     b.Property<string>("TenPhong")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("ten_phong");
 
                     b.Property<string>("TrangThaiPhong")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasDefaultValue("hoat_dong")
                         .HasColumnName("trang_thai_phong");
 
@@ -6272,11 +6268,11 @@ namespace Backend.Migrations
 
                     b.ToTable("PhongHoc", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_PhongHoc_loai_phong_2", "[loai_phong] IN (N'ly_thuyet', N'phong_thi_nghiem', N'thuc_hanh', N'lab', N'hoi_truong', N'truc_tuyen', N'khac')");
+                            t.HasCheckConstraint("CK_PhongHoc_loai_phong_2", "`loai_phong` IN ('ly_thuyet', 'phong_thi_nghiem', 'thuc_hanh', 'lab', 'hoi_truong', 'truc_tuyen', 'khac')");
 
-                            t.HasCheckConstraint("CK_PhongHoc_suc_chua_1", "[suc_chua] > 0");
+                            t.HasCheckConstraint("CK_PhongHoc_suc_chua_1", "`suc_chua` > 0");
 
-                            t.HasCheckConstraint("CK_PhongHoc_trang_thai_phong_3", "[trang_thai_phong] IN (N'hoat_dong', N'bao_tri', N'ngung_hoat_dong')");
+                            t.HasCheckConstraint("CK_PhongHoc_trang_thai_phong_3", "`trang_thai_phong` IN ('hoat_dong', 'bao_tri', 'ngung_hoat_dong')");
                         });
                 });
 
@@ -6287,15 +6283,15 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_quy_dinh");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaQuyDinh"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaQuyDinh"));
 
                     b.Property<DateTime?>("CapNhatLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime(6)")
                         .HasColumnName("cap_nhat_luc");
 
                     b.Property<string>("GhiChu")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
+                        .HasColumnType("varchar(500)")
                         .HasColumnName("ghi_chu");
 
                     b.Property<int>("HanChinhSuaPhut")
@@ -6326,7 +6322,7 @@ namespace Backend.Migrations
                         .HasColumnName("ma_don_vi");
 
                     b.Property<DateTime>("NgayHieuLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime(6)")
                         .HasColumnName("ngay_hieu_luc");
 
                     b.Property<int?>("NguoiCapNhat")
@@ -6342,7 +6338,7 @@ namespace Backend.Migrations
                         .HasColumnName("quy_vang_toi_da");
 
                     b.Property<DateTime>("TaoLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime(6)")
                         .HasColumnName("tao_luc");
 
                     b.Property<decimal>("TiLeCanhBao")
@@ -6368,7 +6364,7 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_quy_doi");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaQuyDoi"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaQuyDoi"));
 
                     b.Property<int>("SoBlockHoc")
                         .HasColumnType("int")
@@ -6436,24 +6432,24 @@ namespace Backend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaQuyTrinh"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaQuyTrinh"));
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("LoaiDon")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("varchar(50)");
 
                     b.Property<string>("SlaKhoangThoiGian")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("varchar(50)");
 
                     b.Property<string>("TenQuyTrinh")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
                     b.HasKey("MaQuyTrinh");
 
@@ -6467,35 +6463,35 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_quyen_han");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaQuyenHan"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaQuyenHan"));
 
                     b.Property<string>("Action")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("action");
 
                     b.Property<string>("MaCode")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("ma_code");
 
                     b.Property<string>("MoTa")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
+                        .HasColumnType("varchar(500)")
                         .HasColumnName("mo_ta");
 
                     b.Property<string>("Module")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("module");
 
                     b.Property<string>("TenQuyenHan")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
+                        .HasColumnType("varchar(200)")
                         .HasColumnName("ten_quyen_han");
 
                     b.HasKey("MaQuyenHan")
@@ -6515,18 +6511,18 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_draft_item");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaDraftItem"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaDraftItem"));
 
                     b.Property<string>("CanhBaoJson")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("canh_bao_json");
 
                     b.Property<string>("LoiJson")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("loi_json");
 
                     b.Property<string>("LyDoGoiYJson")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("longtext");
 
                     b.Property<int?>("MaCaHoc")
                         .HasColumnType("int")
@@ -6544,12 +6540,12 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_phong");
 
-                    b.Property<double?>("Score")
+                    b.Property<float?>("Score")
                         .HasColumnType("float")
                         .HasColumnName("score");
 
                     b.Property<string>("ScoreBreakdownJson")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("longtext");
 
                     b.Property<int?>("ThuTrongTuan")
                         .HasColumnType("int")
@@ -6559,7 +6555,7 @@ namespace Backend.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("pending")
                         .HasColumnName("trang_thai");
 
@@ -6577,9 +6573,9 @@ namespace Backend.Migrations
 
                     b.ToTable("ScheduleDraftItem", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_ScheduleDraftItem_thu_trong_tuan", "[thu_trong_tuan] IS NULL OR [thu_trong_tuan] BETWEEN 1 AND 7");
+                            t.HasCheckConstraint("CK_ScheduleDraftItem_thu_trong_tuan", "`thu_trong_tuan` IS NULL OR `thu_trong_tuan` BETWEEN 1 AND 7");
 
-                            t.HasCheckConstraint("CK_ScheduleDraftItem_trang_thai", "[trang_thai] IN (N'pending', N'xep_duoc', N'khong_xep_duoc')");
+                            t.HasCheckConstraint("CK_ScheduleDraftItem_trang_thai", "`trang_thai` IN ('pending', 'xep_duoc', 'khong_xep_duoc')");
                         });
                 });
 
@@ -6590,10 +6586,10 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_job");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaJob"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaJob"));
 
                     b.Property<Guid>("DraftId")
-                        .HasColumnType("uniqueidentifier")
+                        .HasColumnType("char(36)")
                         .HasColumnName("draft_id");
 
                     b.Property<int>("MaDonVi")
@@ -6606,19 +6602,19 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<DateTime?>("NgayXuatBan")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_xuat_ban");
 
                     b.Property<int>("NguoiYeuCau")
                         .HasColumnType("int")
                         .HasColumnName("nguoi_yeu_cau");
 
-                    b.Property<double?>("Score")
+                    b.Property<float?>("Score")
                         .HasColumnType("float")
                         .HasColumnName("score");
 
@@ -6631,7 +6627,7 @@ namespace Backend.Migrations
                         .HasColumnName("so_xep_duoc");
 
                     b.Property<string>("TomTatJson")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("tom_tat_json");
 
                     b.Property<int?>("TongCourse")
@@ -6642,7 +6638,7 @@ namespace Backend.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("draft")
                         .HasColumnName("trang_thai");
 
@@ -6662,7 +6658,7 @@ namespace Backend.Migrations
 
                     b.ToTable("ScheduleGenerationJob", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_ScheduleGenerationJob_trang_thai", "[trang_thai] IN (N'draft', N'da_xuat_ban')");
+                            t.HasCheckConstraint("CK_ScheduleGenerationJob_trang_thai", "`trang_thai` IN ('draft', 'da_xuat_ban')");
                         });
                 });
 
@@ -6673,31 +6669,31 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_tai_khoan_nhan_tien");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaTaiKhoanNhanTien"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaTaiKhoanNhanTien"));
 
                     b.Property<string>("CauHinhProviderJson")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("cau_hinh_provider_json");
 
                     b.Property<string>("ChiNhanh")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("chi_nhanh");
 
                     b.Property<bool>("ConHoatDong")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false)
                         .HasColumnName("con_hoat_dong");
 
                     b.Property<bool>("LaMacDinh")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false)
                         .HasColumnName("la_mac_dinh");
 
                     b.Property<string>("LyDoTuChoi")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ly_do_tu_choi");
 
                     b.Property<int>("MaDonVi")
@@ -6707,22 +6703,22 @@ namespace Backend.Migrations
                     b.Property<string>("MaNganHang")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasColumnName("ma_ngan_hang");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime?>("NgayDuyet")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_duyet");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<int?>("NguoiDuyet")
                         .HasColumnType("int")
@@ -6736,33 +6732,33 @@ namespace Backend.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("payos")
                         .HasColumnName("nha_cung_cap_thanh_toan");
 
                     b.Property<string>("SoTaiKhoan")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("so_tai_khoan");
 
                     b.Property<string>("TenChuTaiKhoan")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("ten_chu_tai_khoan");
 
                     b.Property<string>("TenNganHang")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("ten_ngan_hang");
 
                     b.Property<string>("TrangThaiDuyet")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("nhap")
                         .HasColumnName("trang_thai_duyet");
 
@@ -6772,7 +6768,7 @@ namespace Backend.Migrations
                     b.HasIndex("MaDonVi")
                         .IsUnique()
                         .HasDatabaseName("UX_TaiKhoanNhanTien_DonVi_DefaultActive")
-                        .HasFilter("[la_mac_dinh] = 1 AND [con_hoat_dong] = 1");
+                        .HasFilter("`la_mac_dinh` = 1 AND `con_hoat_dong` = 1");
 
                     b.HasIndex("NguoiDuyet");
 
@@ -6784,11 +6780,11 @@ namespace Backend.Migrations
 
                     b.ToTable("TaiKhoanNhanTien", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_TaiKhoanNhanTien_cau_hinh_provider_json", "[cau_hinh_provider_json] IS NULL OR ISJSON([cau_hinh_provider_json]) = 1");
+                            t.HasCheckConstraint("CK_TaiKhoanNhanTien_cau_hinh_provider_json", "`cau_hinh_provider_json` IS NULL OR JSON_VALID(`cau_hinh_provider_json`) = 1");
 
-                            t.HasCheckConstraint("CK_TaiKhoanNhanTien_provider", "[nha_cung_cap_thanh_toan] IN (N'payos', N'vietqr')");
+                            t.HasCheckConstraint("CK_TaiKhoanNhanTien_provider", "`nha_cung_cap_thanh_toan` IN ('payos', 'vietqr')");
 
-                            t.HasCheckConstraint("CK_TaiKhoanNhanTien_trang_thai_duyet", "[trang_thai_duyet] IN (N'nhap', N'cho_duyet', N'da_duyet', N'tu_choi', N'ngung_hoat_dong')");
+                            t.HasCheckConstraint("CK_TaiKhoanNhanTien_trang_thai_duyet", "`trang_thai_duyet` IN ('nhap', 'cho_duyet', 'da_duyet', 'tu_choi', 'ngung_hoat_dong')");
                         });
                 });
 
@@ -6799,11 +6795,11 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_tang");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaTang"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaTang"));
 
                     b.Property<bool>("ConHoatDong")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
                         .HasColumnName("con_hoat_dong");
 
@@ -6812,13 +6808,13 @@ namespace Backend.Migrations
                         .HasColumnName("ma_toa_nha");
 
                     b.Property<string>("MoTa")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("mo_ta");
 
                     b.Property<string>("TenTang")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("ten_tang");
 
                     b.Property<int>("ThuTuTang")
@@ -6845,23 +6841,23 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_tep");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaTep"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaTep"));
 
                     b.Property<string>("ContentType")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)")
+                        .HasColumnType("varchar(150)")
                         .HasColumnName("content_type");
 
                     b.Property<bool>("DaXoa")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false)
                         .HasColumnName("da_xoa");
 
                     b.Property<string>("FileHash")
                         .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)")
+                        .HasColumnType("varchar(128)")
                         .HasColumnName("file_hash");
 
                     b.Property<long>("KichThuocByte")
@@ -6874,12 +6870,12 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<DateTime?>("NgayXoa")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_xoa");
 
                     b.Property<int>("NguoiTaiLen")
@@ -6893,19 +6889,19 @@ namespace Backend.Migrations
                     b.Property<string>("StorageKey")
                         .IsRequired()
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
+                        .HasColumnType("varchar(500)")
                         .HasColumnName("storage_key");
 
                     b.Property<string>("TenFileGoc")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("ten_file_goc");
 
                     b.Property<string>("TenFileLuu")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("ten_file_luu");
 
                     b.HasKey("MaTep")
@@ -6924,9 +6920,9 @@ namespace Backend.Migrations
 
                     b.ToTable("TepDinhKemDonTu", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_TepDinhKemDonTu_kich_thuoc", "[kich_thuoc_byte] > 0");
+                            t.HasCheckConstraint("CK_TepDinhKemDonTu_kich_thuoc", "`kich_thuoc_byte` > 0");
 
-                            t.HasCheckConstraint("CK_TepDinhKemDonTu_soft_delete", "([da_xoa] = 0 AND [nguoi_xoa] IS NULL AND [ngay_xoa] IS NULL) OR ([da_xoa] = 1 AND [nguoi_xoa] IS NOT NULL AND [ngay_xoa] IS NOT NULL)");
+                            t.HasCheckConstraint("CK_TepDinhKemDonTu_soft_delete", "(`da_xoa` = 0 AND `nguoi_xoa` IS NULL AND `ngay_xoa` IS NULL) OR (`da_xoa` = 1 AND `nguoi_xoa` IS NOT NULL AND `ngay_xoa` IS NOT NULL)");
                         });
                 });
 
@@ -6937,10 +6933,10 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_thi_sinh_ca_thi");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaThiSinhCaThi"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaThiSinhCaThi"));
 
                     b.Property<string>("GhiChu")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ghi_chu");
 
                     b.Property<int>("MaCaThi")
@@ -6953,15 +6949,15 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<string>("TrangThaiDuThi")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("cho_thi")
                         .HasColumnName("trang_thai_du_thi");
 
@@ -6976,7 +6972,7 @@ namespace Backend.Migrations
 
                     b.ToTable("ThiSinhCaThi", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_ThiSinhCaThi_trang_thai_du_thi", "[trang_thai_du_thi] IN (N'cho_thi', N'duoc_thi', N'khong_duoc_thi', N'dinh_chi', N'vang_thi')");
+                            t.HasCheckConstraint("CK_ThiSinhCaThi_trang_thai_du_thi", "`trang_thai_du_thi` IN ('cho_thi', 'duoc_thi', 'khong_duoc_thi', 'dinh_chi', 'vang_thi')");
                         });
                 });
 
@@ -6987,7 +6983,7 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_thiet_bi");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaThietBi"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaThietBi"));
 
                     b.Property<int>("MaPhong")
                         .HasColumnType("int")
@@ -7002,7 +6998,7 @@ namespace Backend.Migrations
                     b.Property<string>("TenThietBi")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("ten_thiet_bi");
 
                     b.HasKey("MaThietBi")
@@ -7012,7 +7008,7 @@ namespace Backend.Migrations
 
                     b.ToTable("ThietBiPhong", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_ThietBiPhong_so_luong_1", "[so_luong] >= 0");
+                            t.HasCheckConstraint("CK_ThietBiPhong_so_luong_1", "`so_luong` >= 0");
                         });
                 });
 
@@ -7023,7 +7019,7 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_tkb");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaTkb"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaTkb"));
 
                     b.Property<int>("MaCaHoc")
                         .HasColumnType("int")
@@ -7042,7 +7038,7 @@ namespace Backend.Migrations
                         .HasColumnName("ngay_bat_dau");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateOnly?>("NgayKetThuc")
@@ -7051,9 +7047,9 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<int>("ThuTrongTuan")
                         .HasColumnType("int")
@@ -7063,7 +7059,7 @@ namespace Backend.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasDefaultValue("nhap")
                         .HasColumnName("trang_thai");
 
@@ -7077,15 +7073,15 @@ namespace Backend.Migrations
                     b.HasIndex("MaKhoaHoc", "ThuTrongTuan", "MaCaHoc")
                         .IsUnique()
                         .HasDatabaseName("UQ_ThoiKhoaBieu_KhoaHoc_Thu_Ca")
-                        .HasFilter("[trang_thai] <> N'da_huy'");
+                        .HasFilter("`trang_thai` <> 'da_huy'");
 
                     b.ToTable("ThoiKhoaBieu", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_ThoiKhoaBieu_ngay", "[ngay_ket_thuc] IS NULL OR [ngay_bat_dau] IS NULL OR [ngay_ket_thuc] >= [ngay_bat_dau]");
+                            t.HasCheckConstraint("CK_ThoiKhoaBieu_ngay", "`ngay_ket_thuc` IS NULL OR `ngay_bat_dau` IS NULL OR `ngay_ket_thuc` >= `ngay_bat_dau`");
 
-                            t.HasCheckConstraint("CK_ThoiKhoaBieu_thu_trong_tuan", "[thu_trong_tuan] BETWEEN 1 AND 7");
+                            t.HasCheckConstraint("CK_ThoiKhoaBieu_thu_trong_tuan", "`thu_trong_tuan` BETWEEN 1 AND 7");
 
-                            t.HasCheckConstraint("CK_ThoiKhoaBieu_trang_thai", "[trang_thai] IN (N'nhap', N'da_xuat_ban', N'da_huy')");
+                            t.HasCheckConstraint("CK_ThoiKhoaBieu_trang_thai", "`trang_thai` IN ('nhap', 'da_xuat_ban', 'da_huy')");
                         });
                 });
 
@@ -7096,48 +7092,48 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_thong_bao");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaThongBao"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaThongBao"));
 
                     b.Property<bool>("DaDoc")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false)
                         .HasColumnName("da_doc");
 
                     b.Property<DateTime?>("DocLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("doc_luc");
 
                     b.Property<string>("DoiTuongLienKet")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("doi_tuong_lien_ket");
 
                     b.Property<string>("DuongDan")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
+                        .HasColumnType("varchar(500)")
                         .HasColumnName("duong_dan");
 
                     b.Property<DateTime?>("GuiLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("gui_luc");
 
                     b.Property<string>("LoaiDoiTuongLienKet")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("loai_doi_tuong_lien_ket");
 
                     b.Property<string>("LoaiSuKien")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("loai_su_kien");
 
                     b.Property<string>("LoaiThongBao")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("varchar(100)")
                         .HasDefaultValue("manual")
                         .HasColumnName("loai_thong_bao");
 
@@ -7155,27 +7151,27 @@ namespace Backend.Migrations
 
                     b.Property<Guid>("MaNhomThongBao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
+                        .HasColumnType("char(36)")
                         .HasColumnName("ma_nhom_thong_bao")
-                        .HasDefaultValueSql("NEWID()");
+                        .HasDefaultValueSql("UUID()");
 
                     b.Property<string>("MucDo")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("info")
                         .HasColumnName("muc_do");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<int?>("NguoiTao")
                         .HasColumnType("int")
@@ -7183,45 +7179,45 @@ namespace Backend.Migrations
 
                     b.Property<string>("NoiDung")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("noi_dung");
 
                     b.Property<string>("NoiDungJson")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("noi_dung_json");
 
                     b.Property<string>("NoiDungText")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("noi_dung_text");
 
                     b.Property<string>("PhamViGui")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasDefaultValue("nguoi_dung")
                         .HasColumnName("pham_vi_gui");
 
                     b.Property<string>("TieuDe")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
+                        .HasColumnType("varchar(500)")
                         .HasColumnName("tieu_de");
 
                     b.Property<string>("TomTat")
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)")
+                        .HasColumnType("varchar(1000)")
                         .HasColumnName("tom_tat");
 
                     b.Property<string>("TomTatNoiDung")
                         .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)")
+                        .HasColumnType("varchar(1000)")
                         .HasColumnName("tom_tat_noi_dung");
 
                     b.Property<string>("TrangThai")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("da_gui")
                         .HasColumnName("trang_thai");
 
@@ -7250,15 +7246,15 @@ namespace Backend.Migrations
 
                     b.ToTable("ThongBao", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_ThongBao_loai_thong_bao", "[loai_thong_bao] IN (N'thong_bao_chung', N'hoc_phi', N'bao_tri', N'co_so_vat_chat', N'hoc_vu', N'khan_cap', N'system', N'manual', N'schedule_changed', N'session_cancelled', N'attendance_unlock_approved', N'attendance_unlock_rejected')");
+                            t.HasCheckConstraint("CK_ThongBao_loai_thong_bao", "`loai_thong_bao` IN ('thong_bao_chung', 'hoc_phi', 'bao_tri', 'co_so_vat_chat', 'hoc_vu', 'khan_cap', 'system', 'manual', 'schedule_changed', 'session_cancelled', 'attendance_unlock_approved', 'attendance_unlock_rejected')");
 
-                            t.HasCheckConstraint("CK_ThongBao_muc_do", "[muc_do] IN (N'thong_tin', N'quan_trong', N'khan_cap', N'info', N'warning', N'important')");
+                            t.HasCheckConstraint("CK_ThongBao_muc_do", "`muc_do` IN ('thong_tin', 'quan_trong', 'khan_cap', 'info', 'warning', 'important')");
 
-                            t.HasCheckConstraint("CK_ThongBao_noi_dung_json_ISJSON", "[noi_dung_json] IS NULL OR ISJSON([noi_dung_json]) = 1");
+                            t.HasCheckConstraint("CK_ThongBao_noi_dung_json_ISJSON", "`noi_dung_json` IS NULL OR JSON_VALID(`noi_dung_json`) = 1");
 
-                            t.HasCheckConstraint("CK_ThongBao_pham_vi_gui", "[pham_vi_gui] IN (N'toan_he_thong', N'don_vi', N'lop_hanh_chinh', N'vai_tro', N'nguoi_dung', N'khoa_hoc', N'users', N'class', N'course', N'campus')");
+                            t.HasCheckConstraint("CK_ThongBao_pham_vi_gui", "`pham_vi_gui` IN ('toan_he_thong', 'don_vi', 'lop_hanh_chinh', 'vai_tro', 'nguoi_dung', 'khoa_hoc', 'users', 'class', 'course', 'campus')");
 
-                            t.HasCheckConstraint("CK_ThongBao_trang_thai", "[trang_thai] IN (N'nhap', N'da_gui', N'da_huy')");
+                            t.HasCheckConstraint("CK_ThongBao_trang_thai", "`trang_thai` IN ('nhap', 'da_gui', 'da_huy')");
                         });
                 });
 
@@ -7269,21 +7265,21 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_tb_hen_gio");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaTbHenGio"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaTbHenGio"));
 
                     b.Property<string>("BoLocNguoiNhan")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("bo_loc_nguoi_nhan");
 
                     b.Property<DateTime>("GuiLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("gui_luc");
 
                     b.Property<string>("LoaiSuKien")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("loai_su_kien");
 
                     b.Property<int>("MaDonVi")
@@ -7298,7 +7294,7 @@ namespace Backend.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasDefaultValue("da_len_lich")
                         .HasColumnName("trang_thai");
 
@@ -7311,9 +7307,9 @@ namespace Backend.Migrations
 
                     b.ToTable("ThongBaoHenGio", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_ThongBaoHenGio_bo_loc_nguoi_nhan_ISJSON", "[bo_loc_nguoi_nhan] IS NULL OR ISJSON([bo_loc_nguoi_nhan]) = 1");
+                            t.HasCheckConstraint("CK_ThongBaoHenGio_bo_loc_nguoi_nhan_ISJSON", "`bo_loc_nguoi_nhan` IS NULL OR JSON_VALID(`bo_loc_nguoi_nhan`) = 1");
 
-                            t.HasCheckConstraint("CK_ThongBaoHenGio_trang_thai_1", "[trang_thai] IN (N'da_len_lich', N'dang_cho', N'da_huy', N'hoan_thanh')");
+                            t.HasCheckConstraint("CK_ThongBaoHenGio_trang_thai_1", "`trang_thai` IN ('da_len_lich', 'dang_cho', 'da_huy', 'hoan_thanh')");
                         });
                 });
 
@@ -7324,26 +7320,26 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_thong_bao_nguoi_nhan");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaThongBaoNguoiNhan"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaThongBaoNguoiNhan"));
 
                     b.Property<DateTime?>("AnLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("an_luc");
 
                     b.Property<bool>("DaAn")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false)
                         .HasColumnName("da_an");
 
                     b.Property<bool>("DaDoc")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false)
                         .HasColumnName("da_doc");
 
                     b.Property<DateTime?>("DocLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("doc_luc");
 
                     b.Property<int>("MaDonVi")
@@ -7360,15 +7356,15 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<DateTime>("NhanLuc")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("nhan_luc")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.HasKey("MaThongBaoNguoiNhan")
                         .HasName("PK_ThongBaoNguoiNhan");
@@ -7396,14 +7392,14 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_tien_do");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaTienDo"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaTienDo"));
 
                     b.Property<DateTime?>("HoanThanhLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("hoan_thanh_luc");
 
                     b.Property<DateTime?>("LanGuiNhipTimCuoi")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("lan_gui_nhip_tim_cuoi");
 
                     b.Property<int>("MaBaiHoc")
@@ -7431,7 +7427,7 @@ namespace Backend.Migrations
 
                     b.ToTable("TienDoBaiHoc", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_TienDoBaiHoc_phan_tram_tien_do_1", "[phan_tram_tien_do] BETWEEN 0 AND 100");
+                            t.HasCheckConstraint("CK_TienDoBaiHoc_phan_tram_tien_do_1", "`phan_tram_tien_do` BETWEEN 0 AND 100");
                         });
                 });
 
@@ -7442,10 +7438,10 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_tien_do_noi_dung");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaTienDoNoiDung"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaTienDoNoiDung"));
 
                     b.Property<DateTime?>("BatDauLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("bat_dau_luc");
 
                     b.Property<int?>("ChiSoMucCuoi")
@@ -7453,21 +7449,21 @@ namespace Backend.Migrations
                         .HasColumnName("chi_so_muc_cuoi");
 
                     b.Property<string>("ChiTietTienDoJson")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("chi_tiet_tien_do_json");
 
                     b.Property<DateTime?>("HoanThanhLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("hoan_thanh_luc");
 
                     b.Property<DateTime?>("LanTuongTacCuoi")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("lan_tuong_tac_cuoi");
 
                     b.Property<string>("LoaiNoiDung")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("loai_noi_dung");
 
                     b.Property<int>("MaHocSinh")
@@ -7479,14 +7475,14 @@ namespace Backend.Migrations
                         .HasColumnName("ma_noi_dung");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<decimal?>("PhanTramCuonLonNhat")
                         .HasColumnType("decimal(5,2)")
@@ -7516,7 +7512,7 @@ namespace Backend.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("chua_bat_dau")
                         .HasColumnName("trang_thai");
 
@@ -7545,13 +7541,13 @@ namespace Backend.Migrations
 
                     b.ToTable("TienDoNoiDungHocTap", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_TienDoNoiDungHocTap_PhanTramCuonLonNhat", "[phan_tram_cuon_lon_nhat] IS NULL OR [phan_tram_cuon_lon_nhat] BETWEEN 0 AND 100");
+                            t.HasCheckConstraint("CK_TienDoNoiDungHocTap_PhanTramCuonLonNhat", "`phan_tram_cuon_lon_nhat` IS NULL OR `phan_tram_cuon_lon_nhat` BETWEEN 0 AND 100");
 
-                            t.HasCheckConstraint("CK_TienDoNoiDungHocTap_PhanTramTienDo", "[phan_tram_tien_do] BETWEEN 0 AND 100");
+                            t.HasCheckConstraint("CK_TienDoNoiDungHocTap_PhanTramTienDo", "`phan_tram_tien_do` BETWEEN 0 AND 100");
 
-                            t.HasCheckConstraint("CK_TienDoNoiDungHocTap_SoGiayDaXacNhan", "[so_giay_da_xac_nhan] >= 0");
+                            t.HasCheckConstraint("CK_TienDoNoiDungHocTap_SoGiayDaXacNhan", "`so_giay_da_xac_nhan` >= 0");
 
-                            t.HasCheckConstraint("CK_TienDoNoiDungHocTap_TrangThai", "[trang_thai] IN (N'chua_bat_dau', N'dang_hoc', N'hoan_thanh')");
+                            t.HasCheckConstraint("CK_TienDoNoiDungHocTap_TrangThai", "`trang_thai` IN ('chua_bat_dau', 'dang_hoc', 'hoan_thanh')");
                         });
                 });
 
@@ -7562,7 +7558,7 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_tin_nhan_ht");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaTinNhanHt"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaTinNhanHt"));
 
                     b.Property<int>("MaNguoiGui")
                         .HasColumnType("int")
@@ -7574,17 +7570,17 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<string>("NoiDung")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("noi_dung");
 
                     b.Property<string>("UrlDinhKem")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("url_dinh_kem");
 
                     b.HasKey("MaTinNhanHt")
@@ -7604,23 +7600,23 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_toa_nha");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaToaNha"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaToaNha"));
 
                     b.Property<bool>("ConHoatDong")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
                         .HasColumnName("con_hoat_dong");
 
                     b.Property<string>("DiaChi")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
+                        .HasColumnType("varchar(500)")
                         .HasColumnName("dia_chi");
 
                     b.Property<string>("MaCodeToaNha")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("ma_code_toa_nha");
 
                     b.Property<int>("MaDonVi")
@@ -7628,14 +7624,14 @@ namespace Backend.Migrations
                         .HasColumnName("ma_don_vi");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<int?>("SoTang")
                         .HasColumnType("int")
@@ -7644,7 +7640,7 @@ namespace Backend.Migrations
                     b.Property<string>("TenToaNha")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("ten_toa_nha");
 
                     b.HasKey("MaToaNha")
@@ -7659,7 +7655,7 @@ namespace Backend.Migrations
 
                     b.ToTable("ToaNha", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_ToaNha_so_tang_1", "[so_tang] IS NULL OR [so_tang] > 0");
+                            t.HasCheckConstraint("CK_ToaNha_so_tang_1", "`so_tang` IS NULL OR `so_tang` > 0");
                         });
                 });
 
@@ -7670,10 +7666,10 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_token_lam_moi");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaTokenLamMoi"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaTokenLamMoi"));
 
                     b.Property<DateTime>("HetHanLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("het_han_luc");
 
                     b.Property<int>("MaNguoiDung")
@@ -7682,18 +7678,18 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<DateTime?>("ThuHoiLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("thu_hoi_luc");
 
                     b.Property<string>("TokenHash")
                         .IsRequired()
                         .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)")
+                        .HasColumnType("varchar(128)")
                         .HasColumnName("token_hash");
 
                     b.HasKey("MaTokenLamMoi")
@@ -7716,25 +7712,25 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("CapNhatLuc")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("cap_nhat_luc")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<bool>("NhanEmail")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
                         .HasColumnName("nhan_email");
 
                     b.Property<bool>("NhanPush")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(true)
                         .HasColumnName("nhan_push");
 
                     b.Property<bool>("NhanSms")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("tinyint(1)")
                         .HasDefaultValue(false)
                         .HasColumnName("nhan_sms");
 
@@ -7751,14 +7747,14 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_ung_vien_khen_thuong");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaUngVienKhenThuong"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaUngVienKhenThuong"));
 
                     b.Property<decimal>("DiemXet")
                         .HasColumnType("decimal(18,2)")
                         .HasColumnName("diem_xet");
 
                     b.Property<string>("GhiChuDieuChinh")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ghi_chu_dieu_chinh");
 
                     b.Property<decimal?>("GpaHocKy")
@@ -7767,15 +7763,15 @@ namespace Backend.Migrations
 
                     b.Property<string>("HoTenSnapshot")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("ho_ten_snapshot");
 
                     b.Property<string>("LyDoLoai")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ly_do_loai");
 
                     b.Property<string>("LyDoLoaiJson")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ly_do_loai_json");
 
                     b.Property<int?>("MaDonVi")
@@ -7796,22 +7792,22 @@ namespace Backend.Migrations
 
                     b.Property<string>("MssvSnapshot")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("mssv_snapshot");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime?>("NgayDieuChinh")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_dieu_chinh");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<int?>("NguoiDieuChinh")
                         .HasColumnType("int")
@@ -7823,11 +7819,11 @@ namespace Backend.Migrations
 
                     b.Property<string>("TenHocKySnapshot")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("ten_hoc_ky_snapshot");
 
                     b.Property<string>("TieuChiSnapshotJson")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("tieu_chi_snapshot_json");
 
                     b.Property<int?>("TongTinChi")
@@ -7837,7 +7833,7 @@ namespace Backend.Migrations
                     b.Property<string>("TrangThai")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("trang_thai");
 
                     b.Property<int?>("XepHang")
@@ -7868,13 +7864,13 @@ namespace Backend.Migrations
 
                     b.ToTable("UngVienKhenThuong", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_UngVienKhenThuong_diem_xet", "[diem_xet] >= 0");
+                            t.HasCheckConstraint("CK_UngVienKhenThuong_diem_xet", "`diem_xet` >= 0");
 
-                            t.HasCheckConstraint("CK_UngVienKhenThuong_ly_do_loai_json_ISJSON", "[ly_do_loai_json] IS NULL OR ISJSON([ly_do_loai_json]) = 1");
+                            t.HasCheckConstraint("CK_UngVienKhenThuong_ly_do_loai_json_ISJSON", "`ly_do_loai_json` IS NULL OR JSON_VALID(`ly_do_loai_json`) = 1");
 
-                            t.HasCheckConstraint("CK_UngVienKhenThuong_tieu_chi_snapshot_json_ISJSON", "[tieu_chi_snapshot_json] IS NULL OR ISJSON([tieu_chi_snapshot_json]) = 1");
+                            t.HasCheckConstraint("CK_UngVienKhenThuong_tieu_chi_snapshot_json_ISJSON", "`tieu_chi_snapshot_json` IS NULL OR JSON_VALID(`tieu_chi_snapshot_json`) = 1");
 
-                            t.HasCheckConstraint("CK_UngVienKhenThuong_xep_hang", "[xep_hang] IS NULL OR [xep_hang] > 0");
+                            t.HasCheckConstraint("CK_UngVienKhenThuong_xep_hang", "`xep_hang` IS NULL OR `xep_hang` > 0");
                         });
                 });
 
@@ -7887,13 +7883,13 @@ namespace Backend.Migrations
                     b.Property<string>("MaCodeVaiTro")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("ma_code_vai_tro");
 
                     b.Property<string>("TenVaiTro")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("varchar(100)")
                         .HasColumnName("ten_vai_tro");
 
                     b.HasKey("MaVaiTro")
@@ -7918,9 +7914,9 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("NgayCap")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime(6)")
                         .HasColumnName("ngay_cap")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<int?>("NguoiCap")
                         .HasColumnType("int")
@@ -7943,16 +7939,16 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_xu_ly");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaXuLy"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaXuLy"));
 
                     b.Property<string>("GhiChu")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ghi_chu");
 
                     b.Property<string>("HanhDongXuLy")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasColumnName("hanh_dong_xu_ly");
 
                     b.Property<int>("LanNhacNho")
@@ -7960,7 +7956,7 @@ namespace Backend.Migrations
                         .HasColumnName("lan_nhac_nho");
 
                     b.Property<string>("LyDo")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ly_do");
 
                     b.Property<int>("MaNguoiXuLy")
@@ -7973,12 +7969,12 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<DateTime>("ThoiDiem")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("thoi_diem");
 
                     b.HasKey("MaXuLy")
@@ -7990,9 +7986,9 @@ namespace Backend.Migrations
 
                     b.ToTable("XuLyViPhamThi", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_XuLyViPhamThi_hanh_dong", "[hanh_dong_xu_ly] IN (N'nhac_nho_he_thong', N'canh_bao_truc_tiep', N'dinh_chi_thi', N'bo_qua')");
+                            t.HasCheckConstraint("CK_XuLyViPhamThi_hanh_dong", "`hanh_dong_xu_ly` IN ('nhac_nho_he_thong', 'canh_bao_truc_tiep', 'dinh_chi_thi', 'bo_qua')");
 
-                            t.HasCheckConstraint("CK_XuLyViPhamThi_lan_nhac_nho", "[lan_nhac_nho] >= 0");
+                            t.HasCheckConstraint("CK_XuLyViPhamThi_lan_nhac_nho", "`lan_nhac_nho` >= 0");
                         });
                 });
 
@@ -8003,12 +7999,12 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_xuat_bao_cao");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaXuatBaoCao"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaXuatBaoCao"));
 
                     b.Property<string>("LoaiBaoCao")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("loai_bao_cao");
 
                     b.Property<int>("MaDonVi")
@@ -8017,28 +8013,28 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<int>("NguoiYeuCau")
                         .HasColumnType("int")
                         .HasColumnName("nguoi_yeu_cau");
 
                     b.Property<string>("ThamSoJson")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("tham_so_json");
 
                     b.Property<string>("TrangThai")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasDefaultValue("cho_xu_ly")
                         .HasColumnName("trang_thai");
 
                     b.Property<string>("UrlTapTin")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("url_tap_tin");
 
                     b.HasKey("MaXuatBaoCao")
@@ -8050,9 +8046,9 @@ namespace Backend.Migrations
 
                     b.ToTable("XuatBaoCao", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_XuatBaoCao_tham_so_json_ISJSON", "[tham_so_json] IS NULL OR ISJSON([tham_so_json]) = 1");
+                            t.HasCheckConstraint("CK_XuatBaoCao_tham_so_json_ISJSON", "`tham_so_json` IS NULL OR JSON_VALID(`tham_so_json`) = 1");
 
-                            t.HasCheckConstraint("CK_XuatBaoCao_trang_thai_1", "[trang_thai] IN (N'cho_xu_ly', N'dang_xu_ly', N'hoan_thanh', N'that_bai')");
+                            t.HasCheckConstraint("CK_XuatBaoCao_trang_thai_1", "`trang_thai` IN ('cho_xu_ly', 'dang_xu_ly', 'hoan_thanh', 'that_bai')");
                         });
                 });
 
@@ -8063,10 +8059,10 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_yc_doi_lich");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaYcDoiLich"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaYcDoiLich"));
 
                     b.Property<DateTime?>("AdminDuyetLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("admin_duyet_luc");
 
                     b.Property<int>("GiaoVienDeXuat")
@@ -8078,12 +8074,12 @@ namespace Backend.Migrations
                         .HasColumnName("giao_vien_nhan_doi");
 
                     b.Property<DateTime?>("GvNhanPhanHoiLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("gv_nhan_phan_hoi_luc");
 
                     b.Property<string>("LyDo")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ly_do");
 
                     b.Property<int>("MaTkb")
@@ -8092,9 +8088,9 @@ namespace Backend.Migrations
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<int?>("NguoiDuyet")
                         .HasColumnType("int")
@@ -8104,7 +8100,7 @@ namespace Backend.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("cho_gv_nhan_dong_y")
                         .HasColumnName("trang_thai");
 
@@ -8121,7 +8117,7 @@ namespace Backend.Migrations
 
                     b.ToTable("YeuCauDoiLich", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_YeuCauDoiLich_trang_thai_1", "[trang_thai] IN (N'cho_gv_nhan_dong_y', N'cho_admin_duyet', N'da_hoan_doi', N'tu_choi', N'da_huy')");
+                            t.HasCheckConstraint("CK_YeuCauDoiLich_trang_thai_1", "`trang_thai` IN ('cho_gv_nhan_dong_y', 'cho_admin_duyet', 'da_hoan_doi', 'tu_choi', 'da_huy')");
                         });
                 });
 
@@ -8132,24 +8128,24 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_hoan_phi");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaHoanPhi"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaHoanPhi"));
 
                     b.Property<string>("GhiChu")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ghi_chu");
 
                     b.Property<string>("LoaiHoanPhi")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasColumnName("loai_hoan_phi");
 
                     b.Property<string>("LyDoTuChoi")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ly_do_tu_choi");
 
                     b.Property<string>("LyDoYeuCau")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ly_do_yeu_cau");
 
                     b.Property<int>("MaDonVi")
@@ -8165,14 +8161,14 @@ namespace Backend.Migrations
                         .HasColumnName("ma_hoc_sinh");
 
                     b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_cap_nhat");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<int?>("NguoiCapNhat")
                         .HasColumnType("int")
@@ -8194,12 +8190,12 @@ namespace Backend.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasDefaultValue("cho_duyet")
                         .HasColumnName("trang_thai");
 
                     b.Property<DateTime?>("XuLyLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("xu_ly_luc");
 
                     b.HasKey("MaHoanPhi")
@@ -8219,11 +8215,11 @@ namespace Backend.Migrations
 
                     b.ToTable("YeuCauHoanPhi", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_YeuCauHoanPhi_loai_hoan_phi_2", "[loai_hoan_phi] IN (N'toan_phan', N'mot_phan', N'ghi_co')");
+                            t.HasCheckConstraint("CK_YeuCauHoanPhi_loai_hoan_phi_2", "`loai_hoan_phi` IN ('toan_phan', 'mot_phan', 'ghi_co')");
 
-                            t.HasCheckConstraint("CK_YeuCauHoanPhi_so_tien_yeu_cau_1", "[so_tien_yeu_cau] >= 0");
+                            t.HasCheckConstraint("CK_YeuCauHoanPhi_so_tien_yeu_cau_1", "`so_tien_yeu_cau` >= 0");
 
-                            t.HasCheckConstraint("CK_YeuCauHoanPhi_trang_thai_3", "[trang_thai] IN (N'cho_duyet', N'da_duyet', N'tu_choi', N'da_xu_ly')");
+                            t.HasCheckConstraint("CK_YeuCauHoanPhi_trang_thai_3", "`trang_thai` IN ('cho_duyet', 'da_duyet', 'tu_choi', 'da_xu_ly')");
                         });
                 });
 
@@ -8234,19 +8230,19 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_yc_mo_khoa");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaYcMoKhoa"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaYcMoKhoa"));
 
                     b.Property<string>("GhiChu")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ghi_chu");
 
                     b.Property<string>("LyDo")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ly_do");
 
                     b.Property<string>("LyDoTuChoi")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ly_do_tu_choi");
 
                     b.Property<int>("MaBuoiHoc")
@@ -8254,14 +8250,14 @@ namespace Backend.Migrations
                         .HasColumnName("ma_buoi_hoc");
 
                     b.Property<DateTime?>("MoKhoaDenLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("mo_khoa_den_luc");
 
                     b.Property<DateTime>("NgayTao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("ngay_tao")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasDefaultValueSql("UTC_TIMESTAMP()");
 
                     b.Property<int?>("NguoiDuyet")
                         .HasColumnType("int")
@@ -8272,14 +8268,14 @@ namespace Backend.Migrations
                         .HasColumnName("nguoi_yeu_cau");
 
                     b.Property<DateTime?>("ThoiGianXuLy")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("thoi_gian_xu_ly");
 
                     b.Property<string>("TrangThai")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasDefaultValue("cho_duyet")
                         .HasColumnName("trang_thai");
 
@@ -8289,7 +8285,7 @@ namespace Backend.Migrations
                     b.HasIndex("MaBuoiHoc")
                         .IsUnique()
                         .HasDatabaseName("UX_YeuCauMoKhoaDiemDanh_ChoDuyet")
-                        .HasFilter("[trang_thai] = N'cho_duyet'");
+                        .HasFilter("`trang_thai` = 'cho_duyet'");
 
                     b.HasIndex("NguoiDuyet");
 
@@ -8297,7 +8293,7 @@ namespace Backend.Migrations
 
                     b.ToTable("YeuCauMoKhoaDiemDanh", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_YeuCauMoKhoaDiemDanh_trang_thai_1", "[trang_thai] IN (N'cho_duyet', N'da_duyet', N'tu_choi', N'het_han')");
+                            t.HasCheckConstraint("CK_YeuCauMoKhoaDiemDanh_trang_thai_1", "`trang_thai` IN ('cho_duyet', 'da_duyet', 'tu_choi', 'het_han')");
                         });
                 });
 
@@ -8308,24 +8304,24 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_yc_sua_diem");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaYcSuaDiem"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MaYcSuaDiem"));
 
                     b.Property<string>("CotDiemDuocMo")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasColumnName("cot_diem_duoc_mo");
 
                     b.Property<string>("LoaiYeuCau")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("varchar(30)")
                         .HasDefaultValue("sua_sau_submit")
                         .HasColumnName("loai_yeu_cau");
 
                     b.Property<string>("LyDo")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ly_do");
 
                     b.Property<int>("MaDiemSo")
@@ -8333,7 +8329,7 @@ namespace Backend.Migrations
                         .HasColumnName("ma_diem_so");
 
                     b.Property<DateTime?>("MoDenLuc")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("mo_den_luc");
 
                     b.Property<int?>("NguoiDuyet")
@@ -8348,16 +8344,16 @@ namespace Backend.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("varchar(20)")
                         .HasDefaultValue("cho_duyet")
                         .HasColumnName("trang_thai");
 
                     b.Property<DateTime?>("UnlockExpiresAt")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("unlock_expires_at");
 
                     b.Property<string>("UrlBangChung")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("url_bang_chung");
 
                     b.HasKey("MaYcSuaDiem")
@@ -8371,59 +8367,59 @@ namespace Backend.Migrations
 
                     b.ToTable("YeuCauSuaDiem", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_YeuCauSuaDiem_trang_thai_1", "[trang_thai] IN (N'cho_duyet', N'da_duyet', N'tu_choi', N'het_han')");
+                            t.HasCheckConstraint("CK_YeuCauSuaDiem_trang_thai_1", "`trang_thai` IN ('cho_duyet', 'da_duyet', 'tu_choi', 'het_han')");
                         });
                 });
 
             modelBuilder.Entity("Backend.Models.YeuCauXuatDuLieu", b =>
                 {
                     b.Property<string>("MaYeuCau")
-                        .HasColumnType("nvarchar(450)")
+                        .HasColumnType("varchar(255)")
                         .HasColumnName("ma_yeu_cau");
 
                     b.Property<string>("CapDonVi")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("cap_don_vi");
 
                     b.Property<string>("DinhDang")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("dinh_dang");
 
                     b.Property<string>("DuongDanFile")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("duong_dan_file");
 
                     b.Property<string>("HocKy")
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("hoc_ky");
 
                     b.Property<string>("LoaiBaoCao")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("loai_bao_cao");
 
                     b.Property<string>("NguoiYeuCau")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("nguoi_yeu_cau");
 
                     b.Property<string>("TenBaoCao")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("ten_bao_cao");
 
                     b.Property<DateTime?>("ThoiGianHoanThanh")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime(6)")
                         .HasColumnName("thoi_gian_hoan_thanh");
 
                     b.Property<DateTime>("ThoiGianYeuCau")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime(6)")
                         .HasColumnName("thoi_gian_yeu_cau");
 
                     b.Property<string>("TrangThai")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("longtext")
                         .HasColumnName("trang_thai");
 
                     b.HasKey("MaYeuCau");
