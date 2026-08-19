@@ -43,15 +43,23 @@ public class StudentDashboardController : ControllerBase
 
             // 2. Current semester
             var currentHocKy = await _db.HocKys
-                .Where(h => (h.MaDonVi == currentUser.CampusId || h.MaDonVi == user.MaDonVi)
+                .Where(h => (h.MaDonVi == currentUser.CampusId || h.MaDonVi == user.MaDonVi || h.MaDonVi == 3)
                     && h.NgayBatDau <= today
-                    && h.NgayKetThuc >= today)
+                    && h.NgayKetThuc >= today
+                    && !h.DaKhoa)
                 .OrderByDescending(h => h.NgayBatDau)
                 .FirstOrDefaultAsync();
 
             if (currentHocKy == null)
             {
                 currentHocKy = await _db.HocKys
+                    .Where(h => (h.MaDonVi == currentUser.CampusId || h.MaDonVi == user.MaDonVi || h.MaDonVi == 3)
+                        && h.NgayBatDau <= today
+                        && !h.DaKhoa)
+                    .OrderByDescending(h => h.NgayBatDau)
+                    .FirstOrDefaultAsync()
+                    ?? await _db.HocKys
+                    .Where(h => !h.DaKhoa && h.NgayBatDau <= today)
                     .OrderByDescending(h => h.NgayBatDau)
                     .FirstOrDefaultAsync();
             }
@@ -585,8 +593,9 @@ public class StudentDashboardController : ControllerBase
             if (currentUser == null)
                 return Unauthorized();
 
+            var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
             var semesters = await _db.HocKys
-                .Where(h => h.MaDonVi == currentUser.CampusId)
+                .Where(h => (h.MaDonVi == currentUser.CampusId || h.MaDonVi == 3) && h.NgayBatDau <= today.AddMonths(4))
                 .OrderByDescending(h => h.NgayBatDau)
                 .Select(h => new
                 {
@@ -634,7 +643,7 @@ public class StudentDashboardController : ControllerBase
             if (currentUser == null)
                 return Unauthorized();
 
-            var specializations = await (
+            var campusSpecs = await (
                 from spec in _db.ChuyenNganhs
                 join campus in _db.ChuyenNganhTheoCoSos
                     on spec.MaChuyenNganh equals campus.MaChuyenNganh
@@ -650,7 +659,20 @@ public class StudentDashboardController : ControllerBase
                 }
             ).ToListAsync();
 
-            return Ok(ApiResponseDto<List<object>>.Ok(specializations.Cast<object>().ToList()));
+            if (campusSpecs.Count == 0)
+            {
+                campusSpecs = await _db.ChuyenNganhs
+                    .Where(s => s.MaNganh == majorId && s.ConHoatDong)
+                    .OrderBy(s => s.TenChuyenNganh)
+                    .Select(s => new
+                    {
+                        id = s.MaChuyenNganh.ToString(),
+                        name = s.TenChuyenNganh
+                    })
+                    .ToListAsync();
+            }
+
+            return Ok(ApiResponseDto<List<object>>.Ok(campusSpecs.Cast<object>().ToList()));
         }
         catch (Exception ex)
         {

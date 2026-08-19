@@ -28,7 +28,11 @@ import {
   ExternalLink,
   X,
   CheckSquare,
-  Square
+  Square,
+  Trash2,
+  Clock,
+  Award,
+  Presentation
 } from 'lucide-vue-next'
 import ListSkeleton from '@/components/common/skeleton/ListSkeleton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
@@ -36,10 +40,39 @@ import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import { teacherApi } from '@/services/teacherApi'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const route = useRoute()
+const authStore = useAuthStore()
 const courseId = computed(() => route.params.courseId || 'COM102')
+
+const isContentCouncilMember = computed(() => {
+  const u = authStore.user
+  if (!u) return false
+  const role = String(u.role || u.vaiTro || u.Role || '').toLowerCase()
+  const roles = Array.isArray(u.roles) ? u.roles.map(r => String(r).toLowerCase()) : []
+  const councilRoles = [
+    'hoidongquanlynoidung',
+    'hoidong_quanly_noidung',
+    'contentcouncil',
+    'content_council',
+    'admin',
+    'superadmin',
+    'sieu_quan_tri',
+    'quan_tri'
+  ]
+  return councilRoles.includes(role) || roles.some(r => councilRoles.includes(r))
+})
+
+const teacherWatermark = computed(() => {
+  const u = authStore.user
+  if (!u) return 'LMS Giảng viên'
+  const code = u.username || u.teacherCode || u.maGiangVien || (u.id ? `GV-${u.id}` : '')
+  const name = u.fullName || u.name || ''
+  const email = u.email || ''
+  return [code, name, email].filter(Boolean).join(' • ') || 'LMS Giảng viên'
+})
 
 const loading = ref(false)
 const error = ref('')
@@ -47,6 +80,9 @@ const chapters = ref([])
 const assignments = ref([])
 const questionBank = ref([])
 const loadingBank = ref(false)
+const councilQuizzes = ref([])
+const loadingQuizzes = ref(false)
+const bankSubTab = ref('questions') // 'questions' | 'council_quizzes'
 const courseInfo = ref(null)
 const activeTab = ref('curriculum') // 'curriculum' | 'assignments' | 'question_bank'
 const isAllLocked = ref(false)
@@ -57,6 +93,7 @@ const activeLesson = ref(null)
 const toastMessage = ref('')
 const bankSearch = ref('')
 const bankDifficulty = ref('')
+const quizSearch = ref('')
 
 // --- Modal 1: Gán câu hỏi từ Ngân hàng vào 1 hoặc nhiều video bài học ---
 const showAssignLessonModal = ref(false)
@@ -64,6 +101,22 @@ const selectedQuestionForModal = ref(null)
 const targetLessonIds = ref([])
 const assigningToLessons = ref(false)
 const lessonSearchInModal = ref('')
+
+// --- Modal 2: Gán câu hỏi từ Ngân hàng vào Bài học đang xem (Active Lesson) ---
+const showAddQuizToLessonModal = ref(false)
+const selectedQuestionIdsForLesson = ref([])
+const assigningQuestions = ref(false)
+const modalBankSearch = ref('')
+const modalBankDifficulty = ref('')
+
+// --- Modal 3: Gán Đề Quiz do Hội đồng quản lý nội dung tạo vào Bài học ---
+const showAttachCouncilQuizModal = ref(false)
+const selectedCouncilQuiz = ref(null)
+const attachingCouncilQuiz = ref(false)
+
+// --- Modal 4: Xem trước chi tiết đề Quiz của Hội đồng ---
+const showQuizDetailModal = ref(false)
+const previewQuizDetail = ref(null)
 
 function openChooseLessonModal(question) {
   selectedQuestionForModal.value = question
@@ -113,7 +166,8 @@ async function confirmAssignToLessons() {
               question: q.question,
               options: q.options,
               answer: q.answer,
-              explanation: q.explanation
+              explanation: q.explanation,
+              diemSo: q.diemSo || 1
             })
           }
         }
@@ -122,6 +176,7 @@ async function confirmAssignToLessons() {
     }
     showToast(`✅ Đã gán câu hỏi #${q.id} vào ${successCount} bài học thành công!`)
     showAssignLessonModal.value = false
+    await loadLessons()
   } catch (e) {
     console.error('Failed to assign to lessons:', e)
     showToast('Lỗi khi gán câu hỏi: ' + (e.message || ''))
@@ -140,13 +195,6 @@ const filteredModalChapters = computed(() => {
     }))
     .filter(ch => ch.lessons.length > 0)
 })
-
-// --- Modal 2: Gán câu hỏi từ Ngân hàng vào Bài học đang xem (Active Lesson) ---
-const showAddQuizToLessonModal = ref(false)
-const selectedQuestionIdsForLesson = ref([])
-const assigningQuestions = ref(false)
-const modalBankSearch = ref('')
-const modalBankDifficulty = ref('')
 
 async function openAssignQuizModalForActiveLesson() {
   if (!activeLesson.value) {
@@ -179,25 +227,12 @@ async function confirmAssignQuestionsToActiveLesson() {
   try {
     let count = 0
     for (const qId of selectedQuestionIdsForLesson.value) {
-      const alreadyInLesson = activeLesson.value.quizQuestions?.some(q => q.id === qId)
-      if (!alreadyInLesson) {
-        await teacherApi.addQuizQuestionToLesson(activeLesson.value.id, qId)
-        const bankQ = questionBank.value.find(q => q.id === qId)
-        if (bankQ) {
-          if (!activeLesson.value.quizQuestions) activeLesson.value.quizQuestions = []
-          activeLesson.value.quizQuestions.push({
-            id: bankQ.id,
-            question: bankQ.question,
-            options: bankQ.options,
-            answer: bankQ.answer,
-            explanation: bankQ.explanation
-          })
-        }
-        count++
-      }
+      await teacherApi.addQuizQuestionToLesson(activeLesson.value.id, qId)
+      count++
     }
-    showToast(`✅ Đã gán ${count > 0 ? count + ' câu hỏi mới' : 'các câu hỏi'} vào bài "${activeLesson.value.title}"!`)
+    showToast(`✅ Đã cập nhật ${count} câu hỏi vào bài học "${activeLesson.value.title}"!`)
     showAddQuizToLessonModal.value = false
+    await loadLessons()
   } catch (e) {
     console.error('Failed to assign questions:', e)
     showToast('Lỗi khi gán câu hỏi: ' + (e.message || ''))
@@ -218,13 +253,118 @@ const filteredModalQuestionBank = computed(() => {
   return list
 })
 
+// --- Council Quizzes Handlers ---
+async function loadCouncilQuizzes() {
+  loadingQuizzes.value = true
+  try {
+    const res = await teacherApi.getSubjectQuizzes(courseId.value)
+    const unwrapped = res?.data ?? res?.Data ?? res
+    if (Array.isArray(unwrapped)) {
+      councilQuizzes.value = unwrapped.map(q => ({
+        quizId: q.quizId || q.id,
+        code: q.code || ('QZ-' + (q.quizId || q.id)),
+        title: q.title || q.tieuDe || 'Đề Quiz môn học',
+        description: q.description || q.moTa || '',
+        durationMinutes: q.durationMinutes || q.thoiGianPhut || 15,
+        loaiDeThi: q.loaiDeThi || 'trac_nghiem',
+        trangThai: q.trangThai || 'dang_mo',
+        questionsCount: q.questionsCount ?? (q.questions?.length || 0),
+        totalScore: q.totalScore ?? 10,
+        questions: (q.questions || []).map(item => ({
+          id: item.id || item.maCauHoi,
+          question: item.question || item.noiDung,
+          options: parseChoices(item.options || item.luaChon),
+          answer: item.answer || item.dapAnDung,
+          explanation: item.explanation || item.giaiThichDapAn,
+          diemSo: item.diemSo || 1,
+          thuTu: item.thuTu || 1
+        })),
+        createdAt: q.createdAt || q.ngayTao
+      }))
+    }
+  } catch (e) {
+    console.error('Failed to load council quizzes:', e)
+  } finally {
+    loadingQuizzes.value = false
+  }
+}
+
+function openAttachCouncilQuizModal(lesson = activeLesson.value) {
+  if (lesson) {
+    selectLesson(lesson)
+  }
+  selectedCouncilQuiz.value = null
+  loadCouncilQuizzes()
+  showAttachCouncilQuizModal.value = true
+}
+
+async function confirmAttachCouncilQuiz() {
+  if (!activeLesson.value || !selectedCouncilQuiz.value) {
+    showToast('Vui lòng chọn một đề Quiz để gán!')
+    return
+  }
+  attachingCouncilQuiz.value = true
+  try {
+    await teacherApi.attachQuizToLesson(activeLesson.value.id, selectedCouncilQuiz.value.quizId)
+    showToast(`✅ Đã gán đề Quiz "${selectedCouncilQuiz.value.title}" vào bài học thành công!`)
+    showAttachCouncilQuizModal.value = false
+    await loadLessons()
+  } catch (e) {
+    console.error('Failed to attach council quiz:', e)
+    showToast('Lỗi khi gán đề Quiz: ' + (e.message || ''))
+  } finally {
+    attachingCouncilQuiz.value = false
+  }
+}
+
+async function handleRemoveQuizFromActiveLesson() {
+  if (!activeLesson.value) return
+  if (!confirm(`Bạn có chắc chắn muốn gỡ đề Quiz khỏi bài học "${activeLesson.value.title}" không?`)) return
+  try {
+    await teacherApi.removeQuizFromLesson(activeLesson.value.id)
+    showToast('✅ Đã gỡ đề Quiz khỏi bài học thành công!')
+    await loadLessons()
+  } catch (e) {
+    console.error('Failed to remove quiz:', e)
+    showToast('Lỗi khi gỡ đề Quiz: ' + (e.message || ''))
+  }
+}
+
+async function handleRemoveQuestionFromQuiz(questionId) {
+  if (!activeLesson.value) return
+  try {
+    await teacherApi.removeQuizQuestionFromLesson(activeLesson.value.id, questionId)
+    showToast('✅ Đã xóa câu hỏi khỏi bài học!')
+    if (activeLesson.value.quizQuestions) {
+      activeLesson.value.quizQuestions = activeLesson.value.quizQuestions.filter(q => q.id !== questionId)
+    }
+  } catch (e) {
+    console.error('Failed to remove quiz question:', e)
+    showToast('Lỗi khi xóa câu hỏi: ' + (e.message || ''))
+  }
+}
+
+function openQuizPreview(quiz) {
+  previewQuizDetail.value = quiz
+  showQuizDetailModal.value = true
+}
+
+const filteredCouncilQuizzes = computed(() => {
+  let list = councilQuizzes.value
+  if (quizSearch.value && quizSearch.value.trim()) {
+    const s = quizSearch.value.trim().toLowerCase()
+    list = list.filter(q => (q.title || '').toLowerCase().includes(s) || (q.code || '').toLowerCase().includes(s))
+  }
+  return list
+})
+
 const lessonStats = computed(() => {
   const allLessons = chapters.value.flatMap(chapter => chapter.lessons)
   return [
     { label: 'Tổng bài học', value: allLessons.length, variant: 'neutral' },
     { label: 'Bài giảng Video', value: allLessons.filter(l => l.type === 'video').length, variant: 'info' },
     { label: 'Tài liệu PDF', value: allLessons.filter(l => l.type === 'pdf').length, variant: 'success' },
-    { label: 'Bài đọc & Trắc nghiệm', value: allLessons.filter(l => l.type === 'text' || l.type === 'quiz').length, variant: 'warning' },
+    { label: 'Bài đọc & Trắc nghiệm', value: allLessons.filter(l => l.type === 'text' || l.type === 'quiz' || (l.quizQuestions && l.quizQuestions.length > 0)).length, variant: 'warning' },
     { label: 'Bài tập môn học', value: assignments.value.length, variant: 'primary' },
   ]
 })
@@ -239,10 +379,12 @@ function showToast(msg) {
 function normalizeLessonType(rawType) {
   const t = String(rawType || '').toLowerCase()
   if (t.includes('video')) return 'video'
-  if (t.includes('pdf')) return 'pdf'
+  if (t.includes('pdf') || t.includes('tai_lieu') || t.includes('document')) return 'pdf'
+  if (t.includes('slide')) return 'slide'
   if (t.includes('quiz') || t.includes('trac_nghiem')) return 'quiz'
   if (t.includes('bai_tap') || t.includes('assignment')) return 'exercise'
-  return 'text'
+  if (t.includes('van_ban')) return 'text'
+  return 'video'
 }
 
 function parseChoices(choicesRaw) {
@@ -251,7 +393,7 @@ function parseChoices(choicesRaw) {
   try {
     const parsed = JSON.parse(choicesRaw)
     if (Array.isArray(parsed)) {
-      return parsed.map(p => (typeof p === 'object' && p !== null ? (p.text || p.NoiDung || JSON.stringify(p)) : String(p)))
+      return parsed.map(p => (typeof p === 'object' && p !== null ? (p.text || p.content || p.Content || p.NoiDung || JSON.stringify(p)) : String(p)))
     }
   } catch (e) {}
   return String(choicesRaw).split('\n').filter(Boolean)
@@ -297,16 +439,33 @@ async function loadLessons() {
           id: l.id,
           title: l.tieuDe ?? l.title ?? '',
           type: normalizeLessonType(l.loai ?? l.type),
+          hasVideo: Boolean(l.hasVideo || l.urlTapTin || l.fileUrl),
+          hasDoc: Boolean(l.hasDoc || l.documentUrl),
+          hasSlide: Boolean(l.hasSlide || l.slideHtml),
+          hasQuiz: Boolean(l.hasQuiz || l.quizInfo || (l.quizQuestions && l.quizQuestions.length)),
           duration: l.thoiLuong ?? l.duration ?? '15 phút',
           content: l.noiDung ?? l.content ?? ('Nội dung chi tiết của ' + (l.tieuDe ?? l.title ?? '')),
           fileUrl: l.urlTapTin ?? l.fileUrl ?? null,
+          documentUrl: l.documentUrl ?? null,
+          slideHtml: l.slideHtml ?? null,
           allowSeek: l.allowSeek !== false,
+          quizInfo: l.quizInfo ? {
+            contentId: l.quizInfo.contentId,
+            quizId: l.quizInfo.quizId,
+            title: l.quizInfo.title,
+            durationMinutes: l.quizInfo.durationMinutes,
+            trangThai: l.quizInfo.trangThai,
+            questionsCount: l.quizInfo.questionsCount,
+            totalScore: l.quizInfo.totalScore
+          } : null,
           quizQuestions: (l.quizQuestions || []).map(q => ({
             id: q.id,
             question: q.question,
             options: parseChoices(q.options),
             answer: q.answer,
-            explanation: q.explanation
+            explanation: q.explanation,
+            diemSo: q.diemSo || 1,
+            thuTu: q.thuTu || 1
           }))
         })),
       }))
@@ -341,7 +500,8 @@ async function loadQuestionBank() {
         options: parseChoices(q.luaChon),
         answer: q.dapAnDung,
         difficulty: q.doKho || 'Trung bình',
-        explanation: q.giaiThichDapAn
+        explanation: q.giaiThichDapAn,
+        diemSo: 1
       }))
     }
   } catch (e) {
@@ -466,15 +626,18 @@ onMounted(() => {
 
 function getLessonIcon(type) {
   if (type === 'video') return FileVideo
-  if (type === 'pdf') return FileText
-  if (type === 'quiz') return HelpCircle
+  if (type === 'pdf' || type === 'document' || type === 'tai_lieu') return FileText
+  if (type === 'slide' || type === 'slide_html') return Presentation
+  if (type === 'quiz' || type === 'trac_nghiem') return HelpCircle
   return FileText
 }
 
 function getTypeText(type) {
   if (type === 'video') return 'Video bài giảng'
-  if (type === 'pdf') return 'Tài liệu PDF'
-  if (type === 'quiz') return 'Trắc nghiệm'
+  if (type === 'pdf' || type === 'document' || type === 'tai_lieu') return 'Tài liệu học tập'
+  if (type === 'slide' || type === 'slide_html') return 'Slide bài giảng'
+  if (type === 'quiz' || type === 'trac_nghiem') return 'Trắc nghiệm / Quiz'
+  if (type === 'exercise') return 'Bài tập'
   return 'Bài đọc'
 }
 </script>
@@ -613,76 +776,186 @@ function getTypeText(type) {
       </div>
     </GlassPanel>
 
-    <!-- TAB 3: Question Bank Browser -->
-    <div v-if="activeTab === 'question_bank'" class="space-y-4">
-      <div class="surface-card border border-card rounded-2xl p-5 flex flex-col md:flex-row gap-4 items-center justify-between shadow-xs">
-        <div class="relative flex-1 w-full">
-          <Search :size="16" class="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
-          <input
-            v-model="bankSearch"
-            type="text"
-            placeholder="Tìm kiếm câu hỏi trong ngân hàng theo từ khóa..."
-            class="w-full pl-11 pr-4 py-2.5 rounded-xl surface-input border border-card text-xs text-heading focus:outline-none focus:border-(--accent-primary)"
-          />
-        </div>
-        <div class="flex items-center gap-3 w-full md:w-auto">
-          <select v-model="bankDifficulty" class="text-xs px-3.5 py-2.5 rounded-xl surface-input border border-card text-heading focus:outline-none">
-            <option value="">Tất cả độ khó</option>
-            <option value="Dễ">Dễ</option>
-            <option value="Trung bình">Trung bình</option>
-            <option value="Khó">Khó</option>
-          </select>
+    <!-- TAB 3: Question Bank & Council Quizzes Browser -->
+    <div v-if="activeTab === 'question_bank'" class="space-y-5">
+      <!-- Sub-tabs bar -->
+      <div class="flex items-center justify-between gap-4 flex-wrap pb-2 border-b border-card">
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            :class="[
+              'px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2',
+              bankSubTab === 'questions'
+                ? 'bg-(--accent-primary) text-white shadow-xs'
+                : 'surface-input border border-card text-muted hover:text-heading'
+            ]"
+            @click="bankSubTab = 'questions'"
+          >
+            <HelpCircle :size="14" />
+            Ngân hàng câu hỏi ({{ questionBank.length }})
+          </button>
+          <button
+            type="button"
+            :class="[
+              'px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2',
+              bankSubTab === 'council_quizzes'
+                ? 'bg-(--accent-primary) text-white shadow-xs'
+                : 'surface-input border border-card text-muted hover:text-heading'
+            ]"
+            @click="bankSubTab = 'council_quizzes'; loadCouncilQuizzes()"
+          >
+            <Award :size="14" />
+            Đề Quiz từ Hội đồng Quản lý Nội dung ({{ councilQuizzes.length }})
+          </button>
         </div>
       </div>
 
-      <div v-if="loadingBank" class="py-16 text-center text-xs text-muted surface-card border border-card rounded-2xl">
-        <div class="animate-spin w-7 h-7 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-3"></div>
-        Đang truy vấn ngân hàng câu hỏi từ cơ sở dữ liệu...
-      </div>
-      <div v-else-if="filteredQuestionBank.length === 0" class="p-16 text-center surface-card border border-card rounded-2xl">
-        <HelpCircle :size="42" class="mx-auto text-muted/40 mb-3" />
-        <h3 class="text-sm font-bold text-heading">Không tìm thấy câu hỏi phù hợp</h3>
-        <p class="text-xs text-muted mt-1">Chưa có câu hỏi nào trong ngân hàng môn học này hoặc từ khóa tìm kiếm không khớp.</p>
-      </div>
-      <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <div
-          v-for="q in filteredQuestionBank"
-          :key="q.id"
-          class="p-5 surface-card border border-card rounded-2xl flex flex-col justify-between gap-4 shadow-sm hover:border-(--accent-primary)/40 transition-all"
-        >
-          <div>
-            <div class="flex items-center justify-between gap-2 pb-3 border-b border-card">
-              <span class="text-xs font-mono font-bold text-(--accent-primary)">Câu hỏi #{{ q.id }}</span>
-              <GlassBadge :variant="q.difficulty === 'Dễ' ? 'success' : q.difficulty === 'Khó' ? 'danger' : 'warning'" size="sm">
-                Độ khó: {{ q.difficulty }}
-              </GlassBadge>
-            </div>
-            <h4 class="text-xs sm:text-sm font-bold text-heading mt-3 leading-relaxed">{{ q.question }}</h4>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
-              <div
-                v-for="(opt, oIdx) in q.options"
-                :key="oIdx"
-                :class="[
-                  'p-2.5 rounded-xl border text-xs font-medium',
-                  (String(oIdx) === String(q.answer) || String.fromCharCode(65 + oIdx) === String(q.answer))
-                    ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 font-bold'
-                    : 'surface-input border-card text-muted'
-                ]"
-              >
-                <strong class="mr-1.5">{{ String.fromCharCode(65 + oIdx) }}.</strong> {{ opt }}
+      <!-- Subtab 1: Individual Questions -->
+      <div v-if="bankSubTab === 'questions'" class="space-y-4">
+        <div class="surface-card border border-card rounded-2xl p-5 flex flex-col md:flex-row gap-4 items-center justify-between shadow-xs">
+          <div class="relative flex-1 w-full">
+            <Search :size="16" class="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
+            <input
+              v-model="bankSearch"
+              type="text"
+              placeholder="Tìm kiếm câu hỏi trong ngân hàng theo từ khóa..."
+              class="w-full pl-11 pr-4 py-2.5 rounded-xl surface-input border border-card text-xs text-heading focus:outline-none focus:border-(--accent-primary)"
+            />
+          </div>
+          <div class="flex items-center gap-3 w-full md:w-auto">
+            <select v-model="bankDifficulty" class="text-xs px-3.5 py-2.5 rounded-xl surface-input border border-card text-heading focus:outline-none">
+              <option value="">Tất cả độ khó</option>
+              <option value="Dễ">Dễ</option>
+              <option value="Trung bình">Trung bình</option>
+              <option value="Khó">Khó</option>
+            </select>
+          </div>
+        </div>
+
+        <div v-if="loadingBank" class="py-16 text-center text-xs text-muted surface-card border border-card rounded-2xl">
+          <div class="animate-spin w-7 h-7 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-3"></div>
+          Đang truy vấn ngân hàng câu hỏi từ cơ sở dữ liệu...
+        </div>
+        <div v-else-if="filteredQuestionBank.length === 0" class="p-16 text-center surface-card border border-card rounded-2xl">
+          <HelpCircle :size="42" class="mx-auto text-muted/40 mb-3" />
+          <h3 class="text-sm font-bold text-heading">Không tìm thấy câu hỏi phù hợp</h3>
+          <p class="text-xs text-muted mt-1">Chưa có câu hỏi nào trong ngân hàng môn học này hoặc từ khóa tìm kiếm không khớp.</p>
+        </div>
+        <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div
+            v-for="q in filteredQuestionBank"
+            :key="q.id"
+            class="p-5 surface-card border border-card rounded-2xl flex flex-col justify-between gap-4 shadow-sm hover:border-(--accent-primary)/40 transition-all"
+          >
+            <div>
+              <div class="flex items-center justify-between gap-2 pb-3 border-b border-card">
+                <span class="text-xs font-mono font-bold text-(--accent-primary)">Câu hỏi #{{ q.id }}</span>
+                <GlassBadge :variant="q.difficulty === 'Dễ' ? 'success' : q.difficulty === 'Khó' ? 'danger' : 'warning'" size="sm">
+                  Độ khó: {{ q.difficulty }}
+                </GlassBadge>
+              </div>
+              <h4 class="text-xs sm:text-sm font-bold text-heading mt-3 leading-relaxed">{{ q.question }}</h4>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
+                <div
+                  v-for="(opt, oIdx) in q.options"
+                  :key="oIdx"
+                  :class="[
+                    'p-2.5 rounded-xl border text-xs font-medium',
+                    (String(oIdx) === String(q.answer) || String.fromCharCode(65 + oIdx) === String(q.answer))
+                      ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 font-bold'
+                      : 'surface-input border-card text-muted'
+                  ]"
+                >
+                  <strong class="mr-1.5">{{ String.fromCharCode(65 + oIdx) }}.</strong> {{ opt }}
+                </div>
               </div>
             </div>
+            <div class="pt-3 border-t border-card flex items-center justify-between">
+              <span class="text-xs text-muted">
+                Đáp án: <strong class="text-emerald-600 dark:text-emerald-400 font-bold">{{ q.answer }}</strong>
+              </span>
+              <GlassButton size="sm" variant="primary" @click="openChooseLessonModal(q)">
+                <template #leading>
+                  <Plus :size="13" />
+                </template>
+                Gán vào bài học...
+              </GlassButton>
+            </div>
           </div>
-          <div class="pt-3 border-t border-card flex items-center justify-between">
-            <span class="text-xs text-muted">
-              Đáp án: <strong class="text-emerald-600 dark:text-emerald-400 font-bold">{{ q.answer }}</strong>
-            </span>
-            <GlassButton size="sm" variant="primary" @click="openChooseLessonModal(q)">
-              <template #leading>
-                <Plus :size="13" />
-              </template>
-              Gán vào bài học...
-            </GlassButton>
+        </div>
+      </div>
+
+      <!-- Subtab 2: Council Quizzes -->
+      <div v-else class="space-y-4">
+        <div class="surface-card border border-card rounded-2xl p-5 flex flex-col md:flex-row gap-4 items-center justify-between shadow-xs">
+          <div class="relative flex-1 w-full">
+            <Search :size="16" class="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
+            <input
+              v-model="quizSearch"
+              type="text"
+              placeholder="Tìm kiếm đề Quiz từ Hội đồng..."
+              class="w-full pl-11 pr-4 py-2.5 rounded-xl surface-input border border-card text-xs text-heading focus:outline-none focus:border-(--accent-primary)"
+            />
+          </div>
+        </div>
+
+        <div v-if="loadingQuizzes" class="py-16 text-center text-xs text-muted surface-card border border-card rounded-2xl">
+          <div class="animate-spin w-7 h-7 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-3"></div>
+          Đang truy vấn danh sách đề Quiz do Hội đồng quản lý nội dung biên soạn...
+        </div>
+        <div v-else-if="filteredCouncilQuizzes.length === 0" class="p-16 text-center surface-card border border-card rounded-2xl">
+          <Award :size="42" class="mx-auto text-muted/40 mb-3" />
+          <h3 class="text-sm font-bold text-heading">Chưa có đề Quiz nào từ Hội đồng</h3>
+          <p class="text-xs text-muted mt-1">Hội đồng quản lý nội dung chưa xuất bản đề Quiz nào cho môn học này.</p>
+        </div>
+        <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div
+            v-for="qz in filteredCouncilQuizzes"
+            :key="qz.quizId"
+            class="p-6 surface-card border border-card rounded-2xl flex flex-col justify-between gap-4 shadow-sm hover:border-(--accent-primary)/40 transition-all"
+          >
+            <div class="space-y-3">
+              <div class="flex items-center justify-between gap-2 pb-3 border-b border-card">
+                <span class="text-xs font-mono font-bold text-(--accent-primary)">{{ qz.code }}</span>
+                <GlassBadge :variant="qz.trangThai === 'dang_mo' || qz.trangThai === 'da_xuat_ban' ? 'success' : 'warning'" size="sm">
+                  {{ qz.trangThai === 'dang_mo' || qz.trangThai === 'da_xuat_ban' ? 'Đã xuất bản' : 'Bản nháp' }}
+                </GlassBadge>
+              </div>
+              <h3 class="text-base font-bold text-heading">{{ qz.title }}</h3>
+              <p v-if="qz.description" class="text-xs text-muted leading-relaxed line-clamp-2">{{ qz.description }}</p>
+              
+              <div class="grid grid-cols-3 gap-2 pt-2">
+                <div class="p-2.5 rounded-xl surface-input border border-card text-center">
+                  <span class="text-[10px] text-muted block">Số câu hỏi</span>
+                  <strong class="text-xs font-black text-heading">{{ qz.questionsCount }} câu</strong>
+                </div>
+                <div class="p-2.5 rounded-xl surface-input border border-card text-center">
+                  <span class="text-[10px] text-muted block">Tổng điểm</span>
+                  <strong class="text-xs font-black text-emerald-600 dark:text-emerald-400">{{ qz.totalScore }} điểm</strong>
+                </div>
+                <div class="p-2.5 rounded-xl surface-input border border-card text-center">
+                  <span class="text-[10px] text-muted block">Thời gian</span>
+                  <strong class="text-xs font-black text-heading">{{ qz.durationMinutes }} phút</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="pt-4 border-t border-card flex items-center justify-between gap-2">
+              <button
+                type="button"
+                @click="openQuizPreview(qz)"
+                class="text-xs font-bold text-(--accent-primary) hover:underline flex items-center gap-1.5"
+              >
+                <Eye :size="13" />
+                Xem câu hỏi & điểm
+              </button>
+              <GlassButton size="sm" variant="primary" @click="openAttachCouncilQuizModal()">
+                <template #leading>
+                  <Plus :size="13" />
+                </template>
+                Gán vào bài học...
+              </GlassButton>
+            </div>
           </div>
         </div>
       </div>
@@ -776,7 +1049,7 @@ function getTypeText(type) {
                   <span v-if="lesson.type === 'video' && !lesson.allowSeek" title="Đang khóa tua video đối với sinh viên">
                     <Lock :size="13" class="text-amber-500" />
                   </span>
-                  <GlassBadge :variant="lesson.type === 'video' ? 'info' : lesson.type === 'pdf' ? 'success' : 'neutral'" size="sm">
+                  <GlassBadge :variant="lesson.type === 'video' ? 'info' : lesson.type === 'pdf' ? 'success' : lesson.type === 'slide' ? 'purple' : lesson.type === 'quiz' ? 'warning' : 'neutral'" size="sm">
                     {{ getTypeText(lesson.type) }}
                   </GlassBadge>
                 </div>
@@ -807,16 +1080,26 @@ function getTypeText(type) {
             <div class="flex items-center gap-2 flex-wrap">
               <GlassButton
                 size="sm"
+                variant="primary"
+                @click="openAttachCouncilQuizModal(activeLesson)"
+              >
+                <template #leading>
+                  <Award :size="13" />
+                </template>
+                {{ activeLesson.quizInfo || (activeLesson.quizQuestions && activeLesson.quizQuestions.length) ? 'Đổi đề Quiz' : '+ Gán đề Quiz Hội đồng' }}
+              </GlassButton>
+              <GlassButton
+                size="sm"
                 variant="secondary"
                 @click="openAssignQuizModalForActiveLesson"
               >
                 <template #leading>
                   <HelpCircle :size="13" class="text-amber-500" />
                 </template>
-                + Gán Quiz vào bài này
+                + Gán câu hỏi lẻ
               </GlassButton>
               <GlassButton
-                v-if="activeLesson.type === 'video'"
+                v-if="activeLesson.hasVideo || activeLesson.fileUrl || activeLesson.type === 'video'"
                 size="sm"
                 :variant="activeLesson.allowSeek ? 'warning' : 'primary'"
                 @click="handleToggleSeek(activeLesson)"
@@ -829,152 +1112,191 @@ function getTypeText(type) {
             </div>
           </div>
 
-          <!-- 1. VIDEO PLAYER (Teacher can seek freely!) -->
-          <div v-if="activeLesson.type === 'video'" class="space-y-5">
-            <div v-if="activeLesson.fileUrl" class="space-y-3">
-              <div class="rounded-2xl overflow-hidden bg-black border border-card shadow-xl relative aspect-video flex items-center justify-center">
-                <video
-                  :key="activeLesson.fileUrl"
-                  controls
-                  playsinline
-                  class="w-full h-full object-contain bg-black"
-                  :src="activeLesson.fileUrl"
-                  preload="auto"
-                >
-                  Trình duyệt không hỗ trợ phát video trực tiếp.
-                </video>
+          <div class="space-y-6">
+            <!-- 1. VIDEO PLAYER (Teacher can seek freely!) -->
+            <div v-if="activeLesson.hasVideo || activeLesson.fileUrl || activeLesson.type === 'video'" class="space-y-3">
+              <div v-if="activeLesson.fileUrl" class="space-y-2">
+                <div class="rounded-2xl overflow-hidden bg-black border border-card shadow-xl relative aspect-video flex items-center justify-center group">
+                  <video
+                    :key="activeLesson.fileUrl"
+                    controls
+                    controlsList="nodownload"
+                    disablePictureInPicture
+                    playsinline
+                    class="w-full h-full object-contain bg-black"
+                    :src="activeLesson.fileUrl"
+                    preload="auto"
+                    @contextmenu.prevent
+                  >
+                    Trình duyệt không hỗ trợ phát video trực tiếp.
+                  </video>
+
+                  <!-- Watermark giảng viên tinh tế -->
+                  <div class="absolute top-3 right-4 pointer-events-none select-none z-10">
+                    <span class="inline-flex items-center gap-1.5 font-mono text-[11px] font-medium text-white/25 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] tracking-wider">
+                      <span class="w-1 h-1 rounded-full bg-white/30 inline-block"></span>
+                      {{ teacherWatermark }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-between gap-2 text-xs px-1">
+                  <div class="flex items-center gap-2">
+                    <span class="text-muted">Trạng thái luồng: <strong class="text-emerald-500">Đã kết nối Cloudflare R2</strong></span>
+                    <span class="text-muted">•</span>
+                    <span class="italic text-muted">Giảng viên có quyền xem & tua video không giới hạn</span>
+                  </div>
+
+                  <!-- Phân quyền tải file video gốc: Chỉ mở cho Hội đồng nội dung / Admin -->
+                  <div v-if="isContentCouncilMember">
+                    <a
+                      :href="activeLesson.fileUrl"
+                      target="_blank"
+                      download
+                      class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold inline-flex items-center gap-1.5 transition-all shadow-xs"
+                      title="Tải file video gốc dành cho thành viên Hội đồng quản trị nội dung"
+                    >
+                      <Download :size="13" />
+                      Tải video gốc (Quyền HĐ Nội dung)
+                    </a>
+                  </div>
+                  <div v-else class="text-muted text-[11px] flex items-center gap-1 text-slate-400">
+                    <Lock :size="12" />
+                    <span>Chỉ thành viên Hội đồng quản trị nội dung mới có quyền tải file video gốc</span>
+                  </div>
+                </div>
               </div>
-              <div class="flex items-center justify-between text-xs text-muted px-1">
-                <span>Trạng thái luồng: <strong class="text-emerald-500">Đã kết nối Cloudflare R2</strong></span>
-                <span class="italic">Giảng viên có quyền xem và tua video không giới hạn</span>
+              <div v-else-if="activeLesson.type === 'video'" class="p-8 text-center surface-input border border-card rounded-2xl space-y-2">
+                <Film :size="36" class="mx-auto text-(--accent-primary)" />
+                <h4 class="text-sm font-bold text-heading">{{ activeLesson.title }}</h4>
+                <p class="text-xs text-muted">Tệp video chưa được đính kèm hoặc đang xử lý mã hóa.</p>
               </div>
-            </div>
-            <div v-else class="p-12 text-center surface-input border border-card rounded-2xl space-y-3">
-              <Film :size="40" class="mx-auto text-(--accent-primary)" />
-              <h4 class="text-sm font-bold text-heading">{{ activeLesson.title }}</h4>
-              <p class="text-xs text-muted">Tệp video chưa được đính kèm hoặc đang xử lý mã hóa.</p>
             </div>
 
-            <!-- Video summary/content -->
+            <!-- 2. SLIDE HTML VIEWER -->
+            <div v-if="activeLesson.hasSlide || activeLesson.slideHtml || activeLesson.type === 'slide'" class="space-y-3">
+              <div v-if="activeLesson.slideHtml" class="space-y-2">
+                <div class="p-4 surface-input border border-card rounded-2xl flex items-center gap-3">
+                  <Presentation :size="24" class="text-purple-500" />
+                  <div>
+                    <h4 class="text-sm font-bold text-heading">Slide bài giảng điện tử</h4>
+                    <p class="text-xs text-muted">Bản trình chiếu tương tác trực tiếp</p>
+                  </div>
+                </div>
+                <div
+                  class="w-full min-h-[400px] p-6 rounded-2xl border border-card bg-white dark:bg-slate-900 text-body overflow-auto"
+                  v-html="activeLesson.slideHtml"
+                ></div>
+              </div>
+            </div>
+
+            <!-- 3. PDF / DOCUMENT VIEWER -->
+            <div v-if="activeLesson.hasDoc || activeLesson.documentUrl || (activeLesson.fileUrl && activeLesson.type === 'pdf')" class="space-y-3">
+              <div v-if="activeLesson.documentUrl || (activeLesson.fileUrl && activeLesson.type === 'pdf')" class="space-y-2">
+                <div class="p-4 surface-input border border-card rounded-2xl flex items-center justify-between gap-4">
+                  <div class="flex items-center gap-3">
+                    <FileText :size="28" class="text-emerald-500" />
+                    <div>
+                      <h4 class="text-sm font-bold text-heading">Tài liệu học tập đính kèm</h4>
+                      <p class="text-xs text-muted">Tài liệu chính thức định dạng PDF / Văn bản</p>
+                    </div>
+                  </div>
+                  <a
+                    :href="activeLesson.documentUrl || activeLesson.fileUrl"
+                    target="_blank"
+                    download
+                    class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center gap-2 transition-all shadow-xs"
+                  >
+                    <Download :size="13" />
+                    Tải tài liệu
+                  </a>
+                </div>
+                <iframe
+                  :src="activeLesson.documentUrl || activeLesson.fileUrl"
+                  class="w-full h-[500px] rounded-2xl border border-card bg-white"
+                ></iframe>
+              </div>
+            </div>
+
+            <!-- 4. TEXT CONTENT / SUMMARY -->
             <div v-if="activeLesson.content" class="p-5 surface-input border border-card rounded-2xl text-xs text-body leading-relaxed whitespace-pre-line">
-              <strong class="text-heading block mb-2 text-sm">Tóm tắt nội dung bài giảng:</strong>
+              <strong class="text-heading block mb-2 text-sm font-bold flex items-center gap-2">
+                <BookOpen :size="16" class="text-(--accent-primary)" />
+                Nội dung bài học:
+              </strong>
               {{ activeLesson.content }}
             </div>
 
-            <!-- Quiz items attached to Video lesson -->
+            <!-- 5. QUIZ SECTION -->
             <div class="space-y-4 pt-4 border-t border-card">
               <div class="flex items-center justify-between gap-3 flex-wrap">
-                <h3 class="text-sm font-bold text-heading flex items-center gap-2">
-                  <HelpCircle :size="16" class="text-amber-500" />
-                  Câu hỏi trắc nghiệm kiểm tra bài học ({{ activeLesson.quizQuestions?.length || 0 }})
-                </h3>
-                <GlassButton size="xs" variant="primary" @click="openAssignQuizModalForActiveLesson">
-                  <template #leading>
-                    <Plus :size="12" />
-                  </template>
-                  Gán thêm câu hỏi từ Ngân hàng
-                </GlassButton>
+                <div class="space-y-0.5">
+                  <h3 class="text-sm font-bold text-heading flex items-center gap-2">
+                    <HelpCircle :size="16" class="text-amber-500" />
+                    <span>{{ activeLesson.quizInfo?.title || 'Câu hỏi trắc nghiệm kiểm tra bài học' }}</span>
+                    <span v-if="activeLesson.quizQuestions?.length" class="text-xs text-muted">({{ activeLesson.quizQuestions.length }} câu)</span>
+                  </h3>
+                  <div v-if="activeLesson.quizInfo" class="flex items-center gap-2 text-xs text-muted">
+                    <span class="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
+                      <Award :size="13" /> Tổng điểm: {{ activeLesson.quizInfo.totalScore }} điểm
+                    </span>
+                    <span>·</span>
+                    <span class="inline-flex items-center gap-1">
+                      <Clock :size="13" /> Thời gian: {{ activeLesson.quizInfo.durationMinutes }} phút
+                    </span>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-2 flex-wrap">
+                  <GlassButton size="sm" variant="primary" @click="openAttachCouncilQuizModal(activeLesson)">
+                    <template #leading>
+                      <Award :size="12" />
+                    </template>
+                    {{ activeLesson.quizInfo || (activeLesson.quizQuestions && activeLesson.quizQuestions.length) ? 'Đổi đề Quiz' : '+ Gán đề Quiz từ Hội đồng' }}
+                  </GlassButton>
+                  <GlassButton size="sm" variant="secondary" @click="openAssignQuizModalForActiveLesson">
+                    <template #leading>
+                      <Plus :size="12" />
+                    </template>
+                    + Thêm câu hỏi lẻ
+                  </GlassButton>
+                  <button
+                    v-if="activeLesson.quizInfo || (activeLesson.quizQuestions && activeLesson.quizQuestions.length)"
+                    type="button"
+                    @click="handleRemoveQuizFromActiveLesson"
+                    class="px-2.5 py-1 rounded-xl text-xs font-bold text-rose-500 hover:bg-rose-500/10 border border-rose-500/30 transition-all flex items-center gap-1"
+                  >
+                    <Trash2 :size="12" />
+                    Gỡ Quiz
+                  </button>
+                </div>
               </div>
 
               <div v-if="activeLesson.quizQuestions && activeLesson.quizQuestions.length" class="space-y-3">
                 <div
                   v-for="(q, idx) in activeLesson.quizQuestions"
                   :key="q.id || idx"
-                  class="p-4 surface-input border border-card rounded-xl space-y-2"
+                  class="p-4 surface-card border border-card rounded-xl space-y-2 relative group"
                 >
-                  <div class="text-xs font-bold text-heading">
-                    <span class="text-(--accent-primary) mr-1">Câu {{ idx + 1 }}:</span> {{ q.question }}
-                  </div>
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                    <div
-                      v-for="(opt, oIdx) in q.options"
-                      :key="oIdx"
-                      :class="[
-                        'p-2 rounded-lg text-xs font-medium border',
-                        (String(oIdx) === String(q.answer) || String.fromCharCode(65 + oIdx) === String(q.answer))
-                          ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 font-bold'
-                          : 'surface-card border-card text-muted'
-                      ]"
-                    >
-                      <strong class="mr-1">{{ String.fromCharCode(65 + oIdx) }}.</strong> {{ opt }}
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="text-xs font-bold text-heading flex-1">
+                      <span class="text-(--accent-primary) mr-1">Câu {{ idx + 1 }}:</span> {{ q.question }}
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                      <span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                        {{ q.diemSo || 1 }} điểm
+                      </span>
+                      <button
+                        type="button"
+                        @click="handleRemoveQuestionFromQuiz(q.id)"
+                        title="Xóa câu hỏi này khỏi bài học"
+                        class="text-muted hover:text-rose-500 p-1 rounded-lg hover:bg-rose-500/10 transition-all opacity-70 group-hover:opacity-100"
+                      >
+                        <Trash2 :size="13" />
+                      </button>
                     </div>
                   </div>
-                </div>
-              </div>
-              <div v-else class="p-6 text-center surface-input border border-dashed border-card rounded-2xl">
-                <p class="text-xs text-muted mb-2">Bài giảng này chưa có câu hỏi trắc nghiệm nào.</p>
-                <GlassButton size="xs" variant="secondary" @click="openAssignQuizModalForActiveLesson">
-                  <template #leading>
-                    <Plus :size="12" />
-                  </template>
-                  Mở Ngân hàng câu hỏi để gán
-                </GlassButton>
-              </div>
-            </div>
-          </div>
 
-          <!-- 2. PDF DOCUMENT VIEWER -->
-          <div v-else-if="activeLesson.type === 'pdf'" class="space-y-4">
-            <div v-if="activeLesson.fileUrl" class="space-y-3">
-              <div class="p-5 surface-input border border-card rounded-2xl flex items-center justify-between gap-4">
-                <div class="flex items-center gap-3">
-                  <FileText :size="32" class="text-emerald-500" />
-                  <div>
-                    <h4 class="text-sm font-bold text-heading">{{ activeLesson.title }}</h4>
-                    <p class="text-xs text-muted">Tài liệu học tập chính thức định dạng PDF</p>
-                  </div>
-                </div>
-                <a
-                  :href="activeLesson.fileUrl"
-                  target="_blank"
-                  download
-                  class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center gap-2 transition-all shadow-xs"
-                >
-                  <Download :size="14" />
-                  Tải tài liệu PDF
-                </a>
-              </div>
-              <iframe
-                :src="activeLesson.fileUrl"
-                class="w-full h-[540px] rounded-2xl border border-card bg-white"
-              ></iframe>
-            </div>
-            <div v-else class="p-12 text-center surface-input border border-card rounded-2xl">
-              <FileText :size="40" class="mx-auto text-emerald-500 mb-2" />
-              <p class="text-xs text-muted">Chưa có tệp PDF đính kèm cho bài học này.</p>
-            </div>
-          </div>
-
-          <!-- 3. TEXT & QUIZ LESSON -->
-          <div v-else class="space-y-5">
-            <div class="p-6 surface-input border border-card rounded-2xl text-sm text-body leading-relaxed whitespace-pre-line">
-              <strong class="text-heading block mb-3 text-base">Nội dung bài học:</strong>
-              {{ activeLesson.content }}
-            </div>
-
-            <!-- Quiz items inside lesson if any -->
-            <div v-if="activeLesson.quizQuestions && activeLesson.quizQuestions.length" class="space-y-3 pt-4 border-t border-card">
-              <div class="flex items-center justify-between gap-3 flex-wrap">
-                <h3 class="text-sm font-bold text-heading flex items-center gap-2">
-                  <HelpCircle :size="16" class="text-amber-500" />
-                  Câu hỏi trắc nghiệm kiểm tra bài học ({{ activeLesson.quizQuestions.length }})
-                </h3>
-                <GlassButton size="xs" variant="primary" @click="openAssignQuizModalForActiveLesson">
-                  <template #leading>
-                    <Plus :size="12" />
-                  </template>
-                  Gán thêm câu hỏi từ Ngân hàng
-                </GlassButton>
-              </div>
-              <div class="space-y-3">
-                <div
-                  v-for="(q, idx) in activeLesson.quizQuestions"
-                  :key="idx"
-                  class="p-4 surface-card border border-card rounded-xl space-y-2"
-                >
-                  <div class="text-xs font-bold text-heading">
-                    <span class="text-(--accent-primary) mr-1">Câu {{ idx + 1 }}:</span> {{ q.question }}
-                  </div>
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                     <div
                       v-for="(opt, oIdx) in q.options"
@@ -989,6 +1311,24 @@ function getTypeText(type) {
                       <strong class="mr-1">{{ String.fromCharCode(65 + oIdx) }}.</strong> {{ opt }}
                     </div>
                   </div>
+                </div>
+              </div>
+              <div v-else class="p-6 text-center surface-input border border-dashed border-card rounded-2xl space-y-3">
+                <HelpCircle :size="32" class="mx-auto text-muted/40" />
+                <p class="text-xs text-muted">Bài giảng này chưa có đề Quiz hoặc câu hỏi trắc nghiệm nào.</p>
+                <div class="flex items-center justify-center gap-3">
+                  <GlassButton size="sm" variant="primary" @click="openAttachCouncilQuizModal(activeLesson)">
+                    <template #leading>
+                      <Award :size="12" />
+                    </template>
+                    + Gán đề Quiz từ Hội đồng
+                  </GlassButton>
+                  <GlassButton size="sm" variant="secondary" @click="openAssignQuizModalForActiveLesson">
+                    <template #leading>
+                      <Plus :size="12" />
+                    </template>
+                    + Thêm câu hỏi từ Ngân hàng
+                  </GlassButton>
                 </div>
               </div>
             </div>
@@ -1263,6 +1603,206 @@ function getTypeText(type) {
               {{ assigningQuestions ? 'Đang gán...' : `Gán các câu hỏi đã chọn (${selectedQuestionIdsForLesson.length})` }}
             </GlassButton>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- MODAL 3: Gán Đề Quiz của Hội đồng Quản lý Nội dung vào Bài học            -->
+    <!-- ========================================================================= -->
+    <div
+      v-if="showAttachCouncilQuizModal"
+      class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
+      @click.self="showAttachCouncilQuizModal = false"
+    >
+      <div class="surface-card border border-card rounded-3xl p-6 md:p-8 max-w-3xl w-full shadow-2xl space-y-5 animate-scale-up max-h-[90vh] flex flex-col">
+        <!-- Header -->
+        <div class="flex items-start justify-between gap-4 pb-4 border-b border-card shrink-0">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <GlassBadge variant="primary" size="sm">{{ courseInfo?.code }}</GlassBadge>
+              <span class="text-xs text-muted">Hội đồng Quản lý Nội dung</span>
+            </div>
+            <h3 class="text-base sm:text-lg font-black text-heading leading-snug">
+              Chọn Đề Quiz để gán vào: <span class="text-(--accent-primary)">{{ activeLesson?.title }}</span>
+            </h3>
+          </div>
+          <button
+            type="button"
+            @click="showAttachCouncilQuizModal = false"
+            class="p-2 rounded-xl text-muted hover:text-heading hover:bg-(--surface-input) transition-all"
+          >
+            <X :size="18" />
+          </button>
+        </div>
+
+        <!-- Quizzes List -->
+        <div class="space-y-3 overflow-y-auto flex-1 pr-1 min-h-[260px]">
+          <div v-if="loadingQuizzes" class="py-12 text-center text-xs text-muted">
+            <div class="animate-spin w-7 h-7 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-3"></div>
+            Đang tải danh sách đề Quiz của Hội đồng...
+          </div>
+          <div v-else-if="councilQuizzes.length === 0" class="p-12 text-center text-xs text-muted">
+            Hội đồng quản lý nội dung chưa tạo đề Quiz nào cho môn học này.
+          </div>
+          <div
+            v-for="qz in councilQuizzes"
+            :key="qz.quizId"
+            :class="[
+              'p-4 rounded-2xl border transition-all cursor-pointer flex flex-col gap-3',
+              selectedCouncilQuiz?.quizId === qz.quizId
+                ? 'bg-(--accent-primary)/10 border-(--accent-primary) shadow-xs'
+                : 'surface-input border-card hover:border-(--accent-primary)/40'
+            ]"
+            @click="selectedCouncilQuiz = qz"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-start gap-3 min-w-0">
+                <input
+                  type="radio"
+                  :checked="selectedCouncilQuiz?.quizId === qz.quizId"
+                  class="mt-1 text-(--accent-primary) focus:ring-(--accent-primary)"
+                />
+                <div>
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="text-xs font-mono font-bold text-(--accent-primary)">{{ qz.code }}</span>
+                    <GlassBadge :variant="qz.trangThai === 'dang_mo' || qz.trangThai === 'da_xuat_ban' ? 'success' : 'warning'" size="sm">
+                      {{ qz.trangThai === 'dang_mo' || qz.trangThai === 'da_xuat_ban' ? 'Đã xuất bản' : 'Bản nháp' }}
+                    </GlassBadge>
+                  </div>
+                  <h4 class="text-xs sm:text-sm font-bold text-heading leading-snug">{{ qz.title }}</h4>
+                  <p v-if="qz.description" class="text-xs text-muted mt-1 leading-relaxed">{{ qz.description }}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quiz summary badges -->
+            <div class="flex items-center gap-3 text-xs pl-7 text-muted">
+              <span>Số câu hỏi: <strong class="text-heading">{{ qz.questionsCount }} câu</strong></span>
+              <span>·</span>
+              <span>Tổng điểm: <strong class="text-emerald-600 dark:text-emerald-400">{{ qz.totalScore }} điểm</strong></span>
+              <span>·</span>
+              <span>Thời gian: <strong class="text-heading">{{ qz.durationMinutes }} phút</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex items-center justify-between gap-3 pt-4 border-t border-card shrink-0">
+          <span class="text-xs text-muted">
+            Đề đã chọn: <strong class="text-heading">{{ selectedCouncilQuiz?.title || 'Chưa chọn đề' }}</strong>
+          </span>
+          <div class="flex items-center gap-2">
+            <GlassButton variant="secondary" size="sm" @click="showAttachCouncilQuizModal = false">
+              Đóng
+            </GlassButton>
+            <GlassButton
+              variant="primary"
+              size="sm"
+              :disabled="attachingCouncilQuiz || !selectedCouncilQuiz"
+              @click="confirmAttachCouncilQuiz"
+            >
+              <template #leading>
+                <Check :size="14" />
+              </template>
+              {{ attachingCouncilQuiz ? 'Đang gán...' : 'Gán đề Quiz này vào bài học' }}
+            </GlassButton>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- MODAL 4: Xem trước câu hỏi & điểm số của Đề Quiz                          -->
+    <!-- ========================================================================= -->
+    <div
+      v-if="showQuizDetailModal"
+      class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
+      @click.self="showQuizDetailModal = false"
+    >
+      <div class="surface-card border border-card rounded-3xl p-6 md:p-8 max-w-3xl w-full shadow-2xl space-y-5 animate-scale-up max-h-[90vh] flex flex-col">
+        <!-- Header -->
+        <div class="flex items-start justify-between gap-4 pb-4 border-b border-card shrink-0">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-xs font-mono font-bold text-(--accent-primary)">{{ previewQuizDetail?.code }}</span>
+              <GlassBadge variant="success" size="sm">Đề Quiz Hội đồng</GlassBadge>
+            </div>
+            <h3 class="text-base sm:text-lg font-black text-heading leading-snug">
+              {{ previewQuizDetail?.title }}
+            </h3>
+            <div class="flex items-center gap-3 text-xs text-muted pt-1">
+              <span>{{ previewQuizDetail?.questionsCount }} câu hỏi</span>
+              <span>·</span>
+              <span class="text-emerald-600 dark:text-emerald-400 font-bold">Tổng: {{ previewQuizDetail?.totalScore }} điểm</span>
+              <span>·</span>
+              <span>Thời gian: {{ previewQuizDetail?.durationMinutes }} phút</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            @click="showQuizDetailModal = false"
+            class="p-2 rounded-xl text-muted hover:text-heading hover:bg-(--surface-input) transition-all"
+          >
+            <X :size="18" />
+          </button>
+        </div>
+
+        <!-- Questions List -->
+        <div class="space-y-4 overflow-y-auto flex-1 pr-1 min-h-[260px]">
+          <div v-if="!previewQuizDetail?.questions || previewQuizDetail.questions.length === 0" class="p-8 text-center text-xs text-muted">
+            Đề Quiz này chưa có câu hỏi nào trong danh sách.
+          </div>
+          <div
+            v-for="(q, idx) in previewQuizDetail?.questions"
+            :key="q.id || idx"
+            class="p-4 surface-input border border-card rounded-2xl space-y-3"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="text-xs font-bold text-heading">
+                <span class="text-(--accent-primary) mr-1">Câu {{ idx + 1 }}:</span> {{ q.question }}
+              </div>
+              <span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+                {{ q.diemSo || 1 }} điểm
+              </span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div
+                v-for="(opt, oIdx) in q.options"
+                :key="oIdx"
+                :class="[
+                  'p-2.5 rounded-xl border text-xs font-medium',
+                  (String(oIdx) === String(q.answer) || String.fromCharCode(65 + oIdx) === String(q.answer))
+                    ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 font-bold'
+                    : 'surface-card border-card text-muted'
+                ]"
+              >
+                <strong class="mr-1.5">{{ String.fromCharCode(65 + oIdx) }}.</strong> {{ opt }}
+              </div>
+            </div>
+
+            <div v-if="q.explanation" class="text-[11px] text-muted p-2.5 surface-card rounded-xl border border-card">
+              <strong class="text-heading">Giải thích:</strong> {{ q.explanation }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex items-center justify-between gap-3 pt-4 border-t border-card shrink-0">
+          <GlassButton variant="secondary" size="sm" @click="showQuizDetailModal = false">
+            Đóng
+          </GlassButton>
+          <GlassButton
+            variant="primary"
+            size="sm"
+            @click="showQuizDetailModal = false; openAttachCouncilQuizModal()"
+          >
+            <template #leading>
+              <Plus :size="14" />
+            </template>
+            Gán vào bài học...
+          </GlassButton>
         </div>
       </div>
     </div>

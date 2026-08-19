@@ -16,7 +16,11 @@ import {
   ArrowLeft,
   Eye,
   X,
-  FileText
+  FileText,
+  RotateCcw,
+  BookOpen,
+  GraduationCap,
+  Layers
 } from 'lucide-vue-next'
 
 import GlassBadge from '@/components/ui/GlassBadge.vue'
@@ -34,6 +38,122 @@ const myClasses = ref([])
 const selectedCourseId = ref('')
 const selectedClassName = ref('')
 const selectedCourseName = ref('')
+
+// ── Search & Cascading Filter States ──
+const searchKeyword = ref('')
+const selectedMajor = ref('')
+const selectedSpecialization = ref('')
+const selectedSubject = ref('')
+const selectedSemester = ref('')
+
+const majorOptions = computed(() => {
+  const map = new Map()
+  myClasses.value.forEach(c => {
+    const mId = c.maNganh ?? c.MaNganh
+    const mName = c.tenNganh ?? c.TenNganh
+    if (mId && mName) {
+      map.set(String(mId), mName)
+    }
+  })
+  return Array.from(map.entries()).map(([id, name]) => ({ id, name }))
+})
+
+const specializationOptions = computed(() => {
+  const map = new Map()
+  myClasses.value.forEach(c => {
+    const mId = c.maNganh ?? c.MaNganh
+    if (selectedMajor.value && String(mId) !== String(selectedMajor.value)) return
+    const cnId = c.maChuyenNganh ?? c.MaChuyenNganh
+    const cnName = c.tenChuyenNganh ?? c.TenChuyenNganh
+    if (cnId && cnName) {
+      map.set(String(cnId), cnName)
+    }
+  })
+  return Array.from(map.entries()).map(([id, name]) => ({ id, name }))
+})
+
+const subjectOptions = computed(() => {
+  const map = new Map()
+  myClasses.value.forEach(c => {
+    const mId = c.maNganh ?? c.MaNganh
+    const cnId = c.maChuyenNganh ?? c.MaChuyenNganh
+    if (selectedMajor.value && String(mId) !== String(selectedMajor.value)) return
+    if (selectedSpecialization.value && String(cnId) !== String(selectedSpecialization.value)) return
+    const subId = c.maMonHoc ?? c.MaMonHoc
+    const subName = c.tenMonHoc ?? c.TenMonHoc
+    const subCode = c.maMonHocCode ?? c.MaMonHocCode
+    if (subId && subName) {
+      map.set(String(subId), `${subCode ? subCode + ' - ' : ''}${subName}`)
+    }
+  })
+  return Array.from(map.entries()).map(([id, name]) => ({ id, name }))
+})
+
+const semesterOptions = computed(() => {
+  const map = new Map()
+  myClasses.value.forEach(c => {
+    const termId = c.maHocKy ?? c.MaHocKy
+    const termName = c.tenHocKy ?? c.TenHocKy
+    if (termId && termName) {
+      map.set(String(termId), termName)
+    } else if (termName) {
+      map.set(termName, termName)
+    }
+  })
+  return Array.from(map.entries()).map(([id, name]) => ({ id, name }))
+})
+
+// Auto-reset dependent filters when parent filter changes
+watch(selectedMajor, () => {
+  selectedSpecialization.value = ''
+  selectedSubject.value = ''
+})
+
+watch(selectedSpecialization, () => {
+  selectedSubject.value = ''
+})
+
+const filteredClasses = computed(() => {
+  let list = myClasses.value
+  if (selectedMajor.value) {
+    list = list.filter(c => String(c.maNganh ?? c.MaNganh) === String(selectedMajor.value))
+  }
+  if (selectedSpecialization.value) {
+    list = list.filter(c => String(c.maChuyenNganh ?? c.MaChuyenNganh) === String(selectedSpecialization.value))
+  }
+  if (selectedSubject.value) {
+    list = list.filter(c => String(c.maMonHoc ?? c.MaMonHoc) === String(selectedSubject.value))
+  }
+  if (selectedSemester.value) {
+    list = list.filter(c => String(c.maHocKy ?? c.MaHocKy) === String(selectedSemester.value) || String(c.tenHocKy ?? c.TenHocKy) === String(selectedSemester.value))
+  }
+  if (searchKeyword.value.trim()) {
+    const q = searchKeyword.value.trim().toLowerCase()
+    list = list.filter(c => 
+      (c.tenMonHoc || c.TenMonHoc || '').toLowerCase().includes(q) ||
+      (c.maMonHocCode || c.MaMonHocCode || '').toLowerCase().includes(q) ||
+      (c.tenLop || c.TenLop || '').toLowerCase().includes(q) ||
+      (c.tieuDe || c.TieuDe || '').toLowerCase().includes(q)
+    )
+  }
+  return list
+})
+
+const totalFilteredStudents = computed(() => {
+  return filteredClasses.value.reduce((acc, c) => acc + (c.siSo || c.studentCount || c.studentsCount || 0), 0)
+})
+
+const hasActiveFilters = computed(() => {
+  return !!(searchKeyword.value.trim() || selectedMajor.value || selectedSpecialization.value || selectedSubject.value || selectedSemester.value)
+})
+
+function resetFilters() {
+  searchKeyword.value = ''
+  selectedMajor.value = ''
+  selectedSpecialization.value = ''
+  selectedSubject.value = ''
+  selectedSemester.value = ''
+}
 
 const gradebook = ref([])
 const gradeColumns = ref([])
@@ -127,13 +247,13 @@ const calculatedDetailGpa = computed(() => {
     flatColumns.value.forEach(col => {
       const g = col.grade ?? col.Grade
       const w = col.weight || 0
-      if (g !== null && g !== undefined) {
-        weightedSum += Number(g) * (w / 100)
+      if (g !== null && g !== undefined && g !== '') {
+        weightedSum += Number(g) * w
         totalWeight += w
       }
     })
     if (totalWeight > 0) {
-      return Number(weightedSum.toFixed(2))
+      return Number((weightedSum / totalWeight).toFixed(2))
     }
   }
   return 0
@@ -147,7 +267,7 @@ async function openDetail(sv) {
   try {
     const cls = myClasses.value.find(c => String(c.maKhoaHoc) === String(selectedCourseId.value))
     if (!cls) return
-    const res = await teacherApi.getStudentGradeDetail(cls.maLop, sv.id)
+    const res = await teacherApi.getStudentGradeDetail(cls.maLop, sv.id, selectedCourseId.value)
     const data = res?.data ?? res?.Data ?? res
     if (data) {
       data.typeGrades = data.typeGrades ?? data.TypeGrades ?? {}
@@ -354,30 +474,134 @@ onMounted(loadGrades)
     
     <!-- CARD GRID VIEW (NO CLASS SELECTED) -->
     <template v-else-if="!route.query.courseId">
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
         <div>
           <h1 class="text-xl font-bold text-heading tracking-tight">Quản lý điểm khóa học</h1>
-          <p class="text-muted mt-1">Chọn khóa học để xem chi tiết kết quả học tập của sinh viên.</p>
+          <p class="text-muted text-xs mt-0.5">Chọn khóa học để xem và quản lý kết quả học tập của sinh viên.</p>
+        </div>
+        <div class="flex items-center gap-3 text-xs">
+          <div class="px-3 py-1.5 rounded-xl surface-card border border-card flex items-center gap-2 font-medium text-heading">
+            <BookOpen :size="14" class="text-blue-500" />
+            <span><strong>{{ filteredClasses.length }}</strong> khóa học</span>
+          </div>
+          <div class="px-3 py-1.5 rounded-xl surface-card border border-card flex items-center gap-2 font-medium text-heading">
+            <Users :size="14" class="text-emerald-500" />
+            <span><strong>{{ totalFilteredStudents }}</strong> sinh viên</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- FILTER & SEARCH PANEL -->
+      <div class="surface-card border border-card rounded-2xl p-4 mb-6 space-y-3 shadow-xs">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+          <!-- Search input -->
+          <div class="relative lg:col-span-2">
+            <Search :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+            <input
+              v-model="searchKeyword"
+              type="text"
+              placeholder="Tìm theo tên môn, mã môn, tên lớp..."
+              class="w-full pl-9 pr-3 py-2 rounded-xl surface-input border border-card text-xs text-heading focus:outline-hidden focus:border-blue-500 transition-colors"
+            />
+          </div>
+
+          <!-- Major Filter -->
+          <div>
+            <select
+              v-model="selectedMajor"
+              class="w-full px-3 py-2 rounded-xl surface-input border border-card text-xs text-heading focus:outline-hidden focus:border-blue-500 transition-colors"
+            >
+              <option value="">Tất cả ngành</option>
+              <option v-for="m in majorOptions" :key="m.id" :value="m.id">
+                {{ m.name }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Specialization Filter -->
+          <div>
+            <select
+              v-model="selectedSpecialization"
+              class="w-full px-3 py-2 rounded-xl surface-input border border-card text-xs text-heading focus:outline-hidden focus:border-blue-500 transition-colors"
+            >
+              <option value="">Tất cả chuyên ngành</option>
+              <option v-for="s in specializationOptions" :key="s.id" :value="s.id">
+                {{ s.name }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Semester Filter -->
+          <div>
+            <select
+              v-model="selectedSemester"
+              class="w-full px-3 py-2 rounded-xl surface-input border border-card text-xs text-heading focus:outline-hidden focus:border-blue-500 transition-colors"
+            >
+              <option value="">Tất cả học kỳ</option>
+              <option v-for="t in semesterOptions" :key="t.id" :value="t.id">
+                {{ t.name }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-card/50 text-xs">
+          <!-- Subject Filter inline -->
+          <div class="flex items-center gap-2 min-w-0 flex-1">
+            <span class="text-muted font-medium shrink-0">Môn học:</span>
+            <select
+              v-model="selectedSubject"
+              class="px-3 py-1.5 rounded-xl surface-input border border-card text-xs text-heading focus:outline-hidden focus:border-blue-500 max-w-xs transition-colors"
+            >
+              <option value="">Tất cả môn học ({{ subjectOptions.length }})</option>
+              <option v-for="sub in subjectOptions" :key="sub.id" :value="sub.id">
+                {{ sub.name }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Reset Button -->
+          <button
+            v-if="hasActiveFilters"
+            type="button"
+            @click="resetFilters"
+            class="px-3 py-1.5 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 border border-rose-200 dark:border-rose-800/40 flex items-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <RotateCcw :size="13" /> Đặt lại bộ lọc
+          </button>
         </div>
       </div>
       
-      <div v-if="myClasses.length === 0" class="text-center p-8 bg-white rounded-xl shadow-sm border border-slate-200">
-        <Users class="mx-auto h-12 w-12 text-slate-300 mb-3" />
-        <p class="text-slate-500">Bạn chưa được phân công giảng dạy lớp nào.</p>
+      <div v-if="myClasses.length === 0" class="text-center p-12 surface-card rounded-2xl border border-card">
+        <Users class="mx-auto h-12 w-12 text-muted mb-3" />
+        <p class="text-muted">Bạn chưa được phân công giảng dạy lớp nào.</p>
+      </div>
+
+      <div v-else-if="filteredClasses.length === 0" class="text-center p-12 surface-card rounded-2xl border border-card">
+        <Search class="mx-auto h-10 w-10 text-muted mb-3" />
+        <p class="text-heading font-semibold">Không tìm thấy khóa học nào phù hợp</p>
+        <p class="text-muted text-xs mt-1">Hãy thử thay đổi từ khóa tìm kiếm hoặc điều chỉnh bộ lọc ngành/môn học.</p>
+        <button
+          type="button"
+          @click="resetFilters"
+          class="mt-3 px-4 py-1.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white transition-colors cursor-pointer"
+        >
+          Xóa bộ lọc
+        </button>
       </div>
       
       <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <TeacherClassCard
-          v-for="cls in myClasses"
+          v-for="cls in filteredClasses"
           :key="cls.maKhoaHoc"
           :title="`${cls.tenMonHoc} - ${cls.tenLop}`"
           :semester="cls.tenHocKy || 'Học kỳ hiện tại'"
-          :studentsCount="0"
+          :studentsCount="cls.siSo || cls.studentCount || cls.studentsCount || 0"
         >
           <template #action>
             <button
               @click="goToGrades(cls.maKhoaHoc)"
-              class="w-full flex justify-center items-center gap-2 group-hover:bg-(--accent-primary) group-hover:text-inverse transition-all bg-slate-100 px-4 py-2 rounded-xl text-xs font-bold"
+              class="w-full flex justify-center items-center gap-2 group-hover:bg-(--accent-primary) group-hover:text-inverse transition-all bg-slate-100 dark:bg-slate-800 px-4 py-2.5 rounded-xl text-xs font-bold cursor-pointer"
             >
               Xem sổ điểm
               <ArrowUpDown class="w-4 h-4 rotate-90" />

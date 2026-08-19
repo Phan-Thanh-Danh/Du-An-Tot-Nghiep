@@ -357,12 +357,31 @@ public class TeacherClassesController : ControllerBase
                         {
                             id = b.MaBaiHoc,
                             tieuDe = b.TieuDe,
-                            loai = b.LoaiBaiHoc.ToLower(),
+                            hasVideo = _context.BaiHocNoiDungs.Any(n => n.MaBaiHoc == b.MaBaiHoc && n.LoaiNoiDung == "video") || !string.IsNullOrEmpty(b.UrlTapTin) || b.LoaiBaiHoc == "video",
+                            hasDoc = _context.BaiHocNoiDungs.Any(n => n.MaBaiHoc == b.MaBaiHoc && (n.LoaiNoiDung == "tai_lieu" || n.LoaiNoiDung == "pdf" || n.LoaiNoiDung == "document")) || b.LoaiBaiHoc == "tai_lieu" || b.LoaiBaiHoc == "pdf" || b.LoaiBaiHoc == "document",
+                            hasSlide = _context.BaiHocNoiDungs.Any(n => n.MaBaiHoc == b.MaBaiHoc && n.LoaiNoiDung == "slide_html") || b.LoaiBaiHoc == "slide_html" || b.LoaiBaiHoc == "slide",
+                            hasQuiz = _context.BaiHocNoiDungs.Any(n => n.MaBaiHoc == b.MaBaiHoc && (n.LoaiNoiDung == "quiz" || n.LoaiNoiDung == "trac_nghiem" || n.MaDeKiemTra != null)) || b.LoaiBaiHoc == "quiz" || b.LoaiBaiHoc == "trac_nghiem",
+                            rawLoai = b.LoaiBaiHoc.ToLower(),
                             thoiLuong = b.ThoiLuongGiay.HasValue && b.ThoiLuongGiay.Value > 0 ? $"{b.ThoiLuongGiay.Value / 60} phút" : "15 phút",
-                            rawUrlTapTin = b.UrlTapTin,
+                            rawUrlTapTin = b.UrlTapTin ?? _context.BaiHocNoiDungs.Where(n => n.MaBaiHoc == b.MaBaiHoc && n.LoaiNoiDung == "video" && n.UrlTapTin != null).Select(n => n.UrlTapTin).FirstOrDefault(),
+                            rawDocumentUrl = _context.BaiHocNoiDungs.Where(n => n.MaBaiHoc == b.MaBaiHoc && (n.LoaiNoiDung == "tai_lieu" || n.LoaiNoiDung == "pdf" || n.LoaiNoiDung == "document") && n.UrlTapTin != null).Select(n => n.UrlTapTin).FirstOrDefault(),
+                            slideHtml = _context.BaiHocNoiDungs.Where(n => n.MaBaiHoc == b.MaBaiHoc && n.LoaiNoiDung == "slide_html").Select(n => n.NoiDungHtml).FirstOrDefault(),
                             noiDung = b.NoiDungVanBan,
                             allowSeek = b.DieuKienMoKhoa == null || !b.DieuKienMoKhoa.Contains("\"allowSeek\":false"),
                             trangThai = "published",
+                            quizInfo = _context.BaiHocNoiDungs
+                                .Where(n => n.MaBaiHoc == b.MaBaiHoc && n.MaDeKiemTra != null)
+                                .Select(n => new
+                                {
+                                    contentId = n.MaNoiDung,
+                                    quizId = n.DeKiemTra!.MaDeKiemTra,
+                                    title = n.DeKiemTra.TieuDe,
+                                    durationMinutes = n.DeKiemTra.ThoiGianPhut,
+                                    trangThai = n.DeKiemTra.TrangThai,
+                                    questionsCount = _context.CauHoiDeKiemTras.Count(cd => cd.MaDeKiemTra == n.MaDeKiemTra),
+                                    totalScore = _context.CauHoiDeKiemTras.Where(cd => cd.MaDeKiemTra == n.MaDeKiemTra).Sum(cd => (double)cd.DiemSo)
+                                })
+                                .FirstOrDefault(),
                             quizQuestions = _context.BaiHocNoiDungs
                                 .Where(n => n.MaBaiHoc == b.MaBaiHoc && n.MaDeKiemTra != null)
                                 .SelectMany(n => _context.CauHoiDeKiemTras
@@ -373,7 +392,9 @@ public class TeacherClassesController : ControllerBase
                                         question = cd.CauHoi.NoiDung,
                                         options = cd.CauHoi.LuaChon,
                                         answer = cd.CauHoi.DapAnDung,
-                                        explanation = cd.CauHoi.GiaiThichDapAn
+                                        explanation = cd.CauHoi.GiaiThichDapAn,
+                                        diemSo = cd.DiemSo,
+                                        thuTu = cd.ThuTu
                                     }))
                                 .ToList()
                         })
@@ -390,12 +411,19 @@ public class TeacherClassesController : ControllerBase
                 {
                     id = b.id,
                     tieuDe = b.tieuDe,
-                    loai = b.loai,
+                    loai = b.hasVideo ? "video" : (b.hasDoc ? "pdf" : (b.hasSlide ? "slide" : (b.hasQuiz ? "quiz" : b.rawLoai))),
+                    hasVideo = b.hasVideo,
+                    hasDoc = b.hasDoc,
+                    hasSlide = b.hasSlide,
+                    hasQuiz = b.hasQuiz,
                     thoiLuong = b.thoiLuong,
                     urlTapTin = ResolveMediaUrl(b.rawUrlTapTin, storageService),
+                    documentUrl = ResolveMediaUrl(b.rawDocumentUrl, storageService),
+                    slideHtml = b.slideHtml,
                     noiDung = b.noiDung,
                     allowSeek = b.allowSeek,
                     trangThai = b.trangThai,
+                    quizInfo = b.quizInfo,
                     quizQuestions = b.quizQuestions
                 }).ToList()
             }).ToList();
@@ -674,6 +702,196 @@ public class TeacherClassesController : ControllerBase
             var msg = ex.InnerException != null ? $"{ex.Message} -> {ex.InnerException.Message}" : ex.Message;
             if (ex.InnerException?.InnerException != null) msg += $" -> {ex.InnerException.InnerException.Message}";
             return StatusCode(500, ApiResponseDto.Fail("Lỗi khi thêm câu hỏi vào bài học: " + msg));
+        }
+    }
+
+    [HttpGet("subjects/{id}/quizzes")]
+    public async Task<ActionResult<ApiResponseDto<object>>> GetSubjectQuizzes(string id)
+    {
+        try
+        {
+            int.TryParse(id, out int numericId);
+            var cleanId = (id ?? "").Trim().ToLower();
+
+            var monHoc = await _context.DanhMucMonHocs.FirstOrDefaultAsync(m =>
+                m.MaCodeMonHoc.ToLower() == cleanId || (numericId > 0 && m.MaMonHoc == numericId));
+
+            if (monHoc == null && numericId > 0)
+            {
+                var kh = await _context.KhoaHocs.Include(k => k.MonHoc).FirstOrDefaultAsync(k => k.MaKhoaHoc == numericId);
+                if (kh?.MonHoc != null) monHoc = kh.MonHoc;
+            }
+
+            if (monHoc == null)
+            {
+                return NotFound(ApiResponseDto.Fail("Không tìm thấy môn học"));
+            }
+
+            int monHocId = monHoc.MaMonHoc;
+
+            // Giảng viên CHỈ được xem các đề kiểm tra đã được Hội đồng quản lý nội dung xuất bản (TrangThai != 'nhap')
+            var quizzes = await _context.DeKiemTras
+                .Where(d => d.MaMonHoc == monHocId && d.TrangThai != "nhap")
+                .OrderByDescending(d => d.MaDeKiemTra)
+                .Select(d => new
+                {
+                    quizId = d.MaDeKiemTra,
+                    code = "QZ-" + d.MaDeKiemTra,
+                    title = d.TieuDe,
+                    description = d.HinhThucThi ?? d.LoaiDeThi ?? "",
+                    durationMinutes = d.ThoiGianPhut,
+                    loaiDeThi = d.LoaiDeThi,
+                    trangThai = d.TrangThai,
+                    questionsCount = _context.CauHoiDeKiemTras.Count(cd => cd.MaDeKiemTra == d.MaDeKiemTra),
+                    totalScore = _context.CauHoiDeKiemTras.Where(cd => cd.MaDeKiemTra == d.MaDeKiemTra).Sum(cd => (double)cd.DiemSo),
+                    questions = _context.CauHoiDeKiemTras
+                        .Where(cd => cd.MaDeKiemTra == d.MaDeKiemTra)
+                        .OrderBy(cd => cd.ThuTu)
+                        .Select(cd => new
+                        {
+                            id = cd.CauHoi!.MaCauHoi,
+                            question = cd.CauHoi.NoiDung,
+                            options = cd.CauHoi.LuaChon,
+                            answer = cd.CauHoi.DapAnDung,
+                            explanation = cd.CauHoi.GiaiThichDapAn,
+                            diemSo = cd.DiemSo,
+                            thuTu = cd.ThuTu
+                        })
+                        .ToList(),
+                    createdAt = d.NgayTao
+                })
+                .ToListAsync();
+
+            return Ok(ApiResponseDto<object>.Ok(quizzes));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponseDto.Fail("Lỗi khi tải danh sách đề Quiz: " + ex.Message));
+        }
+    }
+
+    public class AttachQuizRequest
+    {
+        public int QuizId { get; set; }
+    }
+
+    [HttpPost("lessons/{lessonId}/attach-quiz")]
+    public async Task<ActionResult<ApiResponseDto<object>>> AttachQuizToLesson(int lessonId, [FromBody] AttachQuizRequest request)
+    {
+        try
+        {
+            var baiHoc = await _context.BaiHocs.FindAsync(lessonId);
+            if (baiHoc == null)
+            {
+                return NotFound(ApiResponseDto.Fail("Không tìm thấy bài học"));
+            }
+
+            var quiz = await _context.DeKiemTras.FindAsync(request.QuizId);
+            if (quiz == null)
+            {
+                return NotFound(ApiResponseDto.Fail("Không tìm thấy đề Quiz"));
+            }
+
+            // Nghiệp vụ: Giảng viên không được phép gán đề chưa xuất bản (bản nháp)
+            if (quiz.TrangThai == "nhap")
+            {
+                return BadRequest(ApiResponseDto.Fail("Đề kiểm tra đang ở trạng thái bản nháp. Chỉ có thể gán đề đã được Hội đồng quản lý nội dung xuất bản."));
+            }
+
+            var content = await _context.BaiHocNoiDungs
+                .FirstOrDefaultAsync(n => n.MaBaiHoc == lessonId && (n.LoaiNoiDung == "quiz" || n.LoaiNoiDung == "trac_nghiem" || n.MaDeKiemTra != null));
+
+            if (content == null)
+            {
+                var maxOrder = await _context.BaiHocNoiDungs
+                    .Where(n => n.MaBaiHoc == lessonId)
+                    .MaxAsync(n => (int?)n.ThuTu) ?? 0;
+
+                content = new BaiHocNoiDung
+                {
+                    MaBaiHoc = lessonId,
+                    LoaiNoiDung = "quiz",
+                    MaDeKiemTra = request.QuizId,
+                    TrangThai = "da_xuat_ban",
+                    ThuTu = maxOrder + 1,
+                    NgayTao = DateTime.UtcNow
+                };
+                _context.BaiHocNoiDungs.Add(content);
+            }
+            else
+            {
+                content.MaDeKiemTra = request.QuizId;
+                content.LoaiNoiDung = "quiz";
+                content.TrangThai = "da_xuat_ban";
+                content.NgayCapNhat = DateTime.UtcNow;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(ApiResponseDto<object>.Ok(new
+            {
+                message = "Gán đề Quiz vào bài học thành công",
+                quizId = quiz.MaDeKiemTra,
+                title = quiz.TieuDe
+            }));
+        }
+        catch (Exception ex)
+        {
+            var msg = ex.InnerException != null ? $"{ex.Message} -> {ex.InnerException.Message}" : ex.Message;
+            return StatusCode(500, ApiResponseDto.Fail("Lỗi khi gán đề Quiz vào bài học: " + msg));
+        }
+    }
+
+    [HttpDelete("lessons/{lessonId}/quiz")]
+    public async Task<ActionResult<ApiResponseDto<object>>> RemoveQuizFromLesson(int lessonId)
+    {
+        try
+        {
+            var contents = await _context.BaiHocNoiDungs
+                .Where(n => n.MaBaiHoc == lessonId && (n.LoaiNoiDung == "quiz" || n.LoaiNoiDung == "trac_nghiem" || n.MaDeKiemTra != null))
+                .ToListAsync();
+
+            if (contents.Count > 0)
+            {
+                _context.BaiHocNoiDungs.RemoveRange(contents);
+                await _context.SaveChangesAsync();
+            }
+
+            return Ok(ApiResponseDto<object>.Ok(new { message = "Đã gỡ đề Quiz khỏi bài học" }));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponseDto.Fail("Lỗi khi gỡ đề Quiz khỏi bài học: " + ex.Message));
+        }
+    }
+
+    [HttpDelete("lessons/{lessonId}/quiz-questions/{questionId}")]
+    public async Task<ActionResult<ApiResponseDto<object>>> RemoveQuizQuestionFromLesson(int lessonId, int questionId)
+    {
+        try
+        {
+            var content = await _context.BaiHocNoiDungs
+                .FirstOrDefaultAsync(n => n.MaBaiHoc == lessonId && n.MaDeKiemTra != null);
+
+            if (content?.MaDeKiemTra == null)
+            {
+                return NotFound(ApiResponseDto.Fail("Bài học chưa có đề Quiz"));
+            }
+
+            var relation = await _context.CauHoiDeKiemTras
+                .FirstOrDefaultAsync(cd => cd.MaDeKiemTra == content.MaDeKiemTra.Value && cd.MaCauHoi == questionId);
+
+            if (relation != null)
+            {
+                _context.CauHoiDeKiemTras.Remove(relation);
+                await _context.SaveChangesAsync();
+            }
+
+            return Ok(ApiResponseDto<object>.Ok(new { message = "Đã xóa câu hỏi khỏi đề Quiz của bài học" }));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponseDto.Fail("Lỗi khi xóa câu hỏi: " + ex.Message));
         }
     }
 
@@ -1377,7 +1595,35 @@ public class TeacherClassesController : ControllerBase
             var hocKyId = khoahoc.MaHocKy;
 
             if (!hocKyId.HasValue)
-                return BadRequest(ApiResponseDto.Fail("Khóa học chưa được gán học kỳ, không thể xem bảng điểm."));
+            {
+                var peerCourseTerm = await _context.KhoaHocs
+                    .Where(k => k.MaLop == khoahoc.MaLop && k.MaMonHoc == khoahoc.MaMonHoc && k.MaHocKy != null)
+                    .Select(k => k.MaHocKy)
+                    .FirstOrDefaultAsync();
+
+                if (peerCourseTerm.HasValue)
+                {
+                    hocKyId = peerCourseTerm.Value;
+                }
+                else
+                {
+                    var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+                    var currentTerm = await _context.HocKys
+                        .Where(h => (h.MaDonVi == khoahoc.MaDonVi || h.MaDonVi == 3) && h.NgayBatDau <= today && h.NgayKetThuc >= today && !h.DaKhoa)
+                        .OrderByDescending(h => h.NgayBatDau)
+                        .FirstOrDefaultAsync()
+                        ?? await _context.HocKys
+                        .Where(h => (h.MaDonVi == khoahoc.MaDonVi || h.MaDonVi == 3) && h.NgayBatDau <= today && !h.DaKhoa)
+                        .OrderByDescending(h => h.NgayBatDau)
+                        .FirstOrDefaultAsync()
+                        ?? await _context.HocKys
+                        .Where(h => !h.DaKhoa && h.NgayBatDau <= today)
+                        .OrderByDescending(h => h.NgayBatDau)
+                        .FirstOrDefaultAsync();
+
+                    hocKyId = currentTerm?.MaHocKy ?? 3;
+                }
+            }
 
             // Load grade type configs dynamically
             var configs = await _context.CauHinhDauDiemQuaTrinhs
@@ -1394,6 +1640,16 @@ public class TeacherClassesController : ControllerBase
                 ColumnCount = c.SoLuongCot
             }).ToList();
 
+            if (gradeColumns.Count == 0)
+            {
+                gradeColumns = new List<GradeTypeColumnDto>
+                {
+                    new() { Code = "chuyen_can", Name = "Chuyên cần", Weight = 10, ColumnCount = 1 },
+                    new() { Code = "assignment", Name = "Bài tập & Thực hành", Weight = 40, ColumnCount = 1 },
+                    new() { Code = "quiz", Name = "Kiểm tra & Quiz", Weight = 50, ColumnCount = 1 }
+                };
+            }
+
             // Load students
             var students = await _context.NguoiDungs
                 .Where(n => n.MaLop == classId && (n.VaiTroChinh == "hoc_sinh" || n.VaiTroChinh == "Student"))
@@ -1401,38 +1657,88 @@ public class TeacherClassesController : ControllerBase
                 .Select(n => new { n.MaNguoiDung, n.HoTen })
                 .ToListAsync();
 
-            // Load all DiemSo records for this class/subject/term in one query
+            // Load all DiemSo records for this class/subject/current term in one query
             var studentIds = students.Select(s => s.MaNguoiDung).ToList();
             var diemRecords = await _context.DiemSos
-                .Where(d => studentIds.Contains(d.MaHocSinh) && d.MaMonHoc == monHocId)
+                .Where(d => studentIds.Contains(d.MaHocSinh) && d.MaMonHoc == monHocId && (d.MaHocKy == hocKyId.Value || d.MaHocKy == 0))
                 .ToListAsync();
 
             var studentGrades = new List<StudentGradeSummaryDto>();
 
             foreach (var student in students)
             {
-                var diemRecord = diemRecords.FirstOrDefault(d => d.MaHocSinh == student.MaNguoiDung);
+                var diemRecord = diemRecords.FirstOrDefault(d => d.MaHocSinh == student.MaNguoiDung && (d.MaHocKy == hocKyId.Value || d.MaHocKy == 0))
+                                 ?? diemRecords.FirstOrDefault(d => d.MaHocSinh == student.MaNguoiDung);
 
                 var typeGrades = new Dictionary<string, decimal?>();
-                foreach (var config in configs)
+                if (configs.Count > 0)
                 {
-                    var loaiCode = config.LoaiDauDiem?.MaCode ?? "";
-                    decimal? typeGrade = null;
+                    foreach (var config in configs)
+                    {
+                        var loaiCode = config.LoaiDauDiem?.MaCode ?? "";
+                        decimal? typeGrade = null;
 
-                    if (loaiCode == "chuyen_can")
-                    {
-                        typeGrade = await _gradeService.CalculateAttendanceGradeAsync(student.MaNguoiDung, monHocId, hocKyId.Value);
-                    }
-                    else if (loaiCode == "lab" || loaiCode == "assignment")
-                    {
-                        typeGrade = await _gradeService.CalculateAssignmentGradeAsync(student.MaNguoiDung, monHocId, config);
-                    }
-                    else if (loaiCode == "quiz" || loaiCode == "progress_test")
-                    {
-                        typeGrade = await _gradeService.CalculateQuizGradeAsync(student.MaNguoiDung, monHocId, hocKyId.Value, loaiCode, config);
-                    }
+                        if (loaiCode == "chuyen_can")
+                        {
+                            typeGrade = await _gradeService.CalculateAttendanceGradeAsync(student.MaNguoiDung, monHocId, hocKyId.Value);
+                        }
+                        else if (loaiCode == "lab" || loaiCode == "assignment")
+                        {
+                            typeGrade = await _gradeService.CalculateAssignmentGradeAsync(student.MaNguoiDung, monHocId, config);
+                        }
+                        else if (loaiCode == "quiz" || loaiCode == "progress_test")
+                        {
+                            typeGrade = await _gradeService.CalculateQuizGradeAsync(student.MaNguoiDung, monHocId, hocKyId.Value, loaiCode, config);
+                        }
 
-                    typeGrades[loaiCode] = typeGrade.HasValue ? Math.Round(typeGrade.Value, 2) : null;
+                        typeGrades[loaiCode] = typeGrade.HasValue ? Math.Round(typeGrade.Value, 2) : null;
+                    }
+                }
+                else
+                {
+                    var ccGrade = await _gradeService.CalculateAttendanceGradeAsync(student.MaNguoiDung, monHocId, hocKyId.Value);
+                    typeGrades["chuyen_can"] = ccGrade.HasValue ? Math.Round(ccGrade.Value, 2) : null;
+
+                    var studentSubs = await _context.BaiNops
+                        .Where(b => b.MaHocSinh == student.MaNguoiDung && b.BaiTap != null && b.BaiTap.MaMonHoc == monHocId && b.DiemSo.HasValue)
+                        .Select(b => b.DiemSo!.Value)
+                        .ToListAsync();
+                    typeGrades["assignment"] = studentSubs.Count > 0 ? Math.Round(studentSubs.Average(), 2) : null;
+
+                    var testIds = await _context.DeKiemTras
+                        .Where(d => d.MaMonHoc == monHocId && (d.MaHocKy == null || d.MaHocKy == hocKyId.Value))
+                        .Select(d => d.MaDeKiemTra)
+                        .ToListAsync();
+
+                    if (testIds.Count > 0)
+                    {
+                        var attempts = await _context.PhienThiHocSinhs
+                            .Where(p => p.MaHocSinh == student.MaNguoiDung && testIds.Contains(p.MaDeKiemTra) && p.TrangThaiLuong == "da_dung" && (p.DiemCuoiCung.HasValue || p.DiemTuDong.HasValue))
+                            .GroupBy(p => p.MaDeKiemTra)
+                            .Select(g => g.Max(p => p.DiemCuoiCung ?? p.DiemTuDong ?? 0))
+                            .ToListAsync();
+                        typeGrades["quiz"] = attempts.Count > 0 ? Math.Round(attempts.Average(), 2) : null;
+                    }
+                    else
+                    {
+                        typeGrades["quiz"] = null;
+                    }
+                }
+
+                decimal? dQT = diemRecord?.DiemQuaTrinh;
+                if (!dQT.HasValue)
+                {
+                    var validTg = typeGrades.Values.Where(v => v.HasValue).Select(v => v!.Value).ToList();
+                    if (validTg.Count > 0)
+                    {
+                        dQT = Math.Round(validTg.Average(), 2);
+                    }
+                }
+
+                decimal? gpa = diemRecord?.GpaMonHoc;
+                if (!gpa.HasValue && dQT.HasValue && diemRecord?.DiemGiuaKy != null && diemRecord?.DiemCuoiKy != null)
+                {
+                    gpa = Math.Round(dQT.Value * 0.3m + diemRecord.DiemGiuaKy.Value * 0.2m + diemRecord.DiemCuoiKy.Value * 0.5m, 2);
                 }
 
                 studentGrades.Add(new StudentGradeSummaryDto
@@ -1440,11 +1746,11 @@ public class TeacherClassesController : ControllerBase
                     StudentId = student.MaNguoiDung,
                     StudentName = student.HoTen,
                     TypeGrades = typeGrades,
-                    DiemQuaTrinh = diemRecord?.DiemQuaTrinh,
+                    DiemQuaTrinh = dQT,
                     DiemGiuaKy = diemRecord?.DiemGiuaKy,
                     DiemCuoiKy = diemRecord?.DiemCuoiKy,
-                    GpaMonHoc = diemRecord != null ? diemRecord.GpaMonHoc : null,
-                    TrangThai = diemRecord?.TrangThai == "dat" ? "Đạt" : (diemRecord?.TrangThai == "rot" ? "Rớt" : (diemRecord?.TrangThai != "draft" ? diemRecord?.TrangThai : null)),
+                    GpaMonHoc = gpa,
+                    TrangThai = diemRecord?.TrangThai == "dat" ? "Đạt" : (diemRecord?.TrangThai == "rot" ? "Rớt" : (gpa.HasValue ? (gpa.Value >= 5.0m ? "Đạt" : "Rớt") : (diemRecord?.TrangThai != "draft" ? diemRecord?.TrangThai : null))),
                     DaKhoa = diemRecord?.DaKhoa ?? false
                 });
             }
@@ -1480,13 +1786,13 @@ public class TeacherClassesController : ControllerBase
             {
                 khoahoc = await _context.KhoaHocs
                     .Include(k => k.MonHoc)
-                    .FirstOrDefaultAsync(k => k.MaKhoaHoc == courseId.Value && k.MaLop == id && k.MaGiaoVien == userId);
+                    .FirstOrDefaultAsync(k => k.MaKhoaHoc == courseId.Value && (k.MaLop == id || k.MaKhoaHoc == id) && k.MaGiaoVien == userId);
             }
             else
             {
                 khoahoc = await _context.KhoaHocs
                     .Include(k => k.MonHoc)
-                    .FirstOrDefaultAsync(k => k.MaLop == id && k.MaGiaoVien == userId);
+                    .FirstOrDefaultAsync(k => (k.MaLop == id || k.MaKhoaHoc == id) && k.MaGiaoVien == userId);
             }
 
             if (khoahoc == null)
@@ -1496,7 +1802,35 @@ public class TeacherClassesController : ControllerBase
             var hocKyId = khoahoc.MaHocKy;
 
             if (!hocKyId.HasValue)
-                return BadRequest(ApiResponseDto.Fail("Khóa học chưa được gán học kỳ."));
+            {
+                var peerCourseTerm = await _context.KhoaHocs
+                    .Where(k => k.MaLop == khoahoc.MaLop && k.MaMonHoc == khoahoc.MaMonHoc && k.MaHocKy != null)
+                    .Select(k => k.MaHocKy)
+                    .FirstOrDefaultAsync();
+
+                if (peerCourseTerm.HasValue)
+                {
+                    hocKyId = peerCourseTerm.Value;
+                }
+                else
+                {
+                    var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+                    var currentTerm = await _context.HocKys
+                        .Where(h => (h.MaDonVi == khoahoc.MaDonVi || h.MaDonVi == 3) && h.NgayBatDau <= today && h.NgayKetThuc >= today && !h.DaKhoa)
+                        .OrderByDescending(h => h.NgayBatDau)
+                        .FirstOrDefaultAsync()
+                        ?? await _context.HocKys
+                        .Where(h => (h.MaDonVi == khoahoc.MaDonVi || h.MaDonVi == 3) && h.NgayBatDau <= today && !h.DaKhoa)
+                        .OrderByDescending(h => h.NgayBatDau)
+                        .FirstOrDefaultAsync()
+                        ?? await _context.HocKys
+                        .Where(h => !h.DaKhoa && h.NgayBatDau <= today)
+                        .OrderByDescending(h => h.NgayBatDau)
+                        .FirstOrDefaultAsync();
+
+                    hocKyId = currentTerm?.MaHocKy ?? 3;
+                }
+            }
 
             // Verify student belongs to this class or course
             var student = await _context.NguoiDungs
@@ -1508,7 +1842,7 @@ public class TeacherClassesController : ControllerBase
                 return NotFound(ApiResponseDto.Fail("Không tìm thấy học sinh trong lớp này."));
 
             var diemRecord = await _context.DiemSos
-                .FirstOrDefaultAsync(d => d.MaHocSinh == studentId && d.MaMonHoc == monHocId && d.MaHocKy == hocKyId.Value);
+                .FirstOrDefaultAsync(d => d.MaHocSinh == studentId && d.MaMonHoc == monHocId && (d.MaHocKy == hocKyId.Value || d.MaHocKy == 0));
 
             var configs = await _context.CauHinhDauDiemQuaTrinhs
                 .Include(x => x.LoaiDauDiem)
@@ -1548,23 +1882,27 @@ public class TeacherClassesController : ControllerBase
 
                 foreach (var bt in allBaiTaps)
                 {
-                    var latestSub = await _context.BaiNops
+                    var allSubs = await _context.BaiNops
                         .Where(b => b.MaBaiTap == bt.MaBaiTap && b.MaHocSinh == studentId)
                         .OrderByDescending(b => b.ThoiDiemNop)
                         .Select(b => new { b.DiemSo, b.ThoiDiemNop })
-                        .FirstOrDefaultAsync();
+                        .ToListAsync();
+
+                    var latestSub = allSubs.FirstOrDefault();
+                    var gradedSub = allSubs.FirstOrDefault(b => b.DiemSo.HasValue);
+                    decimal? finalScore = latestSub?.DiemSo ?? gradedSub?.DiemSo;
 
                     string itemStatus = "chua_nop";
                     if (latestSub != null)
                     {
-                        itemStatus = latestSub.DiemSo.HasValue ? "da_cham" : "cho_cham";
+                        itemStatus = finalScore.HasValue ? "da_cham" : "cho_cham";
                     }
 
                     btDetail.Items.Add(new GradeItemDto
                     {
                         ItemId = bt.MaBaiTap,
                         ItemName = bt.TieuDe,
-                        Grade = latestSub?.DiemSo,
+                        Grade = finalScore,
                         Status = itemStatus,
                         SubmittedAt = latestSub?.ThoiDiemNop,
                         IsSubmitted = latestSub != null
@@ -1660,23 +1998,27 @@ public class TeacherClassesController : ControllerBase
                             if (processedBaiTapIds.Contains(bt.MaBaiTap)) continue;
                             processedBaiTapIds.Add(bt.MaBaiTap);
 
-                            var latestSub = await _context.BaiNops
+                            var allSubs = await _context.BaiNops
                                 .Where(b => b.MaBaiTap == bt.MaBaiTap && b.MaHocSinh == studentId)
                                 .OrderByDescending(b => b.ThoiDiemNop)
                                 .Select(b => new { b.DiemSo, b.ThoiDiemNop })
-                                .FirstOrDefaultAsync();
+                                .ToListAsync();
+
+                            var latestSub = allSubs.FirstOrDefault();
+                            var gradedSub = allSubs.FirstOrDefault(b => b.DiemSo.HasValue);
+                            decimal? finalScore = latestSub?.DiemSo ?? gradedSub?.DiemSo;
 
                             string itemStatus = "chua_nop";
                             if (latestSub != null)
                             {
-                                itemStatus = latestSub.DiemSo.HasValue ? "da_cham" : "cho_cham";
+                                itemStatus = finalScore.HasValue ? "da_cham" : "cho_cham";
                             }
 
                             detail.Items.Add(new GradeItemDto
                             {
                                 ItemId = bt.MaBaiTap,
                                 ItemName = bt.TieuDe,
-                                Grade = latestSub?.DiemSo,
+                                Grade = finalScore,
                                 Status = itemStatus,
                                 SubmittedAt = latestSub?.ThoiDiemNop,
                                 IsSubmitted = latestSub != null
@@ -1815,17 +2157,33 @@ public class TeacherClassesController : ControllerBase
                 });
             }
 
+            decimal? dQT = diemRecord?.DiemQuaTrinh;
+            if (!dQT.HasValue)
+            {
+                var scoredGrades = gradeTypes.Where(g => g.AverageGrade.HasValue).Select(g => g.AverageGrade!.Value).ToList();
+                if (scoredGrades.Any())
+                {
+                    dQT = Math.Round(scoredGrades.Average(), 2);
+                }
+            }
+
+            decimal? gpa = diemRecord?.GpaMonHoc;
+            if (!gpa.HasValue && dQT.HasValue && diemRecord?.DiemGiuaKy != null && diemRecord?.DiemCuoiKy != null)
+            {
+                gpa = Math.Round(dQT.Value * 0.3m + diemRecord.DiemGiuaKy.Value * 0.2m + diemRecord.DiemCuoiKy.Value * 0.5m, 2);
+            }
+
             var result = new StudentGradeDetailDto
             {
                 StudentId = student.MaNguoiDung,
                 StudentName = student.HoTen,
                 GradeTypes = gradeTypes,
                 Activities = activities.OrderByDescending(a => a.Timestamp).ToList(),
-                DiemQuaTrinh = diemRecord?.DiemQuaTrinh,
+                DiemQuaTrinh = dQT,
                 DiemGiuaKy = diemRecord?.DiemGiuaKy,
                 DiemCuoiKy = diemRecord?.DiemCuoiKy,
-                GpaMonHoc = diemRecord != null ? diemRecord.GpaMonHoc : null,
-                TrangThai = diemRecord?.TrangThai != "draft" ? diemRecord?.TrangThai : null,
+                GpaMonHoc = gpa,
+                TrangThai = diemRecord?.TrangThai == "dat" ? "Đạt" : (diemRecord?.TrangThai == "rot" ? "Rớt" : (gpa.HasValue ? (gpa.Value >= 5.0m ? "Đạt" : "Rớt") : (diemRecord?.TrangThai != "draft" ? diemRecord?.TrangThai : null))),
                 DaKhoa = diemRecord?.DaKhoa ?? false
             };
 

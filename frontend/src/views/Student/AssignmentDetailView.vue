@@ -85,8 +85,8 @@ onMounted(() => {
 })
 
 const attemptsLeft = computed(() => {
-  if (!assignment.value.rules.maxAttempts) return 0
-  return assignment.value.rules.maxAttempts - assignment.value.rules.currentAttempt
+  if (!assignment.value.rules?.maxAttempts) return 0
+  return Math.max(0, assignment.value.rules.maxAttempts - (assignment.value.rules.currentAttempt || 0))
 })
 
 function validateFile(file) {
@@ -130,25 +130,23 @@ function doSubmit() {
   if (assignment.value.submissions && assignment.value.submissions.length > 0) {
     showConfirmSubmit.value = true
   } else {
-    executeSubmit(false)
+    executeSubmit()
   }
 }
 
-async function executeSubmit(overwrite = false) {
+async function executeSubmit() {
   showConfirmSubmit.value = false
   submitting.value = true
   
   const formData = new FormData()
-  // Currently, the backend accepts one file for simplicity in demo
   if (selectedFiles.value.length > 0) {
     formData.append('file', selectedFiles.value[0].file)
   }
-  formData.append('overwrite', overwrite === true ? 'true' : 'false')
 
   try {
     const res = await studentApi.submitAssignment(assignmentId, formData)
-    if (res.success) {
-      toastMessage.value = 'Nộp bài thành công!'
+    if (res.success || res.Success) {
+      toastMessage.value = res.message || res.Message || 'Nộp bài thành công!'
       showToast.value = true
       selectedFiles.value = []
       setTimeout(() => showToast.value = false, 3500)
@@ -426,12 +424,12 @@ const statusBadgeVariant = (s) => ({
 
       <ConfirmActionDialog
         v-model="showConfirmSubmit"
-        title="Xác nhận nộp bài"
-        message="Bạn đã nộp bài rồi. Bạn có chắc chắn muốn nộp đè bài cũ không? (File cũ của lần nộp hiện tại sẽ bị xóa)."
-        confirmLabel="Có, nộp đè"
-        cancelLabel="Không đè"
+        :title="`Xác nhận nộp bài (Lần ${assignment.rules.currentAttempt + 1})`"
+        :message="`Bạn đã nộp ${assignment.rules.currentAttempt} lần trước đó. Lần nộp này sẽ được tính là lần thứ ${assignment.rules.currentAttempt + 1}/${assignment.rules.maxAttempts} và lưu vào lịch sử bài nộp. Bạn có chắc chắn muốn tiếp tục nộp?`"
+        confirmLabel="Xác nhận nộp bài"
+        cancelLabel="Hủy bỏ"
         variant="primary"
-        @confirm="() => executeSubmit(true)"
+        @confirm="executeSubmit"
       />
     </template>
   </div>

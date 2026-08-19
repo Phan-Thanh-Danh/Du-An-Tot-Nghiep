@@ -191,7 +191,8 @@ public class StudentCoursesController : ControllerBase
         }
 
         var chapters = await context.Chuongs
-            .Include(c => c.BaiHocs.Where(b => b.TrangThai == "da_xuat_ban" || b.TrangThai == "published" || b.BaiHocNoiDungs.Any(n => n.TrangThai == "da_xuat_ban" || n.TrangThai == "published")))
+            .Include(c => c.BaiHocs.Where(b => !b.DaAn && (b.TrangThai == "da_xuat_ban" || b.TrangThai == "published" || b.TrangThai == "dang_mo" || b.TrangThai == "active" || b.TrangThai == "hoat_dong" || b.BaiHocNoiDungs.Any(n => n.TrangThai == "da_xuat_ban" || n.TrangThai == "published" || n.TrangThai == "dang_mo"))))
+                .ThenInclude(b => b.BaiHocNoiDungs)
             .Where(c => c.MaMonHoc == baseSubject.MaMonHoc)
             .OrderBy(c => c.ThuTu)
             .ToListAsync();
@@ -263,15 +264,25 @@ public class StudentCoursesController : ControllerBase
                         var progVal = (int)(prog?.PhanTramTienDo ?? 0m);
                         var isDone = progVal >= 100;
                         var isSeekDisabled = b.DieuKienMoKhoa != null && (b.DieuKienMoKhoa.Contains("\"allowSeek\":false") || b.DieuKienMoKhoa.Contains("khoa_tua") || b.DieuKienMoKhoa.Contains("no_seek"));
+                        var rawVideoUrl = b.UrlTapTin ?? b.BaiHocNoiDungs?.Where(n => n.LoaiNoiDung == "video" && n.UrlTapTin != null).Select(n => n.UrlTapTin).FirstOrDefault();
+                        var rawDocUrl = b.BaiHocNoiDungs?.Where(n => (n.LoaiNoiDung == "tai_lieu" || n.LoaiNoiDung == "pdf" || n.LoaiNoiDung == "document") && n.UrlTapTin != null).Select(n => n.UrlTapTin).FirstOrDefault();
+                        var hasVid = !string.IsNullOrEmpty(rawVideoUrl) || b.LoaiBaiHoc == "video" || (b.BaiHocNoiDungs != null && b.BaiHocNoiDungs.Any(n => n.LoaiNoiDung == "video"));
+                        var hasDoc = !string.IsNullOrEmpty(rawDocUrl) || b.LoaiBaiHoc == "tai_lieu" || b.LoaiBaiHoc == "pdf" || b.LoaiBaiHoc == "document" || b.LoaiBaiHoc == "van_ban";
+                        var hasSlide = b.LoaiBaiHoc == "slide_html" || b.LoaiBaiHoc == "slide" || (b.BaiHocNoiDungs != null && b.BaiHocNoiDungs.Any(n => n.LoaiNoiDung == "slide_html"));
+                        var hasQuiz = b.LoaiBaiHoc == "quiz" || b.LoaiBaiHoc == "trac_nghiem" || (b.BaiHocNoiDungs != null && b.BaiHocNoiDungs.Any(n => n.LoaiNoiDung == "quiz" || n.LoaiNoiDung == "trac_nghiem" || n.MaDeKiemTra != null));
+
+                        var resolvedType = hasVid ? "video" : (hasDoc ? "document" : (hasSlide ? "slide" : (hasQuiz ? "quiz" : (b.LoaiBaiHoc == "trac_nghiem" ? "quiz" : b.LoaiBaiHoc == "slide_html" ? "slide" : "video"))));
+
                         return new CourseLessonDto
                         {
                             Id = "l" + b.MaBaiHoc,
                             Title = b.TieuDe,
                             Duration = b.ThoiLuongGiay.HasValue && b.ThoiLuongGiay.Value > 0 ? TimeSpan.FromSeconds(b.ThoiLuongGiay.Value).ToString(@"mm\:ss") : "15:00",
+                            DurationSeconds = b.ThoiLuongGiay.GetValueOrDefault(),
                             Status = isDone ? "completed" : "active",
                             ProgressPercent = isDone ? 100 : progVal,
-                            Type = b.LoaiBaiHoc == "trac_nghiem" ? "quiz" : b.LoaiBaiHoc == "van_ban" || b.LoaiBaiHoc == "pdf" || b.LoaiBaiHoc == "slide_html" ? "document" : "video",
-                            Url = ResolveMediaUrl(b.UrlTapTin, storageService),
+                            Type = resolvedType,
+                            Url = ResolveMediaUrl(rawVideoUrl ?? rawDocUrl, storageService),
                             AllowSeek = !isSeekDisabled
                         };
                     }).ToList()
@@ -297,19 +308,37 @@ public class StudentCoursesController : ControllerBase
         var lessonContent = await context.BaiHocNoiDungs
             .FirstOrDefaultAsync(n => n.MaBaiHoc == parsedLessonId
                 && (n.LoaiNoiDung == "quiz" || n.LoaiNoiDung == "trac_nghiem" || n.MaDeKiemTra != null)
-                && (n.TrangThai == "da_xuat_ban" || n.TrangThai == "published" || n.TrangThai == "dang_mo" || n.TrangThai == "active" || n.TrangThai == "hoat_dong" || n.TrangThai == null));
+                && (n.TrangThai == "da_xuat_ban" || n.TrangThai == "published" || n.TrangThai == "dang_mo" || n.TrangThai == "active" || n.TrangThai == "hoat_dong" || n.TrangThai == "nhap" || n.TrangThai == null));
 
-        if (lessonContent?.MaDeKiemTra == null)
+        DeKiemTra? quizEntry = null;
+        if (lessonContent?.MaDeKiemTra != null)
+        {
+            quizEntry = await context.DeKiemTras
+                .FirstOrDefaultAsync(d => d.MaDeKiemTra == lessonContent.MaDeKiemTra.Value);
+        }
+        else
+        {
+            // Fallback: Tìm đề thi trắc nghiệm của môn học nếu chưa được gán tường minh vào BaiHocNoiDungs
+            var baiHoc = await context.BaiHocs.Include(b => b.Chuong).FirstOrDefaultAsync(b => b.MaBaiHoc == parsedLessonId);
+            if (baiHoc?.Chuong != null)
+            {
+                quizEntry = await context.DeKiemTras
+                    .Where(d => d.MaMonHoc == baiHoc.Chuong.MaMonHoc && (d.TrangThai == "dang_mo" || d.TrangThai == "da_xuat_ban" || d.TrangThai == "published"))
+                    .OrderByDescending(d => d.MaDeKiemTra)
+                    .FirstOrDefaultAsync();
+            }
+        }
+
+        if (quizEntry == null)
         {
             return Ok(ApiResponseDto<object>.Ok(new List<object>()));
         }
 
-        var quizEntry = await context.DeKiemTras
-            .FirstOrDefaultAsync(d => d.MaDeKiemTra == lessonContent.MaDeKiemTra.Value);
+        var targetQuizId = quizEntry.MaDeKiemTra;
 
         var quizQuestions = await context.CauHoiDeKiemTras
             .Include(q => q.CauHoi)
-            .Where(q => q.MaDeKiemTra == lessonContent.MaDeKiemTra.Value && q.CauHoi != null && q.CauHoi.LoaiCauHoi != "tu_luan")
+            .Where(q => q.MaDeKiemTra == targetQuizId && q.CauHoi != null && q.CauHoi.LoaiCauHoi != "tu_luan")
             .OrderBy(q => q.ThuTu)
             .ToListAsync();
 
@@ -430,13 +459,15 @@ public class StudentCoursesController : ControllerBase
                 Text = q.CauHoi?.NoiDung ?? "",
                 QuestionType = "trac_nghiem",
                 Type = (kieu == "chon_nhieu" || kieu == "multiple") ? "multiple" : "single",
-                Options = options
+                Options = options,
+                DiemSo = q.DiemSo,
+                Points = q.DiemSo
             };
         }).ToList();
 
         return Ok(ApiResponseDto<object>.Ok(new
         {
-            quizId = lessonContent.MaDeKiemTra,
+            quizId = targetQuizId,
             title = quizEntry?.TieuDe ?? "",
             durationMinutes = quizEntry?.ThoiGianPhut ?? 15,
             passScore = cauHinh.diemDat,
@@ -460,7 +491,7 @@ public class StudentCoursesController : ControllerBase
 
         // Trả về các content blocks đã xuất bản cho sinh viên
         var contents = await context.BaiHocNoiDungs
-            .Where(n => n.MaBaiHoc == parsedLessonId && (n.TrangThai == "da_xuat_ban" || n.TrangThai == "published"))
+            .Where(n => n.MaBaiHoc == parsedLessonId && (n.TrangThai == "da_xuat_ban" || n.TrangThai == "published" || n.TrangThai == "dang_mo" || n.TrangThai == "active" || n.TrangThai == "hoat_dong" || n.TrangThai == "nhap" || n.TrangThai == null))
             .OrderBy(n => n.ThuTu)
             .ToListAsync();
 
@@ -531,6 +562,8 @@ public class StudentCoursesController : ControllerBase
         {
             return BadRequest(ApiResponseDto.Fail("Mã bài học không hợp lệ."));
         }
+
+        percent = Math.Clamp(percent, 0, 100);
 
         var existing = await context.TienDoBaiHocs
             .FirstOrDefaultAsync(t => t.MaHocSinh == currentUser.UserId && t.MaBaiHoc == parsedLessonId);

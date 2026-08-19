@@ -125,7 +125,7 @@ public class StudentAssignmentsController : ControllerBase
         var submissions = new List<Backend.Models.BaiNop>();
         submissions = await _context.BaiNops
             .Where(n => n.MaBaiTap == aId && n.MaHocSinh == currentUser.UserId)
-            .OrderByDescending(n => n.ThoiDiemNop)
+            .OrderByDescending(n => n.SoLanNop)
             .ToListAsync();
 
         var latestSubmission = submissions.FirstOrDefault();
@@ -146,6 +146,9 @@ public class StudentAssignmentsController : ControllerBase
             _ => "Chưa nộp"
         };
 
+        int currentAttempts = submissions.Count > 0 ? submissions.Max(s => s.SoLanNop) : 0;
+        int maxAttempts = assignment.SoLanNopToiDa > 0 ? assignment.SoLanNopToiDa : 3;
+
         var detail = new StudentAssignmentDetailDto
         {
             CourseCode = assignment.MonHoc?.MaCodeMonHoc ?? "",
@@ -163,9 +166,9 @@ public class StudentAssignmentsController : ControllerBase
                 AllowedFormats = ParseAllowedFormats(assignment.DinhDangChoPhep),
                 MinSizeKB = assignment.DungLuongToiThieuKB > 0 ? assignment.DungLuongToiThieuKB : 10,
                 MaxSizeMB = assignment.DungLuongToiDaMB > 0 ? assignment.DungLuongToiDaMB : 50,
-                MaxAttempts = assignment.SoLanNopToiDa > 0 ? assignment.SoLanNopToiDa : 3,
-                CurrentAttempt = submissions.Count,
-                Note = "Lưu ý: Không chấp nhận nộp bài qua email."
+                MaxAttempts = maxAttempts,
+                CurrentAttempt = currentAttempts,
+                Note = "Lưu ý: Mỗi lần nộp bài sẽ được cộng dồn vào lịch sử. Hệ thống không cho phép nộp vượt quá số lần quy định."
             },
             Submissions = submissions.Select((s, index) => new SubmissionHistoryDto
             {
@@ -176,7 +179,7 @@ public class StudentAssignmentsController : ControllerBase
                 StatusLabel = s.DiemSo.HasValue ? "Đã chấm" : "Đang kiểm tra",
                 OnTime = !s.NopTre,
                 TimeLabel = s.NopTre ? "Nộp trễ" : "Đúng hạn",
-                File = Path.GetFileName(s.UrlTapTin) ?? "file",
+                File = ExtractDisplayFileName(s.UrlTapTin),
                 FileSize = "N/A",
                 Note = s.NhanXet ?? "",
                 IsLatest = index == 0,
@@ -192,7 +195,7 @@ public class StudentAssignmentsController : ControllerBase
     [HttpPost("{assignmentId}/submit")]
     [Authorize(Roles = "Student")]
     public async Task<ActionResult<ApiResponseDto<AssignmentSubmissionResultDto>>> SubmitAssignment(
-        string assignmentId, [FromForm] IFormFile file, [FromForm] bool overwrite = false)
+        string assignmentId, [FromForm] IFormFile file)
     {
         var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
         if (currentUser == null)
@@ -245,18 +248,59 @@ public class StudentAssignmentsController : ControllerBase
             return BadRequest(new ApiResponseDto<AssignmentSubmissionResultDto> { Success = false, Message = $"Dung lượng file vượt quá giới hạn (Tối đa: {maxSizeMB} MB)." });
         }
 
-        var student = await _context.NguoiDungs.FirstOrDefaultAsync(u => u.MaNguoiDung == currentUser.UserId);
-        string studentName = student?.HoTen ?? "Unknown";
-        // Convert to unaccented characters if possible, or just replace spaces. 
-        // For simplicity, we just replace spaces.
-        string safeStudentName = System.Text.RegularExpressions.Regex.Replace(studentName, @"\s+", "_");
-        
-        string safeFileName = System.Text.RegularExpressions.Regex.Replace(file.FileName, @"[^a-zA-Z0-9_\-\.]", "_");
-        string fileName = $"{currentUser.UserId}_{safeStudentName}_{safeFileName}";
+        // KIỂM TRA SỐ LẦN NỘP VÀ CỘNG DỒN
+        var previousSubmissions = await _context.BaiNops
+            .Where(n => n.MaBaiTap == aId && n.MaHocSinh == currentUser.UserId)
+            .OrderByDescending(n => n.SoLanNop)
+            .ToListAsync();
+
+        int currentAttempts = previousSubmissions.Count > 0 ? previousSubmissions.Max(n => n.SoLanNop) : 0;
+        int maxAllowedAttempts = assignment.SoLanNopToiDa > 0 ? assignment.SoLanNopToiDa : 3;
+
+        if (currentAttempts >= maxAllowedAttempts)
+        {
+            return BadRequest(new ApiResponseDto<AssignmentSubmissionResultDto>
+            {
+                Success = false,
+                Message = $"Bạn đã hết lượt nộp bài. Đã nộp {currentAttempts}/{maxAllowedAttempts} lần tối đa cho phép."
+            });
+        }
+
+        int nextAttempt = currentAttempts + 1;
+
+        // XỬ LÝ TÊN FILE TỰ ĐỘNG ĐÁNH SỐ (1), (2)... NẾU TRÙNG TÊN GIỐNG WINDOWS
+        var rawOriginalName = Path.GetFileName(file.FileName);
+        var ext = Path.GetExtension(rawOriginalName);
+        var rawNameWithoutExt = Path.GetFileNameWithoutExtension(rawOriginalName);
+
+        var baseNameMatch = System.Text.RegularExpressions.Regex.Match(rawNameWithoutExt, @"^(.*?)(?:\s*\(\d+\))?$");
+        var cleanBaseName = baseNameMatch.Success && !string.IsNullOrWhiteSpace(baseNameMatch.Groups[1].Value)
+            ? baseNameMatch.Groups[1].Value.Trim()
+            : rawNameWithoutExt;
+
+        int duplicateCount = 0;
+        foreach (var prevSub in previousSubmissions)
+        {
+            var prevDisplayName = ExtractDisplayFileName(prevSub.UrlTapTin);
+            var prevBase = Path.GetFileNameWithoutExtension(prevDisplayName);
+            var prevExt = Path.GetExtension(prevDisplayName);
+            if (prevExt.Equals(ext, StringComparison.OrdinalIgnoreCase) &&
+                (prevBase.Equals(cleanBaseName, StringComparison.OrdinalIgnoreCase) || prevBase.StartsWith($"{cleanBaseName} (", StringComparison.OrdinalIgnoreCase)))
+            {
+                duplicateCount++;
+            }
+        }
+
+        string finalDisplayFileName = duplicateCount > 0
+            ? $"{cleanBaseName} ({duplicateCount}){ext}"
+            : $"{cleanBaseName}{ext}";
+
+        var safeFinalFileName = System.Text.RegularExpressions.Regex.Replace(finalDisplayFileName, @"[^a-zA-Z0-9_\-\.\(\)\s]", "_");
+        string storageFileName = $"{currentUser.UserId}_ASM{aId}_L{nextAttempt}_{safeFinalFileName}";
 
         var uploadResult = await _r2StorageService.UploadFileAsync(
             file.OpenReadStream(),
-            fileName,
+            storageFileName,
             file.ContentType,
             "student-assignments",
             keepOriginalFileName: true);
@@ -266,52 +310,24 @@ public class StudentAssignmentsController : ControllerBase
             return StatusCode(500, new ApiResponseDto<AssignmentSubmissionResultDto> { Success = false, Message = "Lỗi khi tải file lên hệ thống lưu trữ." });
         }
 
-        var previousSubmissions = await _context.BaiNops
-            .Where(n => n.MaBaiTap == aId && n.MaHocSinh == currentUser.UserId)
-            .OrderByDescending(n => n.SoLanNop)
-            .ToListAsync();
-
-        Backend.Models.BaiNop baiNop;
-
-        if (overwrite && previousSubmissions.Count > 0)
+        var baiNop = new Backend.Models.BaiNop
         {
-            baiNop = previousSubmissions.First();
-            baiNop.UrlTapTin = uploadResult.Url;
-            baiNop.NopTre = assignment.HanNop < now;
-            baiNop.ThoiDiemNop = now;
-            baiNop.DaCongBo = false;
-            baiNop.DiemSo = null;
-            baiNop.NhanXet = null;
-        }
-        else
-        {
-            if (previousSubmissions.Count >= assignment.SoLanNopToiDa)
-            {
-                return BadRequest(new ApiResponseDto<AssignmentSubmissionResultDto> { Success = false, Message = "Bạn đã hết lượt nộp bài." });
-            }
+            MaBaiTap = aId,
+            MaHocSinh = currentUser.UserId,
+            UrlTapTin = uploadResult.Url,
+            SoLanNop = nextAttempt,
+            NopTre = assignment.HanNop < now,
+            ThoiDiemNop = now,
+            DaCongBo = false
+        };
 
-            int nextAttempt = previousSubmissions.Count > 0 ? previousSubmissions.First().SoLanNop + 1 : 1;
-
-            baiNop = new Backend.Models.BaiNop
-            {
-                MaBaiTap = aId,
-                MaHocSinh = currentUser.UserId,
-                UrlTapTin = uploadResult.Url,
-                SoLanNop = nextAttempt,
-                NopTre = assignment.HanNop < now,
-                ThoiDiemNop = now,
-                DaCongBo = false
-            };
-
-            _context.BaiNops.Add(baiNop);
-        }
-
+        _context.BaiNops.Add(baiNop);
         await _context.SaveChangesAsync();
 
         var result = new AssignmentSubmissionResultDto
         {
             Success = true,
-            Message = "Nộp bài thành công.",
+            Message = $"Nộp bài thành công (Lần {nextAttempt}/{maxAllowedAttempts}).",
             Submission = new SubmissionHistoryDto
             {
                 Id = baiNop.MaBaiNop.ToString(),
@@ -321,7 +337,7 @@ public class StudentAssignmentsController : ControllerBase
                 StatusLabel = "Đang kiểm tra",
                 OnTime = !baiNop.NopTre,
                 TimeLabel = baiNop.NopTre ? "Nộp trễ" : "Đúng hạn",
-                File = file.FileName,
+                File = finalDisplayFileName,
                 FileSize = $"{file.Length / 1024} KB",
                 Note = "",
                 IsLatest = true,
@@ -330,6 +346,29 @@ public class StudentAssignmentsController : ControllerBase
         };
 
         return Ok(ApiResponseDto<AssignmentSubmissionResultDto>.Ok(result));
+    }
+
+    private static string ExtractDisplayFileName(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return "file";
+        var rawName = Path.GetFileName(url);
+        if (string.IsNullOrEmpty(rawName)) return "file";
+
+        // Format: {userId}_ASM{assignmentId}_L{attempt}_{originalFileName}
+        var match = System.Text.RegularExpressions.Regex.Match(rawName, @"^\d+_ASM\d+_L\d+_(.+)$");
+        if (match.Success)
+        {
+            return Uri.UnescapeDataString(match.Groups[1].Value);
+        }
+
+        // Legacy format: {userId}_{studentName}_{fileName}
+        var legacyMatch = System.Text.RegularExpressions.Regex.Match(rawName, @"^\d+_[^_]+_(.+)$");
+        if (legacyMatch.Success)
+        {
+            return Uri.UnescapeDataString(legacyMatch.Groups[1].Value);
+        }
+
+        return Uri.UnescapeDataString(rawName);
     }
 
     private static List<string> ParseAllowedFormats(string? raw)
@@ -360,14 +399,14 @@ public class StudentAssignmentsController : ControllerBase
         var classSubjectIds = classId.HasValue
             ? await _context.KhoaHocs
                 .AsNoTracking()
-                .Where(k => k.MaLop == classId.Value && k.TrangThai == "da_xuat_ban")
+                .Where(k => k.MaLop == classId.Value)
                 .Select(k => k.MaMonHoc)
                 .ToListAsync()
             : [];
 
         var registeredSubjectIds = await _context.DangKyHocPhans
             .AsNoTracking()
-            .Where(d => d.MaHocSinh == studentId && d.TrangThai == "da_dang_ky")
+            .Where(d => d.MaHocSinh == studentId)
             .Select(d => d.LopHocPhan!.MaMonHoc)
             .ToListAsync();
 

@@ -9,10 +9,13 @@ import {
   BookMarked,
   BookOpen,
   Clock,
+  Download,
+  Edit3,
   Filter,
   Layers,
   Lock,
   Mail,
+  Save,
   Search,
   Target,
   User,
@@ -336,12 +339,122 @@ const isDrawerOpen = ref(false)
 const selectedStudent = ref(null)
 const activeTab = ref('profile') // 'profile', 'assignments', 'activity'
 
+const studentCourseAssignments = ref([])
+const loadingStudentAssignments = ref(false)
+
+async function loadStudentAssignments(studentId) {
+  if (!studentId) return
+  loadingStudentAssignments.value = true
+  studentCourseAssignments.value = []
+  try {
+    const targetCourseId = currentCourseId.value || currentClassId.value || route.params.id
+    if (targetCourseId) {
+      const res = await teacherApi.getStudentCourseAssignmentsStatus(targetCourseId, studentId)
+      const data = res?.data?.data ?? res?.data ?? res ?? []
+      studentCourseAssignments.value = Array.isArray(data) ? data : []
+    }
+  } catch (err) {
+    console.error('Error loading student assignments', err)
+    studentCourseAssignments.value = []
+  } finally {
+    loadingStudentAssignments.value = false
+  }
+}
+
+// Drawer Inline Grading State
+const showDrawerGradingModal = ref(false)
+const gradingAssignmentItem = ref(null)
+const selectedGradingSubmission = ref(null)
+const drawerGradingSubmitting = ref(false)
+const drawerGradingForm = ref({
+  score: null,
+  feedback: '',
+  publish: true
+})
+const expandedHistory = ref({})
+
+function toggleHistory(assignmentId) {
+  expandedHistory.value[assignmentId] = !expandedHistory.value[assignmentId]
+}
+
+function openDrawerGrading(item, specificSub = null) {
+  gradingAssignmentItem.value = item
+  const subToGrade = specificSub || item.submissions?.[0] || item
+  selectedGradingSubmission.value = subToGrade
+  drawerGradingForm.value = {
+    score: subToGrade.score ?? item.score ?? null,
+    feedback: subToGrade.feedback ?? item.feedback ?? '',
+    publish: true
+  }
+  showDrawerGradingModal.value = true
+}
+
+function onSelectGradingSubmission(subId) {
+  const sub = gradingAssignmentItem.value?.submissions?.find(s => s.submissionId === Number(subId))
+  if (sub) {
+    selectedGradingSubmission.value = sub
+    drawerGradingForm.value.score = sub.score ?? null
+    drawerGradingForm.value.feedback = sub.feedback ?? ''
+  }
+}
+
+function closeDrawerGrading() {
+  showDrawerGradingModal.value = false
+  gradingAssignmentItem.value = null
+  selectedGradingSubmission.value = null
+}
+
+async function submitDrawerGrading() {
+  const submissionId = selectedGradingSubmission.value?.submissionId || gradingAssignmentItem.value?.submissionId
+  if (drawerGradingForm.value.score === null || !submissionId) return
+  drawerGradingSubmitting.value = true
+  try {
+    await teacherApi.gradeSubmission(submissionId, {
+      score: Number(drawerGradingForm.value.score),
+      feedback: drawerGradingForm.value.feedback,
+      publish: drawerGradingForm.value.publish
+    })
+
+    // Optimistically update assignment item in state
+    if (gradingAssignmentItem.value) {
+      gradingAssignmentItem.value.score = Number(drawerGradingForm.value.score)
+      gradingAssignmentItem.value.feedback = drawerGradingForm.value.feedback
+      gradingAssignmentItem.value.status = 'da_cham'
+      if (gradingAssignmentItem.value.submissions) {
+        const found = gradingAssignmentItem.value.submissions.find(s => s.submissionId === submissionId)
+        if (found) {
+          found.score = Number(drawerGradingForm.value.score)
+          found.feedback = drawerGradingForm.value.feedback
+          found.status = 'da_cham'
+        }
+      }
+    }
+
+    // Refresh both assignments and grades
+    if (selectedStudent.value?.id) {
+      await Promise.all([
+        loadStudentAssignments(selectedStudent.value.id),
+        loadStudentGradeDetail(selectedStudent.value.id),
+        loadProgress() // Refresh overall class stats and GPA
+      ])
+    }
+    closeDrawerGrading()
+  } catch (err) {
+    alert(err?.message || 'Không thể lưu điểm bài tập.')
+  } finally {
+    drawerGradingSubmitting.value = false
+  }
+}
+
 const openStudentDetails = async (studentId, tab) => {
   selectedStudent.value = students.value.find(s => s.id === studentId) || null
   activeTab.value = tab
   isDrawerOpen.value = true
   if (selectedStudent.value) {
-    await loadStudentGradeDetail(selectedStudent.value.id)
+    await Promise.all([
+      loadStudentGradeDetail(selectedStudent.value.id),
+      loadStudentAssignments(selectedStudent.value.id)
+    ])
   }
 }
 
@@ -349,6 +462,8 @@ const closeDrawer = () => {
   isDrawerOpen.value = false
   selectedStudent.value = null
   studentGradeDetail.value = null
+  studentCourseAssignments.value = []
+  closeDrawerGrading()
 }
 </script>
 
@@ -928,10 +1043,156 @@ const closeDrawer = () => {
                 </template>
               </div>
 
-              <div v-if="activeTab === 'assignments'" class="drawer-stack">
-                <div v-if="studentDetailLoading" class="py-6 text-center text-xs text-muted">
-                  Đang tải danh sách bài nộp...
+              <div v-if="activeTab === 'assignments'" class="drawer-stack space-y-3">
+                <div v-if="loadingStudentAssignments || studentDetailLoading" class="py-8 text-center text-xs text-muted flex items-center justify-center gap-2">
+                  <div class="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                  <span>Đang tải danh sách bài tập & bài nộp...</span>
                 </div>
+                <template v-else-if="studentCourseAssignments.length > 0">
+                  <article
+                    v-for="item in studentCourseAssignments"
+                    :key="item.assignmentId"
+                    class="assignment-row p-3.5 rounded-xl surface-card border border-card mb-3 transition-all hover:border-blue-400/50 shadow-xs"
+                  >
+                    <div class="flex items-start justify-between gap-3">
+                      <div class="flex items-start gap-3 min-w-0">
+                        <span class="row-icon w-8 h-8 rounded-lg bg-(--accent-primary)/10 text-(--accent-primary) flex items-center justify-center shrink-0 mt-0.5">
+                          <BookOpen :size="16" />
+                        </span>
+                        <div class="min-w-0">
+                          <h3 class="text-xs font-bold text-heading leading-tight">{{ item.title }}</h3>
+                          <div class="flex items-center gap-2 text-[11px] text-muted mt-1 flex-wrap">
+                            <span v-if="item.dueAt" class="text-slate-500">
+                              Hạn nộp: {{ formatDateTime(item.dueAt) }}
+                            </span>
+                            <span v-if="item.submittedAt" class="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                              · Đã nộp lúc {{ formatDateTime(item.submittedAt) }}
+                            </span>
+                            <span v-if="item.isLate" class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-600 border border-rose-500/20">
+                              Nộp trễ
+                            </span>
+                            <span v-if="item.totalAttempts > 1" class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                              {{ item.totalAttempts }} lần nộp
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="shrink-0">
+                        <span
+                          v-if="item.status === 'da_cham' || item.score !== null"
+                          class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                        >
+                          <CheckCircle2 :size="12" />
+                          {{ item.score }} / 10 đ
+                        </span>
+                        <span
+                          v-else-if="item.status === 'cho_cham' || item.submissionId"
+                          class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                        >
+                          <Clock :size="12" />
+                          Chờ chấm điểm
+                        </span>
+                        <span
+                          v-else
+                          class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium text-muted bg-(--surface-input) border border-card"
+                        >
+                          Chưa nộp bài
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- Lời nhận xét của giảng viên nếu có -->
+                    <div v-if="item.feedback" class="mt-2.5 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/40 text-[11px] text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
+                      <strong>Nhận xét:</strong> {{ item.feedback }}
+                    </div>
+
+                    <!-- Nút thao tác: Tải file & Chấm điểm -->
+                    <div v-if="item.submissionId" class="mt-3 pt-2.5 border-t border-card/60 flex items-center justify-between gap-2 flex-wrap">
+                      <div class="flex items-center gap-2">
+                        <a
+                          v-if="item.fileUrl"
+                          :href="item.fileUrl"
+                          target="_blank"
+                          download
+                          class="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                          :title="item.fileName || 'Tải file bài làm mới nhất'"
+                        >
+                          <Download :size="13" /> Tải file (Lần {{ item.attemptNumber }})
+                        </a>
+                        <span v-else class="text-[11px] text-muted italic">Không có file đính kèm</span>
+
+                        <!-- Nút xem lịch sử nếu có nhiều lần nộp -->
+                        <button
+                          v-if="item.submissions && item.submissions.length > 1"
+                          type="button"
+                          @click="toggleHistory(item.assignmentId)"
+                          class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 ml-1 underline cursor-pointer"
+                        >
+                          <Clock :size="11" />
+                          {{ expandedHistory[item.assignmentId] ? 'Thu gọn' : `Xem tất cả ${item.submissions.length} lần nộp` }}
+                        </button>
+                      </div>
+
+                      <button
+                        type="button"
+                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-xs ml-auto cursor-pointer"
+                        @click="openDrawerGrading(item)"
+                      >
+                        <Edit3 :size="12" />
+                        {{ item.score !== null ? 'Sửa điểm' : 'Chấm điểm' }}
+                      </button>
+                    </div>
+
+                    <!-- Danh sách lịch sử các lần nộp chi tiết khi mở rộng -->
+                    <div
+                      v-if="expandedHistory[item.assignmentId] && item.submissions && item.submissions.length > 1"
+                      class="mt-3 p-2.5 rounded-xl bg-(--surface-input) border border-card/80 space-y-2"
+                    >
+                      <div class="text-[11px] font-bold text-heading flex items-center justify-between">
+                        <span>Lịch sử các lần nộp bài:</span>
+                        <span class="text-[10px] text-muted">Có {{ item.submissions.length }} lần nộp</span>
+                      </div>
+
+                      <div
+                        v-for="(sub, sIdx) in item.submissions"
+                        :key="sub.submissionId"
+                        class="p-2 rounded-lg surface-card border border-card/60 flex items-center justify-between gap-2 text-xs"
+                      >
+                        <div class="min-w-0">
+                          <div class="flex items-center gap-2">
+                            <span class="font-bold text-heading">Lần {{ sub.attemptNumber }}</span>
+                            <span v-if="sIdx === 0" class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-600">Mới nhất</span>
+                            <span v-if="sub.score !== null" class="font-bold text-emerald-600 dark:text-emerald-400">· {{ sub.score }}đ</span>
+                          </div>
+                          <div class="text-[10px] text-muted truncate mt-0.5">
+                            {{ formatDateTime(sub.submittedAt) }} · <span class="font-mono">{{ sub.fileName || 'Tập tin' }}</span>
+                          </div>
+                        </div>
+
+                        <div class="flex items-center gap-1 shrink-0">
+                          <a
+                            v-if="sub.fileUrl"
+                            :href="sub.fileUrl"
+                            target="_blank"
+                            download
+                            class="p-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors"
+                            title="Tải file lần nộp này"
+                          >
+                            <Download :size="14" />
+                          </a>
+                          <button
+                            type="button"
+                            @click="openDrawerGrading(item, sub)"
+                            class="px-2 py-0.5 text-[11px] font-semibold text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded border border-blue-300 dark:border-blue-700 transition-colors cursor-pointer"
+                          >
+                            Chấm
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                </template>
                 <template v-else-if="studentAssignmentItems.length > 0">
                   <article
                     v-for="item in studentAssignmentItems"
@@ -1017,6 +1278,126 @@ const closeDrawer = () => {
         </aside>
       </div>
     </Teleport>
+
+    <!-- Drawer In-Place Grading Modal (Teleported with highest z-index) -->
+    <Teleport to="body">
+        <div
+          v-if="showDrawerGradingModal"
+          class="fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
+        >
+          <div class="w-full max-w-md rounded-2xl surface-card border border-card p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-card pb-3">
+              <div>
+                <h3 class="text-base font-bold text-heading">Chấm điểm bài tập</h3>
+                <p class="text-xs text-muted truncate">{{ gradingAssignmentItem?.title }}</p>
+              </div>
+              <button
+                type="button"
+                class="p-1 rounded-lg hover:bg-surface-input text-muted cursor-pointer"
+                @click="closeDrawerGrading"
+              >
+                <X :size="18" />
+              </button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+              <div class="p-2.5 rounded-xl bg-blue-50/50 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/40 flex items-center gap-2">
+                <User :size="14" class="text-blue-600 dark:text-blue-400" />
+                <span>Sinh viên: <strong>{{ selectedStudent?.name }}</strong> ({{ selectedStudent?.email }})</span>
+              </div>
+
+              <!-- Chọn lần nộp nếu có nhiều lần -->
+              <div v-if="gradingAssignmentItem?.submissions && gradingAssignmentItem.submissions.length > 1">
+                <label class="block font-semibold text-heading mb-1">Chọn lần nộp để chấm / xem:</label>
+                <select
+                  :value="selectedGradingSubmission?.submissionId"
+                  @change="onSelectGradingSubmission($event.target.value)"
+                  class="w-full px-3 py-2 rounded-xl surface-input border border-card text-heading text-xs focus:outline-hidden focus:border-blue-500"
+                >
+                  <option
+                    v-for="(sub, idx) in gradingAssignmentItem.submissions"
+                    :key="sub.submissionId"
+                    :value="sub.submissionId"
+                  >
+                    Lần {{ sub.attemptNumber }} {{ idx === 0 ? '(Mới nhất)' : '' }} - {{ formatDateTime(sub.submittedAt) }} - {{ sub.fileName }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Thông tin file bài nộp đang chọn -->
+              <div class="p-2.5 rounded-xl surface-input border border-card flex items-center justify-between gap-2">
+                <div class="min-w-0">
+                  <span class="text-[10px] text-muted block">File bài làm (Lần {{ selectedGradingSubmission?.attemptNumber ?? gradingAssignmentItem?.attemptNumber }}):</span>
+                  <span class="font-medium text-heading truncate block">{{ selectedGradingSubmission?.fileName || gradingAssignmentItem?.fileName || 'Tập tin bài làm' }}</span>
+                </div>
+                <a
+                  v-if="selectedGradingSubmission?.fileUrl || gradingAssignmentItem?.fileUrl"
+                  :href="selectedGradingSubmission?.fileUrl || gradingAssignmentItem?.fileUrl"
+                  target="_blank"
+                  download
+                  class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-1 shrink-0"
+                >
+                  <Download :size="12" /> Tải về
+                </a>
+              </div>
+
+              <div>
+                <label class="block font-semibold text-heading mb-1">Điểm số (Thang 10) *</label>
+                <input
+                  v-model.number="drawerGradingForm.score"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="10"
+                  placeholder="Nhập điểm từ 0.0 đến 10.0"
+                  class="w-full px-3 py-2 rounded-xl surface-input border border-card text-heading font-bold text-sm focus:outline-hidden focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label class="block font-semibold text-heading mb-1">Lời phê / Nhận xét của giảng viên</label>
+                <textarea
+                  v-model="drawerGradingForm.feedback"
+                  rows="3"
+                  placeholder="Nhập nhận xét hướng dẫn sinh viên..."
+                  class="w-full px-3 py-2 rounded-xl surface-input border border-card text-heading focus:outline-hidden focus:border-blue-500"
+                ></textarea>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <input
+                  id="publishCheck"
+                  v-model="drawerGradingForm.publish"
+                  type="checkbox"
+                  class="rounded border-card text-blue-600 focus:ring-blue-500"
+                />
+                <label for="publishCheck" class="text-muted cursor-pointer">
+                  Công bố điểm ngay cho sinh viên & đồng bộ Sổ điểm
+                </label>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-card">
+              <button
+                type="button"
+                class="px-4 py-2 rounded-xl text-xs font-semibold hover:bg-surface-input text-muted cursor-pointer"
+                @click="closeDrawerGrading"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                class="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                :disabled="drawerGradingSubmitting || drawerGradingForm.score === null"
+                @click="submitDrawerGrading"
+              >
+                <Save :size="14" />
+                {{ drawerGradingSubmitting ? 'Đang lưu...' : 'Lưu điểm' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Teleport>
   </div>
 </template>
 

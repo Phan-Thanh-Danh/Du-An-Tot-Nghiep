@@ -29,4 +29,10 @@ public class KhoaHocDto
     // Thông tin sĩ số sinh viên
     public int SiSo { get; set; }
     public int StudentCount { get; set; }
+
+    // Thông tin ngành / chuyên ngành
+    public int? MaNganh { get; set; }
+    public string? TenNganh { get; set; }
+    public int? MaChuyenNganh { get; set; }
+    public string? TenChuyenNganh { get; set; }
 }
