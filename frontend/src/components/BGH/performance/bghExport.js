@@ -445,3 +445,124 @@ export async function exportGpaReportToPdf(opts = {}) {
 
   await worker.save()
 }
+
+/**
+ * Xuất báo cáo Sinh viên nguy cơ rớt môn ra file PDF.
+ */
+export async function exportAtRiskToPdf(opts = {}) {
+  const html2pdf = (await import('html2pdf.js')).default
+
+  const {
+    students = [],
+    totalAtRisk = 0,
+    criticalRate = 0,
+    criticalCount = 0,
+    semesterLabel = 'Tất cả học kỳ',
+  } = opts
+
+  const now = new Date()
+  const dateStr = now.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+
+  // ── KPI cells ──────────────────────────────────────
+  const kpiCells = `
+    <td style="width:33.33%;padding:4px;">
+      <div style="background:#FEF2F2;border:1.5px solid #FECACA;border-radius:10px;padding:14px 10px;text-align:center;">
+        <p style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.4px;margin:0 0 6px;">TỔNG SV NGUY CƠ</p>
+        <p style="font-size:20px;font-weight:800;color:#B91C1C;margin:0;">${totalAtRisk}</p>
+      </div>
+    </td>
+    <td style="width:33.33%;padding:4px;">
+      <div style="background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:10px;padding:14px 10px;text-align:center;">
+        <p style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.4px;margin:0 0 6px;">TỶ LỆ CRITICAL</p>
+        <p style="font-size:20px;font-weight:800;color:#B45309;margin:0;">${criticalRate}%</p>
+      </div>
+    </td>
+    <td style="width:33.33%;padding:4px;">
+      <div style="background:#FEF2F2;border:1.5px solid #FECACA;border-radius:10px;padding:14px 10px;text-align:center;">
+        <p style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.4px;margin:0 0 6px;">CẦN CAN THIỆP</p>
+        <p style="font-size:20px;font-weight:800;color:#B91C1C;margin:0;">${criticalCount} SV</p>
+      </div>
+    </td>`
+
+  // ── Data rows ──────────────────────────────────────
+  const dataRows = students.map((s, idx) => {
+    const riskBadge = s.risk === 'critical' ? 'background:#FEF2F2;color:#B91C1C;' : s.risk === 'high' ? 'background:#FFFBEB;color:#B45309;' : 'background:#EFF6FF;color:#1D4ED8;'
+    return `<tr style="background:${idx % 2 === 0 ? '#F8FAFC' : '#FFFFFF'};">
+      <td style="padding:7px 10px;text-align:center;color:#64748B;font-size:11px;">${idx + 1}</td>
+      <td style="padding:7px 10px;font-weight:600;color:#334155;font-size:11px;">${s.code}</td>
+      <td style="padding:7px 10px;font-weight:600;color:#334155;font-size:11px;">${s.name}</td>
+      <td style="padding:7px 10px;text-align:center;color:#64748B;font-size:11px;">${s.class}</td>
+      <td style="padding:7px 10px;color:#64748B;font-size:11px;">${s.subject || 'Đang cập nhật'}</td>
+      <td style="padding:7px 10px;text-align:center;font-weight:700;color:${s.grade < 4 ? '#B91C1C' : '#B45309'};font-size:11px;">${s.grade}</td>
+      <td style="padding:7px 10px;text-align:center;">
+        <span style="${riskBadge}font-weight:800;padding:2px 8px;border-radius:20px;font-size:9px;text-transform:uppercase;">${s.risk}</span>
+      </td>
+    </tr>`
+  }).join('')
+
+  // ── Full HTML ──────────────────────────────────────
+  const html = `
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; width: 100%; background: #fff; }
+</style>
+<div style="font-family:'Segoe UI',Arial,sans-serif;color:#1E293B;background:#fff;width:100%;max-width:794px;margin:0 auto;padding:0;">
+
+  <!-- HEADER -->
+  <div style="background:linear-gradient(135deg,#1E3A8A 0%,#2563EB 60%,#0EA5E9 100%);padding:28px 36px 24px;">
+    <table style="width:100%;border-collapse:collapse;">
+      <tr>
+        <td style="vertical-align:top;">
+          <p style="font-size:10px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:1px;margin:0 0 5px;">BÁO CÁO HỌC VỤ — HỆ THỐNG LMS</p>
+          <p style="font-size:20px;font-weight:800;color:#fff;margin:0 0 3px;">Báo cáo Sinh viên nguy cơ rớt môn</p>
+          <p style="font-size:11px;color:#BAE6FD;margin:0;">Hệ thống cảnh báo sớm AI Early Warning</p>
+        </td>
+        <td style="vertical-align:top;text-align:right;white-space:nowrap;">
+          <p style="font-size:10px;color:#93C5FD;margin:0 0 3px;">Ngày xuất: ${dateStr} lúc ${timeStr}</p>
+          <p style="font-size:10px;color:#BAE6FD;margin:0;">Học kỳ: ${semesterLabel}</p>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <div style="padding:24px 36px;">
+
+    <!-- KPI CARDS -->
+    <table style="width:100%;border-collapse:collapse;margin-bottom:20px;"><tr>${kpiCells}</tr></table>
+
+    <!-- BẢNG DỮ LIỆU CHI TIẾT -->
+    <div style="border:1.5px solid #E2E8F0;border-radius:10px;overflow:hidden;margin-bottom:20px;">
+      <div style="background:#F8FAFC;padding:10px 14px;border-bottom:1px solid #E2E8F0;">
+        <p style="font-size:11px;font-weight:700;color:#334155;text-transform:uppercase;letter-spacing:0.4px;margin:0;">Danh sách sinh viên (${students.length} dòng)</p>
+      </div>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="background:#F1F5F9;">
+          <th style="padding:7px 10px;text-align:center;color:#64748B;font-size:9px;font-weight:700;text-transform:uppercase;width:40px;">STT</th>
+          <th style="padding:7px 10px;text-align:left;color:#64748B;font-size:9px;font-weight:700;text-transform:uppercase;">Mã SV</th>
+          <th style="padding:7px 10px;text-align:left;color:#64748B;font-size:9px;font-weight:700;text-transform:uppercase;">Họ và tên</th>
+          <th style="padding:7px 10px;text-align:center;color:#64748B;font-size:9px;font-weight:700;text-transform:uppercase;">Lớp</th>
+          <th style="padding:7px 10px;text-align:left;color:#64748B;font-size:9px;font-weight:700;text-transform:uppercase;">Môn nguy cơ</th>
+          <th style="padding:7px 10px;text-align:center;color:#64748B;font-size:9px;font-weight:700;text-transform:uppercase;">GPA</th>
+          <th style="padding:7px 10px;text-align:center;color:#64748B;font-size:9px;font-weight:700;text-transform:uppercase;">Mức độ</th>
+        </tr></thead>
+        <tbody>${dataRows || '<tr><td colspan="7" style="text-align:center;padding:14px;color:#94A3B8;font-size:11px;">Không có sinh viên nào</td></tr>'}</tbody>
+      </table>
+    </div>
+    
+    <div style="margin-top:30px;padding-top:20px;border-top:1px dashed #CBD5E1;text-align:center;">
+      <p style="font-size:10px;color:#94A3B8;margin:0;">Báo cáo được xuất tự động từ Hệ thống LMS.</p>
+    </div>
+  </div>
+</div>`
+
+  const worker = html2pdf().set({
+    margin: [10, 5, 10, 5],
+    filename: `BaoCao-SVNguyCo-${semesterLabel.replace(/[^a-zA-Z0-9\u00C0-\u024F]/g, '_')}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, logging: false },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  }).from(html)
+
+  await worker.save()
+}
