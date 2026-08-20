@@ -209,6 +209,7 @@ builder.Services.AddScoped<ITrainingProgramTermService, TrainingProgramTermServi
 builder.Services.AddScoped<IBuildingService, BuildingService>();
 builder.Services.AddScoped<IFloorService, FloorService>();
 builder.Services.AddScoped<IRoomService, RoomService>();
+builder.Services.AddScoped<Backend.Services.Facilities.IEquipmentService, Backend.Services.Facilities.EquipmentService>();
 builder.Services.AddScoped<ICaHocService, CaHocService>();
 builder.Services.AddScoped<IProgramTuitionConfigService, ProgramTuitionConfigService>();
 builder.Services.AddScoped<IVietQrService, VietQrService>();

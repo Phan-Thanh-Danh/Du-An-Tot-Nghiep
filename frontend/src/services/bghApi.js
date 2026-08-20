@@ -95,6 +95,47 @@ export const bghApi = {
     return get('/api/bgh/master-data/rooms', MASTER)
   },
 
+  getEquipment(roomId) {
+    return get(`/api/master-data/equipment/room/${roomId}`)
+  },
+
+  getEquipmentByBuilding(buildingId) {
+    return get(`/api/master-data/equipment/building/${buildingId}`)
+  },
+
+  createEquipment(payload) {
+    return apiRequest('/api/master-data/equipment/room', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    })
+  },
+
+  updateEquipment(id, payload) {
+    return apiRequest(`/api/master-data/equipment/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    })
+  },
+
+  deleteEquipment(id) {
+    return apiRequest(`/api/master-data/equipment/${id}`, {
+      method: 'DELETE'
+    })
+  },
+
+  importEquipment(file, roomId = null) {
+    const formData = new FormData()
+    formData.append('file', file)
+    let url = '/api/master-data/equipment/import'
+    if (roomId) {
+      url += `?maPhong=${roomId}`
+    }
+    return apiRequest(url, {
+      method: 'POST',
+      body: formData
+    })
+  },
+
   getSubjects(params = {}) {
     const query = new URLSearchParams()
     if (params.keyword) query.append('keyword', params.keyword)
