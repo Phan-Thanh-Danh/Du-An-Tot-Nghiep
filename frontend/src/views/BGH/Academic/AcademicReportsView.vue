@@ -13,10 +13,11 @@ import {
   PieChart,
   CheckCircle2,
   TrendingUp,
+  Loader2,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import LmsSelect from '@/components/LmsSelect.vue'
-import { exportBghToExcel, printBghPage as triggerPrint } from '@/components/BGH/performance/bghExport.js'
+import { exportBghToExcel, exportAcademicReportsToPdf } from '@/components/BGH/performance/bghExport.js'
 import { usePopupStore } from '@/stores/popup'
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
@@ -237,6 +238,31 @@ async function exportReport(rpt) {
 async function exportExcel() {
   await exportReport(selectedReport.value)
 }
+
+const exportingPdf = ref(false)
+async function exportPdf() {
+  if (exportingPdf.value) return
+  exportingPdf.value = true
+  try {
+    const semLabel = semesters.value.find(s => String(s.value) === String(semesterFilter.value))?.label || 'Tất cả học kỳ'
+    const camLabel = campuses.value.find(c => String(c.value) === String(campusFilter.value))?.label || 'Tất cả cơ sở'
+    
+    await exportAcademicReportsToPdf({
+      tabTotalClasses: tabTotalClasses.value,
+      tabTotalTeachers: tabTotalTeachers.value,
+      tabAvgGpa: tabAvgGpa.value,
+      monthlyStats: monthlyStats.value,
+      departmentStats: departmentStats.value,
+      semesterLabel: semLabel,
+      campusLabel: camLabel
+    })
+  } catch (err) {
+    popup.error('Lỗi xuất báo cáo', 'Không thể tạo file PDF.')
+    console.error(err)
+  } finally {
+    exportingPdf.value = false
+  }
+}
 </script>
 
 <template>
@@ -246,8 +272,9 @@ async function exportExcel() {
   >
     <template #actions>
       <div class="flex items-center gap-3">
-         <button @click="triggerPrint" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
-            <FileText :size="18" /> PDF Report
+         <button @click="exportPdf" :disabled="exportingPdf" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
+            <Loader2 v-if="exportingPdf" :size="18" class="animate-spin" />
+            <FileText v-else :size="18" /> {{ exportingPdf ? 'Đang xuất...' : 'PDF Report' }}
          </button>
          <button @click="exportExcel" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
             <Download :size="18" /> Excel Data
@@ -339,7 +366,7 @@ async function exportExcel() {
                </button>
             </div>
             <div class="flex items-center gap-2">
-               <button @click="triggerPrint" class="p-2 hover:bg-(--surface-input) rounded-lg text-muted transition-colors"><Printer :size="18" /></button>
+               <button @click="exportPdf" :disabled="exportingPdf" class="p-2 hover:bg-(--surface-input) rounded-lg text-muted transition-colors disabled:opacity-50" title="Xuất PDF"><Printer :size="18" /></button>
                <button @click="exportExcel" class="p-2 hover:bg-(--surface-input) rounded-lg text-muted transition-colors"><Download :size="18" /></button>
             </div>
          </div>
