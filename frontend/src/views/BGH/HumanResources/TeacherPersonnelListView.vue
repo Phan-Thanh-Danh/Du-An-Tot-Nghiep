@@ -86,13 +86,14 @@ async function loadMetadata() {
   try {
     const [orgsRes, majorsRes] = await Promise.all([
       apiRequest('/api/organizations'),
-      apiRequest('/api/chuyen-nganh')
+      apiRequest('/api/master-data/specializations?pageSize=100')
     ])
     orgsList.value = (unwrapApiData(orgsRes) || []).map(o => ({
       maDonVi: o.id || o.maDonVi,
       tenDonVi: o.name || o.tenDonVi
     }))
-    majorsList.value = unwrapApiData(majorsRes) || []
+    const rawMajors = unwrapApiData(majorsRes)
+    majorsList.value = rawMajors?.items || (Array.isArray(rawMajors) ? rawMajors : [])
   } catch (err) {
     console.error('Lỗi tải metadata:', err)
   }
