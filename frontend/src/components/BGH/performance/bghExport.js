@@ -830,3 +830,109 @@ export async function exportPassFailRatesToPdf(opts = {}) {
 
   await worker.save()
 }
+/**
+ * Xuất Báo cáo Chi tiết đánh giá giảng viên ra file PDF.
+ */
+export async function exportTeacherEvalDetailToPdf(opts = {}) {
+  const html2pdf = (await import('html2pdf.js')).default
+
+  const { teacher = {} } = opts
+
+  const now = new Date()
+  const dateStr = now.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+
+  const kpiCells = `
+    <td style="width:33.33%;padding:4px;">
+      <div style="background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:10px;padding:14px 10px;text-align:center;">
+        <p style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.4px;margin:0 0 6px;">ĐIỂM TRUNG BÌNH</p>
+        <p style="font-size:20px;font-weight:800;color:#B45309;margin:0;">${teacher.avgRating} / 5.0</p>
+      </div>
+    </td>
+    <td style="width:33.33%;padding:4px;">
+      <div style="background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:10px;padding:14px 10px;text-align:center;">
+        <p style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.4px;margin:0 0 6px;">ĐÁNH GIÁ TÍCH CỰC</p>
+        <p style="font-size:20px;font-weight:800;color:#15803D;margin:0;">${teacher.positivePercentage}%</p>
+      </div>
+    </td>
+    <td style="width:33.33%;padding:4px;">
+      <div style="background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:10px;padding:14px 10px;text-align:center;">
+        <p style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.4px;margin:0 0 6px;">LƯỢT ĐÁNH GIÁ</p>
+        <p style="font-size:20px;font-weight:800;color:#1D4ED8;margin:0;">${teacher.totalReviews}</p>
+      </div>
+    </td>`
+
+  const criteriaRows = (teacher.criteria || []).map((c, idx) => {
+    return `<tr style="background:${idx % 2 === 0 ? '#F8FAFC' : '#FFFFFF'};">
+      <td style="padding:7px 10px;font-weight:600;color:#334155;font-size:11px;">${c.label}</td>
+      <td style="padding:7px 10px;text-align:center;color:#B45309;font-weight:700;font-size:11px;">${Number(c.score).toFixed(2)}</td>
+    </tr>`
+  }).join('')
+
+  const feedbackRows = (teacher.recentFeedback || []).slice(0, 5).map((f, idx) => {
+    return `<tr style="background:${idx % 2 === 0 ? '#F8FAFC' : '#FFFFFF'};">
+      <td style="padding:7px 10px;font-style:italic;color:#334155;font-size:11px;">"${f.comment || ''}"</td>
+      <td style="padding:7px 10px;text-align:center;color:#15803D;font-weight:700;font-size:11px;">${f.rating} ★</td>
+    </tr>`
+  }).join('')
+
+  const html = `
+<style>*, *::before, *::after { box-sizing: border-box; } html, body { margin: 0; padding: 0; width: 100%; background: #fff; }</style>
+<div style="font-family:'Segoe UI',Arial,sans-serif;color:#1E293B;background:#fff;width:100%;max-width:794px;margin:0 auto;padding:0;">
+  <div style="background:linear-gradient(135deg,#1E3A8A 0%,#2563EB 60%,#0EA5E9 100%);padding:28px 36px 24px;">
+    <table style="width:100%;border-collapse:collapse;">
+      <tr>
+        <td style="vertical-align:top;">
+          <p style="font-size:10px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:1px;margin:0 0 5px;">BÁO CÁO HỌC VỤ — HỆ THỐNG LMS</p>
+          <p style="font-size:20px;font-weight:800;color:#fff;margin:0 0 3px;">Chi tiết đánh giá giảng viên</p>
+          <p style="font-size:11px;color:#BAE6FD;margin:0;">Giảng viên: ${teacher.name} (${teacher.code})</p>
+          <p style="font-size:11px;color:#BAE6FD;margin:0;">Khoa: ${teacher.dept}</p>
+        </td>
+        <td style="vertical-align:top;text-align:right;white-space:nowrap;">
+          <p style="font-size:10px;color:#93C5FD;margin:0 0 3px;">Ngày xuất: ${dateStr} lúc ${timeStr}</p>
+        </td>
+      </tr>
+    </table>
+  </div>
+  <div style="padding:24px 36px;">
+    <table style="width:100%;border-collapse:collapse;margin-bottom:20px;"><tr>${kpiCells}</tr></table>
+    <div style="border:1.5px solid #E2E8F0;border-radius:10px;overflow:hidden;margin-bottom:20px;">
+      <div style="background:#F8FAFC;padding:10px 14px;border-bottom:1px solid #E2E8F0;">
+        <p style="font-size:11px;font-weight:700;color:#334155;text-transform:uppercase;letter-spacing:0.4px;margin:0;">Điểm theo tiêu chí</p>
+      </div>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="background:#F1F5F9;">
+          <th style="padding:7px 10px;text-align:left;color:#64748B;font-size:9px;font-weight:700;text-transform:uppercase;">Tiêu chí</th>
+          <th style="padding:7px 10px;text-align:center;color:#64748B;font-size:9px;font-weight:700;text-transform:uppercase;width:80px;">Điểm (1-5)</th>
+        </tr></thead>
+        <tbody>${criteriaRows || '<tr><td colspan="2" style="text-align:center;padding:14px;color:#94A3B8;font-size:11px;">Chưa có dữ liệu</td></tr>'}</tbody>
+      </table>
+    </div>
+    <div style="border:1.5px solid #E2E8F0;border-radius:10px;overflow:hidden;margin-bottom:20px;">
+      <div style="background:#F8FAFC;padding:10px 14px;border-bottom:1px solid #E2E8F0;">
+        <p style="font-size:11px;font-weight:700;color:#334155;text-transform:uppercase;letter-spacing:0.4px;margin:0;">Nhận xét gần nhất</p>
+      </div>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="background:#F1F5F9;">
+          <th style="padding:7px 10px;text-align:left;color:#64748B;font-size:9px;font-weight:700;text-transform:uppercase;">Nội dung nhận xét</th>
+          <th style="padding:7px 10px;text-align:center;color:#64748B;font-size:9px;font-weight:700;text-transform:uppercase;width:80px;">Đánh giá</th>
+        </tr></thead>
+        <tbody>${feedbackRows || '<tr><td colspan="2" style="text-align:center;padding:14px;color:#94A3B8;font-size:11px;">Chưa có nhận xét</td></tr>'}</tbody>
+      </table>
+    </div>
+    <div style="margin-top:30px;padding-top:20px;border-top:1px dashed #CBD5E1;text-align:center;">
+      <p style="font-size:10px;color:#94A3B8;margin:0;">Báo cáo được xuất tự động từ Hệ thống LMS.</p>
+    </div>
+  </div>
+</div>`
+
+  const worker = html2pdf().set({
+    margin: [10, 5, 10, 5],
+    filename: `BaoCao-DanhGiaGV-${teacher.code}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, logging: false },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  }).from(html)
+
+  await worker.save()
+}

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="space-y-4">
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-20">
@@ -184,7 +184,7 @@ const campuses = [{ value: '', label: 'Tất cả cơ sở' }]
 
 const stats = ref([])
 const teacherRankings = ref([])
-const deptStats = ref([])
+const departmentStats = ref([])
 const comments = ref([])
 
 async function loadData() {
@@ -211,17 +211,33 @@ async function loadData() {
       maCodeGv: String(item.teacherId),
       hoTen: item.teacherName || '',
       initials: (item.teacherName || 'GV').trim().split(/\s+/).pop().slice(0, 2).toUpperCase(),
-      khoa: 'Chưa phân khoa',
+      khoa: item.departmentName || 'Chưa phân khoa',
       diemTb: Number(item.avgRating || 0),
       soLuot: item.reviewCount || 0,
       chatLuong: Number(item.avgRating || 0),
       phuongPhap: Number(item.avgRating || 0),
       dungGio: Number(item.avgRating || 0),
-      xuHuong: 0,
+      xuHuong: Number(item.trendDelta || 0),
     }))
     semesters.value = (overview.semesterTrend || []).map(item => item.semester).filter(Boolean)
     semesterFilter.value = semesters.value.at(-1) || ''
-    deptStats.value = []
+    
+    const depts = {}
+    rankings.forEach(item => {
+      const dept = item.departmentName || 'Chưa phân khoa'
+      if (!depts[dept]) depts[dept] = { ten: dept, soGv: 0, totalRating: 0, soLuotKhaoSat: 0, xuHuong: 0 }
+      depts[dept].soGv++
+      depts[dept].totalRating += (item.avgRating || 0)
+      depts[dept].soLuotKhaoSat += (item.reviewCount || 0)
+      depts[dept].xuHuong += (item.trendDelta || 0)
+    })
+    departmentStats.value = Object.values(depts).map(d => ({
+      ten: d.ten,
+      soGv: d.soGv,
+      diemTb: d.soGv ? d.totalRating / d.soGv : 0,
+      soLuotKhaoSat: d.soLuotKhaoSat,
+      xuHuong: d.soGv ? d.xuHuong / d.soGv : 0,
+    })).sort((a, b) => b.diemTb - a.diemTb).slice(0, 3)
 
     const detailResponses = await Promise.all(
       rankings.slice(0, 5).map(item => bghApi.getEvaluationDetail(item.teacherId).catch(() => null)),
