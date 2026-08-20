@@ -19,10 +19,12 @@ import {
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import LmsSelect from '@/components/LmsSelect.vue'
-import { exportBghToExcel, printBghPage as triggerPrint } from '@/components/BGH/performance/bghExport.js'
+import { exportBghToExcel, exportPassFailRatesToPdf } from '@/components/BGH/performance/bghExport.js'
+import { usePopupStore } from '@/stores/popup'
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
 
+const popup = usePopupStore()
 const loading = ref(false)
 const error = ref(null)
 const semesterFilter = ref('all')
@@ -187,8 +189,40 @@ function prepareExcelData() {
   }))
 }
 
-function exportExcel() {
-  exportBghToExcel(prepareExcelData(), `TyLe-PassFail-${semesterFilter.value}.xlsx`, 'Pass/Fail')
+const exportingExcel = ref(false)
+async function exportExcel() {
+  if (exportingExcel.value) return
+  exportingExcel.value = true
+  try {
+    const data = prepareExcelData()
+    if (!data.length) throw new Error('Không có dữ liệu để xuất')
+    await exportBghToExcel(data, `TyLe-PassFail-${semesterFilter.value}.xlsx`, 'Pass-Fail')
+    popup.success('Thành công', 'Đã tải xuống file Excel')
+  } catch (err) {
+    popup.error('Lỗi', err.message || 'Không thể xuất file')
+  } finally {
+    exportingExcel.value = false
+  }
+}
+
+const exportingPdf = ref(false)
+async function exportPdf() {
+  if (exportingPdf.value) return
+  exportingPdf.value = true
+  try {
+    const semLabel = semesters.value.find(s => String(s.value) === String(semesterFilter.value))?.label || 'Tất cả học kỳ'
+    await exportPassFailRatesToPdf({
+      courses: filteredStats.value,
+      avgPassRate: filteredStats.value.length ? avgPassRate.value : overallPassRate.value,
+      worstCourse: worstCourse.value,
+      semesterLabel: semLabel,
+    })
+  } catch (err) {
+    console.error(err)
+    popup.error('Lỗi xuất báo cáo', 'Không thể tạo file PDF.')
+  } finally {
+    exportingPdf.value = false
+  }
 }
 </script>
 
@@ -199,11 +233,13 @@ function exportExcel() {
   >
     <template #actions>
       <div class="flex items-center gap-3">
-         <button @click="triggerPrint" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
-            <FileText :size="18" /> PDF Report
+         <button @click="exportPdf" :disabled="exportingPdf" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
+            <Loader2 v-if="exportingPdf" :size="18" class="animate-spin" />
+            <FileText v-else :size="18" /> {{ exportingPdf ? 'Đang xuất...' : 'PDF Report' }}
          </button>
-         <button @click="exportExcel" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
-            <Download :size="18" /> Excel Data
+         <button @click="exportExcel" :disabled="exportingExcel" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
+            <Loader2 v-if="exportingExcel" :size="18" class="animate-spin" />
+            <Download v-else :size="18" /> {{ exportingExcel ? 'Đang tải...' : 'Excel Data' }}
          </button>
       </div>
     </template>
