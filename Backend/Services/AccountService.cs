@@ -231,7 +231,8 @@ public class AccountService : IAccountService
             Campus = user.DonVi?.TenDonVi,
             ClassName = user.Lop?.TenLop,
             Major = user.Lop?.ChuongTrinh?.ChuyenNganh?.TenChuyenNganh,
-            Semester = currentHocKy?.TenHocKy
+            Semester = currentHocKy?.TenHocKy,
+            NgayTao = user.NgayTao
         };
     }
 }

@@ -15,4 +15,5 @@ public class AccountProfileResponse
     public string? Major { get; set; }
     public string? Campus { get; set; }
     public string? Semester { get; set; }
+    public DateTime? NgayTao { get; set; }
 }
