@@ -1,90 +1,233 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import {
-  CheckCircle, ArrowLeftRight, X, AlertTriangle, Users, BookOpen,
-  AlertCircle,
+  CheckCircle, X, Users, BookOpen,
+  AlertCircle, UserCircle2, CalendarCheck,
 } from 'lucide-vue-next'
 import SkeletonDashboard from '@/components/common/skeleton/SkeletonDashboard.vue'
 import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
 import { scheduleApi } from '@/services/scheduleApi'
-
+import { staffApi } from '@/services/staffApi'
+import { academicTermApi } from '@/services/academicTermApi'
+import { courseApi } from '@/services/courseApi'
 
 const loading = ref(true)
 const apiError = ref('')
 const schedules = ref([])
-const changes = ref([])
 const selected = ref(null)
-const filterHocKy = ref('')
+const filterMaDonVi = ref('')
+const filterMaHocKy = ref('')
+const campusOptions = ref([])
+const termOptions = ref([])
+const tkbCount = ref(0)
 const activeTab = ref('lichHoc')
 
-import { formatDate } from '@/utils/dateFormat'
+function unwrap(response) {
+  const data = response?.data ?? response?.Data ?? response
+  if (Array.isArray(data)) return data
+  if (Array.isArray(data?.items)) return data.items
+  if (Array.isArray(data?.Items)) return data.Items
+  if (Array.isArray(data?.data)) return data.data
+  if (Array.isArray(data?.Data)) return data.Data
+  return []
+}
 
-async function loadData() {
-  loading.value = true
-  apiError.value = ''
+function normalizeTerm(t) {
+  const maHocKy = t.maHocKy ?? t.MaHocKy ?? t.id ?? t.Id
+  return {
+    maHocKy,
+    tenHocKy: t.tenHocKy ?? t.TenHocKy ?? t.ten ?? t.Ten ?? `Học kỳ ${maHocKy ?? ''}`,
+    ngayBatDau: t.ngayBatDau ?? t.NgayBatDau,
+    ngayKetThuc: t.ngayKetThuc ?? t.NgayKetThuc,
+  }
+}
+
+function normalizeCourse(c) {
+  return {
+    maKhoaHoc: c.maKhoaHoc ?? c.MaKhoaHoc ?? c.id ?? c.Id,
+    maDonVi: c.maDonVi ?? c.MaDonVi,
+    tenDonVi: c.tenDonVi ?? c.TenDonVi ?? c.tenCoSo ?? c.TenCoSo,
+  }
+}
+
+function formatDateTime(value) {
+  if (!value) return '—'
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return String(value)
+  return d.toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' })
+}
+
+function initialOf(name) {
+  if (!name) return '?'
+  const trimmed = String(name).trim()
+  return trimmed ? trimmed.charAt(0).toUpperCase() : '?'
+}
+
+function mapDraft(item) {
+  const id = item.draftId ?? item.DraftId ?? item.id ?? item.Id
+  const maDonVi = item.maDonVi ?? item.MaDonVi
+  const maHocKy = item.maHocKy ?? item.MaHocKy
+  const term = termOptions.value.find(t => Number(t.maHocKy) === Number(maHocKy))
+  return {
+    id,
+    maDonVi,
+    maHocKy,
+    term: term?.tenHocKy ?? item.tenHocKy ?? item.TenHocKy ?? (maHocKy ? `Học kỳ ${maHocKy}` : '—'),
+    department: campusOptions.value.find(c => Number(c.value) === Number(maDonVi))?.label
+      ?? item.tenDonVi ?? item.TenDonVi ?? (maDonVi ? `Cơ sở ${maDonVi}` : '—'),
+    status: item.trangThai ?? item.TrangThai ?? 'draft',
+    ngayTao: item.ngayTao ?? item.NgayTao,
+    ngayXuatBan: item.ngayXuatBan ?? item.NgayXuatBan ?? item.ngayTao ?? item.NgayTao,
+    nguoiYeuCau: item.nguoiYeuCau ?? item.NguoiYeuCau,
+    tenNguoiYeuCau: item.tenNguoiYeuCau ?? item.TenNguoiYeuCau ?? '',
+    metrics: {
+      classes: item.tongCourse ?? item.TongCourse ?? item.soLop ?? item.SoLop ?? 0,
+      xepDuoc: item.soXepDuoc ?? item.SoXepDuoc ?? 0,
+      khongXepDuoc: item.soKhongXepDuoc ?? item.SoKhongXepDuoc ?? 0,
+      score: item.score ?? item.Score ?? 0,
+    },
+    items: Array.isArray(item.items) ? item.items : Array.isArray(item.Items) ? item.Items : [],
+    raw: item,
+  }
+}
+
+const publishedSchedules = computed(() => {
+  return schedules.value
+    .filter(s => s.status === 'da_xuat_ban')
+    .sort((a, b) => {
+      const ta = new Date(a.ngayXuatBan).getTime()
+      const tb = new Date(b.ngayXuatBan).getTime()
+      if (!Number.isNaN(ta) && !Number.isNaN(tb)) return tb - ta
+      return 0
+    })
+})
+
+const newestSchedule = computed(() => publishedSchedules.value[0] ?? null)
+const otherSchedules = computed(() => publishedSchedules.value.slice(1))
+
+const stats = computed(() => ({
+  total: publishedSchedules.value.length,
+  lopTong: publishedSchedules.value.reduce((a, b) => a + Number(b.metrics.classes || 0), 0),
+  tkb: tkbCount.value,
+}))
+
+const selectedItems = computed(() => selected.value?.items ?? [])
+
+const distinctStats = computed(() => {
+  const items = selectedItems.value
+  return {
+    mon: new Set(items.map(i => i.tenMonHoc ?? i.TenMonHoc).filter(Boolean)).size,
+    lop: new Set(items.map(i => i.tenLop ?? i.TenLop).filter(Boolean)).size,
+    gv: new Set(items.map(i => i.tenGiaoVien ?? i.TenGiaoVien).filter(Boolean)).size,
+  }
+})
+
+const itemStatusLabel = s => ({
+  xep_duoc: 'Xếp được', khong_xep_duoc: 'Chưa xếp được',
+}[s] || s)
+
+async function loadFilterOptions() {
+  try {
+    const [termsRes, coursesRes, contextRes] = await Promise.all([
+      academicTermApi.list({ PageIndex: 1, PageSize: 100 }),
+      courseApi.getCourses({ PageIndex: 1, PageSize: 100 }),
+      staffApi.getSchedulingContext().catch(() => null),
+    ])
+
+    termOptions.value = unwrap(termsRes)
+      .map(normalizeTerm)
+      .filter(t => t.maHocKy)
+      .sort((a, b) => Number(b.maHocKy) - Number(a.maHocKy))
+
+    const campusMap = new Map()
+    unwrap(coursesRes)
+      .map(normalizeCourse)
+      .forEach((course) => {
+        if (!course.maDonVi) return
+        campusMap.set(Number(course.maDonVi), course.tenDonVi || `Cơ sở ${course.maDonVi}`)
+      })
+    campusOptions.value = [...campusMap.entries()]
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => String(a.label).localeCompare(String(b.label), 'vi'))
+
+    if (!filterMaDonVi.value && campusOptions.value.length === 1) {
+      filterMaDonVi.value = campusOptions.value[0].value
+    }
+
+    const currentTerm = contextRes?.currentTerm ?? contextRes?.CurrentTerm
+    const schedulableTerm = contextRes?.schedulableTerm ?? contextRes?.SchedulableTerm
+    const preferredTerm = Number(currentTerm?.maHocKy ?? currentTerm?.MaHocKy)
+      || Number(schedulableTerm?.maHocKy ?? schedulableTerm?.MaHocKy)
+
+    if (!filterMaHocKy.value && preferredTerm) {
+      filterMaHocKy.value = preferredTerm
+    }
+    if (!filterMaHocKy.value && termOptions.value.length > 0) {
+      filterMaHocKy.value = termOptions.value[0].maHocKy
+    }
+  } catch (e) {
+    console.error('Load published filters failed', e)
+    apiError.value = e?.message || 'Không thể tải danh sách cơ sở/học kỳ.'
+  }
+}
+
+async function loadTkbCount() {
+  tkbCount.value = 0
+  if (!filterMaHocKy.value) return
   try {
     const res = await scheduleApi.list({
+      TrangThai: 'da_xuat_ban',
+      maHocKy: Number(filterMaHocKy.value),
       PageIndex: 1,
-      PageSize: 100,
-      TrangThai: 'da_xuat_ban'
+      PageSize: 1,
     })
-
     const payload = res?.data ?? res?.Data ?? res
-    const items = payload?.items ?? payload?.Items ?? payload?.data?.items ?? payload?.Data?.Items ?? []
-
-    schedules.value = Array.isArray(items)
-      ? items.map(normalizeSchedule)
-      : []
+    tkbCount.value = Number(
+      payload?.totalItems ?? payload?.TotalItems ?? payload?.total ?? payload?.Total ?? 0,
+    )
   } catch (e) {
-    console.error('Schedule load failed', e.statusCode, e.details || e)
-    apiError.value = e?.message || 'Không thể tải dữ liệu lịch học.'
+    console.error('Load published TKB count failed', e.statusCode, e.details || e)
+  }
+}
+
+async function loadSchedules() {
+  loading.value = true
+  apiError.value = ''
+  selected.value = null
+  try {
+    if (!filterMaDonVi.value || !filterMaHocKy.value) {
+      schedules.value = []
+      return
+    }
+    const response = await scheduleApi.listDrafts({
+      maDonVi: Number(filterMaDonVi.value),
+      maHocKy: Number(filterMaHocKy.value),
+    })
+    schedules.value = unwrap(response).map(mapDraft)
+    if (newestSchedule.value) {
+      selected.value = newestSchedule.value
+    }
+  } catch (e) {
+    console.error('Published schedules load failed', e.statusCode, e.details || e)
+    apiError.value = e?.message || 'Không thể tải danh sách lịch đã công bố.'
     schedules.value = []
   } finally {
     loading.value = false
   }
 }
 
-function normalizeSchedule(s) {
-  return {
-    ...s,
-    id: s.id ?? s.maTkb ?? s.MaTkb,
-    maTkb: s.maTkb ?? s.MaTkb ?? s.id,
-    tenDonVi: s.tenDonVi ?? s.TenDonVi ?? 'Cơ sở',
-    tenHocKy: s.tenHocKy ?? s.TenHocKy ?? 'Học kỳ',
-    ngayXuatBan: s.ngayXuatBan ?? s.NgayXuatBan ?? s.ngayCapNhat ?? s.NgayCapNhat,
-    soLop: s.soLop ?? s.SoLop ?? 1,
-    soGiaoVien: s.soGiaoVien ?? s.SoGiaoVien ?? 1,
-    tongSoTiet: s.tongSoTiet ?? s.TongSoTiet ?? 0,
-    thayDoiPhatSinh: s.thayDoiPhatSinh ?? s.ThayDoiPhatSinh ?? 0,
-    buoiHuy: s.buoiHuy ?? s.BuoiHuy ?? 0,
-  }
+function pickSchedule(item) {
+  selected.value = item
 }
 
-onMounted(() => { loadData() })
-
-const hocKyList = computed(() => [...new Set(schedules.value.map(s => s.tenHocKy))])
-
-const filteredSchedules = computed(() => {
-  if (!filterHocKy.value) return schedules.value
-  return schedules.value.filter(s => s.tenHocKy === filterHocKy.value)
+onMounted(async () => {
+  loading.value = true
+  await loadFilterOptions()
+  await loadTkbCount()
+  await loadSchedules()
 })
-
-const loaiThayDoiLabel = l => ({
-  day_thay: 'Dạy thay', doi_phong: 'Đổi phòng', doi_ca: 'Đổi ca', huy_buoi: 'Hủy buổi',
-}[l] || l)
-const loaiThayDoiVariant = l => ({
-  day_thay: 'info', doi_phong: 'warning', doi_ca: 'warning', huy_buoi: 'danger',
-}[l] || 'neutral')
-const ttLabel = s => ({ da_xac_nhan: 'Đã xác nhận', cho_xac_nhan: 'Chờ xác nhận' }[s] || s)
-const ttVariant = s => ({ da_xac_nhan: 'success', cho_xac_nhan: 'warning' }[s] || 'neutral')
-
-const stats = computed(() => ({
-  total: schedules.value.length,
-  lopTong: schedules.value.reduce((a, b) => a + b.soLop, 0),
-  thayDoi: changes.value.length,
-  huyChua: changes.value.filter(c => c.loaiThayDoi === 'huy_buoi').length,
-}))
 </script>
 
 <template>
@@ -99,7 +242,7 @@ const stats = computed(() => ({
       <AlertCircle :size="32" class="text-(--color-danger-text)" />
       <p class="text-sm font-bold text-(--text-heading)">Không thể tải dữ liệu</p>
       <p class="text-xs text-(--text-muted)">{{ apiError }}</p>
-      <button @click="loadData" class="lg-button-primary px-4 py-2 text-xs font-bold rounded-xl mt-2">Thử lại</button>
+      <button @click="loadSchedules" class="lg-button-primary px-4 py-2 text-xs font-bold rounded-xl mt-2">Thử lại</button>
     </div>
 
     <template v-else>
@@ -109,29 +252,44 @@ const stats = computed(() => ({
           <CheckCircle class="text-emerald-500" :size="22" />
           <h1 class="text-xl font-bold text-(--text-heading)">Lịch đã công bố</h1>
         </div>
-        <p class="text-sm text-(--text-muted) mt-0.5 ml-8">Theo dõi và giám sát các bộ TKB đã được BGH phê duyệt và công bố chính thức.</p>
+        <p class="text-sm text-(--text-muted) mt-0.5 ml-8">Theo dõi bộ thời khóa biểu mới nhất đã công bố, xem chi tiết và tài khoản phụ trách công bố.</p>
+      </div>
+
+      <!-- Filters -->
+      <div class="flex flex-wrap items-center gap-3">
+        <label class="flex flex-col gap-1 text-xs font-semibold text-(--text-muted)">
+          <span>Cơ sở</span>
+          <select v-model.number="filterMaDonVi" @change="loadSchedules"
+            class="h-9 min-w-[200px] px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)">
+            <option value="">Chọn cơ sở</option>
+            <option v-for="c in campusOptions" :key="c.value" :value="c.value">{{ c.label }}</option>
+          </select>
+        </label>
+        <label class="flex flex-col gap-1 text-xs font-semibold text-(--text-muted)">
+          <span>Học kỳ</span>
+          <select v-model.number="filterMaHocKy" @change="loadTkbCount(); loadSchedules()"
+            class="h-9 min-w-[220px] px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)">
+            <option value="">Chọn học kỳ</option>
+            <option v-for="t in termOptions" :key="t.maHocKy" :value="t.maHocKy">{{ t.tenHocKy }}</option>
+          </select>
+        </label>
       </div>
 
       <!-- Stat pills -->
       <div class="flex flex-wrap gap-2">
         <div class="flex items-center gap-2 px-4 py-2 rounded-full border border-(--border-default) bg-(--color-success-bg) text-sm">
           <span class="font-bold text-xl text-(--color-success-text)">{{ stats.total }}</span>
-          <span class="text-(--text-muted)">Bộ TKB</span>
+          <span class="text-(--text-muted)">Bộ TKB đã công bố</span>
+        </div>
+        <div class="flex items-center gap-2 px-4 py-2 rounded-full border border-(--border-default) bg-(--surface-input) text-sm">
+          <BookOpen :size="13" class="text-(--text-muted)" />
+          <span class="font-bold text-(--text-heading)">{{ stats.tkb }}</span>
+          <span class="text-(--text-muted)">Thời khóa biểu chi tiết</span>
         </div>
         <div class="flex items-center gap-2 px-4 py-2 rounded-full border border-(--border-default) bg-(--surface-input) text-sm">
           <Users :size="13" class="text-(--text-muted)" />
           <span class="font-bold text-(--text-heading)">{{ stats.lopTong }}</span>
-          <span class="text-(--text-muted)">Lớp học</span>
-        </div>
-        <div class="flex items-center gap-2 px-4 py-2 rounded-full border border-(--border-default) bg-(--color-warning-bg) text-sm">
-          <ArrowLeftRight :size="13" class="text-(--color-warning-text)" />
-          <span class="font-bold text-(--color-warning-text)">{{ stats.thayDoi }}</span>
-          <span class="text-(--text-muted)">Thay đổi</span>
-        </div>
-        <div class="flex items-center gap-2 px-4 py-2 rounded-full border border-(--border-default) bg-(--color-danger-bg) text-sm">
-          <AlertTriangle :size="13" class="text-(--color-danger-text)" />
-          <span class="font-bold text-(--color-danger-text)">{{ stats.huyChua }}</span>
-          <span class="text-(--text-muted)">Buổi hủy</span>
+          <span class="text-(--text-muted)">Khóa học</span>
         </div>
       </div>
 
@@ -150,66 +308,101 @@ const stats = computed(() => ({
 
         <!-- List -->
         <div class="flex-1 min-w-0 space-y-2">
-          <!-- Filter -->
-          <div class="flex gap-2 items-center mb-1">
-            <select v-model="filterHocKy" class="h-9 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm outline-none focus:ring-2 focus:ring-(--border-focus)">
-              <option value="">Tất cả học kỳ</option>
-              <option v-for="hk in hocKyList" :key="hk">{{ hk }}</option>
-            </select>
-            <span class="text-xs text-(--text-muted)">{{ filteredSchedules.length }} bộ TKB</span>
-          </div>
+          <p class="text-xs text-(--text-muted)">{{ publishedSchedules.length }} bộ TKB đã công bố trong học kỳ đã chọn</p>
 
+          <!-- Newest -->
           <div
-            v-for="s in filteredSchedules" :key="s.id"
-            class="surface-card border border-(--border-card) rounded-2xl shadow-sm border-l-4 border-l-emerald-500 cursor-pointer transition-all hover:shadow-md"
-            :class="selected?.id === s.id ? 'ring-2 ring-(--lg-primary)' : ''"
-            @click="selected = s"
+            v-if="newestSchedule"
+            class="surface-card border border-(--border-card) rounded-2xl shadow-md border-l-4 border-l-emerald-500 cursor-pointer transition-all hover:shadow-lg"
+            :class="selected?.id === newestSchedule.id ? 'ring-2 ring-(--lg-primary)' : ''"
+            @click="pickSchedule(newestSchedule)"
           >
             <div class="p-4 flex items-center gap-4 flex-wrap">
               <div class="w-10 h-10 rounded-xl bg-(--color-success-bg) text-(--color-success-text) flex items-center justify-center shrink-0">
                 <CheckCircle :size="20" />
               </div>
-
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
-                  <span class="text-sm font-bold text-(--text-heading)">{{ s.maTkb }}</span>
+                  <span class="text-sm font-bold text-(--text-heading) font-mono">{{ newestSchedule.id.slice(0, 8) }}</span>
+                  <GlassBadge variant="success" size="sm">Mới nhất</GlassBadge>
                   <GlassBadge variant="success" size="sm">Đã công bố</GlassBadge>
-                  <GlassBadge v-if="s.thayDoiPhatSinh > 0" variant="warning" size="sm">{{ s.thayDoiPhatSinh }} thay đổi</GlassBadge>
-                  <GlassBadge v-if="s.buoiHuy > 0" variant="danger" size="sm">{{ s.buoiHuy }} hủy</GlassBadge>
                 </div>
-                <p class="text-xs text-(--text-muted) mt-0.5">{{ s.tenDonVi }} · {{ s.tenHocKy }}</p>
-                <p class="text-xs text-(--text-muted)">Công bố: {{ formatDate(s.ngayXuatBan) }}</p>
+                <p class="text-xs text-(--text-muted) mt-0.5">{{ newestSchedule.term }} · {{ newestSchedule.department }}</p>
+                <p class="text-xs text-(--text-muted) flex items-center gap-1 mt-0.5">
+                  <UserCircle2 :size="12" />
+                  {{ newestSchedule.tenNguoiYeuCau || 'Giáo vụ' }} · Công bố:
+                  {{ formatDateTime(newestSchedule.ngayXuatBan) }}
+                </p>
               </div>
-
               <div class="flex gap-4 shrink-0 text-center">
                 <div>
-                  <p class="text-lg font-bold text-(--text-heading)">{{ s.soLop }}</p>
-                  <p class="text-[10px] text-(--text-muted)">Lớp</p>
+                  <p class="text-lg font-bold text-(--text-heading)">{{ newestSchedule.metrics.xepDuoc }}</p>
+                  <p class="text-[10px] text-(--text-muted)">Xếp được</p>
                 </div>
                 <div>
-                  <p class="text-lg font-bold text-(--text-heading)">{{ s.soGiaoVien }}</p>
-                  <p class="text-[10px] text-(--text-muted)">GV</p>
+                  <p class="text-lg font-bold text-(--text-heading)">{{ newestSchedule.metrics.classes }}</p>
+                  <p class="text-[10px] text-(--text-muted)">Khóa học</p>
                 </div>
                 <div>
-                  <p class="text-lg font-bold text-(--text-heading)">{{ s.tongSoTiet }}</p>
-                  <p class="text-[10px] text-(--text-muted)">Tiết/tuần</p>
+                  <p class="text-lg font-bold text-(--lg-primary)">{{ Math.round(newestSchedule.metrics.score) }}</p>
+                  <p class="text-[10px] text-(--text-muted)">Điểm</p>
                 </div>
               </div>
             </div>
           </div>
 
-          <div v-if="filteredSchedules.length === 0" class="surface-card border border-(--border-card) rounded-2xl p-12 text-center shadow-sm">
-            <BookOpen :size="36" class="mx-auto text-(--text-muted) mb-3" />
-            <p class="font-semibold text-(--text-heading)">Chưa có lịch công bố</p>
-            <p class="text-sm text-(--text-muted) mt-1">Chưa có lịch nào được BGH phê duyệt trong học kỳ này.</p>
+          <!-- Others -->
+          <div
+            v-for="s in otherSchedules" :key="s.id"
+            class="surface-card border border-(--border-card) rounded-2xl shadow-sm cursor-pointer transition-all hover:shadow-md"
+            :class="selected?.id === s.id ? 'ring-2 ring-(--lg-primary)' : ''"
+            @click="pickSchedule(s)"
+          >
+            <div class="p-4 flex items-center gap-4 flex-wrap">
+              <div class="w-10 h-10 rounded-xl bg-(--surface-input) text-(--text-muted) flex items-center justify-center shrink-0">
+                <CalendarCheck :size="20" />
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-sm font-bold text-(--text-heading) font-mono">{{ s.id.slice(0, 8) }}</span>
+                  <GlassBadge variant="success" size="sm">Đã công bố</GlassBadge>
+                </div>
+                <p class="text-xs text-(--text-muted) mt-0.5">{{ s.term }} · {{ s.department }}</p>
+                <p class="text-xs text-(--text-muted) flex items-center gap-1 mt-0.5">
+                  <UserCircle2 :size="12" />
+                  {{ s.tenNguoiYeuCau || 'Giáo vụ' }} · Công bố:
+                  {{ formatDateTime(s.ngayXuatBan) }}
+                </p>
+              </div>
+              <div class="flex gap-4 shrink-0 text-center">
+                <div>
+                  <p class="text-lg font-bold text-(--text-heading)">{{ s.metrics.xepDuoc }}</p>
+                  <p class="text-[10px] text-(--text-muted)">Xếp được</p>
+                </div>
+                <div>
+                  <p class="text-lg font-bold text-(--text-heading)">{{ s.metrics.classes }}</p>
+                  <p class="text-[10px] text-(--text-muted)">Khóa học</p>
+                </div>
+                <div>
+                  <p class="text-lg font-bold text-(--lg-primary)">{{ Math.round(s.metrics.score) }}</p>
+                  <p class="text-[10px] text-(--text-muted)">Điểm</p>
+                </div>
+              </div>
+            </div>
           </div>
+
+          <EmptyState
+            v-if="publishedSchedules.length === 0"
+            title="Chưa có lịch công bố"
+            description="Chưa có bộ thời khóa biểu nào được công bố trong cơ sở/học kỳ đã chọn."
+          />
         </div>
 
         <!-- Detail panel -->
         <transition name="panel-slide">
           <div
             v-if="selected"
-            class="w-72 shrink-0 surface-card border border-(--border-card) rounded-2xl shadow-lg overflow-hidden"
+            class="w-96 shrink-0 surface-card border border-(--border-card) rounded-2xl shadow-lg overflow-hidden"
             style="position: sticky; top: 80px"
           >
             <div class="p-4 border-b border-(--border-default) flex items-center justify-between bg-(--color-success-bg)">
@@ -222,41 +415,92 @@ const stats = computed(() => ({
               </button>
             </div>
 
-            <div class="p-4 space-y-3">
-              <div>
-                <p class="text-[10px] font-semibold text-(--text-muted) uppercase tracking-wide mb-0.5">Mã lịch</p>
-                <p class="text-base font-bold text-(--text-heading)">{{ selected.maTkb }}</p>
-                <p class="text-xs text-(--text-muted)">{{ selected.tenDonVi }}</p>
+            <div class="p-4 space-y-4 max-h-[calc(100vh-180px)] overflow-y-auto">
+              <!-- Publisher -->
+              <div class="flex items-center gap-3 bg-(--surface-input) border border-(--border-default) rounded-xl p-3">
+                <div class="w-10 h-10 rounded-full bg-(--lg-primary) text-white flex items-center justify-center font-bold shrink-0">
+                  {{ initialOf(selected.tenNguoiYeuCau) }}
+                </div>
+                <div class="min-w-0">
+                  <p class="text-[10px] font-semibold text-(--text-muted) uppercase tracking-wide">Tài khoản công bố</p>
+                  <p class="text-sm font-bold text-(--text-heading) truncate">{{ selected.tenNguoiYeuCau || 'Giáo vụ' }}</p>
+                  <p class="text-xs text-(--text-muted)">{{ formatDateTime(selected.ngayXuatBan) }}</p>
+                </div>
               </div>
 
-              <div class="grid grid-cols-3 gap-2">
-                <div v-for="(val, key) in { 'Lớp': selected.soLop, 'GV': selected.soGiaoVien, 'Tiết': selected.tongSoTiet }" :key="key"
+              <!-- Info -->
+              <div>
+                <p class="text-[10px] font-semibold text-(--text-muted) uppercase tracking-wide mb-1">Thông tin chung</p>
+                <div class="space-y-2 text-xs text-(--text-body)">
+                  <div class="flex justify-between gap-2">
+                    <span class="text-(--text-muted) shrink-0">Mã bản nháp:</span>
+                    <span class="font-mono font-bold text-(--text-heading) break-all text-right">{{ selected.id }}</span>
+                  </div>
+                  <div class="flex justify-between gap-2">
+                    <span class="text-(--text-muted) shrink-0">Học kỳ:</span>
+                    <span class="font-medium text-right">{{ selected.term }}</span>
+                  </div>
+                  <div class="flex justify-between gap-2">
+                    <span class="text-(--text-muted) shrink-0">Đơn vị:</span>
+                    <span class="font-medium text-right">{{ selected.department }}</span>
+                  </div>
+                  <div class="flex justify-between gap-2">
+                    <span class="text-(--text-muted) shrink-0">Ngày tạo:</span>
+                    <span class="font-medium text-right">{{ formatDateTime(selected.ngayTao) }}</span>
+                  </div>
+                  <div class="flex justify-between gap-2">
+                    <span class="text-(--text-muted) shrink-0">Ngày công bố:</span>
+                    <span class="font-medium text-right">{{ formatDateTime(selected.ngayXuatBan) }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Metrics -->
+              <div class="grid grid-cols-4 gap-2">
+                <div v-for="(val, key) in { 'Xếp': selected.metrics.xepDuoc, 'Chưa': selected.metrics.khongXepDuoc, 'Khóa': selected.metrics.classes, 'Điểm': Math.round(selected.metrics.score) }" :key="key"
                      class="bg-(--surface-input) rounded-xl p-2 border border-(--border-default) text-center">
                   <p class="text-base font-bold text-(--text-heading)">{{ val }}</p>
                   <p class="text-[10px] text-(--text-muted)">{{ key }}</p>
                 </div>
               </div>
 
-              <div class="bg-(--surface-input) rounded-xl p-3 border border-(--border-default)">
-                <p class="text-[10px] font-semibold text-(--text-muted) uppercase tracking-wide mb-1">Thời gian</p>
-                <p class="text-xs">Ngày công bố: <strong>{{ formatDate(selected.ngayXuatBan) }}</strong></p>
-                <p class="text-xs text-(--text-muted) mt-0.5">{{ selected.tenHocKy }}</p>
+              <!-- Distinct stats -->
+              <div class="flex flex-wrap gap-1.5">
+                <GlassBadge variant="info" size="sm">{{ distinctStats.mon }} môn</GlassBadge>
+                <GlassBadge variant="info" size="sm">{{ distinctStats.lop }} lớp</GlassBadge>
+                <GlassBadge variant="info" size="sm">{{ distinctStats.gv }} giảng viên</GlassBadge>
               </div>
 
-              <div class="space-y-2">
-                <div class="flex items-center justify-between bg-(--surface-input) rounded-xl p-3 border border-(--border-default)">
-                  <span class="text-xs text-(--text-body)">Thay đổi phát sinh</span>
-                  <GlassBadge :variant="selected.thayDoiPhatSinh > 0 ? 'warning' : 'success'" size="sm">{{ selected.thayDoiPhatSinh }}</GlassBadge>
+              <!-- Items -->
+              <div>
+                <p class="text-[10px] font-semibold text-(--text-muted) uppercase tracking-wide mb-1">Chi tiết xếp lịch ({{ selectedItems.length }})</p>
+                <div class="max-h-[380px] overflow-y-auto pr-1 space-y-2">
+                  <div v-for="it in selectedItems" :key="it.maDraftItem ?? it.MaDraftItem"
+                       class="border border-(--border-default) rounded-xl p-3 bg-(--surface-card)">
+                    <div class="flex justify-between items-center gap-2 mb-1">
+                      <span class="text-sm font-bold text-(--text-heading) truncate">{{ it.tenMonHoc ?? it.TenMonHoc ?? `Khóa học ${it.maKhoaHoc ?? it.MaKhoaHoc}` }}</span>
+                      <span class="font-mono text-xs text-(--lg-primary) shrink-0">{{ Math.round(it.score ?? it.Score ?? 0) }}đ</span>
+                    </div>
+                    <div class="text-xs text-(--text-muted) space-y-0.5">
+                      <p v-if="it.tenLop ?? it.TenLop" class="text-(--text-body)">
+                        Lớp: {{ it.tenLop ?? it.TenLop }}
+                        <span v-if="it.maCodeLop || it.MaCodeLop" class="font-mono">({{ it.maCodeLop ?? it.MaCodeLop }})</span>
+                      </p>
+                      <p v-if="it.tenGiaoVien ?? it.TenGiaoVien" class="text-(--text-body)">Giảng viên: {{ it.tenGiaoVien ?? it.TenGiaoVien }}</p>
+                      <p v-if="it.thuTrongTuan || it.maCaHoc || it.tenPhong" class="text-(--text-body)">
+                        Thứ {{ it.thuTrongTuan ?? it.ThuTrongTuan }} · {{ it.tenCa ?? it.TenCa ?? '' }} · {{ it.tenPhong ?? it.TenPhong ?? '' }}
+                      </p>
+                      <div class="flex items-center gap-1.5 pt-1">
+                        <GlassBadge :variant="(it.trangThai ?? it.TrangThai) === 'xep_duoc' ? 'success' : 'danger'" size="sm">
+                          {{ itemStatusLabel(it.trangThai ?? it.TrangThai) }}
+                        </GlassBadge>
+                        <GlassBadge v-if="it.mucDoPhuHop || it.MucDoPhuHop" variant="warning" size="sm">
+                          Phù hợp {{ it.mucDoPhuHop ?? it.MucDoPhuHop }}%
+                        </GlassBadge>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div class="flex items-center justify-between bg-(--surface-input) rounded-xl p-3 border border-(--border-default)">
-                  <span class="text-xs text-(--text-body)">Buổi bị hủy</span>
-                  <GlassBadge :variant="selected.buoiHuy > 0 ? 'danger' : 'success'" size="sm">{{ selected.buoiHuy }}</GlassBadge>
-                </div>
-              </div>
-
-              <div v-if="selected.thayDoiPhatSinh === 0 && selected.buoiHuy === 0" class="flex items-center gap-2 bg-(--color-success-bg) border border-(--border-default) rounded-xl p-3">
-                <CheckCircle :size="15" class="text-(--color-success-text) shrink-0" />
-                <p class="text-xs text-(--color-success-text) font-medium">Lịch đang vận hành ổn định, không có biến động.</p>
               </div>
             </div>
           </div>
@@ -265,38 +509,11 @@ const stats = computed(() => ({
 
       <!-- ── Tab: Thay đổi phát sinh ── -->
       <div v-if="activeTab === 'thayDoi'" class="space-y-2">
-        <div
-          v-for="c in changes" :key="c.id"
-          class="surface-card border border-(--border-card) rounded-2xl shadow-sm p-4 flex items-center gap-4 flex-wrap"
-        >
-          <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-            :class="{
-              'bg-(--color-danger-bg) text-(--color-danger-text)': c.loaiThayDoi === 'huy_buoi',
-              'bg-(--color-warning-bg) text-(--color-warning-text)': ['doi_phong','doi_ca'].includes(c.loaiThayDoi),
-              'bg-(--accent-primary-soft) text-(--lg-primary)': c.loaiThayDoi === 'day_thay',
-            }">
-            <ArrowLeftRight :size="18" />
-          </div>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="text-sm font-semibold text-(--text-heading) truncate">{{ c.monHoc }}</span>
-              <GlassBadge :variant="loaiThayDoiVariant(c.loaiThayDoi)" size="sm">{{ loaiThayDoiLabel(c.loaiThayDoi) }}</GlassBadge>
-              <GlassBadge :variant="ttVariant(c.trangThai)" size="sm">{{ ttLabel(c.trangThai) }}</GlassBadge>
-            </div>
-            <p class="text-xs text-(--text-muted) mt-0.5">{{ c.lop }} · {{ c.giaoVien }}</p>
-            <p class="text-xs text-(--text-muted)">Ngày học: {{ formatDate(c.ngayHoc) }}</p>
-          </div>
-          <div class="flex flex-col gap-1 text-xs text-right shrink-0 max-w-[200px]">
-            <span class="text-(--text-muted) truncate">Trước: {{ c.truoc }}</span>
-            <span class="text-(--text-body) font-medium truncate">Sau: {{ c.sau }}</span>
-          </div>
-        </div>
-
-        <div v-if="changes.length === 0" class="surface-card border border-(--border-card) rounded-2xl p-12 text-center shadow-sm">
-          <CheckCircle :size="36" class="mx-auto text-emerald-400 mb-3" />
-          <p class="font-semibold text-(--text-heading)">Không có thay đổi</p>
-          <p class="text-sm text-(--text-muted) mt-1">Chưa có biến động nào sau khi lịch được công bố.</p>
-        </div>
+        <EmptyState
+          v-if="true"
+          title="Không có thay đổi"
+          description="Chưa có biến động nào sau khi lịch được công bố. Giáo vụ sẽ được thông báo khi phát sinh thay đổi từ giảng viên."
+        />
       </div>
     </template>
   </div>

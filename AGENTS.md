@@ -156,31 +156,13 @@ Khi thêm component mới: **KHÔNG dùng hardcode** `bg-white`, `text-slate-*`,
   - `GET /api/ca-hoc`, `GET /api/ca-hoc/active`, `GET /api/ca-hoc/{id}`, `POST/PUT /api/ca-hoc`, `PATCH /api/ca-hoc/{id}/toggle-active` (policy AcademicOperations; **không có DELETE** — xóa ca học qua toggle-active)
   - `GET /api/blocks?maHocKy={id}`, `PUT /api/blocks/{id}` (policy AcademicScheduleConfig; block phải nằm trong khoảng ngày học kỳ)
   - `GET /api/quy-doi-tin-chi`, `POST/PUT/DELETE /api/quy-doi-tin-chi` (policy AcademicScheduleConfig; soTinChi phải duy nhất 1-20)
-  - `GET /api/attendance-policy`, `GET /api/attendance-policy/history`, `PUT /api/attendance-policy` (policy AcademicOperations; chính sách điểm danh theo đơn vị — SuperAdmin xem toàn hệ thống, mỗi lần PUT tạo phiên bản mới + ghi audit UPDATE_POLICY; hạn gửi/chỉnh sửa điểm danh và hệ số vắng được AttendanceService đọc từ policy này)
-  - `GET /api/pass-fail-rules?maHocKy=&maNganh=&maChuyenNganh=&search=&pageIndex=&pageSize=`, `GET /api/pass-fail-rules/{id}`, `POST /api/pass-fail-rules`, `PUT /api/pass-fail-rules/{id}` (policy AcademicOperations; cấu hình trọng số/ngưỡng đạt/chuyên cần tối thiểu theo môn & học kỳ trên `CauHinhDiemMonHoc` — tổng trọng số phải = 100, ngưỡng 0-10, chuyên cần 0-100; lọc theo ngành/chuyên ngành; ghi audit CREATE/UPDATE_PASS_FAIL_RULE; `TiLeChuyenCanToiThieu > 0` được GradeAggregationService dùng để đánh `rot` khi chuyên cần thấp; không có DELETE)
-  - `GET /api/applications/templates?includeInactive=true` — danh sách mẫu đơn từ (`Maudontu`); `includeInactive=true` trả cả mẫu tạm ẩn kèm `dangHoatDong/ngayTao/ngayCapNhat` (dùng cho màn Quản lý mẫu đơn từ)
-  - `POST /api/applications/templates` (policy AdminOnly) — tạo mẫu đơn mới (loại đơn chưa có mẫu; validate `cauHinhJson` qua `ApplicationTemplateValidator`; `phienBan=1`; không cho tạo trùng loại)
-  - `PUT /api/applications/templates/{loaiDon}` (policy AdminOnly) — cập nhật mẫu đơn (tên, cấu hình JSON, minh chứng, SLA, `dangHoatDong`); đổi `cauHinhJson` → tự tăng `phienBan`; ghi audit `CREATE_APPLICATION_TEMPLATE`/`UPDATE_APPLICATION_TEMPLATE`
-  - `DELETE /api/applications/templates/{loaiDon}` (policy AdminOnly) — xóa mẫu đơn (chỉ xóa khi chưa có đơn từ `DonTu` nào tham chiếu `MaMauDon`; nếu có → 400 yêu cầu tạm ẩn thay vì xóa); ghi audit `DELETE_APPLICATION_TEMPLATE`
-  - `GET /api/applications/schema/types` — danh sách loại đơn chuẩn (dùng cho màn tạo mẫu; lưu ý `/api/applications/schema/options` không tồn tại ở BE — 404)
-  - `GET /api/student/retake/available-subjects` — danh sách **khóa học** (lớp học phần `KhoaHoc`) có thể thi lại: môn rớt xác định từ `DiemSo` join `CauHinhDiemMonHoc` theo `(MaMonHoc, MaHocKy)` khi `GpaMonHoc < NguongDat`; trả `{id=MaKhoaHoc, name=TieuDe, code=MaCodeMonHoc}`; chỉ giữ khóa học của môn có ca thi `'nhap'/'dang_mo'` với `NgayThi >= hôm nay`
-  - `GET /api/student/retake/courses/{courseId}/exam-sessions` — ca thi mở của khóa học (lấy ca thi theo `LichThiTong.MaMonHoc` của khóa học; 404 nếu khóa học không tồn tại); trả `{id=MaCaThi, name=...}`
-  - Mẫu đơn `thi_lai` dùng field `course_id` (autoFill `availableRetakeSubjects`, relatedEntity `khoa_hoc`) + `exam_session_id` (dependsOn `course_id`); `RetakeExamApplicationSubmissionRule` validate khóa học tồn tại, sinh viên rớt theo ngưỡng cấu hình, ca thi thuộc khóa học & đang mở
-  - Lưu ý route: `/super-admin/approvals/requests` là màn **Quản lý mẫu đơn từ** (SuperAdmin); hàng đợi xử lý đơn của sinh viên nằm ở GiaoVu `/staff/requests`
+  - `POST /api/thoi-khoa-bieu/generate`, `GET /api/thoi-khoa-bieu/drafts`, `GET /api/thoi-khoa-bieu/drafts/{draftId}`, `GET /api/thoi-khoa-bieu/drafts/{draftId}/progress`, `POST /api/thoi-khoa-bieu/check-xung-dot-batch`, `POST /api/thoi-khoa-bieu/publish`, `DELETE /api/thoi-khoa-bieu/drafts/{draftId}` (P12 — Smart Timetable GA; `generate` nhận tham số genetic `tongTheHe`, `kichThuocQuanThe`, `tyLeCheo`, `doTuoiThoToiDa`, `clientDraftId`; job chỉ chấp nhận trạng thái `draft`/`da_xuat_ban` theo CHECK constraint)
 
   - `POST /api/admin/discipline-records/{id}/remove-effect` (DL3)
   - `POST /api/admin/discipline-records/{id}/void-approved` (DL3)
   - `GET /api/admin/discipline-appeals` (DL3)
   - `GET /api/bgh/evaluations/overview` (P15D)
   - `GET /api/bgh/evaluations/ai-analysis` (P15D)
-  - `GET /api/admin/evaluations/config` — lấy biểu mẫu đánh giá GV hiện hành (bảng `MauDanhGia`, trả `null` nếu chưa có)
-  - `PUT /api/admin/evaluations/config` (policy AdminOnly) — upsert biểu mẫu đánh giá GV (tên, `cauHinhJson` — validate qua `ApplicationTemplateValidator`, `dangHoatDong`); ghi audit `UPSERT_EVALUATION_CONFIG`
-  - `GET /api/admin/evaluations/summary` — tổng quan cấu hình đánh giá GV (số câu hỏi, lượt đánh giá, GV được đánh giá, học kỳ có đánh giá)
-  - `GET /api/admin/evaluations/questions` — danh sách câu hỏi khảo sát kèm `luotSuDung`
-  - `POST /api/admin/evaluations/questions` (policy AdminOnly) — tạo câu hỏi (nội dung 1-500 ký tự, mặc định hoạt động)
-  - `PUT /api/admin/evaluations/questions/{id}` (policy AdminOnly) — sửa nội dung câu hỏi
-  - `POST /api/admin/evaluations/questions/{id}/toggle-active` (policy AdminOnly) — bật/tắt câu hỏi
-  - `DELETE /api/admin/evaluations/questions/{id}` (policy AdminOnly) — xóa câu hỏi (chỉ khi chưa có lượt đánh giá `DanhGiaGiaoVien` dùng; nếu có → 400 yêu cầu tạm ẩn)
   - `GET /api/bgh/academic/overview` (P15D)
   - `GET /api/bgh/academic/gpa` (P15D)
   - `GET /api/bgh/academic/at-risk` (P15D)
@@ -191,10 +173,6 @@ Khi thêm component mới: **KHÔNG dùng hardcode** `bg-white`, `text-slate-*`,
   - `POST /api/student/parent-links/invite`, `PUT /api/student/parent-links/{linkId}/permissions`, `DELETE /api/student/parent-links/{linkId}` `dự kiến` — FE `studentApi` đánh dấu `× MISSING_BACKEND`; BE có entity `LienKetPhuHuynh` + seed nhưng chưa có controller.
   - `POST /api/bgh/grade-unlock-requests/{requestId}/approve` (Phase 3)
   - `POST /api/bgh/grade-unlock-requests/{requestId}/reject` (Phase 3)
-  - `GET /api/admin/certificate-templates`, `GET /api/admin/certificate-templates/{id}`, `POST/PUT/DELETE /api/admin/certificate-templates[/{id}]`, `POST /api/admin/certificate-templates/{id}/preview` (RD5, SuperAdmin) — quản lý mẫu bằng khen (`MauBangKhen`); `cauHinhJson` hỗ trợ 2 mode: `{mode:"html", html, css}` (HTML/CSS render tại FE) và legacy `{fields:[...]}`; `POST preview` trả `Mode/Html/Css` khi mode html, không ghi DB.
-  - `GET /api/admin/reward-campaigns`, `GET /api/admin/reward-campaigns/{id}`, `POST /api/admin/reward-campaigns/top100`, `PUT/PATCH /api/admin/reward-campaigns/{id}[/cancel]`, `POST /api/admin/reward-campaigns/{id}/evaluate`, `GET /api/admin/reward-campaigns/{id}/candidates`, `POST /api/admin/reward-campaigns/{id}/approve`, `POST /api/admin/reward-campaigns/{id}/certificates/generate|regenerate`, `GET /api/admin/reward-campaigns/{id}/certificates` (RD2-RD6) — vòng đời đợt khen thưởng Top 100; SuperAdmin CRUD, Admin/CampusAdmin đọc theo scope.
-  - `POST /api/admin/reward-campaigns/{id}/certificates/upload` (SuperAdmin) — upload PDF bằng khen render tại FE (html2pdf.js) cho template mode html: payload `{MaKhenThuong, MaMauBangKhen, FileBase64, GhiChu}`; validate PDF (`%PDF-` magic, ≤20MB), set `TrangThai=PdfGenerated` + audit `UPLOAD_REWARD_CERTIFICATE`; khi template mode html thì BE không tự sinh PDF raw (vốn làm hỏng tiếng Việt), FE tự render + upload.
-  - Màn SuperAdmin: `/super-admin/awards` = Khen thưởng (`AwardsView.vue` — cấp phát bằng khen; nếu đợt có mẫu mode html thì FE render HTML→PDF tuần tự + upload từng sinh viên, ngược lại gọi BE generate), `/super-admin/awards/certificate-templates` = Cấu hình giấy khen (`CertificateTemplatesView.vue` — editor HTML/CSS + live preview iframe; token `{{hoTen}}`, `{{mssv}}`, `{{tenHocKy}}`, `{{danhHieu}}`, `{{xepHang}}`, `{{diemXet}}`, `{{ngayCap}}`).
 - Endpoint chưa có controller phải ghi `dự kiến`.
 - Không tự đổi request/response DTO mà không cập nhật contract.
 
@@ -225,13 +203,6 @@ npm install
 npm run build
 npm run test:unit
 npm run lint
-```
-
-Docker (Bắt buộc chạy sau mỗi lần sửa Backend hoặc Frontend để cập nhật ngay vào Docker container):
-
-```powershell
-docker compose build --no-cache backend frontend
-docker compose up -d --force-recreate backend frontend
 ```
 
 Khi chỉ sửa tài liệu:

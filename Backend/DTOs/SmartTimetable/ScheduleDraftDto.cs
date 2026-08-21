@@ -13,5 +13,7 @@ public class ScheduleDraftDto
     public double? Score { get; set; }
     public DateTime NgayTao { get; set; }
     public DateTime? NgayXuatBan { get; set; }
+    public int NguoiYeuCau { get; set; }
+    public string? TenNguoiYeuCau { get; set; }
     public List<ScheduleDraftItemDto> Items { get; set; } = new();
 }

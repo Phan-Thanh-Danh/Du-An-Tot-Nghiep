@@ -407,11 +407,33 @@ watch(
               <p class="text-xs text-(--text-muted) uppercase tracking-wider font-bold mb-1">Chi tiết môn học</p>
               <div class="space-y-3 mt-2 max-h-[300px] overflow-y-auto pr-1">
                 <div v-for="cItem in (selectedItem.raw.items || selectedItem.raw.Items)" :key="cItem.maDraftItem || cItem.MaDraftItem" class="text-sm border border-(--border-default) rounded-xl p-3">
-                  <div class="flex justify-between items-center mb-1">
-                    <span class="font-bold text-(--text-heading)">Khóa học {{ cItem.maKhoaHoc ?? cItem.MaKhoaHoc }}</span>
-                    <span class="font-mono text-xs text-(--lg-primary)">{{ Math.round(cItem.score ?? cItem.Score ?? 0) }}đ</span>
+                  <div class="flex justify-between items-center mb-1 gap-2">
+                    <span class="font-bold text-(--text-heading) truncate">{{ cItem.tenMonHoc ?? cItem.TenMonHoc ?? `Khóa học ${cItem.maKhoaHoc ?? cItem.MaKhoaHoc}` }}</span>
+                    <span class="font-mono text-xs text-(--lg-primary) shrink-0">{{ Math.round(cItem.score ?? cItem.Score ?? 0) }}đ</span>
                   </div>
                   <div class="text-xs text-(--text-muted) space-y-1">
+                    <div v-if="cItem.maCodeMonHoc || cItem.MaCodeMonHoc" class="font-medium text-(--text-body)">Môn: <span class="font-mono">{{ cItem.maCodeMonHoc ?? cItem.MaCodeMonHoc }}</span></div>
+                    <div v-if="cItem.tenLop ?? cItem.TenLop" class="font-medium text-(--text-body)">Lớp: {{ cItem.tenLop ?? cItem.TenLop }} <span v-if="cItem.maCodeLop || cItem.MaCodeLop" class="font-mono">({{ cItem.maCodeLop ?? cItem.MaCodeLop }})</span></div>
+                    <div v-if="cItem.tenGiaoVien ?? cItem.TenGiaoVien" class="font-medium text-(--text-body) flex items-center gap-1.5 flex-wrap">
+                      Giảng viên: {{ cItem.tenGiaoVien ?? cItem.TenGiaoVien }}
+                      <span
+                        class="rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold"
+                        :class="Number(cItem.mucDoPhuHop ?? cItem.MucDoPhuHop ?? 0) >= 80 ? 'bg-(--color-success-bg) text-(--color-success-text)' : 'bg-(--color-warning-bg) text-(--color-warning-text)'"
+                      >Phù hợp {{ Number(cItem.mucDoPhuHop ?? cItem.MucDoPhuHop ?? 0) }}%</span>
+                    </div>
+
+                    <div v-if="(cItem.monHocGiangDay || cItem.MonHocGiangDay)?.length" class="mt-1.5">
+                      <p class="font-bold mb-1 opacity-80">Môn giảng viên dạy:</p>
+                      <div class="flex flex-wrap gap-1">
+                        <span
+                          v-for="s in (cItem.monHocGiangDay || cItem.MonHocGiangDay)"
+                          :key="s.maMonHoc ?? s.MaMonHoc"
+                          class="rounded-md px-1.5 py-0.5 font-mono text-[10px] border border-(--border-default)"
+                          :class="Number(s.mucDoPhuHop ?? s.MucDoPhuHop ?? 0) >= 80 ? 'bg-(--color-success-bg) text-(--color-success-text)' : 'bg-(--surface-input) text-(--text-body)'"
+                        >{{ s.tenMonHoc ?? s.TenMonHoc }} {{ Number(s.mucDoPhuHop ?? s.MucDoPhuHop ?? 0) }}%<span v-if="s.laMonChinh ?? s.LaMonChinh" class="ml-0.5">★</span></span>
+                      </div>
+                    </div>
+
                     <div v-if="cItem.tenPhong ?? cItem.TenPhong" class="font-medium text-(--text-body)">Phòng: {{ cItem.tenPhong ?? cItem.TenPhong }} | Thứ {{ cItem.thuTrongTuan ?? cItem.ThuTrongTuan }} | {{ cItem.tenCa ?? cItem.TenCa }}</div>
 
                     <div v-if="(cItem.scoreBreakdown || cItem.ScoreBreakdown)" class="mt-2">

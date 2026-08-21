@@ -124,7 +124,9 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
         var hasTeachers = await _db.NguoiDungs.AnyAsync(
             x =>
                 x.MaDonVi == campusId
-                && (x.VaiTroChinh == "Teacher" || x.VaiTroChinh == "Lecturer")
+                && (x.VaiTroChinh == "giao_vien"
+                    || x.VaiTroChinh == "Teacher"
+                    || x.VaiTroChinh == "Lecturer")
                 && x.TrangThai == "hoat_dong",
             cancellationToken
         );

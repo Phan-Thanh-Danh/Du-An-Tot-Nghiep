@@ -7,6 +7,7 @@ using Backend.Exceptions;
 using Backend.Models;
 using Backend.Services.AcademicSchedulingContext;
 using Backend.Services.Audit;
+using Backend.Services.BuoiHoc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -465,6 +466,36 @@ public class SmartTimetableService : ISmartTimetableService
                     map.OccupyClass(job.MaHocKy, item.ThuTrongTuan.Value, item.MaCaHoc.Value, course.MaLop);
                     map.OccupyRoom(job.MaHocKy, item.ThuTrongTuan.Value, item.MaCaHoc.Value, item.MaPhong.Value);
                     result.BuoiHocDaTao++;
+
+                    if (schedule.NgayBatDau.HasValue && schedule.NgayKetThuc.HasValue)
+                    {
+                        var sessionDates = SessionDateHelper.ExpandSessionDates(
+                            schedule.NgayBatDau.Value,
+                            schedule.NgayKetThuc.Value,
+                            schedule.ThuTrongTuan);
+
+                        foreach (var sessionDate in sessionDates)
+                        {
+                            _context.BuoiHocs.Add(new Models.BuoiHoc
+                            {
+                                Tkb = schedule,
+                                MaKhoaHoc = item.MaKhoaHoc,
+                                NgayHoc = sessionDate,
+                                MaCaHoc = item.MaCaHoc.Value,
+                                MaPhong = item.MaPhong.Value,
+                                MaGiaoVien = course.MaGiaoVien,
+                                MaGiaoVienDayThay = null,
+                                TrangThaiBuoi = "du_kien",
+                                TrangThaiDiemDanh = "chua_mo",
+                                LoaiThayDoi = null,
+                                LyDoThayDoi = null,
+                                GhiChu = null,
+                                KhoaLuc = null,
+                                NgayTao = DateTime.UtcNow,
+                                NgayCapNhat = DateTime.UtcNow
+                            });
+                        }
+                    }
                 }
 
                 if (result.BuoiHocLoi > 0)
@@ -890,6 +921,7 @@ public class SmartTimetableService : ISmartTimetableService
     {
         var job = await _context.ScheduleGenerationJobs
             .AsNoTracking()
+            .Include(x => x.NguoiYeuCauNavigation)
             .FirstOrDefaultAsync(x => x.MaJob == maJob, cancellationToken);
         if (job is null)
             throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy bản nháp.");
@@ -908,11 +940,20 @@ public class SmartTimetableService : ISmartTimetableService
             ? await _context.KhoaHocs.AsNoTracking().Where(x => courseIds.Contains(x.MaKhoaHoc)).ToListAsync(cancellationToken)
             : new List<Backend.Models.KhoaHoc>();
 
+        var monHocIds = courses.Select(x => x.MaMonHoc).Distinct().ToList();
+        var lopIds = courses.Select(x => x.MaLop).Distinct().ToList();
+        var monHocs = monHocIds.Count > 0
+            ? await _context.DanhMucMonHocs.AsNoTracking().Where(x => monHocIds.Contains(x.MaMonHoc)).ToListAsync(cancellationToken)
+            : new List<Backend.Models.DanhMucMonHoc>();
+        var lopHanhChinhs = lopIds.Count > 0
+            ? await _context.LopHanhChinhs.AsNoTracking().Where(x => lopIds.Contains(x.MaLop)).ToListAsync(cancellationToken)
+            : new List<Backend.Models.LopHanhChinh>();
+
         var rooms = roomIds.Count > 0
             ? await _context.PhongHocs.AsNoTracking().Where(x => roomIds.Contains(x.MaPhong)).ToListAsync(cancellationToken)
             : new List<Backend.Models.PhongHoc>();
 
-var shifts = shiftIds.Count > 0
+        var shifts = shiftIds.Count > 0
             ? await _context.CaHocs.AsNoTracking().Where(x => shiftIds.Contains(x.MaCaHoc)).ToListAsync(cancellationToken)
             : new List<Backend.Models.CaHoc>();
 
@@ -921,10 +962,38 @@ var shifts = shiftIds.Count > 0
             ? await _context.NguoiDungs.AsNoTracking().Where(x => teacherIds.Contains(x.MaNguoiDung)).ToListAsync(cancellationToken)
             : new List<Backend.Models.NguoiDung>();
 
+        var teacherSkills = teacherIds.Count > 0
+            ? await _context.GiaoVienMonHocs.AsNoTracking()
+                .Where(x => teacherIds.Contains(x.MaGiaoVien) && x.ConHoatDong)
+                .ToListAsync(cancellationToken)
+            : new List<Backend.Models.GiaoVienMonHoc>();
+        var skillMonHocIds = teacherSkills.Select(x => x.MaMonHoc).Distinct().ToList();
+        var skillMonHocs = skillMonHocIds.Count > 0
+            ? await _context.DanhMucMonHocs.AsNoTracking().Where(x => skillMonHocIds.Contains(x.MaMonHoc)).ToListAsync(cancellationToken)
+            : new List<Backend.Models.DanhMucMonHoc>();
+
         var courseMap = courses.ToDictionary(x => x.MaKhoaHoc);
         var roomMap = rooms.ToDictionary(x => x.MaPhong);
         var shiftMap = shifts.ToDictionary(x => x.MaCaHoc);
         var teacherMap = teachers.ToDictionary(x => x.MaNguoiDung);
+        var monHocMap = monHocs.ToDictionary(x => x.MaMonHoc);
+        var lopMap = lopHanhChinhs.ToDictionary(x => x.MaLop);
+        var skillMonHocMap = skillMonHocs.ToDictionary(x => x.MaMonHoc);
+        var teacherSkillGroup = teacherSkills
+            .GroupBy(x => x.MaGiaoVien)
+            .ToDictionary(
+                g => g.Key,
+                g => g
+                    .OrderByDescending(x => x.MucDoPhuHop)
+                    .Select(x => new TeacherSubjectSkillDto
+                    {
+                        MaMonHoc = x.MaMonHoc,
+                        MaCodeMonHoc = skillMonHocMap.TryGetValue(x.MaMonHoc, out var mh) ? mh.MaCodeMonHoc : null,
+                        TenMonHoc = skillMonHocMap.TryGetValue(x.MaMonHoc, out var mh2) ? mh2.TenMonHoc : null,
+                        MucDoPhuHop = x.MucDoPhuHop,
+                        LaMonChinh = x.LaMonChinh,
+                    })
+                    .ToList());
 
         return new ScheduleDraftDto
         {
@@ -939,6 +1008,8 @@ var shifts = shiftIds.Count > 0
             Score = job.Score,
             NgayTao = job.NgayTao,
             NgayXuatBan = job.NgayXuatBan,
+            NguoiYeuCau = job.NguoiYeuCau,
+            TenNguoiYeuCau = job.NguoiYeuCauNavigation?.HoTen,
             Items = draftItems.Select(x =>
             {
                 courseMap.TryGetValue(x.MaKhoaHoc, out var course);
@@ -950,9 +1021,18 @@ var shifts = shiftIds.Count > 0
                     MaDraftItem = x.MaDraftItem,
                     MaKhoaHoc = x.MaKhoaHoc,
                     MaKhoaHocCode = null,
+                    MaMonHoc = course?.MaMonHoc,
+                    MaCodeMonHoc = course is not null && monHocMap.TryGetValue(course.MaMonHoc, out var mh) ? mh.MaCodeMonHoc : null,
+                    TenMonHoc = course is not null && monHocMap.TryGetValue(course.MaMonHoc, out var mh2) ? mh2.TenMonHoc : null,
+                    MaLop = course?.MaLop,
+                    MaCodeLop = course is not null && lopMap.TryGetValue(course.MaLop, out var lop) ? lop.MaCodeLop : null,
+                    TenLop = course is not null && lopMap.TryGetValue(course.MaLop, out var lop2) ? lop2.TenLop : null,
                     MaGiaoVien = x.MaGiaoVien,
                     TenGiaoVien = teacherMap.TryGetValue(x.MaGiaoVien ?? 0, out var gv) ? gv.HoTen : null,
                     MucDoPhuHop = x.MucDoPhuHop,
+                    MonHocGiangDay = x.MaGiaoVien.HasValue && teacherSkillGroup.TryGetValue(x.MaGiaoVien.Value, out var skills)
+                        ? skills
+                        : new List<TeacherSubjectSkillDto>(),
                     ThuTrongTuan = x.ThuTrongTuan,
                     MaCaHoc = x.MaCaHoc,
                     TenCa = shift?.TenCa,

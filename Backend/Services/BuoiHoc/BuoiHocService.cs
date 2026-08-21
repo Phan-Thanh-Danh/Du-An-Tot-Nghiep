@@ -174,7 +174,7 @@ public class BuoiHocService : IBuoiHocService
         await ValidateNoSessionConflictForGenerationAsync(
             schedule, course, shift, room, teacher, cancellationToken);
 
-        var targetDates = GetSessionDates(
+        var targetDates = SessionDateHelper.ExpandSessionDates(
             schedule.NgayBatDau!.Value,
             schedule.NgayKetThuc!.Value,
             schedule.ThuTrongTuan);
@@ -723,28 +723,6 @@ public class BuoiHocService : IBuoiHocService
         }
     }
 
-    private static List<DateOnly> GetSessionDates(
-        DateOnly startDate,
-        DateOnly endDate,
-        int vietnameseDayOfWeek)
-    {
-        var dates = new List<DateOnly>();
-        for (var date = startDate; date <= endDate; date = date.AddDays(1))
-        {
-            if (ToVietnameseDayOfWeek(date.DayOfWeek) == vietnameseDayOfWeek)
-            {
-                dates.Add(date);
-            }
-        }
-
-        return dates;
-    }
-
-    private static int ToVietnameseDayOfWeek(DayOfWeek dayOfWeek)
-    {
-        return dayOfWeek == DayOfWeek.Sunday ? 1 : (int)dayOfWeek + 1;
-    }
-
     private CurrentUserContext GetCurrentUser()
     {
         var currentUser = _httpContextAccessor.HttpContext?.Items["CurrentUser"] as CurrentUserContext;
@@ -1147,7 +1125,7 @@ public class BuoiHocService : IBuoiHocService
         if (!schedule.NgayBatDau.HasValue)
             return;
 
-        var targetDates = GetSessionDates(
+        var targetDates = SessionDateHelper.ExpandSessionDates(
             schedule.NgayBatDau.Value,
             schedule.NgayKetThuc ?? schedule.NgayBatDau.Value,
             schedule.ThuTrongTuan);
