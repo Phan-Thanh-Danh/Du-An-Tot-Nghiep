@@ -692,7 +692,7 @@ public static class LargeDemoSeeder
         {
             var tickets = new List<PhieuHoTro>();
             var categories = new[] { "hoc_vu", "tai_chinh", "ky_thuat", "khac" };
-            var statuses = new[] { "moi", "dang_xu_ly", "da_dong" };
+            var statuses = new[] { "mo", "dang_xu_ly", "da_dong" };
             
             for (int i = 0; i < 200; i++)
             {
