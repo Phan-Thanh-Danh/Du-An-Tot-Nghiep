@@ -348,9 +348,9 @@ public static class LargeDemoSeeder
 
         var teacherRoleStr = AuthRoles.ToDatabaseCode(AuthRoles.Teacher);
         var studentRoleStr = AuthRoles.ToDatabaseCode(AuthRoles.Student);
-        if (!allTeachers.Any()) allTeachers = await context.NguoiDungs.Where(u => u.VaiTroChinh == teacherRoleStr).ToListAsync();
-        if (!allClasses.Any()) allClasses = await context.LopHanhChinhs.ToListAsync();
-        if (!allStudents.Any()) allStudents = await context.NguoiDungs.Where(u => u.VaiTroChinh == studentRoleStr).ToListAsync();
+        allTeachers = await context.NguoiDungs.Where(u => u.VaiTroChinh == teacherRoleStr).ToListAsync();
+        allClasses = await context.LopHanhChinhs.ToListAsync();
+        allStudents = await context.NguoiDungs.Where(u => u.VaiTroChinh == studentRoleStr).ToListAsync();
 
         // 6. Courses across Campuses & Terms
         Console.WriteLine("Seeding Courses across Campuses & Terms...");
@@ -363,7 +363,7 @@ public static class LargeDemoSeeder
 
         foreach (var campus in campuses)
         {
-            var campusTerms = allCampusTerms.Where(t => t.MaDonVi == campus.MaDonVi).ToList();
+            var campusTerms = allCampusTerms.Where(t => t.MaDonVi == campus.MaDonVi && t.ThuTuTrongNam != 2).ToList();
             var campusTeachers = allTeachers.Where(t => t.MaDonVi == campus.MaDonVi).ToList();
             var campusClasses = allClasses.Where(c => c.MaDonVi == campus.MaDonVi).ToList();
 
@@ -596,7 +596,261 @@ public static class LargeDemoSeeder
             }
         }
 
+        Console.WriteLine("Seeding Missing Data for Parents, Invoices, Support Tickets, Attendance...");
+        await SeedMissingDataAsync(context, allStudents, allTeachers, random, passwordHash);
+
         Console.WriteLine("Multi-Campus LargeDemo Seed V11 completed successfully!");
+    }
+
+    private static async Task SeedMissingDataAsync(ApplicationDbContext context, List<NguoiDung> allStudents, List<NguoiDung> allTeachers, Random random, string passwordHash)
+    {
+        var now = DateTime.UtcNow;
+
+        // 1. Phụ huynh & Liên kết phụ huynh
+        var parentRole = AuthRoles.ToDatabaseCode(AuthRoles.Parent);
+        var existingParentsCount = await context.NguoiDungs.CountAsync(u => u.VaiTroChinh == parentRole && u.Email.Contains("parent.v11"));
+        if (existingParentsCount == 0 && allStudents.Any())
+        {
+            var parents = new List<NguoiDung>();
+            for (int i = 1; i <= 500; i++)
+            {
+                parents.Add(new NguoiDung
+                {
+                    Email = $"parent.v11.{i:D4}@edulms.local",
+                    HoTen = $"Phụ Huynh {i:D4}",
+                    VaiTroChinh = parentRole,
+                    MaDonVi = allStudents.First().MaDonVi,
+                    TrangThai = UserStatuses.DbActive,
+                    MatKhauHash = passwordHash,
+                    NgayTao = now
+                });
+            }
+            context.NguoiDungs.AddRange(parents);
+            await context.SaveChangesAsync();
+
+            var links = new List<LienKetPhuHuynh>();
+            int studentIdx = 0;
+            foreach (var p in parents)
+            {
+                int childrenCount = random.Next(1, 3);
+                for (int c = 0; c < childrenCount; c++)
+                {
+                    if (studentIdx >= allStudents.Count) break;
+                    links.Add(new LienKetPhuHuynh
+                    {
+                        MaPhuHuynh = p.MaNguoiDung,
+                        MaHocSinh = allStudents[studentIdx].MaNguoiDung,
+                        QuyenXem = "[\"xem_diem\", \"xem_hoc_phi\"]",
+                        TrangThai = "hoat_dong",
+                        LienKetLuc = now
+                    });
+                    studentIdx++;
+                }
+            }
+            context.LienKetPhuHuynhs.AddRange(links);
+            await context.SaveChangesAsync();
+        }
+
+        // 2. Hóa đơn (Invoices)
+        if (await context.HoaDons.CountAsync() == 0 && allStudents.Any())
+        {
+            var invoices = new List<HoaDon>();
+            var terms = await context.HocKys.ToListAsync();
+            var activeTerm = terms.FirstOrDefault(t => t.NgayBatDau <= DateOnly.FromDateTime(now) && t.NgayKetThuc >= DateOnly.FromDateTime(now)) ?? terms.First();
+
+            foreach (var student in allStudents)
+            {
+                bool isPaid = random.NextDouble() > 0.4;
+                decimal amount = 8500000m;
+                invoices.Add(new HoaDon
+                {
+                    MaDonVi = student.MaDonVi,
+                    MaHocSinh = student.MaNguoiDung,
+                    MaHocKy = activeTerm.MaHocKy,
+                    MaHoaDonCode = $"INV-{now.Year}-{student.MaNguoiDung}-{random.Next(1000, 9999)}",
+                    LoaiHoaDon = "hoc_phi",
+                    SoTien = amount,
+                    GiamTru = 0,
+                    DaThanhToan = isPaid ? amount : 0,
+                    TrangThai = isPaid ? "da_thanh_toan" : "chua_thanh_toan",
+                    HanThanhToan = DateOnly.FromDateTime(now.AddDays(15)),
+                    GhiChu = "Học phí kỳ " + activeTerm.TenHocKy,
+                    NgayTao = now.AddDays(-random.Next(1, 30))
+                });
+            }
+
+            for (int i = 0; i < invoices.Count; i += 2000)
+            {
+                var batch = invoices.Skip(i).Take(2000).ToList();
+                context.HoaDons.AddRange(batch);
+                await context.SaveChangesAsync();
+            }
+        }
+
+        // 3. Phiếu hỗ trợ (Support Tickets)
+        if (await context.PhieuHoTros.CountAsync() == 0 && allStudents.Any())
+        {
+            var tickets = new List<PhieuHoTro>();
+            var categories = new[] { "hoc_vu", "tai_chinh", "ky_thuat", "khac" };
+            var statuses = new[] { "moi", "dang_xu_ly", "da_dong" };
+            
+            for (int i = 0; i < 200; i++)
+            {
+                var st = allStudents[random.Next(allStudents.Count)];
+                tickets.Add(new PhieuHoTro
+                {
+                    MaHocSinh = st.MaNguoiDung,
+                    DanhMuc = categories[random.Next(categories.Length)],
+                    TieuDe = "Yêu cầu hỗ trợ sinh viên " + st.HoTen,
+                    MoTa = "Mô tả chi tiết vấn đề của sinh viên cần được giáo vụ giải quyết...",
+                    TrangThai = statuses[random.Next(statuses.Length)],
+                    NgayTao = now.AddDays(-random.Next(1, 30)),
+                    DoUuTien = random.NextDouble() > 0.8 ? "cao" : "binh_thuong"
+                });
+            }
+            context.PhieuHoTros.AddRange(tickets);
+            await context.SaveChangesAsync();
+        }
+
+        // 4. Buổi học & Điểm danh (Lessons & Attendance)
+        if (await context.BuoiHocs.CountAsync() == 0)
+        {
+            var tkbs = await context.ThoiKhoaBieus.Include(t => t.KhoaHoc).Take(200).ToListAsync();
+            var buoiHocs = new List<BuoiHoc>();
+            var diemDanhs = new List<DiemDanh>();
+
+            foreach (var tkb in tkbs)
+            {
+                if (tkb.KhoaHoc == null) continue;
+
+                for (int l = 0; l < 2; l++)
+                {
+                    var bh = new BuoiHoc
+                    {
+                        MaTkb = tkb.MaTkb,
+                        MaKhoaHoc = tkb.MaKhoaHoc,
+                        NgayHoc = DateOnly.FromDateTime(now.AddDays(-random.Next(1, 14))),
+                        MaCaHoc = tkb.MaCaHoc,
+                        MaPhong = tkb.MaPhong,
+                        MaGiaoVien = tkb.KhoaHoc.MaGiaoVien,
+                        TrangThaiBuoi = "da_day",
+                        TrangThaiDiemDanh = "da_khoa",
+                        KhoaLuc = now,
+                        NgayTao = now.AddDays(-20)
+                    };
+                    buoiHocs.Add(bh);
+                }
+            }
+
+            if (buoiHocs.Any())
+            {
+                context.BuoiHocs.AddRange(buoiHocs);
+                await context.SaveChangesAsync();
+
+                var allBuoiHocs = await context.BuoiHocs.Include(b => b.KhoaHoc).ToListAsync();
+                foreach (var bh in allBuoiHocs)
+                {
+                    if (bh.KhoaHoc == null) continue;
+                    
+                    var courseStudents = allStudents.Where(s => s.MaLop == bh.KhoaHoc.MaLop).Take(30).ToList();
+                    
+                    foreach (var st in courseStudents)
+                    {
+                        double roll = random.NextDouble();
+                        string status = roll > 0.9 ? "vang_mat" : (roll > 0.8 ? "di_muon" : "co_mat");
+
+                        diemDanhs.Add(new DiemDanh
+                        {
+                            MaDonVi = bh.KhoaHoc.MaDonVi,
+                            MaBuoiHoc = bh.MaBuoiHoc,
+                            MaHocSinh = st.MaNguoiDung,
+                            TrangThai = status,
+                            NguoiGhiNhan = bh.MaGiaoVien,
+                            GhiNhanLuc = bh.NgayHoc.ToDateTime(TimeOnly.MinValue).AddHours(8),
+                            HeSoVang = status == "vang_mat" ? 1 : 0
+                        });
+                    }
+                }
+                
+                for (int i = 0; i < diemDanhs.Count; i += 2000)
+                {
+                    var batch = diemDanhs.Skip(i).Take(2000).ToList();
+                    context.DiemDanhs.AddRange(batch);
+                    await context.SaveChangesAsync();
+                }
+            }
+        }
+        
+        // 5. Nhật ký hệ thống (Audit Logs)
+        if (await context.NhatKyKiemToans.CountAsync() == 0 && allTeachers.Any())
+        {
+            var logs = new List<NhatKyKiemToan>();
+            for(int i = 0; i < 300; i++)
+            {
+                var teacher = allTeachers[random.Next(allTeachers.Count)];
+                logs.Add(new NhatKyKiemToan
+                {
+                    NguoiThayDoi = teacher.MaNguoiDung,
+                    HanhDong = random.NextDouble() > 0.5 ? "UPDATE_GRADES" : "LOGIN_SUCCESS",
+                    MoTa = "Hệ thống ghi nhận thao tác của người dùng",
+                    LoaiDoiTuong = "GiaoVien",
+                    MaDoiTuong = teacher.MaNguoiDung.ToString(),
+                    DiaChiIp = "10.0.0.1",
+                    ThoiDiemThayDoi = now.AddHours(-random.Next(1, 100))
+                });
+            }
+            context.NhatKyKiemToans.AddRange(logs);
+            await context.SaveChangesAsync();
+        }
+
+        // 6. Dữ liệu đặc tả cho các tài khoản test (p12test_teacher01, staff, p15test_parent01)
+        var p12Teacher = allTeachers.FirstOrDefault(t => t.Email == "p12test_teacher01@lms.local");
+        if (p12Teacher != null)
+        {
+            var teacherCourses = await context.KhoaHocs.Where(k => k.MaDonVi == p12Teacher.MaDonVi && k.MaGiaoVien != p12Teacher.MaNguoiDung).Take(5).ToListAsync();
+            foreach (var c in teacherCourses) { c.MaGiaoVien = p12Teacher.MaNguoiDung; }
+            await context.SaveChangesAsync();
+        }
+
+        var staff = await context.NguoiDungs.FirstOrDefaultAsync(u => u.Email == "staff@edulms.local");
+        if (staff != null && await context.DonTus.CountAsync() == 0)
+        {
+            var dontus = new List<DonTu>();
+            for (int i = 0; i < 30; i++)
+            {
+                var st = allStudents[random.Next(allStudents.Count)];
+                dontus.Add(new DonTu
+                {
+                    MaDonVi = staff.MaDonVi,
+                    MaHocSinh = st.MaNguoiDung,
+                    LoaiDon = "chuyen_nganh",
+                    TieuDe = "Xin chuyển ngành học",
+                    TrangThai = random.NextDouble() > 0.5 ? "cho_xu_ly" : "da_duyet",
+                    TrangThaiXuLyNghiepVu = "dang_cho_duyet",
+                    DuLieuBieuMau = "{}",
+                    NgayTao = now.AddDays(-random.Next(1, 10))
+                });
+            }
+            context.DonTus.AddRange(dontus);
+            await context.SaveChangesAsync();
+        }
+
+        var testParent = await context.NguoiDungs.FirstOrDefaultAsync(u => u.Email == "p15test_parent01@lms.local");
+        if (testParent != null)
+        {
+            var testSt1 = allStudents.FirstOrDefault(s => s.Email == "student.cntt01@lms.local");
+            var testSt2 = allStudents.FirstOrDefault(s => s.Email == "p12test_student011@lms.local");
+
+            if (testSt1 != null && !await context.LienKetPhuHuynhs.AnyAsync(l => l.MaPhuHuynh == testParent.MaNguoiDung && l.MaHocSinh == testSt1.MaNguoiDung))
+            {
+                context.LienKetPhuHuynhs.Add(new LienKetPhuHuynh { MaPhuHuynh = testParent.MaNguoiDung, MaHocSinh = testSt1.MaNguoiDung, QuyenXem = "[\"xem_diem\", \"xem_hoc_phi\"]", TrangThai = "hoat_dong", LienKetLuc = now });
+            }
+            if (testSt2 != null && !await context.LienKetPhuHuynhs.AnyAsync(l => l.MaPhuHuynh == testParent.MaNguoiDung && l.MaHocSinh == testSt2.MaNguoiDung))
+            {
+                context.LienKetPhuHuynhs.Add(new LienKetPhuHuynh { MaPhuHuynh = testParent.MaNguoiDung, MaHocSinh = testSt2.MaNguoiDung, QuyenXem = "[\"xem_diem\", \"xem_hoc_phi\"]", TrangThai = "hoat_dong", LienKetLuc = now });
+            }
+            await context.SaveChangesAsync();
+        }
     }
 
     private static async Task SeedRegistrationWorkflowAsync(
@@ -693,7 +947,7 @@ public static class LargeDemoSeeder
         }
 
         // ── 3. Sample enrollments: enroll a subset of students into their own-class courses ──
-        var studentSamples = students.Where(x => x.VaiTroChinh == studentRole).Take(320).ToList();
+        var studentSamples = students.Where(x => x.VaiTroChinh == studentRole).ToList();
         var courseByClass = courses
             .GroupBy(c => c.MaLop)
             .ToDictionary(g => g.Key, g => g.OrderBy(c => c.MaKhoaHoc).ToList());

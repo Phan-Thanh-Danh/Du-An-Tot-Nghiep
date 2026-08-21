@@ -9,6 +9,15 @@ defineProps({
     default: () => [],
   },
 })
+
+const todayStr = new Intl.DateTimeFormat('vi-VN', {
+  weekday: 'long',
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric'
+}).format(new Date());
+// Capitalize the first letter of weekday
+const formattedDate = todayStr.charAt(0).toUpperCase() + todayStr.slice(1);
 </script>
 
 <template>
@@ -16,7 +25,7 @@ defineProps({
     <div class="flex items-center justify-between gap-3 border-b border-card px-4 py-3.5">
       <div>
         <h2 class="text-base font-semibold text-heading">Lịch hôm nay</h2>
-        <p class="text-xs font-medium text-body">Thứ sáu, 15/05/2026</p>
+        <p class="text-xs font-medium text-body">{{ formattedDate }}</p>
       </div>
       <CalendarDays :size="18" class="text-(--lg-cyan)" />
     </div>

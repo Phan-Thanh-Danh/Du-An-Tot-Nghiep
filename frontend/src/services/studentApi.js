@@ -62,13 +62,17 @@ export const studentApi = {
     
     if (data && data.schedule) {
       data.schedule = data.schedule.map(s => {
-        const mapped = mapSessionDto(s)
         return {
-          ...mapped,
-          time: `${mapped.shift.start?.slice(0,5)} - ${mapped.shift.end?.slice(0,5)}`,
-          lecturer: mapped.teacher,
+          id: s.id,
+          subject: s.course,
+          code: s.code,
+          time: s.time,
+          room: s.room,
+          lecturer: s.lecturer || 'Giảng viên',
+          type: s.type,
+          variant: s.statusVariant || 'primary',
+          status: s.status,
           current: false, // You would add logic to determine if current time is within shift
-          variant: mapped.status === 'da_huy' ? 'danger' : 'primary'
         }
       })
     }

@@ -10,6 +10,12 @@ defineProps({
     default: () => [],
   },
 })
+
+const todayStr = new Intl.DateTimeFormat('vi-VN', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric'
+}).format(new Date());
 </script>
 
 <template>
@@ -17,7 +23,7 @@ defineProps({
     <div class="flex items-center justify-between gap-3 border-b border-card px-4 py-3.5">
       <div>
         <h2 class="text-base font-semibold text-heading">Tiến độ khóa học</h2>
-        <p class="text-xs font-medium text-body">Cập nhật 15/05/2026</p>
+        <p class="text-xs font-medium text-body">Cập nhật {{ todayStr }}</p>
       </div>
       <router-link to="/student/courses" class="lg-button-ghost px-2.5 py-1.5 text-xs font-semibold">
         Tất cả

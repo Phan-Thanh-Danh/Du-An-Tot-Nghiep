@@ -78,6 +78,7 @@ public class ScheduleDto
     public string TypeVariant { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string StatusVariant { get; set; } = string.Empty;
+    public string Lecturer { get; set; } = string.Empty;
 }
 
 public class GradeDto
@@ -110,6 +111,11 @@ public class RegistrationDto
 
 public class AttendanceHealthDto
 {
+    public int Rate { get; set; }
+    public int Absent { get; set; }
+    public int Late { get; set; }
+    public string Warning { get; set; } = string.Empty;
+    
     public int Score { get; set; }
     public string Status { get; set; } = string.Empty;
     public string Tone { get; set; } = string.Empty;

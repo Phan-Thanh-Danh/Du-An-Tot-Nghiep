@@ -50,37 +50,82 @@ public class StudentDashboardController : ControllerBase
                 .Where(h => h.MaDonVi == currentUser.CampusId
                     && h.NgayBatDau <= today
                     && h.NgayKetThuc >= today)
-                .OrderByDescending(h => h.NgayBatDau)
+                .OrderByDescending(h => h.NamHoc)
+                .ThenByDescending(h => h.ThuTuTrongNam)
                 .FirstOrDefaultAsync();
+                
+            // Fallback: If no current semester, or the student has no courses in it, 
+            // find the most recent semester where they DO have courses.
+            var hasCoursesInCurrent = false;
+            if (currentHocKy != null)
+            {
+                hasCoursesInCurrent = await _db.DangKyHocPhans
+                    .Include(dk => dk.LopHocPhan)
+                    .AnyAsync(dk => dk.MaHocSinh == currentUser.UserId 
+                        && (dk.TrangThai == "da_duyet" || dk.TrangThai == "da_dang_ky") 
+                        && dk.LopHocPhan!.MaHocKy == currentHocKy.MaHocKy);
+                        
+                if (!hasCoursesInCurrent && user.MaLop != null)
+                {
+                    hasCoursesInCurrent = await _db.KhoaHocs
+                        .AnyAsync(k => k.MaHocKy == currentHocKy.MaHocKy 
+                            && k.MaLop == user.MaLop 
+                            && (k.TrangThai == "dang_mo" || k.TrangThai == "da_xuat_ban"));
+                }
+            }
+            
+            if (currentHocKy == null || !hasCoursesInCurrent)
+            {
+                var latestCourseHocKyId = await _db.DangKyHocPhans
+                    .Include(dk => dk.LopHocPhan)
+                    .Where(dk => dk.MaHocSinh == currentUser.UserId && (dk.TrangThai == "da_duyet" || dk.TrangThai == "da_dang_ky"))
+                    .Select(dk => dk.LopHocPhan!.MaHocKy)
+                    .OrderByDescending(hk => hk)
+                    .FirstOrDefaultAsync();
+                    
+                if (latestCourseHocKyId == 0 && user.MaLop != null)
+                {
+                    latestCourseHocKyId = await _db.KhoaHocs
+                        .Where(k => k.MaLop == user.MaLop && (k.TrangThai == "dang_mo" || k.TrangThai == "da_xuat_ban"))
+                        .Select(k => k.MaHocKy ?? 0)
+                        .OrderByDescending(hk => hk)
+                        .FirstOrDefaultAsync();
+                }
+                
+                if (latestCourseHocKyId != 0)
+                {
+                    var fallbackHocKy = await _db.HocKys.FindAsync(latestCourseHocKyId);
+                    if (fallbackHocKy != null)
+                    {
+                        currentHocKy = fallbackHocKy;
+                    }
+                }
+            }
 
             // 3. Enrolled subjects (via DangKyHocPhan)
             var enrollments = await _db.DangKyHocPhans
                 .Include(d => d.LopHocPhan!)
                     .ThenInclude(l => l.MonHoc)
-                .Where(d => d.MaHocSinh == currentUser.UserId && d.TrangThai == "da_duyet")
+                .Where(d => d.MaHocSinh == currentUser.UserId && (d.TrangThai == "da_duyet" || d.TrangThai == "da_dang_ky"))
                 .ToListAsync();
 
-            var enrolledMonHocIds = enrollments
-                .Select(d => d.LopHocPhan?.MaMonHoc)
-                .Where(id => id.HasValue)
-                .Select(id => id!.Value)
-                .Distinct()
+            var enrolledLhpIds = enrollments
+                .Select(d => d.MaLopHocPhan)
                 .ToList();
 
-            // 4. Courses via KhoaHoc (student's class)
+            // 4. Courses via KhoaHoc (student's class or enrolled LopHocPhan)
             var khoaHocs = await _db.KhoaHocs
                 .Include(k => k.MonHoc)
                 .Include(k => k.GiaoVien)
                 .Include(k => k.Lop)
-                .Where(k => k.MaLop == user.MaLop
+                .Where(k => (k.MaLop == user.MaLop || (k.MaLopHocPhan != null && enrolledLhpIds.Contains(k.MaLopHocPhan.Value)))
                     && (currentHocKy == null || k.MaHocKy == currentHocKy.MaHocKy)
-                    && k.TrangThai == "dang_mo")
+                    && (k.TrangThai == "dang_mo" || k.TrangThai == "da_xuat_ban"))
                 .ToListAsync();
 
-            var allMonHocIds = enrolledMonHocIds
-                .Union(khoaHocs.Select(k => k.MaMonHoc))
-                .Distinct()
-                .ToList();
+            var validKhoaHocs = khoaHocs.DistinctBy(k => k.MaMonHoc).ToList();
+            var allMonHocIds = validKhoaHocs.Select(k => k.MaMonHoc).ToList();
+            var validKhoaHocIds = validKhoaHocs.Select(k => k.MaKhoaHoc).ToList();
 
             // 5. Lesson progress data
             var totalLessons = await _db.Chuongs
@@ -103,7 +148,7 @@ public class StudentDashboardController : ControllerBase
                 .Include(b => b.KhoaHoc)
                 .Where(b => b.NgayHoc == today
                     && b.KhoaHoc != null
-                    && b.KhoaHoc.MaLop == user.MaLop
+                    && validKhoaHocIds.Contains(b.MaKhoaHoc)
                     && b.TrangThaiBuoi != "da_huy")
                 .CountAsync();
 
@@ -145,33 +190,8 @@ public class StudentDashboardController : ControllerBase
             // 8. Courses
             var courses = new List<CourseProgressDto>();
 
-            foreach (var lhp in enrollments
-                .Select(d => d.LopHocPhan)
-                .Where(l => l?.MonHoc != null)
-                .DistinctBy(l => l!.MaMonHoc))
+            foreach (var kh in validKhoaHocs)
             {
-                var total = totalLessons.GetValueOrDefault(lhp!.MaMonHoc);
-                var completed = completedLessonCounts.GetValueOrDefault(lhp.MaMonHoc);
-                var progress = total > 0 ? (int)((double)completed / total * 100) : 0;
-                var lecturer = khoaHocs.FirstOrDefault(k => k.MaMonHoc == lhp.MaMonHoc)?.GiaoVien?.HoTen ?? "Giảng viên";
-
-                courses.Add(new CourseProgressDto
-                {
-                    Id = lhp.MaCodeLopHocPhan,
-                    Name = lhp.MonHoc!.TenMonHoc,
-                    Code = lhp.MonHoc.MaCodeMonHoc,
-                    Lecturer = lecturer,
-                    Progress = progress,
-                    Completed = completed,
-                    Total = total,
-                    Status = progress switch { 100 => "Hoàn thành", > 0 => "Đang học", _ => "Chưa bắt đầu" },
-                    StatusVariant = progress switch { 100 => "neutral", > 0 => "success", _ => "warning" }
-                });
-            }
-
-            foreach (var kh in khoaHocs.Where(k => !enrolledMonHocIds.Contains(k.MaMonHoc)))
-            {
-                if (kh.MonHoc == null) continue;
                 var total = totalLessons.GetValueOrDefault(kh.MaMonHoc);
                 var completed = completedLessonCounts.GetValueOrDefault(kh.MaMonHoc);
                 var progress = total > 0 ? (int)((double)completed / total * 100) : 0;
@@ -208,17 +228,20 @@ public class StudentDashboardController : ControllerBase
                 .ToListAsync();
 
             // 10. Schedule
+            var currentDayOfWeek = (int)today.DayOfWeek == 0 ? 8 : (int)today.DayOfWeek + 1;
+
             var scheduleRaw = await _db.ThoiKhoaBieus
                 .Include(t => t.KhoaHoc!)
                     .ThenInclude(k => k.MonHoc)
+                .Include(t => t.KhoaHoc!)
+                    .ThenInclude(k => k.GiaoVien)
                 .Include(t => t.CaHoc)
                 .Include(t => t.Phong)
                 .Where(t => t.KhoaHoc != null
-                    && t.KhoaHoc.MaLop == user.MaLop
-                    && (currentHocKy == null || t.KhoaHoc.MaHocKy == currentHocKy.MaHocKy)
-                    && t.TrangThai == "da_xuat_ban")
-                .OrderBy(t => t.ThuTrongTuan)
-                .ThenBy(t => t.CaHoc != null ? t.CaHoc.ThuTu : 0)
+                    && validKhoaHocIds.Contains(t.MaKhoaHoc)
+                    && t.TrangThai == "da_xuat_ban"
+                    && t.ThuTrongTuan == currentDayOfWeek)
+                .OrderBy(t => t.CaHoc != null ? t.CaHoc.ThuTu : 0)
                 .ToListAsync();
 
             var schedule = scheduleRaw.Select(t => new ScheduleDto
@@ -231,7 +254,8 @@ public class StudentDashboardController : ControllerBase
                 Type = t.CaHoc != null && t.CaHoc.Buoi == "sang" ? "Lý thuyết" : "Thực hành",
                 TypeVariant = "info",
                 Status = "Sắp tới",
-                StatusVariant = "secondary"
+                StatusVariant = "secondary",
+                Lecturer = t.KhoaHoc?.GiaoVien?.HoTen ?? ""
             }).ToList();
 
             // 11. Grades
@@ -303,6 +327,7 @@ public class StudentDashboardController : ControllerBase
             var totalSessions = diemDanhRecords.Count;
             var presentSessions = diemDanhRecords.Count(dd => dd.TrangThai is "co_mat" or "di_muon");
             var absentSessions = diemDanhRecords.Count(dd => dd.TrangThai is "vang" or "vang_co_phep");
+            var lateSessions = diemDanhRecords.Count(dd => dd.TrangThai == "di_muon");
             var attendanceScore = totalSessions > 0 ? (int)((double)presentSessions / totalSessions * 100) : 0;
 
             var attendanceRisks = diemDanhRecords
@@ -324,16 +349,22 @@ public class StudentDashboardController : ControllerBase
                 .Where(r => r.Absent > 0)
                 .ToList();
 
+            var attendanceAdvice = attendanceScore >= 80
+                ? "Tiếp tục duy trì tiến độ học tập và đi học đầy đủ bạn nhé!"
+                : attendanceScore >= 50
+                    ? "Bạn cần đi học đều đặn hơn để tránh ảnh hưởng kết quả."
+                    : "Tình trạng nghỉ học quá nhiều. Hãy gặp cố vấn học tập ngay!";
+
             var attendance = new AttendanceHealthDto
             {
+                Rate = attendanceScore,
+                Absent = absentSessions,
+                Late = lateSessions,
+                Warning = attendanceAdvice,
                 Score = attendanceScore,
                 Status = attendanceScore >= 80 ? "Tốt" : attendanceScore >= 50 ? "Trung bình" : "Kém",
                 Tone = attendanceScore >= 80 ? "teal" : attendanceScore >= 50 ? "amber" : "danger",
-                Advice = attendanceScore >= 80
-                    ? "Tiếp tục duy trì tiến độ học tập và đi học đầy đủ bạn nhé!"
-                    : attendanceScore >= 50
-                        ? "Bạn cần đi học đều đặn hơn để tránh ảnh hưởng kết quả."
-                        : "Tình trạng nghỉ học quá nhiều. Hãy gặp cố vấn học tập ngay!",
+                Advice = attendanceAdvice,
                 Risks = attendanceRisks
             };
 
@@ -358,7 +389,7 @@ public class StudentDashboardController : ControllerBase
                     Id = "courses",
                     Label = "Khóa học đang học",
                     Value = courses.Count.ToString(),
-                    Trend = $"{enrolledMonHocIds.Count} khóa đã đăng ký",
+                    Trend = $"{courses.Count} khóa đã đăng ký",
                     Tone = "blue",
                     Route = "/student/courses"
                 },
