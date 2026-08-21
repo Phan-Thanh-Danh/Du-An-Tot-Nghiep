@@ -39,6 +39,17 @@ public static class RewardDisciplineConstants
         };
     }
 
+    public static class CertificateConfigModes
+    {
+        public const string Fields = "fields";
+        public const string Html = "html";
+        public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            Fields,
+            Html
+        };
+    }
+
     public static class PaperOrientations
     {
         public const string A4Landscape = "A4_NGANG";
@@ -185,6 +196,7 @@ public static class RewardDisciplineConstants
         public const string GenerateRewardCertificates = "GENERATE_REWARD_CERTIFICATES";
         public const string RegenerateRewardCertificates = "REGENERATE_REWARD_CERTIFICATES";
         public const string RewardCertificateGenerationFailed = "REWARD_CERTIFICATE_GENERATION_FAILED";
+        public const string UploadRewardCertificate = "UPLOAD_REWARD_CERTIFICATE";
         public const string CancelReward = "CANCEL_REWARD";
         public const string RestoreReward = "RESTORE_REWARD";
         public const string MarkRewardIssued = "MARK_REWARD_ISSUED";

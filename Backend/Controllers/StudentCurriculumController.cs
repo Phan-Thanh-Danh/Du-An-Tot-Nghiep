@@ -101,6 +101,30 @@ namespace Backend.Controllers
                 .Sum(subject => subject.SoTinChi);
             var currentSemesterIndex = DetermineCurrentSemester(programSubjects, completedSubjectIds, program.SoHocKy);
 
+            // Tính toán tiến độ học tập thực tế từ Database cho các môn học
+            var allChuongs = await _context.Chuongs
+                .AsNoTracking()
+                .Include(c => c.BaiHocs)
+                .Where(c => subjectIds.Contains(c.MaMonHoc))
+                .ToListAsync();
+
+            var allBaiHocIds = allChuongs.SelectMany(c => c.BaiHocs).Select(b => b.MaBaiHoc).ToList();
+
+            var studentCompletedBaiHocIds = await _context.TienDoBaiHocs
+                .AsNoTracking()
+                .Where(t => t.MaHocSinh == student.MaNguoiDung && allBaiHocIds.Contains(t.MaBaiHoc) && (t.PhanTramTienDo >= 100 || t.HoanThanhLuc != null))
+                .Select(t => t.MaBaiHoc)
+                .ToHashSetAsync();
+
+            var subjectProgressDict = subjectIds.ToDictionary(id => id, id =>
+            {
+                var subjectBaiHocs = allChuongs.Where(c => c.MaMonHoc == id).SelectMany(c => c.BaiHocs).ToList();
+                int totalL = subjectBaiHocs.Count;
+                if (totalL == 0) return 0;
+                int doneL = subjectBaiHocs.Count(b => studentCompletedBaiHocIds.Contains(b.MaBaiHoc));
+                return (int)((double)doneL / totalL * 100);
+            });
+
             var response = new StudentCurriculumResponseDto
             {
                 StudentName = student.HoTen,
@@ -144,7 +168,8 @@ namespace Backend.Controllers
                         Subjects = subjects.Select(subject =>
                         {
                             grades.TryGetValue(subject.MaMonHoc, out var grade);
-                            return MapToDto(subject, semesterIndex, currentSemesterIndex, grade);
+                            int prog = subjectProgressDict.GetValueOrDefault(subject.MaMonHoc, 0);
+                            return MapToDto(subject, semesterIndex, currentSemesterIndex, grade, prog);
                         }).ToList()
                     });
                 }
@@ -178,7 +203,8 @@ namespace Backend.Controllers
             Backend.Models.MonHocTrongChuongTrinh subject,
             int semesterIndex,
             int currentSemesterIndex,
-            Backend.Models.DiemSo? grade)
+            Backend.Models.DiemSo? grade,
+            int calculatedProgress)
         {
             var status = ResolveStatus(semesterIndex, currentSemesterIndex, grade);
             var score = grade == null ? null : (double?)grade.GpaMonHoc;
@@ -190,7 +216,7 @@ namespace Backend.Controllers
                 SubjectName = subject.DanhMucMonHoc?.TenMonHoc ?? string.Empty,
                 Credits = subject.SoTinChi,
                 Status = status,
-                ProgressPercent = status == "completed" ? 100 : (status == "current" ? 50 : 0),
+                ProgressPercent = calculatedProgress,
                 QuizScore = null,
                 Score = score,
                 IsEarlyLearning = false,

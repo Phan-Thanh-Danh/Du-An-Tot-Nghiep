@@ -317,13 +317,13 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
         ApplicationActorContext actor)
     {
         var query = _scopeService.ApplyApplicationScope(_context.DonTus.AsNoTracking(), actor);
-        if (string.IsNullOrWhiteSpace(parameters.Status))
+        if (parameters.Statuses is null || parameters.Statuses.Count == 0)
         {
             query = query.Where(x => DefaultQueueStatuses.Contains(x.TrangThai));
         }
         else
         {
-            query = query.Where(x => x.TrangThai == parameters.Status);
+            query = query.Where(x => parameters.Statuses.Contains(x.TrangThai));
         }
 
         if (parameters.CampusId.HasValue)
@@ -404,9 +404,9 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
         ApplicationActorContext actor)
     {
         var query = _scopeService.ApplyApplicationScope(_context.DonTus.AsNoTracking(), actor);
-        query = string.IsNullOrWhiteSpace(parameters.Status)
+        query = parameters.Statuses is null || parameters.Statuses.Count == 0
             ? query.Where(x => ActiveQueueStatuses.Contains(x.TrangThai))
-            : query.Where(x => x.TrangThai == parameters.Status);
+            : query.Where(x => parameters.Statuses.Contains(x.TrangThai));
 
         if (parameters.CampusId.HasValue)
         {
@@ -761,9 +761,7 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
             Type = string.IsNullOrWhiteSpace(parameters.Type ?? parameters.LoaiDon)
                 ? null
                 : NormalizeType((parameters.Type ?? parameters.LoaiDon)!),
-            Status = string.IsNullOrWhiteSpace(parameters.Status ?? parameters.TrangThai)
-                ? null
-                : NormalizeStatus((parameters.Status ?? parameters.TrangThai)!),
+            Statuses = NormalizeStatuses(parameters.Status ?? parameters.TrangThai),
             ProcessingStatus = NormalizeProcessingStatusAlias(parameters.ProcessingStatus, parameters.TrangThaiXuLyNghiepVu),
             AssignmentState = assignmentState,
             SlaStatus = slaStatus,
@@ -814,6 +812,19 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
         }
 
         return canonical;
+    }
+
+    private static IReadOnlyList<string>? NormalizeStatuses(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return null;
+        }
+
+        return raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(NormalizeStatus)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     private static string NormalizeStatus(string status)
@@ -921,7 +932,7 @@ public class ApplicationAdminQueueService : IApplicationAdminQueueService
         public int? StudentId { get; set; }
         public int? AssigneeId { get; set; }
         public string? Type { get; set; }
-        public string? Status { get; set; }
+        public IReadOnlyList<string>? Statuses { get; set; }
         public string? ProcessingStatus { get; set; }
         public string AssignmentState { get; set; } = "all";
         public string SlaStatus { get; set; } = "all";

@@ -15,24 +15,28 @@ export const sinhVienMenuGroups = [
     id: 'hoc-tap',
     label: 'Học tập',
     icon: 'GraduationCap',
+    permission: 'training.read',
     children: [
       {
         id: 'courses',
         label: 'Khóa học',
         icon: 'BookOpen',
         route: '/student/courses',
+        permission: 'training.read',
       },
       {
         id: 'curriculum',
         label: 'Khung chương trình',
         icon: 'Map',
         route: '/student/curriculum',
+        permission: 'training.read',
       },
       {
         id: 'assignments',
         label: 'Bài tập',
         icon: 'ClipboardList',
         route: '/student/assignments',
+        permission: 'training.read',
       },
     ],
   },
@@ -42,18 +46,21 @@ export const sinhVienMenuGroups = [
     id: 'ket-qua',
     label: 'Kết quả',
     icon: 'BarChart3',
+    permission: 'exams.read',
     children: [
       {
         id: 'exams',
         label: 'Thi / Kiểm tra',
         icon: 'FileCheck',
         route: '/student/exams',
+        permission: 'exams.read',
       },
       {
         id: 'grades',
         label: 'Bảng điểm',
         icon: 'BarChart2',
         route: '/student/grades',
+        permission: 'exams.read',
       },
     ],
   },
@@ -63,18 +70,21 @@ export const sinhVienMenuGroups = [
     id: 'lich-hoc',
     label: 'Lịch học',
     icon: 'Calendar',
+    permission: 'schedules.read',
     children: [
       {
         id: 'schedule',
         label: 'Thời khóa biểu',
         icon: 'CalendarDays',
         route: '/student/schedule',
+        permission: 'schedules.read',
       },
       {
         id: 'attendance',
         label: 'Điểm danh',
         icon: 'UserCheck',
         route: '/student/attendance',
+        permission: 'schedules.read',
       },
     ],
   },
@@ -84,12 +94,14 @@ export const sinhVienMenuGroups = [
     id: 'dang-ky',
     label: 'Đăng ký',
     icon: 'FormInput',
+    permission: 'training.read',
     children: [
       {
         id: 'registrations',
         label: 'Đăng ký môn',
         icon: 'ListPlus',
         route: '/student/registrations',
+        permission: 'training.read',
       },
     ],
   },
@@ -114,18 +126,38 @@ export const sinhVienMenuGroups = [
     id: 'ho-tro',
     label: 'Hỗ trợ',
     icon: 'LifeBuoy',
+    permission: 'requests.read',
     children: [
       {
         id: 'support-tickets',
         label: 'Hỗ trợ / Ticket',
         icon: 'MessageCircleHelp',
         route: '/student/support-tickets',
+        permission: 'requests.read',
       },
       {
         id: 'requests',
         label: 'Đơn từ',
         icon: 'FileText',
         route: '/student/requests',
+        permission: 'requests.read',
+      },
+    ],
+  },
+
+  // ── CƠ SỞ ─────────────────────────────────────────────────
+  {
+    id: 'co-so',
+    label: 'Cơ sở',
+    icon: 'Building2',
+    permission: 'campus.read',
+    children: [
+      {
+        id: 'organizations',
+        label: 'Quản lý Cơ sở',
+        icon: 'MapPin',
+        route: '/student/organizations',
+        permission: 'campus.read',
       },
     ],
   },

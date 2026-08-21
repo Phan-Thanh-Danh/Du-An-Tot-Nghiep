@@ -1235,6 +1235,10 @@ namespace Backend.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaCauHinhDiem"));
 
+                    b.Property<DateTime?>("CapNhatLuc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("cap_nhat_luc");
+
                     b.Property<int>("MaHocKy")
                         .HasColumnType("int")
                         .HasColumnName("ma_hoc_ky");
@@ -1243,11 +1247,21 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_mon_hoc");
 
+                    b.Property<int?>("NguoiCapNhat")
+                        .HasColumnType("int")
+                        .HasColumnName("nguoi_cap_nhat");
+
                     b.Property<decimal>("NguongDat")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("decimal(5,2)")
                         .HasColumnName("nguong_dat")
                         .HasDefaultValueSql("5");
+
+                    b.Property<decimal>("TiLeChuyenCanToiThieu")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(5,2)")
+                        .HasColumnName("ti_le_chuyen_can_toi_thieu")
+                        .HasDefaultValueSql("0");
 
                     b.Property<decimal>("TrongSoCuoiKy")
                         .HasColumnType("decimal(5,2)")
@@ -1268,9 +1282,13 @@ namespace Backend.Migrations
 
                     b.HasIndex("MaMonHoc");
 
+                    b.HasIndex("NguoiCapNhat");
+
                     b.ToTable("CauHinhDiemMonHoc", "dbo", t =>
                         {
                             t.HasCheckConstraint("CK_CauHinhDiemMonHoc_nguong_dat_4", "[nguong_dat] BETWEEN 0 AND 10");
+
+                            t.HasCheckConstraint("CK_CauHinhDiemMonHoc_ti_le_chuyen_can_toi_thieu_5", "[ti_le_chuyen_can_toi_thieu] BETWEEN 0 AND 100");
 
                             t.HasCheckConstraint("CK_CauHinhDiemMonHoc_trong_so_cuoi_ky_3", "[trong_so_cuoi_ky] BETWEEN 0 AND 100");
 
@@ -2224,11 +2242,19 @@ namespace Backend.Migrations
                         .HasDefaultValue(true)
                         .HasColumnName("con_hoat_dong");
 
+                    b.Property<int?>("MaChuyenNganh")
+                        .HasColumnType("int")
+                        .HasColumnName("ma_chuyen_nganh");
+
                     b.Property<string>("MaCodeMonHoc")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)")
                         .HasColumnName("ma_code_mon_hoc");
+
+                    b.Property<int?>("MaNganh")
+                        .HasColumnType("int")
+                        .HasColumnName("ma_nganh");
 
                     b.Property<int>("SoTinChi")
                         .HasColumnType("int")
@@ -2243,9 +2269,15 @@ namespace Backend.Migrations
                     b.HasKey("MaMonHoc")
                         .HasName("PK_DanhMucMonHoc");
 
+                    b.HasIndex("MaChuyenNganh")
+                        .HasDatabaseName("IX_DanhMucMonHoc_ma_chuyen_nganh");
+
                     b.HasIndex("MaCodeMonHoc")
                         .IsUnique()
                         .HasDatabaseName("UQ_DanhMucMonHoc_1");
+
+                    b.HasIndex("MaNganh")
+                        .HasDatabaseName("IX_DanhMucMonHoc_ma_nganh");
 
                     b.ToTable("DanhMucMonHoc", "dbo", t =>
                         {
@@ -4304,6 +4336,10 @@ namespace Backend.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ma_hoc_ky");
 
+                    b.Property<int?>("MaNganh")
+                        .HasColumnType("int")
+                        .HasColumnName("ma_nganh");
+
                     b.Property<DateTime?>("NgayCapNhat")
                         .HasColumnType("datetime2")
                         .HasColumnName("ngay_cap_nhat");
@@ -4332,6 +4368,8 @@ namespace Backend.Migrations
                         .HasName("PK_KyThi");
 
                     b.HasIndex("MaHocKy");
+
+                    b.HasIndex("MaNganh");
 
                     b.ToTable("KyThi", "dbo", t =>
                         {
@@ -4749,6 +4787,53 @@ namespace Backend.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Backend.Models.MauDanhGia", b =>
+                {
+                    b.Property<int>("MaMauDanhGia")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("ma_mau_danh_gia");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaMauDanhGia"));
+
+                    b.Property<string>("CauHinhJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("cau_hinh_json");
+
+                    b.Property<bool>("DangHoatDong")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true)
+                        .HasColumnName("dang_hoat_dong");
+
+                    b.Property<DateTime>("NgayCapNhat")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ngay_cap_nhat")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<DateTime>("NgayTao")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ngay_tao")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("TenMau")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("ten_mau");
+
+                    b.HasKey("MaMauDanhGia")
+                        .HasName("PK_MauDanhGia");
+
+                    b.ToTable("MauDanhGia", "dbo", t =>
+                        {
+                            t.HasCheckConstraint("CK_MauDanhGia_cau_hinh_json_ISJSON", "ISJSON([cau_hinh_json]) = 1");
+                        });
+                });
+
             modelBuilder.Entity("Backend.Models.MauDonTu", b =>
                 {
                     b.Property<int>("MaMauDon")
@@ -4842,8 +4927,6 @@ namespace Backend.Migrations
                             t.HasCheckConstraint("CK_MauDonTu_cau_hinh_json_ISJSON", "ISJSON([cau_hinh_json]) = 1");
 
                             t.HasCheckConstraint("CK_MauDonTu_dung_luong_tep", "[dung_luong_tep_toi_da_byte] > 0");
-
-                            t.HasCheckConstraint("CK_MauDonTu_loai_don", "[loai_don] IN (N'nghi_phep', N'thi_lai', N'chuyen_truong', N'cap_chung_chi', N'khac', N'phuc_tra_diem', N'bao_luu', N'chuyen_nganh', N'chuyen_co_so', N'xac_nhan', N'rut_hoc')");
 
                             t.HasCheckConstraint("CK_MauDonTu_phien_ban", "[phien_ban] > 0");
 
@@ -6197,6 +6280,87 @@ namespace Backend.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Backend.Models.QuyDinhChuyenCan", b =>
+                {
+                    b.Property<int>("MaQuyDinh")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("ma_quy_dinh");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaQuyDinh"));
+
+                    b.Property<DateTime?>("CapNhatLuc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("cap_nhat_luc");
+
+                    b.Property<string>("GhiChu")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("ghi_chu");
+
+                    b.Property<int>("HanChinhSuaPhut")
+                        .HasColumnType("int")
+                        .HasColumnName("han_chinh_sua_phut");
+
+                    b.Property<int>("HanGuiPhut")
+                        .HasColumnType("int")
+                        .HasColumnName("han_gui_phut");
+
+                    b.Property<decimal>("HeSoDiMuon")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)")
+                        .HasColumnName("he_so_di_muon");
+
+                    b.Property<decimal>("HeSoVangCoPhep")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)")
+                        .HasColumnName("he_so_vang_co_phep");
+
+                    b.Property<decimal>("HeSoVangKhongPhep")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)")
+                        .HasColumnName("he_so_vang_khong_phep");
+
+                    b.Property<int>("MaDonVi")
+                        .HasColumnType("int")
+                        .HasColumnName("ma_don_vi");
+
+                    b.Property<DateTime>("NgayHieuLuc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ngay_hieu_luc");
+
+                    b.Property<int?>("NguoiCapNhat")
+                        .HasColumnType("int")
+                        .HasColumnName("nguoi_cap_nhat");
+
+                    b.Property<int>("NguoiTao")
+                        .HasColumnType("int")
+                        .HasColumnName("nguoi_tao");
+
+                    b.Property<int>("QuyVangToiDa")
+                        .HasColumnType("int")
+                        .HasColumnName("quy_vang_toi_da");
+
+                    b.Property<DateTime>("TaoLuc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("tao_luc");
+
+                    b.Property<decimal>("TiLeCanhBao")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)")
+                        .HasColumnName("ti_le_canh_bao");
+
+                    b.HasKey("MaQuyDinh")
+                        .HasName("PK_QuyDinhChuyenCan");
+
+                    b.HasIndex("NguoiTao");
+
+                    b.HasIndex("MaDonVi", "NgayHieuLuc")
+                        .HasDatabaseName("IX_QuyDinhChuyenCan_MaDonVi_NgayHieuLuc");
+
+                    b.ToTable("QuyDinhChuyenCan", "dbo");
+                });
+
             modelBuilder.Entity("Backend.Models.QuyDoiTinChi", b =>
                 {
                     b.Property<int>("MaQuyDoi")
@@ -6294,6 +6458,54 @@ namespace Backend.Migrations
                     b.HasKey("MaQuyTrinh");
 
                     b.ToTable("QuyTrinhDonTu");
+                });
+
+            modelBuilder.Entity("Backend.Models.QuyenHan", b =>
+                {
+                    b.Property<int>("MaQuyenHan")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("ma_quyen_han");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaQuyenHan"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("action");
+
+                    b.Property<string>("MaCode")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("ma_code");
+
+                    b.Property<string>("MoTa")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("mo_ta");
+
+                    b.Property<string>("Module")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("module");
+
+                    b.Property<string>("TenQuyenHan")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("ten_quyen_han");
+
+                    b.HasKey("MaQuyenHan")
+                        .HasName("PK_QuyenHan");
+
+                    b.HasIndex("MaCode")
+                        .IsUnique()
+                        .HasDatabaseName("IX_QuyenHan_MaCode");
+
+                    b.ToTable("QuyenHan", "dbo");
                 });
 
             modelBuilder.Entity("Backend.Models.ScheduleDraftItem", b =>
@@ -6787,9 +6999,28 @@ namespace Backend.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaThietBi"));
 
+                    b.Property<string>("ChungLoai")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("chung_loai");
+
+                    b.Property<string>("GhiChu")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("ghi_chu");
+
+                    b.Property<string>("MaCodeThietBi")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("ma_code_thiet_bi");
+
                     b.Property<int>("MaPhong")
                         .HasColumnType("int")
                         .HasColumnName("ma_phong");
+
+                    b.Property<DateTime?>("NgayKiemDinh")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ngay_kiem_dinh");
 
                     b.Property<int>("SoLuong")
                         .ValueGeneratedOnAdd()
@@ -6802,6 +7033,11 @@ namespace Backend.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)")
                         .HasColumnName("ten_thiet_bi");
+
+                    b.Property<string>("TinhTrang")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("tinh_trang");
 
                     b.HasKey("MaThietBi")
                         .HasName("PK_ThietBiPhong");
@@ -7704,6 +7940,36 @@ namespace Backend.Migrations
                     b.ToTable("VaiTro", "dbo");
                 });
 
+            modelBuilder.Entity("Backend.Models.VaiTroQuyenHan", b =>
+                {
+                    b.Property<int>("MaVaiTro")
+                        .HasColumnType("int")
+                        .HasColumnName("ma_vai_tro");
+
+                    b.Property<int>("MaQuyenHan")
+                        .HasColumnType("int")
+                        .HasColumnName("ma_quyen_han");
+
+                    b.Property<DateTime>("NgayCap")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ngay_cap")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<int?>("NguoiCap")
+                        .HasColumnType("int")
+                        .HasColumnName("nguoi_cap");
+
+                    b.HasKey("MaVaiTro", "MaQuyenHan")
+                        .HasName("PK_VaiTroQuyenHan");
+
+                    b.HasIndex("MaQuyenHan");
+
+                    b.HasIndex("NguoiCap");
+
+                    b.ToTable("VaiTroQuyenHan", "dbo");
+                });
+
             modelBuilder.Entity("Backend.Models.XuLyViPhamThi", b =>
                 {
                     b.Property<int>("MaXuLy")
@@ -8143,6 +8409,62 @@ namespace Backend.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Backend.Models.YeuCauXuatDuLieu", b =>
+                {
+                    b.Property<string>("MaYeuCau")
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("ma_yeu_cau");
+
+                    b.Property<string>("CapDonVi")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("cap_don_vi");
+
+                    b.Property<string>("DinhDang")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("dinh_dang");
+
+                    b.Property<string>("DuongDanFile")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("duong_dan_file");
+
+                    b.Property<string>("HocKy")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("hoc_ky");
+
+                    b.Property<string>("LoaiBaoCao")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("loai_bao_cao");
+
+                    b.Property<string>("NguoiYeuCau")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("nguoi_yeu_cau");
+
+                    b.Property<string>("TenBaoCao")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("ten_bao_cao");
+
+                    b.Property<DateTime?>("ThoiGianHoanThanh")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("thoi_gian_hoan_thanh");
+
+                    b.Property<DateTime>("ThoiGianYeuCau")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("thoi_gian_yeu_cau");
+
+                    b.Property<string>("TrangThai")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("trang_thai");
+
+                    b.HasKey("MaYeuCau");
+
+                    b.ToTable("yeu_cau_xuat_du_lieu");
+                });
+
             modelBuilder.Entity("Backend.Models.AnhChupPhanTich", b =>
                 {
                     b.HasOne("Backend.Models.DonVi", "DonVi")
@@ -8543,9 +8865,17 @@ namespace Backend.Migrations
                         .IsRequired()
                         .HasConstraintName("FK_CauHinhDiemMonHoc_ma_mon_hoc__DanhMucMonHoc");
 
+                    b.HasOne("Backend.Models.NguoiDung", "NguoiCapNhatNavigation")
+                        .WithMany()
+                        .HasForeignKey("NguoiCapNhat")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("FK_CauHinhDiemMonHoc_nguoi_cap_nhat__NguoiDung");
+
                     b.Navigation("HocKy");
 
                     b.Navigation("MonHoc");
+
+                    b.Navigation("NguoiCapNhatNavigation");
                 });
 
             modelBuilder.Entity("Backend.Models.CauHinhHocPhiChuongTrinh", b =>
@@ -8829,6 +9159,25 @@ namespace Backend.Migrations
                     b.Navigation("GiaoVien");
 
                     b.Navigation("HocKy");
+                });
+
+            modelBuilder.Entity("Backend.Models.DanhMucMonHoc", b =>
+                {
+                    b.HasOne("Backend.Models.ChuyenNganh", "ChuyenNganh")
+                        .WithMany()
+                        .HasForeignKey("MaChuyenNganh")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("FK_DanhMucMonHoc_ma_chuyen_nganh__ChuyenNganh");
+
+                    b.HasOne("Backend.Models.NganhDaoTao", "Nganh")
+                        .WithMany()
+                        .HasForeignKey("MaNganh")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("FK_DanhMucMonHoc_ma_nganh__NganhDaoTao");
+
+                    b.Navigation("ChuyenNganh");
+
+                    b.Navigation("Nganh");
                 });
 
             modelBuilder.Entity("Backend.Models.DanhSachRuiRoRotMon", b =>
@@ -9599,7 +9948,15 @@ namespace Backend.Migrations
                         .IsRequired()
                         .HasConstraintName("FK_KyThi_ma_hoc_ky__HocKy");
 
+                    b.HasOne("Backend.Models.NganhDaoTao", "Nganh")
+                        .WithMany()
+                        .HasForeignKey("MaNganh")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("FK_KyThi_ma_nganh__NganhDaoTao");
+
                     b.Navigation("HocKy");
+
+                    b.Navigation("Nganh");
                 });
 
             modelBuilder.Entity("Backend.Models.LichThiTong", b =>
@@ -10112,6 +10469,27 @@ namespace Backend.Migrations
                     b.Navigation("ToaNha");
                 });
 
+            modelBuilder.Entity("Backend.Models.QuyDinhChuyenCan", b =>
+                {
+                    b.HasOne("Backend.Models.DonVi", "DonVi")
+                        .WithMany()
+                        .HasForeignKey("MaDonVi")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_QuyDinhChuyenCan_DonVi");
+
+                    b.HasOne("Backend.Models.NguoiDung", "NguoiTaoNavigation")
+                        .WithMany()
+                        .HasForeignKey("NguoiTao")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_QuyDinhChuyenCan_NguoiTao");
+
+                    b.Navigation("DonVi");
+
+                    b.Navigation("NguoiTaoNavigation");
+                });
+
             modelBuilder.Entity("Backend.Models.ScheduleDraftItem", b =>
                 {
                     b.HasOne("Backend.Models.CaHoc", "CaHoc")
@@ -10552,6 +10930,35 @@ namespace Backend.Migrations
                     b.Navigation("NguoiTaoNavigation");
                 });
 
+            modelBuilder.Entity("Backend.Models.VaiTroQuyenHan", b =>
+                {
+                    b.HasOne("Backend.Models.QuyenHan", "QuyenHan")
+                        .WithMany("VaiTroQuyenHans")
+                        .HasForeignKey("MaQuyenHan")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_VaiTroQuyenHan_QuyenHan");
+
+                    b.HasOne("Backend.Models.VaiTro", "VaiTro")
+                        .WithMany("VaiTroQuyenHans")
+                        .HasForeignKey("MaVaiTro")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_VaiTroQuyenHan_VaiTro");
+
+                    b.HasOne("Backend.Models.NguoiDung", "NguoiCapNavigation")
+                        .WithMany()
+                        .HasForeignKey("NguoiCap")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("FK_VaiTroQuyenHan_NguoiCap");
+
+                    b.Navigation("NguoiCapNavigation");
+
+                    b.Navigation("QuyenHan");
+
+                    b.Navigation("VaiTro");
+                });
+
             modelBuilder.Entity("Backend.Models.XuLyViPhamThi", b =>
                 {
                     b.HasOne("Backend.Models.NguoiDung", "NguoiXuLy")
@@ -10815,9 +11222,19 @@ namespace Backend.Migrations
                     b.Navigation("BuocQuyTrinhs");
                 });
 
+            modelBuilder.Entity("Backend.Models.QuyenHan", b =>
+                {
+                    b.Navigation("VaiTroQuyenHans");
+                });
+
             modelBuilder.Entity("Backend.Models.ThongBao", b =>
                 {
                     b.Navigation("NguoiNhans");
+                });
+
+            modelBuilder.Entity("Backend.Models.VaiTro", b =>
+                {
+                    b.Navigation("VaiTroQuyenHans");
                 });
 #pragma warning restore 612, 618
         }

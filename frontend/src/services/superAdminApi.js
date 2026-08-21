@@ -37,4 +37,92 @@ export const superAdminApi = {
   getAiModels() {
     return apiRequest('/api/super-admin/ai/models')
   },
+
+  // Export Data
+  createExportRequest(payload) {
+    return apiRequest('/api/super-admin/exports', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    })
+  },
+  getExportHistory() {
+    return apiRequest('/api/super-admin/exports')
+  },
+  getExportDownloadUrl(requestId) {
+    return `/api/super-admin/exports/download/${requestId}`
+  },
+  async downloadExportFile(requestId, filename) {
+    const { getStoredAccessToken } = await import('./apiClient')
+    const token = getStoredAccessToken()
+    const url = `/api/super-admin/exports/download/${requestId}`
+    const fullUrl = import.meta.env.VITE_API_BASE_URL ? `${import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '')}${url}` : url
+
+    const response = await fetch(fullUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`Tải file thất bại (HTTP ${response.status})`)
+    }
+
+    const blob = await response.blob()
+    const downloadUrl = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = downloadUrl
+    a.download = filename || `Export_${requestId}.xlsx`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    window.URL.revokeObjectURL(downloadUrl)
+  },
+
+  // Notification Templates
+  getNotificationTemplates(params = {}) {
+    const apiParams = {
+      PageIndex: params.PageIndex || 1,
+      PageSize: params.PageSize || 20
+    }
+    
+    if (params.SearchTerm) apiParams.Keyword = params.SearchTerm
+    if (params.Category) apiParams.LoaiThongBao = params.Category
+    if (params.Status === 'active') apiParams.DangHoatDong = true
+    if (params.Status === 'inactive') apiParams.DangHoatDong = false
+
+    const query = new URLSearchParams(apiParams).toString()
+    return apiRequest(`/api/admin/notification-templates?${query}`)
+  },
+  getNotificationTemplateDetail(id) {
+    return apiRequest(`/api/admin/notification-templates/${id}`)
+  },
+  createNotificationTemplate(payload) {
+    return apiRequest('/api/admin/notification-templates', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    })
+  },
+  updateNotificationTemplate(id, payload) {
+    return apiRequest(`/api/admin/notification-templates/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    })
+  },
+  activateNotificationTemplate(id) {
+    return apiRequest(`/api/admin/notification-templates/${id}/activate`, {
+      method: 'POST'
+    })
+  },
+  deactivateNotificationTemplate(id, payload = { lyDo: 'Tạm dừng' }) {
+    return apiRequest(`/api/admin/notification-templates/${id}/deactivate`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    })
+  },
+  deleteNotificationTemplate(id) {
+    return apiRequest(`/api/admin/notification-templates/${id}`, {
+      method: 'DELETE'
+    })
+  }
 }

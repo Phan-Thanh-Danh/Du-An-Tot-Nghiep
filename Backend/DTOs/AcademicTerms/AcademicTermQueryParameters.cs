@@ -13,6 +13,6 @@ public class AcademicTermQueryParameters
     [Range(1, int.MaxValue, ErrorMessage = "pageIndex phải lớn hơn 0.")]
     public int PageIndex { get; set; } = 1;
 
-    [Range(1, 100, ErrorMessage = "pageSize phải từ 1 đến 100.")]
+    [Range(1, 1000, ErrorMessage = "pageSize phải từ 1 đến 1000.")]
     public int PageSize { get; set; } = 20;
 }

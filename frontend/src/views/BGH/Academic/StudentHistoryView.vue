@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowLeft,
@@ -48,25 +48,45 @@ async function loadData() {
   loading.value = true
   error.value = null
   try {
-    const res = await bghApi.getAtRiskStudents()
+    const res = await bghApi.getAtRiskStudentHistory(studentId)
     const data = unwrapApiData(res)
-    if (data?.students) {
-      const found = data.students.find(s => s.id === studentId)
-      if (found) {
-        student.value = {
-          id: found.id,
-          name: found.name,
-          code: found.email || '—',
-          class: found.classCode || '—',
-          subject: '',
-          grade: found.avgGpa,
-          attendance: null,
-          risk: deriveRisk(found),
-          reason: `Đã rớt ${found.failCount} môn. GPA hiện tại: ${found.avgGpa}.`,
-          email: found.email || '',
-          failCount: found.failCount,
-        }
+    if (data?.student) {
+      const summary = data.summary || {}
+      const found = data.student
+      student.value = {
+        id: found.id,
+        name: found.name,
+        code: found.email || '—',
+        class: found.classCode || '—',
+        grade: Number(summary.avgGpa || 0),
+        risk: deriveRisk({ failCount: summary.failCount || 0 }),
+        reason: `Đã rớt ${summary.failCount || 0} môn trong ${summary.totalSubjects || 0} môn có điểm. GPA hiện tại: ${summary.avgGpa || 0}.`,
+        email: found.email || '',
+        failCount: summary.failCount || 0,
       }
+      academicHistory.value = (data.academicHistory || []).map(semester => ({
+        semester: semester.semester,
+        avgGpa: Number(semester.avgGpa || 0),
+        courses: (semester.courses || []).map(course => ({
+          id: `${semester.semesterId}-${course.subjectId}`,
+          code: course.subjectCode,
+          name: course.subjectName,
+          credit: course.credits,
+          processGrade: course.diemQuaTrinh,
+          midtermGrade: course.diemGiuaKy,
+          finalGrade: course.diemCuoiKy,
+          grade: Number(course.grade || 0),
+          passed: course.trangThai === 'dat' || Number(course.grade) >= 4,
+          riskProbability: course.riskProbability,
+          failReason: course.lyDoRot,
+        })),
+      }))
+      attendanceHistory.value = (data.attendanceHistory || []).map(item => ({
+        semester: item.semester,
+        rate: Number(item.rate || 0),
+        totalSessions: item.totalSessions,
+        absentSessions: item.absentSessions,
+      }))
     }
   } catch (e) {
     error.value = e.message
@@ -144,7 +164,7 @@ function goBack() {
                   <h4 class="text-xs font-bold text-(--color-info-text) uppercase tracking-widest">{{ sem.semester }}</h4>
                 </div>
                 <span class="text-[10px] font-semibold text-label">
-                  TB: {{ (sem.courses.reduce((s, c) => s + c.grade, 0) / sem.courses.length).toFixed(1) }}
+                  GPA: {{ sem.avgGpa.toFixed(2) }}
                 </span>
               </div>
               <div class="overflow-x-auto">
@@ -153,25 +173,35 @@ function goBack() {
                     <tr class="surface-solid">
                       <th class="px-5 py-3 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Môn học</th>
                       <th class="px-5 py-3 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Tín chỉ</th>
-                      <th class="px-5 py-3 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Điểm</th>
+                      <th class="px-5 py-3 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Quá trình</th>
+                      <th class="px-5 py-3 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Giữa kỳ</th>
+                      <th class="px-5 py-3 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Cuối kỳ</th>
+                      <th class="px-5 py-3 text-[10px] font-semibold text-placeholder uppercase tracking-widest">GPA môn</th>
                       <th class="px-5 py-3 text-[10px] font-semibold text-placeholder uppercase tracking-widest">Kết quả</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="course in sem.courses" :key="course.name" class="hover:bg-(--surface-input) transition-colors">
+                    <tr v-for="course in sem.courses" :key="course.id" class="hover:bg-(--surface-input) transition-colors">
                       <td class="px-5 py-3.5">
                         <div class="flex items-center gap-2">
                           <BookOpen :size="14" class="text-placeholder shrink-0" />
-                          <span class="text-xs font-semibold text-label">{{ course.name }}</span>
+                          <span class="text-xs font-semibold text-label">{{ course.code }} · {{ course.name }}</span>
                         </div>
                       </td>
                       <td class="px-5 py-3.5">
                         <span class="text-xs font-bold text-muted">{{ course.credit }}</span>
                       </td>
                       <td class="px-5 py-3.5">
-                        <span :class="['text-xs font-bold', course.grade >= 5 ? 'text-(--color-success-text)' : course.grade >= 4 ? 'text-(--color-warning-text)' : 'text-(--color-danger-text)']">
-                          {{ course.grade }}
-                        </span>
+                        <span class="text-xs font-bold text-muted">{{ course.processGrade ?? '—' }}</span>
+                      </td>
+                      <td class="px-5 py-3.5">
+                        <span class="text-xs font-bold text-muted">{{ course.midtermGrade ?? '—' }}</span>
+                      </td>
+                      <td class="px-5 py-3.5">
+                        <span class="text-xs font-bold text-muted">{{ course.finalGrade ?? '—' }}</span>
+                      </td>
+                      <td class="px-5 py-3.5">
+                        <span :class="['text-xs font-bold', course.grade >= 5 ? 'text-(--color-success-text)' : course.grade >= 4 ? 'text-(--color-warning-text)' : 'text-(--color-danger-text)']">{{ course.grade }}</span>
                       </td>
                       <td class="px-5 py-3.5">
                         <div v-if="course.passed" class="flex items-center gap-1 text-[10px] font-bold text-(--color-success-text)">

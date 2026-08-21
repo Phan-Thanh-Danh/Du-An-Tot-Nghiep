@@ -14,17 +14,39 @@ const emit = defineEmits(['completed', 'progress'])
 const SEEK_TOLERANCE_SECONDS = 2
 const SAVE_INTERVAL_MS = 5000
 
+const durationSeconds = ref(props.lesson?.durationSeconds || props.lesson?.totalSeconds || 0)
 const videoRef = ref(null)
-const durationSeconds = ref(props.lesson.durationSeconds || props.lesson.totalSeconds || 0)
-const currentTimeSeconds = ref(props.lesson.watchedSeconds || 0)
-const maxWatchedSeconds = ref(props.lesson.maxWatchedSeconds || props.lesson.watchedSeconds || 0)
-const savedProgress = ref(props.lesson.progressPercent || 0)
+
+function getInitialWatchedSeconds(customDuration = null) {
+  const p = Number(props.lesson?.progressPercent) || 0
+  const d = customDuration || durationSeconds.value || props.lesson?.durationSeconds || props.lesson?.totalSeconds || 0
+
+  if (props.lesson?.watchedSeconds && props.lesson.watchedSeconds > 0) {
+    return Math.min(props.lesson.watchedSeconds, d > 0 ? d : props.lesson.watchedSeconds)
+  }
+  if (props.lesson?.maxWatchedSeconds && props.lesson.maxWatchedSeconds > 0) {
+    return Math.min(props.lesson.maxWatchedSeconds, d > 0 ? d : props.lesson.maxWatchedSeconds)
+  }
+  if (d > 0 && p > 0) {
+    if (allowSeek.value && (p >= 80 || props.lesson?.status === 'completed')) return d
+    return Math.min(d, Math.round((p / 100) * d))
+  }
+  return 0
+}
+
+const initialW = getInitialWatchedSeconds()
+const currentTimeSeconds = ref(initialW)
+const maxWatchedSeconds = ref(initialW)
+const savedProgress = ref(props.lesson?.progressPercent || 0)
 const focusPauseMessage = ref('')
 const seekGuardMessage = ref('')
 const isRestoringSeek = ref(false)
 let lastSavedAt = 0
 
-const allowSeek = computed(() => props.lesson.allowSeek !== false)
+const allowSeek = computed(() => {
+  if (props.lesson?.allowSeek === false || props.lesson?.AllowSeek === false) return false
+  return true
+})
 const pauseOnBlur = computed(() => props.lesson.pauseOnBlur !== false)
 const minWatchPercent = computed(() => props.lesson.minWatchPercentToComplete || 80)
 const hasVideoSource = computed(() => Boolean(props.lesson.videoUrl))
@@ -38,15 +60,35 @@ const displayedProgress = computed(() => Math.max(savedProgress.value, progressP
 const isCompleted = computed(() => displayedProgress.value >= minWatchPercent.value)
 
 watch(
-  () => props.lesson.id,
+  () => [props.lesson.id, props.lesson.videoUrl],
   () => {
+    if (videoRef.value && !videoRef.value.paused) {
+      videoRef.value.pause()
+    }
     durationSeconds.value = props.lesson.durationSeconds || props.lesson.totalSeconds || 0
-    currentTimeSeconds.value = props.lesson.watchedSeconds || 0
-    maxWatchedSeconds.value = props.lesson.maxWatchedSeconds || props.lesson.watchedSeconds || 0
     savedProgress.value = props.lesson.progressPercent || 0
+    const initW = getInitialWatchedSeconds()
+    currentTimeSeconds.value = initW
+    maxWatchedSeconds.value = initW
     focusPauseMessage.value = ''
     seekGuardMessage.value = ''
+    isRestoringSeek.value = false
     lastSavedAt = 0
+  }
+)
+
+watch(
+  () => [props.lesson?.allowSeek, props.lesson?.AllowSeek],
+  ([newSeek]) => {
+    const isAllowed = newSeek !== false && props.lesson?.AllowSeek !== false
+    if (!isAllowed) {
+      seekGuardMessage.value = '🔒 Giảng viên vừa khóa tua video. Video yêu cầu xem tuần tự.'
+    } else {
+      seekGuardMessage.value = '🔓 Giảng viên đã cho phép tự do tua video.'
+    }
+    window.setTimeout(() => {
+      seekGuardMessage.value = ''
+    }, 3500)
   }
 )
 
@@ -58,9 +100,16 @@ function formatTime(seconds) {
 
 function onLoadedMetadata() {
   if (!videoRef.value) return
-  durationSeconds.value = Math.round(videoRef.value.duration || durationSeconds.value)
-  if (currentTimeSeconds.value > 0) {
-    videoRef.value.currentTime = Math.min(currentTimeSeconds.value, durationSeconds.value)
+  const realDuration = Math.round(videoRef.value.duration || durationSeconds.value || 0)
+  durationSeconds.value = realDuration
+
+  const initW = getInitialWatchedSeconds(realDuration)
+  if (initW > 0) {
+    maxWatchedSeconds.value = Math.max(maxWatchedSeconds.value, initW)
+    currentTimeSeconds.value = initW
+    try {
+      videoRef.value.currentTime = initW
+    } catch (e) {}
   }
 }
 
@@ -69,8 +118,12 @@ function onTimeUpdate() {
   const currentTime = videoRef.value.currentTime || 0
   currentTimeSeconds.value = currentTime
 
-  if (currentTime > maxWatchedSeconds.value) {
-    maxWatchedSeconds.value = currentTime
+  // Khi đang phát video bình thường (không phải thao tác kéo tua),
+  // maxWatchedSeconds luôn tịnh tiến trơn tru theo thời gian thực tế mà không bị ngắt quãng hay giật cục
+  if (!videoRef.value.seeking && !isRestoringSeek.value) {
+    if (currentTime > maxWatchedSeconds.value) {
+      maxWatchedSeconds.value = currentTime
+    }
   }
 
   persistProgress()
@@ -83,28 +136,58 @@ function onTimeUpdate() {
 function onSeeking() {
   if (!videoRef.value || isRestoringSeek.value) return
   
-  if (!allowSeek.value) {
-    isRestoringSeek.value = true
-    videoRef.value.currentTime = currentTimeSeconds.value
-    seekGuardMessage.value = 'Giảng viên đã khóa tính năng kéo tua trên thanh thời gian.'
-    window.setTimeout(() => {
-      isRestoringSeek.value = false
-    }, 50)
+  const requestedTime = videoRef.value.currentTime || 0
+
+  // 1. Nếu giảng viên cho phép tua tự do -> KHÔNG CHẶN
+  if (allowSeek.value) {
+    seekGuardMessage.value = ''
+    currentTimeSeconds.value = requestedTime
+    maxWatchedSeconds.value = Math.max(maxWatchedSeconds.value, requestedTime)
     return
   }
 
-  const requestedTime = videoRef.value.currentTime || 0
+  // 2. Nếu giảng viên khóa tua nhanh -> chỉ cho phép tua lại trong phạm vi đã xem
   if (requestedTime > maxWatchedSeconds.value + SEEK_TOLERANCE_SECONDS) {
     isRestoringSeek.value = true
-    videoRef.value.currentTime = maxWatchedSeconds.value
-    seekGuardMessage.value = 'Bạn chưa thể tua đến phần chưa xem.'
+    const safeTarget = maxWatchedSeconds.value
+    videoRef.value.currentTime = safeTarget
+    currentTimeSeconds.value = safeTarget
+    seekGuardMessage.value = `Bài học này yêu cầu xem tuần tự theo cấu hình của giảng viên. Đã chuyển về vị trí đã học (${formatTime(safeTarget)}).`
+    
+    // Đảm bảo video tiếp tục phát trơn tru từ điểm an toàn nếu người dùng đang phát
+    if (!videoRef.value.paused) {
+      videoRef.value.play().catch(() => {})
+    }
+
     window.setTimeout(() => {
       isRestoringSeek.value = false
-    }, 50)
+    }, 200)
+
+    window.setTimeout(() => {
+      if (seekGuardMessage.value.includes('yêu cầu xem tuần tự')) {
+        seekGuardMessage.value = ''
+      }
+    }, 4000)
+  } else {
+    seekGuardMessage.value = ''
+    currentTimeSeconds.value = requestedTime
   }
 }
 
+function onSeeked() {
+  if (!videoRef.value) return
+  const cur = videoRef.value.currentTime || 0
+  currentTimeSeconds.value = cur
+  if (allowSeek.value) {
+    maxWatchedSeconds.value = Math.max(maxWatchedSeconds.value, cur)
+  } else if (cur <= maxWatchedSeconds.value + SEEK_TOLERANCE_SECONDS) {
+    maxWatchedSeconds.value = Math.max(maxWatchedSeconds.value, cur)
+  }
+  persistProgress(true)
+}
+
 function pauseVideo(reason) {
+  if (!pauseOnBlur.value) return
   if (!videoRef.value || videoRef.value.paused) return
   videoRef.value.pause()
   focusPauseMessage.value = reason
@@ -112,13 +195,23 @@ function pauseVideo(reason) {
 }
 
 function handleVisibilityChange() {
+  if (!pauseOnBlur.value) return
   if (document.visibilityState === 'hidden') {
-    pauseVideo('Video đã tạm dừng vì bạn rời khỏi tab học.')
+    pauseVideo('Video đã tạm dừng vì bạn chuyển sang tab khác.')
   }
 }
 
 function handleWindowBlur() {
-  pauseVideo('Video đã tạm dừng vì bạn rời khỏi tab học.')
+  // Chỉ dừng nếu cấu hình pauseOnBlur bật và tài liệu thực sự bị ẩn
+  if (!pauseOnBlur.value) return
+  if (document.visibilityState === 'hidden') {
+    pauseVideo('Video đã tạm dừng vì bạn chuyển sang tab khác.')
+  }
+}
+
+function onPlay() {
+  focusPauseMessage.value = ''
+  seekGuardMessage.value = ''
 }
 
 function handleBeforeUnload() {
@@ -131,8 +224,6 @@ function persistProgress(force = false) {
   lastSavedAt = now
   savedProgress.value = Math.max(savedProgress.value, progressPercent.value)
 
-  // TODO: call progress API when available:
-  // POST /api/lessons/{lessonId}/progress
   emit('progress', buildProgressPayload(isCompleted.value))
 }
 
@@ -148,14 +239,16 @@ function buildProgressPayload(completed) {
 
 onMounted(() => {
   document.addEventListener('visibilitychange', handleVisibilityChange)
-  window.addEventListener('blur', handleWindowBlur)
   window.addEventListener('beforeunload', handleBeforeUnload)
 })
 
 onBeforeUnmount(() => {
-  pauseVideo('Video đã tạm dừng vì bạn rời khỏi tab học.')
+  if (videoRef.value) {
+    videoRef.value.pause()
+    videoRef.value.removeAttribute('src')
+    videoRef.value.load()
+  }
   document.removeEventListener('visibilitychange', handleVisibilityChange)
-  window.removeEventListener('blur', handleWindowBlur)
   window.removeEventListener('beforeunload', handleBeforeUnload)
 })
 </script>
@@ -173,8 +266,9 @@ onBeforeUnmount(() => {
         @loadedmetadata="onLoadedMetadata"
         @timeupdate="onTimeUpdate"
         @seeking="onSeeking"
+        @seeked="onSeeked"
+        @play="onPlay"
         @pause="persistProgress(true)"
-        @blur="pauseVideo('Video đã tạm dừng vì bạn rời khỏi vùng học video.')"
       />
 
       <div v-else class="video-placeholder">

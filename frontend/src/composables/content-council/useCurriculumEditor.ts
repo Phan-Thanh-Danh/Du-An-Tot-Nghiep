@@ -19,6 +19,8 @@ export const useCurriculumEditor = (subjectId: number) => {
   const isLessonModalOpen = ref(false)
   const isContentDrawerOpen = ref(false)
   const isDeleteDialogOpen = ref(false)
+  const isDraftConfirmOpen = ref(false)
+  const pendingContentType = ref<ContentBlockType | null>(null)
   
   const editingChapter = ref<EditorChapter | null>(null)
   const editingLesson = ref<EditorLesson | null>(null)
@@ -101,17 +103,6 @@ export const useCurriculumEditor = (subjectId: number) => {
       await store.addLesson(subjectId, chapId, newLesson)
       selectLesson(newLesson.id)
       expandedChapterIds.value.push(chapId)
-      
-      // Auto-open content drawer based on the selected lesson type
-      if (lesson.type) {
-        // Map lesson type to content type if needed, e.g. 'van_ban' -> 'text'
-        const mappedType = lesson.type === 'van_ban' ? 'text' : lesson.type === 'pdf' ? 'document' : lesson.type === 'trac_nghiem' ? 'quiz' : lesson.type;
-        selectedContentType.value = mappedType;
-        // Small timeout to allow lesson to be fully selected and DOM to update before opening drawer
-        setTimeout(() => {
-          isContentDrawerOpen.value = true;
-        }, 50);
-      }
     }
     isLessonModalOpen.value = false
     editingLesson.value = null
@@ -182,9 +173,41 @@ export const useCurriculumEditor = (subjectId: number) => {
   }
 
   const openAddContent = (type: ContentBlockType) => {
+    const lesson = selectedLesson.value
+    const currentStatus = lesson?.status || (lesson as any)?.TrangThai
+    if (lesson && (currentStatus === 'da_xuat_ban' || currentStatus === 'published')) {
+      pendingContentType.value = type
+      isDraftConfirmOpen.value = true
+      return
+    }
+
     selectedContentType.value = type
     editingContent.value = null
     isContentDrawerOpen.value = true
+  }
+
+  const confirmSwitchToDraft = async () => {
+    const lesson = selectedLesson.value
+    const type = pendingContentType.value
+    isDraftConfirmOpen.value = false
+
+    if (lesson) {
+      const chapId = selectedChapter.value?.id
+      if (chapId) {
+        await store.updateLesson(subjectId, chapId, lesson.id, {
+          ...lesson,
+          status: 'nhap',
+          TrangThai: 'nhap'
+        })
+      }
+    }
+
+    if (type) {
+      selectedContentType.value = type
+      editingContent.value = null
+      isContentDrawerOpen.value = true
+    }
+    pendingContentType.value = null
   }
 
   const openEditContent = (content: EditorContentBlock) => {
@@ -250,6 +273,8 @@ export const useCurriculumEditor = (subjectId: number) => {
     isLessonModalOpen,
     isContentDrawerOpen,
     isDeleteDialogOpen,
+    isDraftConfirmOpen,
+    pendingContentType,
     editingChapter,
     editingLesson,
     editingContent,
@@ -264,6 +289,7 @@ export const useCurriculumEditor = (subjectId: number) => {
     saveLesson,
     saveContent,
     confirmDelete,
+    confirmSwitchToDraft,
 
     openAddChapter,
     openEditChapter,

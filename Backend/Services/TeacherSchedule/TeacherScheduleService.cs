@@ -51,36 +51,56 @@ public class TeacherScheduleService : ITeacherScheduleService
                 NgayKetThuc = currentTerm.NgayKetThuc,
                 IsCurrent = true
             };
-
-            var courses = await _context.KhoaHocs
-                .Include(kh => kh.Lop)
-                .Include(kh => kh.MonHoc)
-                .Where(kh => kh.MaHocKy == currentTerm.MaHocKy && kh.MaGiaoVien == teacherId && kh.TrangThai == "da_xuat_ban")
-                .ToListAsync();
-
-            summary.AssignedCourseCount = courses.Select(c => c.MaKhoaHoc).Distinct().Count();
-            summary.AssignedClassCount = courses.Select(c => c.MaLop).Distinct().Count();
-            summary.SubjectCount = courses.Select(c => c.MaMonHoc).Distinct().Count();
-
-            // Count weekly shifts from published schedules
-            var schedules = await _context.ThoiKhoaBieus
-                .Where(t => t.KhoaHoc!.MaHocKy == currentTerm.MaHocKy && t.KhoaHoc.MaGiaoVien == teacherId && t.TrangThai == "da_xuat_ban")
-                .ToListAsync();
-            summary.WeeklyShiftCount = schedules.Count;
-            
-            summary.AssignedCourses = courses.Select(c => new TeacherAssignedCourseDto
-            {
-                MaKhoaHoc = c.MaKhoaHoc,
-                TieuDe = c.TieuDe,
-                MaLop = c.MaLop,
-                TenLop = c.Lop?.TenLop ?? "",
-                MaMonHoc = c.MaMonHoc,
-                TenMonHoc = c.MonHoc?.TenMonHoc ?? "",
-                MaHocKy = c.MaHocKy,
-                TenHocKy = currentTerm.TenHocKy,
-                SessionsPerWeek = schedules.Count(s => s.MaKhoaHoc == c.MaKhoaHoc)
-            }).ToList();
         }
+
+        // Count ALL courses assigned to the teacher across every term,
+        // consistent with TeacherDashboardController.TotalClasses.
+        var courses = await _context.KhoaHocs
+            .Include(kh => kh.Lop)
+            .Include(kh => kh.MonHoc)
+            .Include(kh => kh.HocKy)
+            .Where(kh => kh.MaGiaoVien == teacherId)
+            .ToListAsync();
+
+        summary.AssignedCourseCount = courses.Select(c => c.MaKhoaHoc).Distinct().Count();
+        summary.AssignedClassCount = courses.Select(c => c.MaLop).Distinct().Count();
+        summary.SubjectCount = courses.Select(c => c.MaMonHoc).Distinct().Count();
+
+        // Count weekly shifts from published schedules (any term the teacher owns)
+        var schedules = await _context.ThoiKhoaBieus
+            .Where(t => t.KhoaHoc != null && t.KhoaHoc.MaGiaoVien == teacherId && (t.TrangThai == "da_xuat_ban" || t.TrangThai == "cong_bo"))
+            .ToListAsync();
+        summary.WeeklyShiftCount = schedules.Count;
+
+        if (summary.WeeklyShiftCount == 0)
+        {
+            var startOfWeek = today.AddDays(-(int)today.DayOfWeek + 1);
+            var endOfWeek = startOfWeek.AddDays(6);
+            summary.WeeklyShiftCount = await _context.BuoiHocs
+                .CountAsync(b => (b.MaGiaoVien == teacherId || b.MaGiaoVienDayThay == teacherId || (b.KhoaHoc != null && b.KhoaHoc.MaGiaoVien == teacherId)) && b.NgayHoc >= startOfWeek && b.NgayHoc <= endOfWeek && b.TrangThaiBuoi != "da_huy");
+        }
+
+        // Prefer current-term courses for the detail list, fall back to all courses.
+        var displayCourses = currentTerm != null
+            ? courses.Where(c => c.MaHocKy == currentTerm.MaHocKy).ToList()
+            : courses;
+        if (displayCourses.Count == 0)
+        {
+            displayCourses = courses;
+        }
+
+        summary.AssignedCourses = displayCourses.Select(c => new TeacherAssignedCourseDto
+        {
+            MaKhoaHoc = c.MaKhoaHoc,
+            TieuDe = c.TieuDe,
+            MaLop = c.MaLop,
+            TenLop = c.Lop?.TenLop ?? "",
+            MaMonHoc = c.MaMonHoc,
+            TenMonHoc = c.MonHoc?.TenMonHoc ?? "",
+            MaHocKy = c.MaHocKy,
+            TenHocKy = c.HocKy?.TenHocKy ?? (currentTerm?.TenHocKy ?? ""),
+            SessionsPerWeek = schedules.Count(s => s.MaKhoaHoc == c.MaKhoaHoc)
+        }).ToList();
 
         var todaySessions = await GetTodayScheduleAsync(teacherId);
         summary.TodaySessions = todaySessions;
@@ -101,7 +121,7 @@ public class TeacherScheduleService : ITeacherScheduleService
                 .Include(b => b.CaHoc)
                 .Include(b => b.Phong)
                 .Include(b => b.Tkb)
-                .Where(b => (b.MaGiaoVien == teacherId || b.MaGiaoVienDayThay == teacherId) && b.NgayHoc > today && b.TrangThaiBuoi != "da_huy" && b.Tkb != null && b.Tkb.TrangThai == "da_xuat_ban")
+                .Where(b => (b.MaGiaoVien == teacherId || b.MaGiaoVienDayThay == teacherId || (b.KhoaHoc != null && b.KhoaHoc.MaGiaoVien == teacherId)) && b.NgayHoc > today && b.TrangThaiBuoi != "da_huy" && (b.Tkb == null || b.Tkb.TrangThai == "da_xuat_ban" || b.Tkb.TrangThai == "cong_bo"))
                 .OrderBy(b => b.NgayHoc).ThenBy(b => b.CaHoc!.GioBatDau)
                 .Select(b => new TeacherScheduleItemDto
                 {
@@ -157,7 +177,7 @@ public class TeacherScheduleService : ITeacherScheduleService
             .Include(b => b.CaHoc)
             .Include(b => b.Phong)
             .Include(b => b.Tkb)
-            .Where(b => (b.MaGiaoVien == teacherId || b.MaGiaoVienDayThay == teacherId) && b.Tkb != null && b.Tkb.TrangThai == "da_xuat_ban");
+            .Where(b => (b.MaGiaoVien == teacherId || b.MaGiaoVienDayThay == teacherId || (b.KhoaHoc != null && b.KhoaHoc.MaGiaoVien == teacherId)) && (b.Tkb == null || b.Tkb.TrangThai == "da_xuat_ban" || b.Tkb.TrangThai == "cong_bo"));
 
         if (query.NgayTu.HasValue)
         {

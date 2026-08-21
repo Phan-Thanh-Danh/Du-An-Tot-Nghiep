@@ -37,7 +37,7 @@ export class ExamProctoringHub {
     }
 
     this._token = token
-    const url = `${getApiBaseUrl()}/hubs/exam-monitoring`
+    const url = `${getApiBaseUrl()}/api/hubs/exam-monitoring`
 
     this.connection = new signalR.HubConnectionBuilder()
       .withUrl(url, {

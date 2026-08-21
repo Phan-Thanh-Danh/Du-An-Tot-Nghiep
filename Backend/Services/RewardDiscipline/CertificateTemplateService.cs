@@ -48,6 +48,13 @@ public partial class CertificateTemplateService : ICertificateTemplateService
         "right"
     };
 
+    private static readonly HashSet<string> AllowedHtmlProperties = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "mode",
+        "html",
+        "css"
+    };
+
     private readonly ApplicationDbContext _context;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IAuditLogService _auditLogService;
@@ -240,6 +247,42 @@ public partial class CertificateTemplateService : ICertificateTemplateService
         return await LoadDtoAsync(template.MaMauBangKhen, cancellationToken);
     }
 
+    public async Task DeleteAsync(
+        int id,
+        CancellationToken cancellationToken = default)
+    {
+        var currentUser = GetCurrentUser();
+        EnsureSuperAdmin(currentUser);
+
+        var template = await _context.MauBangKhens.FirstOrDefaultAsync(x => x.MaMauBangKhen == id, cancellationToken);
+        if (template is null)
+        {
+            throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy mẫu bằng khen.");
+        }
+
+        // check references: DotKhenThuong (campaigns) and KhenThuong (rewards)
+        var usedInCampaign = await _context.DotKhenThuongs.AnyAsync(x => x.MaMauBangKhen == id, cancellationToken);
+        var usedInRewards = await _context.KhenThuongs.AnyAsync(x => x.MaMauBangKhen == id, cancellationToken);
+        if (usedInCampaign || usedInRewards)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Không thể xóa mẫu vì đang được tham chiếu bởi đợt khen thưởng hoặc bản ghi khen thưởng.");
+        }
+
+        _context.MauBangKhens.Remove(template);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        await _auditLogService.LogAsync(
+            EntityType,
+            template.MaMauBangKhen.ToString(),
+            "DELETE_CERTIFICATE_TEMPLATE",
+            CreateAuditSnapshot(template),
+            null,
+            currentUser.UserId,
+            null,
+            "Xóa mẫu bằng khen.",
+            cancellationToken);
+    }
+
     public async Task<CertificateTemplatePreviewDto> PreviewAsync(
         int id,
         CertificateTemplatePreviewRequest request,
@@ -256,19 +299,32 @@ public partial class CertificateTemplateService : ICertificateTemplateService
 
         var data = await ResolvePreviewDataAsync(request, cancellationToken);
         ApplySampleOverrides(data, request.DuLieuMau);
-        var fields = ParseConfigFields(template.CauHinhJson)
-            .Select(field => new CertificateTemplatePreviewFieldDto
-            {
-                Key = field.Key,
-                Value = data.TryGetValue(field.Key, out var value) ? value : null,
-                X = field.X,
-                Y = field.Y,
-                FontSize = field.FontSize,
-                Align = field.Align,
-                Color = field.Color,
-                Bold = field.Bold
-            })
-            .ToList();
+        var mode = ResolveConfigMode(template.CauHinhJson);
+        var html = string.Empty;
+        var css = string.Empty;
+        var fields = new List<CertificateTemplatePreviewFieldDto>();
+        if (mode == RewardDisciplineConstants.CertificateConfigModes.Html)
+        {
+            var htmlConfig = ParseHtmlConfig(template.CauHinhJson);
+            html = htmlConfig.Html;
+            css = htmlConfig.Css;
+        }
+        else
+        {
+            fields = ParseConfigFields(template.CauHinhJson)
+                .Select(field => new CertificateTemplatePreviewFieldDto
+                {
+                    Key = field.Key,
+                    Value = data.TryGetValue(field.Key, out var value) ? value : null,
+                    X = field.X,
+                    Y = field.Y,
+                    FontSize = field.FontSize,
+                    Align = field.Align,
+                    Color = field.Color,
+                    Bold = field.Bold
+                })
+                .ToList();
+        }
 
         return new CertificateTemplatePreviewDto
         {
@@ -279,10 +335,15 @@ public partial class CertificateTemplateService : ICertificateTemplateService
             ChieuRong = template.ChieuRong,
             ChieuCao = template.ChieuCao,
             HuongGiay = template.HuongGiay,
+            Mode = mode,
+            Html = html,
+            Css = css,
             Fields = fields,
             Data = data,
             IsPdfGenerated = false,
-            Note = "RD5 chỉ trả payload preview an toàn; sinh PDF bằng khen sẽ thực hiện ở RD6."
+            Note = mode == RewardDisciplineConstants.CertificateConfigModes.Html
+                ? "Mẫu HTML được trình duyệt render; PDF được sinh phía người dùng và tải lên hệ thống."
+                : "RD5 chỉ trả payload preview an toàn; sinh PDF bằng khen sẽ thực hiện ở RD6."
         };
     }
 
@@ -440,10 +501,30 @@ public partial class CertificateTemplateService : ICertificateTemplateService
             throw new ApiException(StatusCodes.Status400BadRequest, "Cấu hình mẫu bằng khen phải là JSON object.");
         }
 
+        if (TryGetPropertyIgnoreCase(root, "mode", out var modeElement))
+        {
+            if (modeElement.ValueKind != JsonValueKind.String)
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest, "mode phải là chuỗi 'fields' hoặc 'html'.");
+            }
+
+            var mode = modeElement.GetString()!.Trim();
+            if (mode.Equals(RewardDisciplineConstants.CertificateConfigModes.Html, StringComparison.OrdinalIgnoreCase))
+            {
+                ValidateHtmlConfig(root);
+                return;
+            }
+
+            if (!mode.Equals(RewardDisciplineConstants.CertificateConfigModes.Fields, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest, "mode chỉ nhận 'fields' hoặc 'html'.");
+            }
+        }
+
         if (!TryGetPropertyIgnoreCase(root, "fields", out var fields) ||
             fields.ValueKind != JsonValueKind.Array)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Cấu hình mẫu bằng khen phải có fields dạng array.");
+            throw new ApiException(StatusCodes.Status400BadRequest, "Cấu hình mẫu bằng khen phải có fields dạng array hoặc dùng mode html.");
         }
 
         var count = fields.GetArrayLength();
@@ -453,6 +534,93 @@ public partial class CertificateTemplateService : ICertificateTemplateService
         }
 
         _ = ReadFields(root).ToList();
+    }
+
+    private static void ValidateHtmlConfig(JsonElement root)
+    {
+        if (!TryGetPropertyIgnoreCase(root, "html", out var htmlElement) ||
+            htmlElement.ValueKind != JsonValueKind.String ||
+            string.IsNullOrWhiteSpace(htmlElement.GetString()))
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Cấu hình mode html phải có thuộc tính html không rỗng.");
+        }
+
+        var html = htmlElement.GetString()!.Trim();
+        if (html.Length > 100000)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "HTML mẫu không được vượt quá 100000 ký tự.");
+        }
+
+        foreach (var property in root.EnumerateObject())
+        {
+            if (!AllowedHtmlProperties.Contains(property.Name))
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest, $"Cấu hình mode html chứa thuộc tính không được hỗ trợ: {property.Name}.");
+            }
+        }
+
+        if (TryGetPropertyIgnoreCase(root, "css", out var cssElement))
+        {
+            if (cssElement.ValueKind != JsonValueKind.String)
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest, "css phải là chuỗi.");
+            }
+
+            if (cssElement.GetString()?.Length > 200000)
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest, "CSS mẫu không được vượt quá 200000 ký tự.");
+            }
+        }
+    }
+
+    private static string ResolveConfigMode(string? configJson)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(configJson ?? string.Empty);
+            var root = document.RootElement;
+            if (root.ValueKind == JsonValueKind.Object &&
+                TryGetPropertyIgnoreCase(root, "mode", out var modeElement) &&
+                modeElement.ValueKind == JsonValueKind.String &&
+                modeElement.GetString()!.Trim().Equals(RewardDisciplineConstants.CertificateConfigModes.Html, StringComparison.OrdinalIgnoreCase))
+            {
+                return RewardDisciplineConstants.CertificateConfigModes.Html;
+            }
+
+            return RewardDisciplineConstants.CertificateConfigModes.Fields;
+        }
+        catch (JsonException)
+        {
+            return RewardDisciplineConstants.CertificateConfigModes.Fields;
+        }
+    }
+
+    private static HtmlConfig ParseHtmlConfig(string? configJson)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(configJson ?? string.Empty);
+            var root = document.RootElement;
+            if (root.ValueKind != JsonValueKind.Object ||
+                !TryGetPropertyIgnoreCase(root, "html", out var htmlElement) ||
+                htmlElement.ValueKind != JsonValueKind.String)
+            {
+                throw new ApiException(StatusCodes.Status500InternalServerError, "Cấu hình mẫu bằng khen không hợp lệ.");
+            }
+
+            var css = string.Empty;
+            if (TryGetPropertyIgnoreCase(root, "css", out var cssElement) &&
+                cssElement.ValueKind == JsonValueKind.String)
+            {
+                css = cssElement.GetString() ?? string.Empty;
+            }
+
+            return new HtmlConfig(htmlElement.GetString() ?? string.Empty, css);
+        }
+        catch (JsonException)
+        {
+            throw new ApiException(StatusCodes.Status500InternalServerError, "Cấu hình mẫu bằng khen không hợp lệ.");
+        }
     }
 
     private static IEnumerable<TemplateField> ReadFields(JsonElement root)
@@ -601,6 +769,11 @@ public partial class CertificateTemplateService : ICertificateTemplateService
 
     private static string NormalizeFileUrl(string value)
     {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
         var normalized = NormalizeRequiredText(value, "File nền", 1000);
         if (normalized.StartsWith("data:", StringComparison.OrdinalIgnoreCase) ||
             normalized.Contains(";base64", StringComparison.OrdinalIgnoreCase))
@@ -680,6 +853,7 @@ public partial class CertificateTemplateService : ICertificateTemplateService
             ChieuCao = template.ChieuCao,
             HuongGiay = template.HuongGiay,
             CauHinhJson = template.CauHinhJson ?? string.Empty,
+            Mode = ResolveConfigMode(template.CauHinhJson),
             ConHoatDong = template.ConHoatDong,
             NguoiTao = template.NguoiTao,
             TenNguoiTao = creatorName,
@@ -724,6 +898,8 @@ public partial class CertificateTemplateService : ICertificateTemplateService
         string Align,
         string Color,
         bool Bold);
+
+    private sealed record HtmlConfig(string Html, string Css);
 
     private sealed class TemplateQueryRow
     {

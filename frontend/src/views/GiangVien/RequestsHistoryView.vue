@@ -19,23 +19,80 @@ import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import TableShell from '@/components/ui/TableShell.vue'
+import LmsSelect from '@/components/LmsSelect.vue'
 import { teacherApi } from '@/services/teacherApi'
 
 const loading = ref(false)
 const error = ref('')
 const history = ref([])
+const statusFilter = ref('')
+const searchQuery = ref('')
 
-const historyStats = computed(() => [
-  { label: 'Tổng yêu cầu', value: history.value.length, variant: 'neutral' },
-  { label: 'Đã duyệt', value: history.value.filter(item => (item.ketQua || item.result) === 'Approved').length, variant: 'success' },
-  { label: 'Từ chối', value: history.value.filter(item => (item.ketQua || item.result) === 'Rejected').length, variant: 'danger' },
-  { label: 'Tháng này', value: 15, variant: 'info' },
-])
+const statusOptions = [
+  { value: '', label: 'Tất cả trạng thái' },
+  { value: 'approved', label: 'Đã phê duyệt' },
+  { value: 'rejected', label: 'Đã từ chối' }
+]
 
-const typeStats = computed(() => [
-  { label: 'Xin vắng học', value: '45%' },
-  { label: 'Phúc khảo', value: '30%' },
-])
+const filteredHistory = computed(() => {
+  let list = history.value
+  if (statusFilter.value === 'approved') {
+    list = list.filter(item => {
+      const s = (item.ketQua || item.result || item.trangThai || '').toLowerCase()
+      return s === 'approved' || s === 'da_duyet'
+    })
+  } else if (statusFilter.value === 'rejected') {
+    list = list.filter(item => {
+      const s = (item.ketQua || item.result || item.trangThai || '').toLowerCase()
+      return s === 'rejected' || s === 'tu_choi'
+    })
+  }
+
+  if (searchQuery.value.trim()) {
+    const q = searchQuery.value.trim().toLowerCase()
+    list = list.filter(item => 
+      (item.hoTen || item.student || '').toLowerCase().includes(q) ||
+      (item.loaiYeuCau || item.loaiDon || '').toLowerCase().includes(q) ||
+      (item.maSinhVien || '').toLowerCase().includes(q)
+    )
+  }
+
+  return list
+})
+
+const historyStats = computed(() => {
+  const total = history.value.length
+  const approved = history.value.filter(item => (item.ketQua || item.result || item.trangThai) === 'Approved' || (item.ketQua || item.result || item.trangThai) === 'da_duyet').length
+  const rejected = history.value.filter(item => (item.ketQua || item.result || item.trangThai) === 'Rejected' || (item.ketQua || item.result || item.trangThai) === 'tu_choi').length
+  const thisMonth = history.value.filter(item => {
+    const rawDate = item.ngayXuLy || item.date || item.ngayTao
+    if (!rawDate) return false
+    const d = new Date(rawDate)
+    const now = new Date()
+    return !isNaN(d) && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+  }).length
+
+  return [
+    { label: 'Tổng yêu cầu', value: total, variant: 'neutral' },
+    { label: 'Đã duyệt', value: approved, variant: 'success' },
+    { label: 'Từ chối', value: rejected, variant: 'danger' },
+    { label: 'Tháng này', value: thisMonth, variant: 'info' },
+  ]
+})
+
+const typeStats = computed(() => {
+  const total = history.value.length || 1
+  const leaveCount = history.value.filter(item => (item.loaiYeuCau || item.loaiDon || '').toLowerCase().includes('vắng') || (item.loaiYeuCau || item.loaiDon || '').toLowerCase().includes('nghỉ')).length
+  const recheckCount = history.value.filter(item => (item.loaiYeuCau || item.loaiDon || '').toLowerCase().includes('khảo') || (item.loaiYeuCau || item.loaiDon || '').toLowerCase().includes('điểm')).length
+
+  const leavePercent = Math.round((leaveCount / total) * 100)
+  const recheckPercent = Math.round((recheckCount / total) * 100)
+
+  return [
+    { label: 'Xin vắng học', value: `${leavePercent}%` },
+    { label: 'Phúc khảo', value: `${recheckPercent}%` },
+  ]
+})
 
 async function loadHistory() {
   loading.value = true
@@ -52,49 +109,47 @@ async function loadHistory() {
 }
 
 const getStatusText = (status) => {
-  return (status || '') === 'Approved' ? 'Đã duyệt' : 'Từ chối'
+  return (status || '') === 'Approved' || (status || '') === 'da_duyet' ? 'Đã duyệt' : 'Từ chối'
 }
 
 const getStatusVariant = (status) => {
-  return (status || '') === 'Approved' ? 'success' : 'danger'
+  return (status || '') === 'Approved' || (status || '') === 'da_duyet' ? 'success' : 'danger'
 }
 
 const getStatusIcon = (status) => {
-  return (status || '') === 'Approved' ? CheckCircle : XCircle
+  return (status || '') === 'Approved' || (status || '') === 'da_duyet' ? CheckCircle : XCircle
 }
 
 onMounted(() => { loadHistory() })
 </script>
 
 <template>
-  <div class="requests-history-page">
-    <GlassPanel variant="soft" density="compact" class="page-header" :clip="false">
+  <div class="requests-history-page lg-page-enter">
+    <GlassPanel variant="flat" density="compact" class="page-header">
       <div class="header-main">
-        <span class="header-icon">
+        <div class="header-icon">
           <History :size="20" />
-        </span>
-        <div class="min-w-0">
-          <div class="eyebrow">Request archive</div>
-          <h1 class="page-title">Lịch sử yêu cầu</h1>
-          <p class="page-subtitle">
-            Tra cứu các đơn từ đã xử lý, kết quả phản hồi và thời gian hoàn tất.
-          </p>
+        </div>
+        <div>
+          <p class="eyebrow">Quản lý yêu cầu</p>
+          <h1>Lịch sử xử lý</h1>
+          <p>Nhật ký toàn bộ các yêu cầu của sinh viên đã được tiếp nhận và phản hồi.</p>
         </div>
       </div>
 
       <div class="header-actions">
-        <GlassButton size="sm" variant="secondary">
+        <GlassButton variant="secondary" size="sm" @click="$router.push('/teacher/requests')">
           <template #leading>
-            <Download :size="14" />
+            <CheckSquare :size="16" />
           </template>
-          Xuất báo cáo
+          Yêu cầu chờ xử lý
         </GlassButton>
       </div>
     </GlassPanel>
 
-    <GlassPanel variant="surface" density="compact" class="context-bar" :clip="false">
-      <div class="mini-stats">
-        <div v-for="item in historyStats" :key="item.label" class="mini-stat">
+    <GlassPanel variant="flat" density="compact" class="context-panel">
+      <div class="summary-strip">
+        <div v-for="item in historyStats" :key="item.label" class="summary-item">
           <span class="stat-label">{{ item.label }}</span>
           <div class="stat-value-line">
             <strong>{{ item.value }}</strong>
@@ -103,18 +158,17 @@ onMounted(() => { loadHistory() })
         </div>
       </div>
 
-      <div class="filters">
-        <label class="select-field">
-          <Filter :size="15" />
-          <select>
-            <option>Tất cả trạng thái</option>
-            <option>Đã phê duyệt</option>
-            <option>Đã từ chối</option>
-          </select>
-        </label>
-        <label class="search-field">
-          <Search :size="15" />
-          <input type="text" placeholder="Tìm sinh viên hoặc loại đơn..." />
+      <div class="filters flex items-center gap-3">
+        <div class="w-48">
+          <LmsSelect
+            v-model="statusFilter"
+            placeholder="Tất cả trạng thái"
+            :options="statusOptions"
+          />
+        </div>
+        <label class="search-field flex items-center gap-2 px-3 py-2 border border-input rounded-xl surface-input">
+          <Search :size="15" class="text-placeholder" />
+          <input v-model="searchQuery" type="text" placeholder="Tìm sinh viên hoặc loại đơn..." class="bg-transparent outline-none text-xs text-heading" />
         </label>
       </div>
     </GlassPanel>
@@ -125,7 +179,7 @@ onMounted(() => { loadHistory() })
           <div class="panel-heading">
             <div>
               <h2>Tổng quan tháng</h2>
-              <p>15 đơn đã ghi nhận</p>
+              <p>{{ historyStats[3].value }} đơn đã ghi nhận</p>
             </div>
             <Calendar :size="18" />
           </div>
@@ -137,14 +191,14 @@ onMounted(() => { loadHistory() })
               <CheckSquare :size="16" />
             </span>
             <span>Đã duyệt</span>
-            <strong>12</strong>
+            <strong>{{ historyStats[1].value }}</strong>
           </div>
           <div class="summary-row">
             <span class="summary-icon danger">
               <XSquare :size="16" />
             </span>
             <span>Từ chối</span>
-            <strong>3</strong>
+            <strong>{{ historyStats[2].value }}</strong>
           </div>
         </div>
 
@@ -167,7 +221,7 @@ onMounted(() => { loadHistory() })
           <div class="panel-heading">
             <div>
               <h2>Bảng lịch sử</h2>
-              <p>Hiển thị 1-{{ history.length }} trong số 15 kết quả</p>
+              <p>Hiển thị 1-{{ filteredHistory.length }} trong số {{ history.length }} kết quả</p>
             </div>
             <GlassBadge variant="neutral" size="sm">Archive</GlassBadge>
           </div>
@@ -199,7 +253,7 @@ onMounted(() => { loadHistory() })
               </tr>
             </thead>
             <tbody>
-              <tr v-for="item in history" :key="item.id || item.maYeuCau">
+              <tr v-for="item in filteredHistory" :key="item.id || item.maYeuCau">
                 <td>
                   <div class="date-cell">
                     <strong>{{ item.ngayXuLy || item.date || '--' }}</strong>
@@ -219,9 +273,9 @@ onMounted(() => { loadHistory() })
                   <span class="type-chip">{{ item.loaiYeuCau || item.type }}</span>
                 </td>
                 <td class="text-right">
-                  <GlassBadge :variant="getStatusVariant(item.ketQua || item.result)" size="sm">
-                    <component :is="getStatusIcon(item.ketQua || item.result)" :size="12" />
-                    {{ getStatusText(item.ketQua || item.result) }}
+                  <GlassBadge :variant="getStatusVariant(item.ketQua || item.result || item.trangThai)" size="sm">
+                    <component :is="getStatusIcon(item.ketQua || item.result || item.trangThai)" :size="12" />
+                    {{ getStatusText(item.ketQua || item.result || item.trangThai) }}
                   </GlassBadge>
                 </td>
               </tr>
@@ -230,13 +284,7 @@ onMounted(() => { loadHistory() })
         </TableShell>
 
         <div class="table-footer">
-          <span>Hiển thị 1-{{ history.length }} trong số 15 kết quả</span>
-          <div class="pager">
-            <button type="button">Trước</button>
-            <button type="button" class="is-active">1</button>
-            <button type="button">2</button>
-            <button type="button">Sau</button>
-          </div>
+          <span>Hiển thị 1-{{ history.length }} trong số {{ history.length }} kết quả</span>
         </div>
       </GlassPanel>
     </div>

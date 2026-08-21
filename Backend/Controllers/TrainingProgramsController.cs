@@ -9,7 +9,7 @@ namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/master-data/training-programs")]
-[Authorize(Roles = $"{AuthRoles.SuperAdmin},{AuthRoles.Chairman},{AuthRoles.CampusAdmin},{AuthRoles.SubCampusAdmin},{AuthRoles.AcademicStaff}")]
+[Authorize(Roles = $"{AuthRoles.SuperAdmin},{AuthRoles.Chairman},{AuthRoles.CampusAdmin},{AuthRoles.SubCampusAdmin},{AuthRoles.AcademicStaff},{AuthRoles.Principal}")]
 public class TrainingProgramsController : ControllerBase
 {
     private readonly ITrainingProgramService _trainingProgramService;
@@ -131,5 +131,65 @@ public class TrainingProgramsController : ControllerBase
     {
         var program = await _trainingProgramService.ArchiveAsync(id, cancellationToken);
         return Ok(ApiResponseDto<TrainingProgramDto>.Ok(program, "Lưu trữ chương trình đào tạo thành công"));
+    }
+
+    [HttpGet("{id:int}/curriculum")]
+    public async Task<ActionResult<ApiResponseDto<List<CurriculumSubjectDto>>>> GetCurriculum(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        var curriculum = await _trainingProgramService.GetCurriculumAsync(id, cancellationToken);
+        return Ok(ApiResponseDto<List<CurriculumSubjectDto>>.Ok(curriculum, "Lấy danh mục môn học trong khung thành công"));
+    }
+
+    [HttpPost("{id:int}/subjects")]
+    public async Task<ActionResult<ApiResponseDto<CurriculumSubjectDto>>> AddSubject(
+        int id,
+        [FromBody] AddCurriculumSubjectRequest request,
+        CancellationToken cancellationToken)
+    {
+        var subject = await _trainingProgramService.AddCurriculumSubjectAsync(id, request, cancellationToken);
+        return Ok(ApiResponseDto<CurriculumSubjectDto>.Ok(subject, "Thêm môn học vào khung chương trình thành công"));
+    }
+
+    [HttpPut("{id:int}/subjects/{subjectId:int}")]
+    public async Task<ActionResult<ApiResponseDto<CurriculumSubjectDto>>> UpdateSubject(
+        int id,
+        int subjectId,
+        [FromBody] UpdateCurriculumSubjectRequest request,
+        CancellationToken cancellationToken)
+    {
+        var subject = await _trainingProgramService.UpdateCurriculumSubjectAsync(id, subjectId, request, cancellationToken);
+        return Ok(ApiResponseDto<CurriculumSubjectDto>.Ok(subject, "Cập nhật môn học trong khung thành công"));
+    }
+
+    [HttpDelete("{id:int}/subjects/{subjectId:int}")]
+    public async Task<ActionResult<ApiResponseDto>> RemoveSubject(
+        int id,
+        int subjectId,
+        CancellationToken cancellationToken)
+    {
+        await _trainingProgramService.RemoveCurriculumSubjectAsync(id, subjectId, cancellationToken);
+        return Ok(ApiResponseDto.Ok("Gỡ môn học khỏi khung chương trình thành công"));
+    }
+
+    [HttpGet("compare")]
+    public async Task<ActionResult<ApiResponseDto<CompareTrainingProgramsDto>>> Compare(
+        [FromQuery] int sourceId,
+        [FromQuery] int targetId,
+        CancellationToken cancellationToken)
+    {
+        var result = await _trainingProgramService.CompareProgramsAsync(sourceId, targetId, cancellationToken);
+        return Ok(ApiResponseDto<CompareTrainingProgramsDto>.Ok(result, "So sánh 2 phiên bản chương trình thành công"));
+    }
+
+    [HttpPost("{id:int}/assign")]
+    public async Task<ActionResult<ApiResponseDto<TrainingProgramDto>>> Assign(
+        int id,
+        [FromBody] AssignTrainingProgramRequest request,
+        CancellationToken cancellationToken)
+    {
+        var program = await _trainingProgramService.AssignProgramAsync(id, request, cancellationToken);
+        return Ok(ApiResponseDto<TrainingProgramDto>.Ok(program, "Áp dụng chương trình đào tạo thành công"));
     }
 }

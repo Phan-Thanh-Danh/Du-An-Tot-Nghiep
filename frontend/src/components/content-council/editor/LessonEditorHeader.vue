@@ -20,22 +20,21 @@ const onPreview = () => {
   if (!lesson.value) return
   const subjectId = route.params.subjectId
   
-  const url = router.resolve({
+  router.push({
     name: 'content-council-subject-preview',
     params: { subjectId: subjectId },
     query: { lessonId: lesson.value.id }
-  }).href
-  
-  window.open(url, '_blank')
+  })
 }
 
 const getStatusBadge = (status: string) => {
-  switch (status) {
-    case 'draft': return { text: 'Nháp', class: 'bg-slate-200 text-slate-600' }
-    case 'published': return { text: 'Xuất bản', class: 'bg-green-100 text-green-700' }
-    case 'hidden': return { text: 'Đang ẩn', class: 'bg-red-100 text-red-700' }
+  const s = String(status || '').toLowerCase()
+  switch (s) {
+    case 'draft': case 'nhap': return { text: 'Nháp', class: 'bg-slate-200 text-slate-600' }
+    case 'published': case 'da_xuat_ban': return { text: 'Xuất bản', class: 'bg-green-100 text-green-700 font-semibold' }
+    case 'hidden': case 'an': return { text: 'Đang ẩn', class: 'bg-red-100 text-red-700' }
     case 'empty': return { text: 'Trống', class: 'bg-orange-100 text-orange-700' }
-    default: return { text: status, class: 'bg-slate-100 text-slate-500' }
+    default: return { text: s === 'da_xuat_ban' ? 'Xuất bản' : (s === 'nhap' ? 'Nháp' : status), class: 'bg-slate-100 text-slate-500' }
   }
 }
 </script>

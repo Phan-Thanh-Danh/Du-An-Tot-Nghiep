@@ -76,6 +76,8 @@ public class AttendanceService : IAttendanceService
         EnsureTeacherCanManageAttendance(currentUser, session);
         EnsureSessionCanStartAttendance(session);
 
+        var policy = await GetActivePolicyAsync(cancellationToken);
+
         object? oldSnapshot = null;
         await _context.ExecuteInTransactionAsync(async () =>
         {
@@ -101,7 +103,7 @@ public class AttendanceService : IAttendanceService
                     TrangThai = DefaultAttendanceStatus,
                     NguoiGhiNhan = currentUser.UserId,
                     GhiNhanLuc = now,
-                    HeSoVang = 1,
+                    HeSoVang = GetAbsenceWeight(DefaultAttendanceStatus, policy),
                     KhoaLuc = null,
                     MaYcMoKhoa = null
                 })
@@ -116,7 +118,7 @@ public class AttendanceService : IAttendanceService
             {
                 session.TrangThaiDiemDanh = AttendanceInProgressStatus;
                 session.DiemDanhBatDauLuc = now;
-                session.DiemDanhHanGuiLuc = now.AddMinutes(15);
+                session.DiemDanhHanGuiLuc = now.AddMinutes(policy?.HanGuiPhut ?? 15);
                 session.NgayCapNhat = now;
             }
 
@@ -154,6 +156,8 @@ public class AttendanceService : IAttendanceService
         EnsureTeacherCanManageAttendance(currentUser, session);
         EnsureSessionCanUpdateAttendance(session, now);
 
+        var policy = await GetActivePolicyAsync(cancellationToken);
+
         var attendance = await _context.DiemDanhs
             .FirstOrDefaultAsync(x => x.MaBuoiHoc == session.MaBuoiHoc && x.MaHocSinh == studentId, cancellationToken);
 
@@ -164,7 +168,7 @@ public class AttendanceService : IAttendanceService
 
         var oldSnapshot = ToAttendanceAuditSnapshot(attendance);
         attendance.TrangThai = status;
-        attendance.HeSoVang = GetAbsenceWeight(status);
+        attendance.HeSoVang = GetAbsenceWeight(status, policy);
         attendance.NguoiGhiNhan = currentUser.UserId;
         attendance.GhiNhanLuc = now;
 
@@ -208,6 +212,8 @@ public class AttendanceService : IAttendanceService
         EnsureTeacherCanManageAttendance(currentUser, session);
         EnsureSessionCanUpdateAttendance(session, now);
 
+        var policy = await GetActivePolicyAsync(cancellationToken);
+
         if (session.TrangThaiDiemDanh == AttendanceNotOpenedStatus)
         {
             session.TrangThaiDiemDanh = AttendanceInProgressStatus;
@@ -247,7 +253,7 @@ public class AttendanceService : IAttendanceService
                     TrangThai = status,
                     NguoiGhiNhan = currentUser.UserId,
                     GhiNhanLuc = now,
-                    HeSoVang = GetAbsenceWeight(status),
+                    HeSoVang = GetAbsenceWeight(status, policy),
                     KhoaLuc = null,
                     MaYcMoKhoa = null
                 };
@@ -267,7 +273,7 @@ public class AttendanceService : IAttendanceService
             {
                 var status = itemByStudent[attendance.MaHocSinh].TrangThai;
                 attendance.TrangThai = status;
-                attendance.HeSoVang = GetAbsenceWeight(status);
+                attendance.HeSoVang = GetAbsenceWeight(status, policy);
                 attendance.NguoiGhiNhan = currentUser.UserId;
                 attendance.GhiNhanLuc = now;
             }
@@ -312,10 +318,12 @@ public class AttendanceService : IAttendanceService
         EnsureTeacherCanManageAttendance(currentUser, session);
         EnsureSessionCanSubmitAttendance(session, now);
 
+        var policy = await GetActivePolicyAsync(cancellationToken);
+
         var oldSnapshot = await GetAuditSnapshotAsync(session.MaBuoiHoc, cancellationToken);
         session.TrangThaiDiemDanh = AttendanceSubmittedStatus;
         session.DiemDanhDaGuiLuc = now;
-        session.DiemDanhHanChinhSuaLuc = now.AddMinutes(10);
+        session.DiemDanhHanChinhSuaLuc = now.AddMinutes(policy?.HanChinhSuaPhut ?? 10);
         session.NgayCapNhat = now;
 
         await _context.SaveChangesAsync(cancellationToken);
@@ -818,9 +826,31 @@ public class AttendanceService : IAttendanceService
         return status;
     }
 
-    private static int GetAbsenceWeight(string status)
+    private async Task<Models.QuyDinhChuyenCan?> GetActivePolicyAsync(CancellationToken cancellationToken)
     {
-        return status == DefaultAttendanceStatus ? 1 : 0;
+        var currentUser = GetCurrentUser();
+        return await _context.QuyDinhChuyenCans
+            .AsNoTracking()
+            .Where(x => x.MaDonVi == currentUser.CampusId)
+            .OrderByDescending(x => x.NgayHieuLuc)
+            .ThenByDescending(x => x.MaQuyDinh)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    private static int GetAbsenceWeight(string status, Models.QuyDinhChuyenCan? policy)
+    {
+        if (policy is null)
+        {
+            return status == DefaultAttendanceStatus ? 1 : 0;
+        }
+
+        return status switch
+        {
+            "vang" => Convert.ToInt32(Math.Round(policy.HeSoVangKhongPhep, 0, MidpointRounding.AwayFromZero)),
+            "co_phep" => Convert.ToInt32(Math.Round(policy.HeSoVangCoPhep, 0, MidpointRounding.AwayFromZero)),
+            "di_muon" => Convert.ToInt32(Math.Round(policy.HeSoDiMuon, 0, MidpointRounding.AwayFromZero)),
+            _ => 0
+        };
     }
 
     private static void ValidateDateRange(DateOnly? startDate, DateOnly? endDate)

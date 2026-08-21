@@ -2,9 +2,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { 
   CheckCircle2, XCircle, Eye, Search, Filter, AlertTriangle, Clock, User, Building2,
-  ChevronDown, Loader2, X
+  ChevronDown, Loader2
 } from 'lucide-vue-next'
 import { usePopupStore } from '@/stores/popup'
+import LmsSelect from '@/components/LmsSelect.vue'
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
 
@@ -12,7 +13,6 @@ const loading = ref(false)
 const error = ref(null)
 
 const popup = usePopupStore()
-const router = useRouter()
 
 const pendingSets = ref([])
 
@@ -33,6 +33,7 @@ const searchQuery = ref('')
 const semesterFilter = ref('all')
 const showAdvancedFilter = ref(false)
 const conflictFilter = ref('all')
+const semesters = computed(() => [...new Set(pendingSets.value.map(item => item.semester).filter(Boolean))])
 
 const filteredSets = computed(() => {
   let list = pendingSets.value
@@ -51,19 +52,29 @@ const filteredSets = computed(() => {
   return list
 })
 
-function approveSet(item) {
-  const idx = pendingSets.value.findIndex(s => s.id === item.id)
-  if (idx !== -1) {
-    pendingSets.value[idx] = { ...pendingSets.value[idx], status: 'approved' }
+async function approveSet(item) {
+  try {
+    await bghApi.approveSchedule(item.scheduleId)
+    const idx = pendingSets.value.findIndex(s => s.id === item.id)
+    if (idx !== -1) {
+      pendingSets.value[idx] = { ...pendingSets.value[idx], status: 'approved' }
+    }
     popup.success('Đã phê duyệt', `Bộ TKB "${item.id}" — ${item.dept} đã được duyệt.`)
+  } catch (e) {
+    popup.error('Lỗi phê duyệt', e?.response?.data?.message || e?.message || 'Không thể phê duyệt TKB.')
   }
 }
 
-function rejectSet(item) {
-  const idx = pendingSets.value.findIndex(s => s.id === item.id)
-  if (idx !== -1) {
-    pendingSets.value[idx] = { ...pendingSets.value[idx], status: 'rejected' }
+async function rejectSet(item) {
+  try {
+    await bghApi.rejectSchedule(item.scheduleId)
+    const idx = pendingSets.value.findIndex(s => s.id === item.id)
+    if (idx !== -1) {
+      pendingSets.value[idx] = { ...pendingSets.value[idx], status: 'rejected' }
+    }
     popup.info('Đã từ chối', `Bộ TKB "${item.id}" — ${item.dept} đã bị từ chối.`)
+  } catch (e) {
+    popup.error('Lỗi từ chối', e?.response?.data?.message || e?.message || 'Không thể từ chối TKB.')
   }
 }
 
@@ -100,11 +111,10 @@ onMounted(() => { loadData() })
               <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-placeholder" />
               <input v-model="searchQuery" type="text" placeholder="Tìm theo khoa, mã duyệt..." class="w-full surface-input border border-input rounded-xl pl-9 pr-4 py-2 text-sm font-medium outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
            </div>
-           <select v-model="semesterFilter" class="surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
+           <LmsSelect v-model="semesterFilter" class="surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
               <option value="all">Tất cả kỳ</option>
-              <option value="Spring 2026">Spring 2026</option>
-              <option value="Fall 2025">Fall 2025</option>
-           </select>
+              <option v-for="semester in semesters" :key="semester" :value="semester">{{ semester }}</option>
+           </LmsSelect>
         </div>
         <button @click="showAdvancedFilter = !showAdvancedFilter" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
            <Filter :size="18" /> Lọc nâng cao <ChevronDown :size="14" :class="showAdvancedFilter ? 'rotate-180' : ''" class="transition-transform" />
@@ -116,11 +126,11 @@ onMounted(() => { loadData() })
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label class="block text-[10px] font-semibold text-muted uppercase tracking-widest mb-1.5">Xung đột</label>
-              <select v-model="conflictFilter" class="w-full surface-input border border-input rounded-xl px-3 py-2.5 text-xs font-semibold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
+              <LmsSelect v-model="conflictFilter" class="w-full surface-input border border-input rounded-xl px-3 py-2.5 text-xs font-semibold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
                 <option value="all">Tất cả</option>
                 <option value="has">Có xung đột</option>
                 <option value="none">Không xung đột</option>
-              </select>
+              </LmsSelect>
             </div>
           </div>
           <div class="flex justify-end gap-2 mt-4">

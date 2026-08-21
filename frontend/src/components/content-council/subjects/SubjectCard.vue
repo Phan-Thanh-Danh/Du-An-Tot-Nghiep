@@ -19,7 +19,9 @@ const getStatusBadgeClass = (status) => {
     case 'draft':
       return 'bg-blue-50 text-blue-700 border-blue-200'
     case 'completed':
-      return 'bg-green-50 text-green-700 border-green-200'
+    case 'published':
+    case 'da_xuat_ban':
+      return 'bg-emerald-50 text-emerald-700 border-emerald-200'
     default:
       return 'bg-slate-100 text-slate-600 border-slate-200'
   }
@@ -29,8 +31,10 @@ const getStatusText = (status) => {
   switch (status) {
     case 'empty': return 'Chưa có nội dung'
     case 'draft': return 'Đang biên soạn'
-    case 'completed': return 'Đã hoàn thiện'
-    default: return status
+    case 'completed':
+    case 'published':
+    case 'da_xuat_ban': return 'Đã xuất bản'
+    default: return status || 'Đang biên soạn'
   }
 }
 

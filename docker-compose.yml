@@ -10,12 +10,6 @@ services:
       - "1433:1433"
     volumes:
       - sqlserver_data:/var/opt/mssql
-    healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$SA_PASSWORD\" -C -Q 'SELECT 1' -b -o /dev/null"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
 
   backend:
     build:
@@ -23,9 +17,9 @@ services:
       dockerfile: Dockerfile
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      # Mỗi thành viên tự dựng DB: SQL Server service trong compose + seed tự động khi khởi động
-      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=LMS;User Id=sa;Password=Test@123_PassWord!;TrustServerCertificate=True;
       - SeedProfile=LargeDemo
+      # Overriding the default connection string to point to the sqlserver container
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=LMS;User Id=sa;Password=Test@123_PassWord!;TrustServerCertificate=True;
       # R2 Storage
       - R2Storage__AccountId=87934b0fb36afe0a6b19db75efc7fe24
       - R2Storage__Endpoint=https://87934b0fb36afe0a6b19db75efc7fe24.r2.cloudflarestorage.com
@@ -37,14 +31,13 @@ services:
       - PayOS__ClientId=e996915a-86cd-4ac4-8cf8-4a77986670af
       - PayOS__ApiKey=e57d0543-b6c9-4f2a-984b-0c592c85a802
       - PayOS__ChecksumKey=3418ca3cb045db5f8203f2a0b53618bb09e028050554472853a67559c95cf1da
-      - PayOS__ReturnUrl=https://172.16.37.236/payment/success
-      - PayOS__CancelUrl=https://172.16.37.236/payment/cancel
+      - PayOS__ReturnUrl=https://192.168.137.157/payment/success
+      - PayOS__CancelUrl=https://192.168.137.157/payment/cancel
       - PayOS__BaseUrl=https://api-merchant.payos.vn
     ports:
       - "5097:5097"
     depends_on:
-      sqlserver:
-        condition: service_healthy
+      - sqlserver
 
   frontend:
     build:

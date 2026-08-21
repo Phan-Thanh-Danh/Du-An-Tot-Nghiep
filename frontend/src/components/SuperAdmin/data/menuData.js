@@ -82,6 +82,12 @@ export const superAdminMenuGroups = [
         route: '/super-admin/training/semesters',
       },
       {
+        id: 'cohorts',
+        label: 'Quản lý khóa tuyển sinh',
+        icon: 'CalendarDays',
+        route: '/super-admin/training/cohorts',
+      },
+      {
         id: 'programs',
         label: 'Cấu trúc chương trình',
         icon: 'BookMarked',
@@ -112,12 +118,6 @@ export const superAdminMenuGroups = [
         route: '/super-admin/operations/attendance-policy',
       },
       {
-        id: 'registration-periods',
-        label: 'Mở/Đóng đăng ký môn',
-        icon: 'ListPlus',
-        route: '/super-admin/operations/registration-periods',
-      },
-      {
         id: 'pass-fail-rules',
         label: 'Điều kiện Pass/Fail',
         icon: 'SlidersHorizontal',
@@ -134,15 +134,9 @@ export const superAdminMenuGroups = [
     children: [
       {
         id: 'approvals-requests',
-        label: 'Đơn cần duyệt',
-        icon: 'Inbox',
+        label: 'Quản lý mẫu đơn từ',
+        icon: 'FileText',
         route: '/super-admin/approvals/requests',
-      },
-      {
-        id: 'approvals-history',
-        label: 'Lịch sử duyệt đơn',
-        icon: 'FolderCheck',
-        route: '/super-admin/approvals/history',
       },
       {
         id: 'evaluations-config',
@@ -151,16 +145,16 @@ export const superAdminMenuGroups = [
         route: '/super-admin/evaluations/config',
       },
       {
-        id: 'evaluations-results',
-        label: 'Kết quả đánh giá GV',
-        icon: 'BarChart',
-        route: '/super-admin/evaluations/results',
-      },
-      {
         id: 'awards',
         label: 'Khen thưởng',
         icon: 'Award',
         route: '/super-admin/awards',
+      },
+      {
+        id: 'awards-certificate-templates',
+        label: 'Cấu hình giấy khen',
+        icon: 'Palette',
+        route: '/super-admin/awards/certificate-templates',
       },
       {
         id: 'discipline',

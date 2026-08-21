@@ -9,6 +9,7 @@ public class CreateQuizRequest
     public int? MaHocKy { get; set; }
     [Required(AllowEmptyStrings = false)]
     public string TieuDe { get; set; } = string.Empty;
+    public string? MoTa { get; set; }
     [Range(1, int.MaxValue)]
     public int ThoiGianPhut { get; set; }
     public string? LoaiDeThi { get; set; }

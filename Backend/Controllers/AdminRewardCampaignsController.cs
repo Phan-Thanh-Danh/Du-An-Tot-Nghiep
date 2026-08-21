@@ -220,6 +220,19 @@ public class AdminRewardCampaignsController : ControllerBase
             "Sinh lại PDF bằng khen thành công."));
     }
 
+    [HttpPost("{id:int}/certificates/upload")]
+    [Authorize(Roles = AuthRoles.SuperAdmin)]
+    public async Task<ActionResult<ApiResponseDto<RewardCertificateListItemDto>>> UploadCertificate(
+        int id,
+        UploadRewardCertificateRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _certificateGenerationService.UploadAsync(id, request, cancellationToken);
+        return Ok(ApiResponseDto<RewardCertificateListItemDto>.Ok(
+            result,
+            "Tải lên PDF bằng khen thành công."));
+    }
+
     [HttpGet("{id:int}/certificates")]
     public async Task<ActionResult<ApiResponseDto<PagedResultDto<RewardCertificateListItemDto>>>> GetCertificates(
         int id,

@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { Search, RotateCcw } from 'lucide-vue-next'
 import LmsSelect from '@/components/LmsSelect.vue'
+import { useSubjectStore } from '@/stores/content-council/subjectStore'
+import { contentCouncilApi } from '@/services/contentCouncilApi'
 
 const props = defineProps<{
   filters: {
@@ -17,18 +19,39 @@ const props = defineProps<{
 
 const emit = defineEmits(['update:filters', 'update:sort', 'reset'])
 
-const subjects = []
-const semesters = []
+const subjectStore = useSubjectStore()
+const semesters = ref<Array<{ id: number; name: string; year: string }>>([])
 
-const subjectOptions = [
+onMounted(async () => {
+  subjectStore.init()
+  fetchSemesters()
+})
+
+const subjects = computed(() => subjectStore.subjects)
+
+const fetchSemesters = async () => {
+  try {
+    const res = await contentCouncilApi.getAcademicTerms({ pageSize: 100 })
+    const items = res?.data?.items || res?.items || res?.data || []
+    semesters.value = items.map((t: any) => ({
+      id: t.maHocKy ?? t.id,
+      name: t.tenHocKy ?? t.name ?? '',
+      year: t.namHoc ?? t.year ?? ''
+    }))
+  } catch (e) {
+    console.error('Failed to fetch semesters:', e)
+  }
+}
+
+const subjectOptions = computed(() => [
   { value: 'all', label: 'Tất cả môn học' },
-  ...subjects.map(s => ({ value: s.id.toString(), label: `${s.code} - ${s.name}` }))
-]
+  ...subjects.value.map(s => ({ value: s.id.toString(), label: `${s.code} - ${s.name}` }))
+])
 
-const semesterOptions = [
+const semesterOptions = computed(() => [
   { value: 'all', label: 'Tất cả học kỳ' },
-  ...semesters.map(s => ({ value: s.id.toString(), label: s.name }))
-]
+  ...semesters.value.map(s => ({ value: s.id.toString(), label: s.year ? `${s.name} (${s.year})` : s.name }))
+])
 
 const statusOptions = [
   { value: 'all', label: 'Tất cả trạng thái' },

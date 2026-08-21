@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { QuestionChoice } from '@/types/content-council/questionBank'
 import { Plus, Trash2, GripVertical } from 'lucide-vue-next'
+import ConfirmModal from '@/components/common/ConfirmModal.vue'
 
 const props = defineProps<{
   choices: QuestionChoice[]
@@ -10,6 +11,17 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits(['update:choices', 'update:correctAnswerIds'])
+
+const modalState = ref({
+  isOpen: false,
+  title: 'Thông báo',
+  message: '',
+  variant: 'warning' as 'warning' | 'danger' | 'info' | 'success',
+  confirmText: 'Đồng ý',
+  cancelText: 'Hủy',
+  isAlert: false,
+  onConfirm: () => {}
+})
 
 const generateId = () => Math.random().toString(36).substr(2, 9)
 
@@ -20,22 +32,44 @@ const addChoice = () => {
 
 const removeChoice = (index: number) => {
   if (props.choices.length <= 2) {
-    alert('Một câu hỏi trắc nghiệm phải có ít nhất 2 lựa chọn.')
+    modalState.value = {
+      isOpen: true,
+      title: 'Thiếu lựa chọn',
+      message: 'Một câu hỏi trắc nghiệm phải có ít nhất 2 lựa chọn.',
+      variant: 'warning',
+      confirmText: 'Đóng',
+      cancelText: 'Hủy',
+      isAlert: true,
+      onConfirm: () => {}
+    }
     return
   }
   const choiceToRemove = props.choices[index]
   
-  if (props.correctAnswerIds.includes(choiceToRemove.id)) {
-    if (!confirm('Lựa chọn này đang là đáp án đúng. Bạn có chắc muốn xóa?')) {
-      return
+  const doRemove = () => {
+    if (props.correctAnswerIds.includes(choiceToRemove.id)) {
+      const newCorrectIds = props.correctAnswerIds.filter(id => id !== choiceToRemove.id)
+      emit('update:correctAnswerIds', newCorrectIds)
     }
-    const newCorrectIds = props.correctAnswerIds.filter(id => id !== choiceToRemove.id)
-    emit('update:correctAnswerIds', newCorrectIds)
+    const newChoices = [...props.choices]
+    newChoices.splice(index, 1)
+    emit('update:choices', newChoices)
   }
 
-  const newChoices = [...props.choices]
-  newChoices.splice(index, 1)
-  emit('update:choices', newChoices)
+  if (props.correctAnswerIds.includes(choiceToRemove.id)) {
+    modalState.value = {
+      isOpen: true,
+      title: 'Xóa lựa chọn',
+      message: 'Lựa chọn này đang là đáp án đúng. Bạn có chắc muốn xóa?',
+      variant: 'danger',
+      confirmText: 'Xóa lựa chọn',
+      cancelText: 'Hủy',
+      isAlert: false,
+      onConfirm: doRemove
+    }
+  } else {
+    doRemove()
+  }
 }
 
 const toggleCorrectAnswer = (id: string) => {
@@ -128,5 +162,17 @@ const getLabel = (index: number) => String.fromCharCode(65 + index)
     >
       <Plus class="w-4 h-4" /> Thêm lựa chọn
     </button>
+
+    <!-- Confirm Modal Popup -->
+    <ConfirmModal 
+      v-model:is-open="modalState.isOpen"
+      :title="modalState.title"
+      :message="modalState.message"
+      :variant="modalState.variant"
+      :confirm-text="modalState.confirmText"
+      :cancel-text="modalState.cancelText"
+      :is-alert="modalState.isAlert"
+      @confirm="modalState.onConfirm"
+    />
   </div>
 </template>

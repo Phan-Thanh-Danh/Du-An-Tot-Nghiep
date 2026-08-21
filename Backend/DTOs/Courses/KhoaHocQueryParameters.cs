@@ -9,6 +9,8 @@ public class KhoaHocQueryParameters
     public int? MaGiaoVien { get; set; }
     public int? MaHocKy { get; set; }
     public int? MaLop { get; set; }
+    public int? MaNganh { get; set; }
+    public int? MaChuyenNganh { get; set; }
     public string? TrangThai { get; set; }
     public string? Keyword { get; set; }
 

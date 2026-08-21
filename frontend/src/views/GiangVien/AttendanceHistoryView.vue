@@ -22,6 +22,7 @@ import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import TableShell from '@/components/ui/TableShell.vue'
+import LmsSelect from '@/components/LmsSelect.vue'
 import { usePopupStore } from '@/stores/popup'
 import { teacherApi } from '@/services/teacherApi'
 import { formatDate, formatDateTime, formatTimeRange } from '@/utils/dateFormat'
@@ -33,15 +34,30 @@ const loading = ref(false)
 const error = ref('')
 const sessions = ref([])
 const unlockRequests = ref([])
+const assignedCourses = ref([])
 
 async function loadHistory() {
   loading.value = true
   error.value = ''
   try {
-    const data = await teacherApi.getAttendanceHistory()
-    sessions.value = Array.isArray(data) ? data : (data?.data?.items ?? data?.data ?? data?.items ?? [])
-    const unlockData = await teacherApi.getUnlockRequests()
-    unlockRequests.value = Array.isArray(unlockData) ? unlockData : (unlockData?.data?.items ?? unlockData?.data ?? unlockData?.items ?? [])
+    const [data, unlockData, coursesRes] = await Promise.allSettled([
+      teacherApi.getAttendanceHistory(),
+      teacherApi.getUnlockRequests(),
+      teacherApi.getTeacherCourses()
+    ])
+
+    if (data.status === 'fulfilled') {
+      const d = data.value
+      sessions.value = Array.isArray(d) ? d : (d?.data?.items ?? d?.data ?? d?.items ?? [])
+    }
+    if (unlockData.status === 'fulfilled') {
+      const ud = unlockData.value
+      unlockRequests.value = Array.isArray(ud) ? ud : (ud?.data?.items ?? ud?.data ?? ud?.items ?? [])
+    }
+    if (coursesRes.status === 'fulfilled') {
+      const cr = coursesRes.value
+      assignedCourses.value = Array.isArray(cr) ? cr : (cr?.data?.items ?? cr?.data ?? cr?.items ?? [])
+    }
   } catch (e) {
     error.value = e?.message || 'Không thể tải lịch sử điểm danh.'
   } finally {
@@ -62,23 +78,46 @@ const isUnlockModalOpen = ref(false)
 const unlockReason = ref('')
 const unlockNote = ref('')
 const formSubmitted = ref(false)
+const submittingUnlock = ref(false)
 
-const sessionStatusOptions = getStatusOptions('session').filter((option) =>
-  ['da_gui', 'da_khoa', 'da_huy'].includes(option.value),
-)
+const sessionStatusOptions = [
+  { value: '', label: 'Tất cả trạng thái' },
+  { value: 'da_gui', label: 'Đã gửi' },
+  { value: 'da_khoa', label: 'Đã khóa' },
+  { value: 'dang_diem_danh', label: 'Đang điểm danh' },
+  { value: 'chua_diem_danh', label: 'Chưa điểm danh' },
+  { value: 'da_huy', label: 'Đã hủy' }
+]
 
 const courseOptions = computed(() => {
-  const seen = new Map()
-  sessions.value.forEach((session) => {
-    const key = `${session.courseCode}-${session.className}`
-    if (!seen.has(key)) {
-      seen.set(key, {
-        value: key,
-        label: `${session.courseCode} · ${session.className}`,
+  const options = [{ value: '', label: 'Tất cả môn / lớp' }]
+  const seen = new Set()
+
+  assignedCourses.value.forEach((c) => {
+    const name = c.courseName ?? c.CourseName ?? c.subjectName ?? c.SubjectName ?? c.title ?? 'Môn học'
+    const className = c.className ?? c.ClassName ?? ''
+    const val = String(c.courseId ?? c.CourseId ?? '')
+    if (val && !seen.has(val)) {
+      seen.add(val)
+      options.push({
+        value: val,
+        label: className ? `${name} - ${className}` : name
       })
     }
   })
-  return Array.from(seen.values())
+
+  sessions.value.forEach((session) => {
+    const val = String(session.courseId || session.courseCode || '')
+    if (val && !seen.has(val)) {
+      seen.add(val)
+      options.push({
+        value: val,
+        label: session.className ? `${session.subject} - ${session.className}` : session.subject
+      })
+    }
+  })
+
+  return options
 })
 
 const filteredSessions = computed(() => {
@@ -90,11 +129,17 @@ const filteredSessions = computed(() => {
     const sessionDate = new Date(session.date)
     const matchesSearch =
       !query ||
-      session.subject.toLowerCase().includes(query) ||
-      session.courseCode.toLowerCase().includes(query) ||
-      session.className.toLowerCase().includes(query) ||
-      session.room.toLowerCase().includes(query)
-    const matchesCourse = !selectedCourse.value || `${session.courseCode}-${session.className}` === selectedCourse.value
+      (session.subject || '').toLowerCase().includes(query) ||
+      (session.courseCode || '').toLowerCase().includes(query) ||
+      (session.className || '').toLowerCase().includes(query) ||
+      (session.room || '').toLowerCase().includes(query)
+
+    const matchesCourse =
+      !selectedCourse.value ||
+      String(session.courseId) === String(selectedCourse.value) ||
+      String(session.courseCode) === String(selectedCourse.value) ||
+      `${session.courseCode}-${session.className}` === selectedCourse.value
+
     const matchesStatus = !selectedStatus.value || session.status === selectedStatus.value
     const matchesFrom = !from || sessionDate >= from
     const matchesTo = !to || sessionDate <= to
@@ -127,9 +172,10 @@ watch(
 const summaryCards = computed(() => {
   const submitted = sessions.value.filter((session) => session.status === 'da_gui').length
   const locked = sessions.value.filter((session) => session.status === 'da_khoa').length
-  const pendingUnlock = unlockRequests.value.filter((request) => request.status === 'cho_duyet').length
-  const onTimeRate = sessions.value.length
-    ? Math.round((submitted / sessions.value.filter((session) => session.status !== 'da_huy').length) * 100)
+  const pendingUnlock = unlockRequests.value.filter((request) => request.status === 'cho_duyet' || request.trangThai === 'cho_duyet').length
+  const totalValid = sessions.value.filter((session) => session.status !== 'da_huy').length
+  const onTimeRate = totalValid > 0
+    ? Math.round(((submitted + locked) / totalValid) * 100)
     : 0
 
   return [
@@ -154,7 +200,7 @@ const detailStats = computed(() => {
 })
 
 const selectedUnlockRequest = computed(() =>
-  unlockRequests.value.find((request) => request.sessionId === selectedSession.value?.id) || null,
+  unlockRequests.value.find((request) => request.sessionId === selectedSession.value?.id || request.maBuoiHoc === selectedSession.value?.id) || null,
 )
 
 const canCreateUnlockRequest = computed(() =>
@@ -168,7 +214,20 @@ const unlockReasonError = computed(() =>
 )
 
 function sessionStatusMeta(status) {
-  return getStatusMeta('session', status)
+  switch (status) {
+    case 'da_gui':
+      return { label: 'Đã gửi', variant: 'success' }
+    case 'da_khoa':
+      return { label: 'Đã khóa', variant: 'neutral' }
+    case 'dang_diem_danh':
+      return { label: 'Đang điểm danh', variant: 'warning' }
+    case 'chua_diem_danh':
+      return { label: 'Chưa điểm danh', variant: 'info' }
+    case 'da_huy':
+      return { label: 'Đã hủy', variant: 'danger' }
+    default:
+      return getStatusMeta('session', status) || { label: status || 'Không xác định', variant: 'neutral' }
+  }
 }
 
 function attendanceStatusMeta(status) {
@@ -228,23 +287,25 @@ function closeUnlockModal() {
   formSubmitted.value = false
 }
 
-function submitUnlockRequest() {
+async function submitUnlockRequest() {
   formSubmitted.value = true
   if (!selectedSession.value || unlockReasonError.value) return
 
-  unlockRequests.value.unshift({
-    id: `unlock-local-${Date.now()}`,
-    sessionId: selectedSession.value.id,
-    subject: selectedSession.value.subject,
-    className: selectedSession.value.className,
-    status: 'cho_duyet',
-    reason: unlockReason.value.trim(),
-    note: unlockNote.value.trim(),
-    createdAt: new Date(),
-  })
+  submittingUnlock.value = true
+  try {
+    await teacherApi.createUnlockRequest(selectedSession.value.id, {
+      lyDo: unlockReason.value.trim(),
+      ghiChu: unlockNote.value.trim()
+    })
 
-  popupStore.success('Đã tạo yêu cầu mở khóa', 'Yêu cầu demo đã được thêm vào danh sách chờ duyệt.')
-  closeUnlockModal()
+    popupStore.success('Đã tạo yêu cầu mở khóa', 'Yêu cầu mở khóa điểm danh đã được gửi đến Giáo vụ.')
+    closeUnlockModal()
+    await loadHistory()
+  } catch (err) {
+    popupStore.error('Lỗi gửi yêu cầu', err?.message || 'Không thể tạo yêu cầu mở khóa.')
+  } finally {
+    submittingUnlock.value = false
+  }
 }
 
 function resetFilters() {
@@ -310,25 +371,24 @@ function resetFilters() {
           </span>
         </label>
 
-        <label class="control-field">
+        <div class="control-field">
           <span>Môn / lớp</span>
-          <select v-model="selectedCourse" class="lg-control">
-            <option value="">Tất cả</option>
-            <option v-for="option in courseOptions" :key="option.value" :value="option.value">
-              {{ option.label }}
-            </option>
-          </select>
-        </label>
+          <LmsSelect
+            v-model="selectedCourse"
+            placeholder="Tất cả môn / lớp"
+            :options="courseOptions"
+            searchable
+          />
+        </div>
 
-        <label class="control-field">
+        <div class="control-field">
           <span>Trạng thái</span>
-          <select v-model="selectedStatus" class="lg-control">
-            <option value="">Tất cả</option>
-            <option v-for="option in sessionStatusOptions" :key="option.value" :value="option.value">
-              {{ option.label }}
-            </option>
-          </select>
-        </label>
+          <LmsSelect
+            v-model="selectedStatus"
+            placeholder="Tất cả trạng thái"
+            :options="sessionStatusOptions"
+          />
+        </div>
 
         <label class="control-field">
           <span>Từ ngày</span>

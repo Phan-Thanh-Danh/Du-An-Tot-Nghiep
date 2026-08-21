@@ -43,6 +43,7 @@ public class CertificateTemplateDto
     public int ChieuCao { get; set; }
     public string HuongGiay { get; set; } = string.Empty;
     public string CauHinhJson { get; set; } = string.Empty;
+    public string Mode { get; set; } = Backend.Constants.RewardDisciplineConstants.CertificateConfigModes.Fields;
     public bool ConHoatDong { get; set; }
     public int NguoiTao { get; set; }
     public string? TenNguoiTao { get; set; }
@@ -56,6 +57,14 @@ public class CertificateTemplatePreviewRequest
     public JsonElement? DuLieuMau { get; set; }
 }
 
+public class UploadRewardCertificateRequest
+{
+    public int MaKhenThuong { get; set; }
+    public int MaMauBangKhen { get; set; }
+    public string FileBase64 { get; set; } = string.Empty;
+    public string? GhiChu { get; set; }
+}
+
 public class CertificateTemplatePreviewDto
 {
     public int MaMauBangKhen { get; set; }
@@ -65,6 +74,9 @@ public class CertificateTemplatePreviewDto
     public int ChieuRong { get; set; }
     public int ChieuCao { get; set; }
     public string HuongGiay { get; set; } = string.Empty;
+    public string Mode { get; set; } = Backend.Constants.RewardDisciplineConstants.CertificateConfigModes.Fields;
+    public string Html { get; set; } = string.Empty;
+    public string Css { get; set; } = string.Empty;
     public IReadOnlyList<CertificateTemplatePreviewFieldDto> Fields { get; set; } = [];
     public IReadOnlyDictionary<string, string?> Data { get; set; } = new Dictionary<string, string?>();
     public bool IsPdfGenerated { get; set; }

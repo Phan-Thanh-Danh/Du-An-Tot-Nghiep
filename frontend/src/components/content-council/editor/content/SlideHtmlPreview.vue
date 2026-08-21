@@ -46,8 +46,29 @@ const blocks = computed(() => {
         class="my-4 pl-6 space-y-2 text-slate-600"
         :class="block.data.style === 'ordered' ? 'list-decimal' : 'list-disc'"
       >
-        <SafeHtmlRenderer v-for="(item, index) in block.data.items" :key="index" tag="li" :html="item" />
+        <SafeHtmlRenderer v-for="(item, index) in block.data.items" :key="index" tag="li" :html="typeof item === 'string' ? item : item.content" />
       </component>
+
+      <!-- Table -->
+      <div v-else-if="block.type === 'table'" class="my-6 overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200 border border-slate-200 rounded-lg">
+          <tbody class="divide-y divide-slate-200 bg-white">
+            <tr 
+              v-for="(row, rowIndex) in block.data.content" 
+              :key="rowIndex"
+              :class="block.data.withHeadings && rowIndex === 0 ? 'bg-slate-50 font-semibold text-slate-800' : 'text-slate-600'"
+            >
+              <td 
+                v-for="(cell, cellIndex) in row" 
+                :key="cellIndex"
+                class="px-4 py-3 text-sm border-r border-slate-100 last:border-r-0"
+              >
+                <SafeHtmlRenderer :html="cell" />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
       <!-- Checklist -->
       <div v-else-if="block.type === 'checklist'" class="my-4 space-y-2">

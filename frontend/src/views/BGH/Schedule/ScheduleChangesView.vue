@@ -1,8 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Activity, Filter, ArrowRight, Search, CheckCircle2, XCircle, Clock, ChevronDown, Loader2, X } from 'lucide-vue-next'
+import { Activity, Filter, ArrowRight, Search, CheckCircle2, XCircle, Clock, ChevronDown, Loader2, AlertCircle } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
-import GlassButton from '@/components/ui/GlassButton.vue'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import { usePopupStore } from '@/stores/popup'
 import { bghApi } from '@/services/bghApi'
@@ -17,13 +16,25 @@ const statusFilter = ref('all')
 const showFilterDetail = ref(false)
 
 const changes = ref([])
+const processingIds = ref(new Set())
 
 async function loadData() {
   loading.value = true
   error.value = null
   try {
     const res = await bghApi.getScheduleChanges()
-    changes.value = unwrapApiData(res) || []
+    const rawChanges = unwrapApiData(res) || []
+    changes.value = rawChanges.map(item => ({
+      ...item,
+      id: String(item.id ?? ''),
+      subject: item.subject || item.subjectName || '',
+      teacher: item.teacher || item.teacherName || '',
+      type: item.type || (item.changeType === 'day_bu' ? 'makeup' : item.changeType === 'huy_buoi' ? 'cancel' : 'swap'),
+      status: item.status || 'pending',
+      oldSlot: item.oldSlot || '',
+      newSlot: item.newSlot || '',
+      updated: item.updated || (item.updatedAt ? new Date(item.updatedAt).toLocaleString('vi-VN') : ''),
+    }))
   } catch (e) {
     error.value = e?.message || 'Lỗi tải dữ liệu thay đổi lịch'
   } finally {
@@ -51,20 +62,36 @@ const changeTypeBadge = (type) => {
   return { variant: 'danger', label: 'Hủy' }
 }
 
-function approveChange(item) {
-  const idx = changes.value.findIndex(c => c.id === item.id)
-  if (idx !== -1) {
-    changes.value[idx] = { ...changes.value[idx], status: 'approved' }
+async function approveChange(item) {
+  if (processingIds.value.has(item.id)) return
+  processingIds.value = new Set(processingIds.value).add(item.id)
+  try {
+    await bghApi.approveScheduleChange(item.id)
+    await loadData()
     popup.success('Đã duyệt', `Thay đổi "${item.id}" — ${item.subject} đã được phê duyệt.`)
+  } catch (e) {
+    popup.error('Không thể duyệt', e?.message || 'Không thể lưu trạng thái vào CSDL.')
+  } finally {
+    const next = new Set(processingIds.value)
+    next.delete(item.id)
+    processingIds.value = next
   }
 }
 
-function rejectChange(item) {
-  const idx = changes.value.findIndex(c => c.id === item.id)
-  if (idx !== -1) {
-    changes.value[idx] = { ...changes.value[idx], status: 'rejected' }
+async function rejectChange(item) {
+  if (processingIds.value.has(item.id)) return
+  processingIds.value = new Set(processingIds.value).add(item.id)
+  try {
+    await bghApi.rejectScheduleChange(item.id)
+    await loadData()
+    popup.info('Đã từ chối', `Thay đổi "${item.id}" — ${item.subject} đã bị từ chối.`)
+  } catch (e) {
+    popup.error('Không thể từ chối', e?.message || 'Không thể lưu trạng thái vào CSDL.')
+  } finally {
+    const next = new Set(processingIds.value)
+    next.delete(item.id)
+    processingIds.value = next
   }
-  popup.info('Đã từ chối', `Thay đổi "${item.id}" — ${item.subject} đã bị từ chối.`)
 }
 
 onMounted(() => { loadData() })
@@ -150,10 +177,10 @@ onMounted(() => { loadData() })
               <Clock :size="10" /> {{ item.updated }}
             </p>
             <div v-if="item.status === 'pending'" class="flex gap-1">
-              <button @click="approveChange(item)" class="p-1.5 hover:bg-(--color-success-bg) hover:text-(--color-success-text) rounded-lg text-muted transition-all" title="Duyệt">
+              <button @click="approveChange(item)" :disabled="processingIds.has(item.id)" class="p-1.5 hover:bg-(--color-success-bg) hover:text-(--color-success-text) rounded-lg text-muted transition-all disabled:opacity-50" title="Duyệt">
                 <CheckCircle2 :size="18" />
               </button>
-              <button @click="rejectChange(item)" class="p-1.5 hover:bg-(--color-danger-bg) hover:text-(--color-danger-text) rounded-lg text-muted transition-all" title="Từ chối">
+              <button @click="rejectChange(item)" :disabled="processingIds.has(item.id)" class="p-1.5 hover:bg-(--color-danger-bg) hover:text-(--color-danger-text) rounded-lg text-muted transition-all disabled:opacity-50" title="Từ chối">
                 <XCircle :size="18" />
               </button>
             </div>

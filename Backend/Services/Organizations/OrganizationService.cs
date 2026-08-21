@@ -334,13 +334,14 @@ public class OrganizationService : IOrganizationService
             .Where(x => x.ConHoatDong)
             .ToListAsync();
 
-        if (currentUser.Role == AuthRoles.SuperAdmin || currentUser.Role == AuthRoles.Admin)
+        if (currentUser.Role == AuthRoles.SuperAdmin ||
+            currentUser.Role == AuthRoles.Admin ||
+            currentUser.Role == AuthRoles.Chairman)
         {
             return organizations;
         }
 
-
-        var allowedIds = currentUser.Role == AuthRoles.CampusAdmin
+        var allowedIds = currentUser.Role == AuthRoles.CampusAdmin || currentUser.Role == AuthRoles.Principal
             ? GetDescendantIds(organizations, currentUser.CampusId)
             : new HashSet<int> { currentUser.CampusId };
 

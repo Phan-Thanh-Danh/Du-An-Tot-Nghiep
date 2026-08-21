@@ -33,6 +33,16 @@ public class RbacRepository : IRbacRepository
         return _context.PhanQuyenNguoiDungs;
     }
 
+    public IQueryable<QuyenHan> QueryQuyenHans()
+    {
+        return _context.QuyenHans;
+    }
+
+    public IQueryable<VaiTroQuyenHan> QueryVaiTroQuyenHans()
+    {
+        return _context.VaiTroQuyenHans;
+    }
+
     public async Task<VaiTro?> GetRoleByIdAsync(int roleId, CancellationToken cancellationToken = default)
     {
         return await _context.VaiTros.FirstOrDefaultAsync(x => x.MaVaiTro == roleId, cancellationToken);
@@ -86,6 +96,16 @@ public class RbacRepository : IRbacRepository
     public void RemoveRoleAssignments(IEnumerable<PhanQuyenNguoiDung> roleAssignments)
     {
         _context.PhanQuyenNguoiDungs.RemoveRange(roleAssignments);
+    }
+
+    public void RemoveVaiTroQuyenHans(IEnumerable<VaiTroQuyenHan> vaiTroQuyenHans)
+    {
+        _context.VaiTroQuyenHans.RemoveRange(vaiTroQuyenHans);
+    }
+
+    public void AddVaiTroQuyenHan(VaiTroQuyenHan vaiTroQuyenHan)
+    {
+        _context.VaiTroQuyenHans.Add(vaiTroQuyenHan);
     }
 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

@@ -52,10 +52,11 @@ Ghi chú thuật ngữ: `DonVi` là tên bảng/entity kỹ thuật trong backen
 | PATCH | `/api/admin/users/{id}/unlock` | Admin/SuperAdmin/CampusAdmin/AcademicStaff | Mở khóa tài khoản bằng trạng thái `hoat_dong`. |
 | PATCH | `/api/admin/users/{id}/reset-password` | Admin/SuperAdmin/CampusAdmin/AcademicStaff | Admin đặt lại mật khẩu user và ghi audit. |
 | GET | `/api/bgh/users` | Principal/Admin/SuperAdmin | Danh sách user read-only cho BGH, scope theo cơ sở của người dùng hiện tại; không cho mutation qua endpoint BGH. |
+| POST | `/api/bgh/teacher-personnel/import-excel` | Principal/AcademicStaff | Upsert người dùng từ `.xlsx`/`.csv` bằng multipart (`file`, `dryRun`, `defaultMaDonVi`), tối đa 10 MB/1.000 dòng. Email mới được tạo; email đã tồn tại trong phạm vi quản lý được cập nhật họ tên, mật khẩu, role, đơn vị và số điện thoại sau khi toàn bộ trường hợp lệ. Chỉ nhận `Teacher`, `Student`, `AcademicStaff`; chặn BGH/Admin/SuperAdmin. BGH/giáo vụ quản lý đơn vị hiện tại và đơn vị con. Một dòng lỗi khiến toàn file không được ghi. |
 
 ### Dự kiến/cần bổ sung
 
-- Import CSV tài khoản.
+- File mẫu tải xuống cho import tài khoản nếu frontend cần chuẩn hóa thao tác người dùng.
 
 ## RBAC APIs
 
@@ -397,6 +398,7 @@ Ghi chú: PayOS là luồng thanh toán chính cho học sinh: PayOS tạo QR/li
 | POST | `/api/admin/reward-campaigns/{id}/approve` | SuperAdmin | Duyệt danh sách Top 100 từ `dang_xet` hoặc `cho_duyet`, tạo record `KhenThuong` chính thức cho ứng viên `duoc_de_xuat`/`them_thu_cong`, đánh dấu ứng viên `da_duyet_kt`, set đợt `da_duyet`. Idempotency bảo vệ bằng kiểm tra đã có `KhenThuong` trong đợt; gọi lại trả `409`. RD4 chưa sinh PDF nên `urlPdfBangKhen = null`; legacy `UrlChungTu` được lưu chuỗi rỗng để tương thích constraint NOT NULL cũ. |
 | POST | `/api/admin/reward-campaigns/{id}/certificates/generate` | SuperAdmin | RD6 sinh PDF bằng khen cho các `KhenThuong` thuộc đợt Top 100 đã `da_duyet`. Nếu không bật `forceRegenerate`, reward đã có PDF ở trạng thái `da_sinh_pdf` được skip. `onlyFailed = true` chỉ sinh reward thiếu PDF hoặc `loi_sinh_pdf`. Batch tiếp tục nếu một reward lỗi và trả summary `successCount/skippedCount/failedCount/items`. |
 | POST | `/api/admin/reward-campaigns/{id}/certificates/regenerate` | SuperAdmin | Sinh lại PDF bằng khen, bắt buộc `reason`. Có thể truyền `rewardIds` để giới hạn subset và `maMauBangKhen` để override mẫu active Top 100. Không xóa file PDF cũ; cập nhật `urlPdfBangKhen`, `ngaySinhPdf`, `soLanSinhPdf`, `loiSinhPdf`. |
+| POST | `/api/admin/reward-campaigns/{id}/certificates/upload` | SuperAdmin | Upload PDF bằng khen được render tại FE (html2pdf.js) cho template mode `html` (`cauHinhJson.mode == "html"`). Payload `{MaKhenThuong, MaMauBangKhen, FileBase64, GhiChu}`; validate reward thuộc đợt + mẫu active, PDF magic `%PDF-`, ≤20MB; set `TrangThai = da_sinh_pdf` + `UrlPdfBangKhen` + tăng `SoLanSinhPdf`; ghi audit `UPLOAD_REWARD_CERTIFICATE`. Khi template mode `html`, BE từ chối sinh PDF raw (lỗi hỗ trợ tiếng Việt) — FE phải render + upload. |
 | GET | `/api/admin/reward-campaigns/{id}/certificates` | SuperAdmin/Admin/CampusAdmin | Danh sách PDF bằng khen của một đợt, có phân trang và lọc `trangThaiPdf`, `keyword`, `pageIndex`, `pageSize`. Admin/CampusAdmin theo scope đợt như các API campaign; không xem đợt global nếu không phải SuperAdmin. |
 | GET | `/api/admin/rewards/{rewardId}/certificate/download` | SuperAdmin/Admin/CampusAdmin | Tải PDF bằng khen đã sinh. Response là `application/pdf`, attachment, `X-Content-Type-Options: nosniff`, `Cache-Control: private, no-store`. Trả `404` nếu reward chưa có PDF hoặc file không tồn tại. |
 
@@ -428,9 +430,11 @@ RD6 dùng storage cấu hình `CertificateStorage__Provider=Local`, `Certificate
 | GET | `/api/admin/certificate-templates/{id}` | SuperAdmin | Xem chi tiết mẫu bằng khen, gồm cấu hình JSON render an toàn. |
 | PUT | `/api/admin/certificate-templates/{id}` | SuperAdmin | Cập nhật mẫu đang hoạt động. Mẫu đã vô hiệu hóa trả `409`. |
 | DELETE | `/api/admin/certificate-templates/{id}` | SuperAdmin | Vô hiệu hóa mẫu bằng `conHoatDong = false`, không hard delete kể cả khi đã được gắn với đợt/khen thưởng. |
-| POST | `/api/admin/certificate-templates/{id}/preview` | SuperAdmin | Trả payload preview an toàn từ dữ liệu mẫu hoặc `maKhenThuong`; không ghi DB, không sinh PDF. |
+| POST | `/api/admin/certificate-templates/{id}/preview` | SuperAdmin | Trả payload preview an toàn từ dữ liệu mẫu hoặc `maKhenThuong`; không ghi DB, không sinh PDF. Với template mode `html` trả `mode: "html"` kèm `html/css`; mode legacy trả `fields`. |
 
-`cauHinhJson` RD5/RD6 phải là object có `fields` array 1..50. Field chỉ nhận các key whitelist: `hoTen`, `mssv`, `tenHocKy`, `danhHieu`, `xepHang`, `diemXet`, `ngayCap`; mỗi field bắt buộc `key`, `x`, `y`, `fontSize`, `align`, `color`, `bold`. Backend không nhận HTML/CSS/script tùy ý và chặn `FileNenUrl` dạng base64. RD6 sinh PDF batch từ cấu hình này và cập nhật `UrlPdfBangKhen`.
+`cauHinhJson` RD5/RD6 hỗ trợ 2 mode:
+- **Mode html** (mới, RD5+): `{"mode": "html", "html": "<div class=...>...</div>", "css": "..."}`. FE render trực tiếp tại trình duyệt (iframes preview + html2pdf.js khi cấp phát), token `{{hoTen}}`, `{{mssv}}`, `{{tenHocKy}}`, `{{danhHieu}}`, `{{xepHang}}`, `{{diemXet}}`, `{{ngayCap}}`. BE validate whitelist property (`html`, `css`, `mode`), `html` ≤ 100.000 ký tự, `css` ≤ 200.000 ký tự, không nhận script/event handler; `POST /certificates/upload` nhận PDF do FE render (BE không tự sinh PDF raw cho mode này vì hỏng tiếng Việt).
+- **Mode legacy fields**: object có `fields` array 1..50. Field chỉ nhận các key whitelist: `hoTen`, `mssv`, `tenHocKy`, `danhHieu`, `xepHang`, `diemXet`, `ngayCap`; mỗi field bắt buộc `key`, `x`, `y`, `fontSize`, `align`, `color`, `bold`. Backend không nhận HTML/CSS/script tùy ý và chặn `FileNenUrl` dạng base64. RD6 sinh PDF batch từ cấu hình này và cập nhật `UrlPdfBangKhen`.
 
 Ví dụ tạo mẫu bằng khen:
 
@@ -591,6 +595,17 @@ Roadmap: Sau MVP cần hỗ trợ cấu hình quiz/bài tập theo `KhoaHoc` đ�
 - Kiểm tra cơ sở/học kỳ đã có; kiểm tra chuyên ngành hiện mới ở mức hạn chế vì `LopHocPhan` chưa gắn chương trình/ngành.
 - Kiểm tra trùng lịch chỉ chạy khi lớp học phần có `KhoaHoc.MaLopHocPhan` và `ThoiKhoaBieu`; lớp chưa map course/TKB sẽ bỏ qua conflict check thay vì đoán lịch.
 
+## Storage và phát video
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| POST | `/api/storage/upload?folder={folder}` | Authenticated | Upload một hoặc nhiều file multipart field `file`; video tối đa 500 MB, tài liệu 50 MB, ảnh 10 MB. |
+| GET | `/api/storage/stream?key={storageKey}` | Anonymous | Trả redirect tới URL playback trực tiếp của R2 để hỗ trợ HTTP Range/`206 Partial Content`; nếu dùng local fallback thì trả `FileStreamResult` có range processing. |
+| GET | `/api/storage/file/{*key}` | Anonymous | Alias dạng route cho endpoint stream. |
+| DELETE | `/api/storage?storageKey={storageKey}` | AcademicOperations | Xóa object theo storage key. |
+
+Ghi chú phát video: khi cấu hình `R2Storage__PublicDomain`, backend mã hóa từng phần của object key và trả URL R2 trực tiếp. Không proxy toàn bộ response stream R2 qua ASP.NET vì stream tuần tự không đảm bảo tua video. Tiến trình học vẫn được lưu riêng, không phụ thuộc URL playback.
+
 ## Lessons APIs
 
 ### Đã có
@@ -683,11 +698,13 @@ Luồng làm quiz bài học dành cho `Student`:
 
 | Method | Endpoint | Auth | Ghi chú |
 |---|---|---|---|
-| GET | `/api/quiz-attempts/{quizId}/availability` | Student | Kiểm tra quiz có thể làm không, số lượt đã làm, giới hạn lượt, giờ mở/đóng và kết quả hiện tại. Chỉ áp dụng quiz được gắn trong `BaiHocNoiDung` với `LoaiNoiDung = quiz`. |
-| POST | `/api/quiz-attempts/{quizId}/start` | Student | Tạo hoặc trả lại lượt làm đang hoạt động; enforce `SoLanLamToiDa`, `KhongGioiHanSoLan`, `MoLuc`, `DongLuc`, deadline theo thời lượng quiz. |
+| GET | `/api/quiz-attempts/{quizId}/availability` | Student | Kiểm tra quiz bài học có thể làm không, số lượt đã làm, giờ mở/đóng và kết quả hiện tại. Quiz bài học (`quiz`/`trac_nghiem`) cho phép làm lại không giới hạn đến khi đạt. |
+| POST | `/api/quiz-attempts/{quizId}/start` | Student | Tạo hoặc trả lại lượt làm đang hoạt động; quiz bài học không giới hạn số lượt nhưng vẫn tuân thủ giờ mở/đóng và deadline theo thời lượng. |
 | PUT | `/api/quiz-attempts/sessions/{attemptId}/autosave` | Student | Lưu tạm câu trả lời JSON typed; không chấm điểm. |
-| POST | `/api/quiz-attempts/sessions/{attemptId}/submit` | Student | Nộp bài và chấm trắc nghiệm thật theo `DapAnDung`; kết quả/đáp án đúng chỉ trả nếu cấu hình cho phép. |
+| POST | `/api/quiz-attempts/sessions/{attemptId}/submit` | Student | Nộp, lưu DB và chấm quiz bài học ngay theo `DapAnDung`; trả kết quả và đáp án để sinh viên sửa rồi làm lại đến khi đạt. |
 | GET | `/api/quiz-attempts/{quizId}/history` | Student | Lịch sử các lượt làm và kết quả cuối theo cấu hình `CachTinhDiemCuoi`. |
+
+`GET /api/student/courses/{courseId}/lessons/{lessonId}/quiz` chỉ trả metadata và câu hỏi để hiển thị, không trả `DapAnDung`. Việc chấm điểm có thẩm quyền luôn thực hiện tại endpoint submit của backend.
 
 Luồng thi chính thức vẫn dùng `CaThi`:
 
@@ -699,6 +716,8 @@ Luồng thi chính thức vẫn dùng `CaThi`:
 | POST | `/api/exam/taking/submit` | Student | Nộp bài thi chính thức. |
 | POST | `/api/exam/grading/auto/{maCaThi}` | Teacher/CampusAdmin/AcademicStaff/Admin/SuperAdmin | Chấm tự động phần trắc nghiệm theo đáp án thật, không dùng điểm ngẫu nhiên. |
 | POST | `/api/exam/grading/essay` | Teacher/CampusAdmin/AcademicStaff/Admin/SuperAdmin | Nhập điểm cuối cùng cho bài có tự luận. |
+
+SignalR giám sát thi được ánh xạ tại `/api/hubs/exam-monitoring`. Request `negotiate` và kết nối WebSocket/SSE đi qua cùng reverse proxy `/api`; JWT cho WebSocket được nhận từ query string `access_token`.
 
 ### Dự kiến/cần bổ sung
 
@@ -1269,17 +1288,40 @@ Known limitations:
 | Method | Endpoint | Auth | Ghi chú |
 |---|---|---|---|
 | GET | `/api/bgh/dashboard` | BGH/Admin/SuperAdmin | Lấy số liệu thống kê tổng quan (sinh viên, giáo viên, tỷ lệ đi học, lớp học). |
+| GET | `/api/bgh/performance/cache-stats` | BGH/Admin/SuperAdmin | Chỉ số cache BGH trong tiến trình hiện tại: hit, miss, factory execution, hit rate và số key đang theo dõi. |
+| GET | `/api/bgh/users` | BGH/Admin/SuperAdmin | Danh sách người dùng phân trang và scope theo cơ sở. Query: `pageIndex` (mặc định 1), `pageSize` (1–100), `keyword`, `role`, `status`. Response có `data` và `pagination`. |
+| GET | `/api/bgh/audit-logs` | BGH/Admin/SuperAdmin | Nhật ký kiểm toán phân trang. Query: `pageIndex`, `pageSize` (1–100), `keyword`, `entityType`, `action`, `fromDate`, `toDate`. |
+| GET | `/api/bgh/schedules` | BGH/Admin/SuperAdmin | Danh sách TKB phân trang. Query: `status`, `pageIndex`, `pageSize` (1–100). |
 | GET | `/api/bgh/evaluations` | BGH/Admin/SuperAdmin | Danh sách tất cả đánh giá giáo viên. |
-| GET | `/api/bgh/evaluations/ranking` | BGH/Admin/SuperAdmin | Xếp hạng giáo viên theo điểm đánh giá. |
-| GET | `/api/bgh/evaluations/{id}` | BGH/Admin/SuperAdmin | Chi tiết một phiếu đánh giá. |
-| GET | `/api/bgh/evaluations/overview` | BGH/Admin/SuperAdmin | Tổng quan thống kê đánh giá toàn trường. |
+| GET | `/api/bgh/evaluations/ranking` | BGH/Admin/SuperAdmin | Xếp hạng giáo viên theo điểm thật. `positive` là tỷ lệ điểm từ 3,5 trở lên (cột điểm nguyên hiện tại: 4–5), `negative` là tỷ lệ điểm từ 3 trở xuống; `trend`, `trendDelta`, `latestSemesterRating`, `previousSemesterRating` được tính từ hai học kỳ gần nhất có đánh giá. |
+| GET | `/api/bgh/evaluations/{teacherId}` | BGH/Admin/SuperAdmin | Chi tiết đánh giá một giảng viên theo dữ liệu thật: điểm trung bình, tỷ lệ tích cực/tiêu cực/trung lập, tiêu chí, nhận xét gần nhất và lịch sử theo học kỳ. |
+| GET | `/api/bgh/evaluations/overview` | BGH/Admin/SuperAdmin | Tổng quan thống kê đánh giá toàn trường, gồm tỷ lệ tích cực và tiêu cực theo cùng ngưỡng của API ranking. |
 | GET | `/api/bgh/evaluations/ai-analysis` | BGH/Admin/SuperAdmin | Phân tích đánh giá bằng AI. |
 | GET | `/api/bgh/academic/overview` | BGH/Admin/SuperAdmin | Tổng quan học vụ (GPA, Pass rate, tín chỉ, chứng chỉ). |
 | GET | `/api/bgh/academic/gpa` | BGH/Admin/SuperAdmin | Báo cáo phổ điểm GPA, trung bình các khóa. |
-| GET | `/api/bgh/academic/at-risk` | BGH/Admin/SuperAdmin | Danh sách sinh viên nguy cơ học thuật. |
-| GET | `/api/bgh/academic/reports` | BGH/Admin/SuperAdmin | Các báo cáo học vụ chi tiết (môn học rớt nhiều, nợ học phí, bảo lưu). |
-| GET | `/api/bgh/academic/pass-fail` | BGH/Admin/SuperAdmin | Tỷ lệ Đậu/Rớt môn học. |
-| GET | `/api/bgh/schedule/changes` | BGH/Admin/SuperAdmin | Các thay đổi lịch trình (nghỉ, bù, đổi phòng). |
+| GET | `/api/bgh/academic/at-risk` | BGH/Admin/SuperAdmin | Danh sách sinh viên nguy cơ học thuật phân trang. Query: `pageIndex` (mặc định 1), `pageSize` (1–100), `studentId`, `semesterId`, `keyword`. Mỗi sinh viên có GPA, số môn rớt và môn rủi ro thấp điểm nhất trong bộ lọc. |
+| GET | `/api/bgh/academic/at-risk/{studentId}/history` | BGH/Admin/SuperAdmin | Hồ sơ học tập thật của sinh viên trong phạm vi quản lý: tổng số môn rớt, GPA, chi tiết điểm từng môn theo học kỳ, lý do rớt, xác suất rủi ro và thống kê chuyên cần nếu có. |
+| GET | `/api/bgh/academic/reports` | BGH/Admin/SuperAdmin | Báo cáo học vụ truy vấn theo nút tạo báo cáo. Query tùy chọn: `reportType`, `campusId`, `semesterId`; response trả bộ lọc đã áp dụng, thời điểm tạo, tổng quan và thống kê theo học kỳ/ngành. |
+| POST | `/api/bgh/academic/reports` | BGH/Admin/SuperAdmin | Tạo báo cáo và lưu bộ lọc vào bảng `XuatBaoCao`. Body: `{ name?, reportType: "class"|"subject"|"campus", campusId?, semesterId? }`. Response gồm metadata `savedReport` và dữ liệu `report` vừa truy vấn. |
+| GET | `/api/bgh/academic/reports/saved` | BGH/Admin/SuperAdmin | Liệt kê tối đa 200 báo cáo do chính người dùng hiện tại đã lưu, mới nhất trước. |
+| GET | `/api/bgh/academic/reports/saved/{reportId}` | BGH/Admin/SuperAdmin | Mở báo cáo đã lưu: đọc lại bộ lọc từ DB và truy vấn dữ liệu mới nhất trong phạm vi cơ sở hiện tại. |
+| DELETE | `/api/bgh/academic/reports/saved/{reportId}` | BGH/Admin/SuperAdmin | Xóa báo cáo đã lưu do chính người dùng hiện tại tạo. Không xóa dữ liệu học vụ nguồn. |
+| GET | `/api/bgh/academic/pass-fail/filters` | BGH/Admin/SuperAdmin | Danh sách bộ lọc tầng NganhDaoTao -> ChuyenNganh -> MonHocTrongChuongTrinh -> HocKy cho dashboard Pass/Fail. Query: `majorId`, `specializationId`, `programSubjectId` (tùy chọn). |
+| GET | `/api/bgh/academic/pass-fail` | BGH/Admin/SuperAdmin | Tỷ lệ Đậu/Rớt môn học theo dữ liệu điểm thật. Query: `majorId`, `specializationId`, `programSubjectId`, `semesterId` (tùy chọn). |
+| GET | `/api/bgh/master-data/cohorts` | BGH/Admin/SuperAdmin | Danh sách khóa tuyển sinh có chương trình/lớp thuộc phạm vi cơ sở của người dùng BGH. |
+| GET | `/api/bgh/master-data/training-programs` | BGH/Admin/SuperAdmin | Danh sách chương trình đào tạo theo scope cơ sở; hỗ trợ query `keyword`. |
+| GET | `/api/bgh/master-data/training-programs/{programId}/curriculum` | BGH/Admin/SuperAdmin | Khung chương trình thật theo scope cơ sở, gồm danh sách `ChuongTrinhHocKy`, `MonHocTrongChuongTrinh`, tổng học kỳ, số môn và tổng tín chỉ tính từ dữ liệu chi tiết. |
+| GET | `/api/bgh/master-data/academic-terms` | BGH/Admin/SuperAdmin | Danh sách học kỳ thật theo scope cơ sở. |
+| GET | `/api/bgh/master-data/subjects` | BGH/Admin/SuperAdmin | Danh sách môn học theo scope chương trình/cơ sở; hỗ trợ query `keyword`. |
+| GET | `/api/bgh/master-data/buildings` | BGH/Admin/SuperAdmin | Danh sách tòa nhà theo scope cơ sở; trả mã tòa, đơn vị, số tầng và trạng thái hoạt động. |
+| GET | `/api/bgh/master-data/floors` | BGH/Admin/SuperAdmin | Danh sách tầng theo scope cơ sở; trả liên kết tòa nhà, đơn vị, thứ tự tầng và trạng thái hoạt động. |
+| GET | `/api/bgh/master-data/rooms` | BGH/Admin/SuperAdmin | Danh sách phòng theo scope cơ sở; trả liên kết tòa/tầng, loại phòng, sức chứa, trạng thái phòng và danh sách thiết bị trong phòng. |
+| GET | `/api/bgh/rbac/roles` | BGH/Admin/SuperAdmin | Danh sách vai trò read-only. |
+| GET | `/api/bgh/schedule/changes` | BGH/Admin/SuperAdmin | Các thay đổi lịch trình (nghỉ, dạy bù, đổi phòng/ca/giảng viên); trả `status`, `type`, `oldSlot`, `newSlot` để hiển thị và lọc. |
+| POST | `/api/bgh/schedule/changes/{changeId}/approve` | BGH/Admin/SuperAdmin | Phê duyệt yêu cầu và ghi ngày/ca/phòng/giảng viên thay thế đề xuất vào `BuoiHoc`; ghi audit và xóa cache BGH. |
+| POST | `/api/bgh/schedule/changes/{changeId}/reject` | BGH/Admin/SuperAdmin | Từ chối yêu cầu, khôi phục ca/phòng gốc từ TKB, ghi trạng thái quyết định, audit và xóa cache BGH. |
+| POST | `/api/bgh/schedules/{scheduleId}/approve` | BGH/Admin/SuperAdmin | Duyệt TKB sang trạng thái đã xuất bản, ghi audit và xóa cache BGH. |
+| POST | `/api/bgh/schedules/{scheduleId}/reject` | BGH/Admin/SuperAdmin | Từ chối TKB sang trạng thái đã hủy, ghi audit và xóa cache BGH. |
 
 ## Teacher APIs
 

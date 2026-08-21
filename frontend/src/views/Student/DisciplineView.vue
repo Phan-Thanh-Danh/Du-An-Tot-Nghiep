@@ -14,11 +14,27 @@ import { usePopupStore } from '@/stores/popup'
 const popup = usePopupStore()
 const records = ref([])
 const loading = ref(false)
+const loadingDetail = ref(false)
 const forbidden = ref(false)
 const error = ref(null)
 const selectedRecord = ref(null)
 const appealReason = ref('')
 const confirmAppeal = ref(false)
+
+const DISCIPLINE_LEVEL_LABEL = {
+  nhe: 'Nhẹ',
+  trung_binh: 'Trung bình',
+  nghiem_trong: 'Nghiêm trọng',
+}
+const DISCIPLINE_ACTION_LABEL = {
+  nhac_nho: 'Nhắc nhở',
+  khien_trach: 'Khiển trách',
+  canh_cao: 'Cảnh cáo',
+  dinh_chi: 'Đình chỉ',
+  khac: 'Khác',
+}
+const levelLabel = (code) => DISCIPLINE_LEVEL_LABEL[code] ?? code ?? '—'
+const actionLabel = (code) => DISCIPLINE_ACTION_LABEL[code] ?? code ?? '—'
 
 const fetchRecords = async () => {
   loading.value = true
@@ -50,7 +66,7 @@ const fetchRecords = async () => {
       }
     })
     if (records.value.length > 0) {
-      selectedRecord.value = records.value[0]
+      selectRecord(records.value[0])
     } else {
       selectedRecord.value = null
     }
@@ -72,6 +88,20 @@ onMounted(() => fetchRecords())
 const activeCount = computed(() => records.value.filter(r => r.trangThai === 'active').length)
 const pendingAppealsCount = computed(() => records.value.filter(r => r.appealStatus === 'pending').length)
 const canAppealCount = computed(() => records.value.filter(r => r.coTheKhieuNai && r.appealStatus !== 'pending' && r.trangThai === 'active').length)
+
+const selectRecord = async (r) => {
+  selectedRecord.value = { ...r, moTaCongKhai: 'Đang tải chi tiết...' }
+  loadingDetail.value = true
+  try {
+    const detail = await studentApi.getDisciplineRecord(r.id)
+    selectedRecord.value = { ...r, moTaCongKhai: detail.moTaViPham || 'Không có mô tả chi tiết.', canCuXuLy: detail.canCuXuLy || '' }
+  } catch (err) {
+    console.error(err)
+    selectedRecord.value.moTaCongKhai = 'Lỗi khi tải chi tiết hồ sơ.'
+  } finally {
+    loadingDetail.value = false
+  }
+}
 
 const submitAppeal = async () => {
   if (!appealReason.value.trim()) {
@@ -166,7 +196,7 @@ const submitAppeal = async () => {
                 : '',
               selectedRecord?.id !== r.id ? 'border-(--border-default)' : ''
             ]"
-            @click="selectedRecord = r"
+            @click="selectRecord(r)"
           >
             <div class="flex justify-between items-start mb-2 gap-2">
               <h3 class="font-bold text-(--text-heading) text-lg line-clamp-2">{{ r.tieuDe }}</h3>
@@ -180,7 +210,7 @@ const submitAppeal = async () => {
               </div>
             </div>
             <div class="text-sm text-(--text-body) mb-2">
-              <p>Mức độ: <strong>{{ r.mucDoKyLuat }}</strong> - Hình thức: <strong>{{ r.hinhThucXuLy }}</strong></p>
+              <p>Mức độ: <strong>{{ levelLabel(r.mucDoKyLuat) }}</strong> - Hình thức: <strong>{{ actionLabel(r.hinhThucXuLy) }}</strong></p>
             </div>
             <div class="text-xs text-(--text-muted) border-t border-(--border-default) pt-3 flex justify-between">
               <span>Vi phạm: {{ formatDate(r.ngayViPham) }}</span>
@@ -201,19 +231,23 @@ const submitAppeal = async () => {
                   <ShieldAlert v-if="selectedRecord.trangThai === 'active'" :size="18" class="text-(--color-danger-bg)" />
                   <h3 class="text-xl font-bold text-(--text-heading) leading-tight">{{ selectedRecord.tieuDe }}</h3>
                 </div>
-                <div class="bg-(--surface-input) p-4 rounded-lg font-mono text-sm text-(--text-body) leading-relaxed border border-(--border-default)">
+                <div class="bg-(--surface-input) p-4 rounded-lg font-mono text-sm text-(--text-body) leading-relaxed border border-(--border-default) whitespace-pre-wrap">
                   {{ selectedRecord.moTaCongKhai }}
+                </div>
+                <div v-if="selectedRecord.canCuXuLy" class="mt-3 bg-(--surface-input) p-4 rounded-lg text-sm text-(--text-body) leading-relaxed border border-(--border-default)">
+                  <p class="font-bold mb-1 text-(--text-heading)">Căn cứ xử lý:</p>
+                  <p class="font-mono whitespace-pre-wrap">{{ selectedRecord.canCuXuLy }}</p>
                 </div>
               </div>
 
               <div class="flex-1 space-y-4 mb-4">
                 <div class="flex justify-between items-center py-2 border-b border-(--border-default) text-sm">
                   <span class="text-(--text-muted)">Mức độ vi phạm</span>
-                  <strong class="text-(--text-heading)">{{ selectedRecord.mucDoKyLuat }}</strong>
+                  <strong class="text-(--text-heading)">{{ levelLabel(selectedRecord.mucDoKyLuat) }}</strong>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-(--border-default) text-sm">
                   <span class="text-(--text-muted)">Hình thức xử lý</span>
-                  <strong class="font-bold uppercase tracking-tight" :class="selectedRecord.trangThai === 'active' ? 'text-red-600 dark:text-red-400' : 'text-(--text-heading)'">{{ selectedRecord.hinhThucXuLy }}</strong>
+                  <strong class="font-bold uppercase tracking-tight" :class="selectedRecord.trangThai === 'active' ? 'text-red-600 dark:text-red-400' : 'text-(--text-heading)'">{{ actionLabel(selectedRecord.hinhThucXuLy) }}</strong>
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-(--border-default) text-sm">
                   <span class="text-(--text-muted)">Thời gian vi phạm</span>
@@ -244,7 +278,7 @@ const submitAppeal = async () => {
 
     <ConfirmActionDialog
       v-if="confirmAppeal"
-      :show="true"
+      :modelValue="true"
       title="Xác nhận gửi khiếu nại"
       message="Bạn chắc chắn muốn gửi khiếu nại cho hồ sơ này? Hội đồng kỷ luật sẽ xem xét lại vụ việc."
       confirmLabel="Gửi đi"

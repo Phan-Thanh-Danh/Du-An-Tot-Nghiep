@@ -92,10 +92,10 @@ function generateDefaultPermissions(code) {
       perms[k] = ['read', 'create', 'update', 'delete']
     })
   } else if (c.includes('giang_vien') || c.includes('teacher') || c.includes('giao_vien')) {
-    // Giảng viên
+    // Giảng viên: Không cấp quyền tạo môn, tạo lịch hay tạo ngân hàng đề (thuộc Giáo vụ)
     perms.training = ['read']
-    perms.exams = ['read', 'create', 'update']
-    perms.requests = ['read', 'create']
+    perms.exams = ['read', 'update']
+    perms.requests = ['read', 'create', 'update']
     perms.reports = ['read']
   } else if (c.includes('sinh_vien') || c.includes('student') || c.includes('hoc_sinh')) {
     // Sinh viên
@@ -333,22 +333,25 @@ const permissionDiffs = computed(() => {
   return diffs
 })
 
-// FIX: không crash khi role.permissions = undefined
-const openPermissionDrawer = (role) => {
+// FIX: load quyền từ API thay vì dùng default
+const openPermissionDrawer = async (role) => {
   selectedRoleForEdit.value = role
-  let safePermissions = role.permissions && typeof role.permissions === 'object' ? role.permissions : null
-  if (!safePermissions) {
-    safePermissions = {}
+  let safePermissions = {}
+  try {
+    const res = await rbacApi.getRolePermissions(role.id)
+    const permsList = res?.data?.permissionCodes || []
+    
+    // Flat to object { module: [actions] }
     modules.forEach(m => {
-      if (role.code === 'super_admin' || role.code === 'admin') {
-        safePermissions[m.key] = ['read', 'create', 'update', 'delete']
-      } else if (role.type === 'System') {
-        safePermissions[m.key] = ['read', 'create', 'update']
-      } else {
-        safePermissions[m.key] = ['read']
-      }
+      safePermissions[m.key] = permsList
+        .filter(p => p.startsWith(m.key + '.'))
+        .map(p => p.split('.')[1])
     })
+  } catch (e) {
+    popup.error('Lỗi', 'Không thể lấy dữ liệu phân quyền.')
+    return
   }
+
   currentPermissions.value = JSON.parse(JSON.stringify(safePermissions))
   currentScope.value = {
     scope: role.scope || 'Global',
@@ -392,7 +395,7 @@ const savePermissionsClicked = () => {
   isConfirmModalOpen.value = true
 }
 
-// FIX: kết nối API — gọi updateRole
+// FIX: kết nối API — gọi updateRole và updateRolePermissions
 const submitPermissionsSave = async () => {
   if (!auditReason.value.trim()) {
     popup.warning('Thiếu thông tin', 'Vui lòng nhập lý do thay đổi để ghi nhận vào Audit Log.')
@@ -400,13 +403,21 @@ const submitPermissionsSave = async () => {
   }
   isSavingPermissions.value = true
   const role = selectedRoleForEdit.value
-  try {
-    // Gọi BE update role (hiện tại BE chỉ cho đổi tenVaiTro + maCodeVaiTro)
-    // Permission matrix là future feature — giữ tên/code không đổi, chỉ log audit
-    await rbacApi.updateRole(role.id, {
-      tenVaiTro: role.name,
-      maCodeVaiTro: role.code,
+
+  const flatPermissions = []
+  Object.keys(currentPermissions.value).forEach(mKey => {
+    const actions = currentPermissions.value[mKey] || []
+    actions.forEach(act => {
+      flatPermissions.push(`${mKey}.${act}`)
     })
+  })
+
+  try {
+    await rbacApi.updateRolePermissions(role.id, {
+      permissionCodes: flatPermissions,
+      auditReason: auditReason.value
+    })
+
     popup.success('Đã cập nhật', `Đã cập nhật cấu hình cho vai trò: ${role.name}`)
     isConfirmModalOpen.value = false
     isPermissionDrawerOpen.value = false

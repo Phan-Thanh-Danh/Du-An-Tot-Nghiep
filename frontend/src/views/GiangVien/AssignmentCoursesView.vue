@@ -111,10 +111,10 @@ function goToAssignments(course) {
       <div v-else class="courses-grid">
         <TeacherClassCard
           v-for="course in filteredCourses"
-          :key="course.courseId ?? course.CourseId"
-          :title="course.courseName ?? course.CourseName"
-          :subtitle="course.className ?? course.ClassName"
-          :studentsCount="course.studentCount ?? course.StudentCount"
+          :key="course.courseId ?? course.CourseId ?? course.id"
+          :title="course.courseName ?? course.CourseName ?? course.subjectName ?? course.SubjectName ?? course.title ?? course.Title ?? 'Khóa học'"
+          :subtitle="course.className ?? course.ClassName ?? 'Tất cả lớp'"
+          :studentsCount="course.studentCount ?? course.StudentCount ?? 0"
           @click="goToAssignments(course)"
           class="cursor-pointer"
         />

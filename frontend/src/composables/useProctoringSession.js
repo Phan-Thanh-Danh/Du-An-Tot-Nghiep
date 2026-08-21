@@ -78,12 +78,14 @@ export function useProctoringSession() {
   const attendanceLabel = (status) => {
     if (status === 'present') return 'Có mặt'
     if (status === 'exempted') return 'Miễn thi'
-    return 'Vắng mặt'
+    if (status === 'absent') return 'Vắng mặt'
+    return 'Chưa điểm danh'
   }
 
   const attendanceBadgeVariant = (status) => {
     if (status === 'present') return 'success'
     if (status === 'exempted') return 'neutral'
+    if (status === 'absent') return 'danger'
     return 'warning'
   }
 

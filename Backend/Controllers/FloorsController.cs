@@ -12,6 +12,7 @@ namespace Backend.Controllers;
 public class FloorsController : ControllerBase
 {
     private const string ReaderRoles =
+        AuthRoles.Principal + "," +
         AuthRoles.SuperAdmin + "," +
         AuthRoles.Admin + "," +
         AuthRoles.CampusAdmin + "," +
@@ -19,6 +20,7 @@ public class FloorsController : ControllerBase
         AuthRoles.AcademicStaff;
 
     private const string ManagerRoles =
+        AuthRoles.Principal + "," +
         AuthRoles.SuperAdmin + "," +
         AuthRoles.Admin + "," +
         AuthRoles.CampusAdmin + "," +

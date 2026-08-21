@@ -15,6 +15,7 @@ using Backend.Services.Audit;
 using Backend.Services.Auth;
 using Backend.Services.Applications;
 using Backend.Services.Buildings;
+using Backend.Services.Bgh;
 using Backend.Services.BuoiHoc;
 using Backend.Services.CaHoc;
 using Backend.Services.CampusSpecializations;
@@ -52,9 +53,10 @@ using Backend.Services.TrainingPrograms;
 using Backend.Services.TrainingProgramSubjects;
 
 using Backend.Services.AcademicSchedulingContext;
+using Backend.Services.TeacherPersonnel;
 using Backend.Services.TeachingPreferences;
-using Backend.Configuration;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -66,6 +68,14 @@ var allowedOrigins =
     ?? ["http://localhost:5173", "http://localhost:5174"];
 
 builder.Services.AddControllers();
+builder.Services.AddMemoryCache(options => options.SizeLimit = 10_000);
+builder.Services.AddSingleton<IBghPerformanceCache, BghPerformanceCache>();
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+});
 builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
     options.InvalidModelStateResponseFactory = context =>
@@ -126,6 +136,8 @@ builder.Services.AddScoped<IApplicationNotificationService, ApplicationNotificat
 builder.Services.AddScoped<IStudentApplicationService, StudentApplicationService>();
 builder.Services.AddScoped<Backend.Services.Blocks.IBlockService, Backend.Services.Blocks.BlockService>();
 builder.Services.AddScoped<Backend.Services.QuyDoiTinChis.IQuyDoiTinChiService, Backend.Services.QuyDoiTinChis.QuyDoiTinChiService>();
+builder.Services.AddScoped<Backend.Services.AttendancePolicy.IAttendancePolicyService, Backend.Services.AttendancePolicy.AttendancePolicyService>();
+builder.Services.AddScoped<Backend.Services.PassFailRules.IPassFailRuleService, Backend.Services.PassFailRules.PassFailRuleService>();
 builder.Services.AddScoped<Backend.Services.LopHanhChinhs.ILopHanhChinhService, Backend.Services.LopHanhChinhs.LopHanhChinhService>();
 builder.Services.Configure<SmartTimetableScoringOptions>(
     builder.Configuration.GetSection(SmartTimetableScoringOptions.SectionName));
@@ -168,7 +180,9 @@ builder.Services.AddScoped<IApplicationSubmissionRule, TransferSchoolApplication
 builder.Services.AddScoped<IApplicationSubmissionRule, ChangeMajorApplicationSubmissionRule>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IUserBulkImportService, UserBulkImportService>();
 builder.Services.AddScoped<IAdministrativeClassService, AdministrativeClassService>();
+builder.Services.AddScoped<ITeacherPersonnelService, TeacherPersonnelService>();
 builder.Services.AddScoped<IAcademicTermService, AcademicTermService>();
 builder.Services.AddScoped<IRbacRepository, RbacRepository>();
 builder.Services.AddScoped<IRbacService, RbacService>();
@@ -195,6 +209,7 @@ builder.Services.AddScoped<ITrainingProgramTermService, TrainingProgramTermServi
 builder.Services.AddScoped<IBuildingService, BuildingService>();
 builder.Services.AddScoped<IFloorService, FloorService>();
 builder.Services.AddScoped<IRoomService, RoomService>();
+builder.Services.AddScoped<Backend.Services.Facilities.IEquipmentService, Backend.Services.Facilities.EquipmentService>();
 builder.Services.AddScoped<ICaHocService, CaHocService>();
 builder.Services.AddScoped<IProgramTuitionConfigService, ProgramTuitionConfigService>();
 builder.Services.AddScoped<IVietQrService, VietQrService>();
@@ -219,6 +234,8 @@ builder.Services.Configure<AttendanceAutomationOptions>(
 builder.Services.AddScoped<IAttendanceAutomationService, AttendanceAutomationService>();
 builder.Services.AddHostedService<AttendanceAutomationHostedService>();
 builder.Services.AddHostedService<QuizStatusAutomationHostedService>();
+builder.Services.AddSingleton<Backend.Services.Export.ExportQueueService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<Backend.Services.Export.ExportQueueService>());
 builder.Services.AddScoped<IAttendanceUnlockService, AttendanceUnlockService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IQuestionBankService, QuestionBankService>();
@@ -317,7 +334,8 @@ builder
                 var path = context.HttpContext.Request.Path;
 
                 if (!string.IsNullOrWhiteSpace(accessToken) &&
-                    path.StartsWithSegments("/hubs/exam-monitoring"))
+                    (path.StartsWithSegments("/api/hubs/exam-monitoring") ||
+                     path.StartsWithSegments("/hubs/exam-monitoring")))
                 {
                     context.Token = accessToken;
                 }
@@ -346,14 +364,14 @@ builder
 
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin", "SuperAdmin"));
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin", "SuperAdmin", "Principal"));
     options.AddPolicy(
         "AdminUserManagement",
-        policy => policy.RequireRole("Admin", "SuperAdmin", "CampusAdmin", "AcademicStaff")
+        policy => policy.RequireRole("Admin", "SuperAdmin", "CampusAdmin", "AcademicStaff", "Principal")
     );
     options.AddPolicy(
         "RbacManagement",
-        policy => policy.RequireRole("Admin", "SuperAdmin", "CampusAdmin")
+        policy => policy.RequireRole("Admin", "SuperAdmin", "CampusAdmin", "Principal")
     );
     options.AddPolicy(
         "AcademicOperations",
@@ -364,6 +382,7 @@ builder.Services.AddAuthorization(options =>
                 "AcademicStaff",
                 "CampusAdmin",
                 "Chairman",
+                "Principal",
                 "HoiDongQuanLyNoiDung"
             )
     );
@@ -377,7 +396,7 @@ builder.Services.AddAuthorization(options =>
     );
     options.AddPolicy(
         "ApplicationOperations",
-        policy => policy.RequireRole("SuperAdmin", "Admin", "CampusAdmin", "SubCampusAdmin", "AcademicStaff")
+        policy => policy.RequireRole("SuperAdmin", "Admin", "CampusAdmin", "SubCampusAdmin", "AcademicStaff", "Principal")
     );
     options.AddPolicy(
         AuthPolicies.ApplicationQueueRead,
@@ -385,19 +404,19 @@ builder.Services.AddAuthorization(options =>
     );
     options.AddPolicy(
         AuthPolicies.ApplicationReceive,
-        policy => policy.RequireRole("SuperAdmin", "Admin", "CampusAdmin", "SubCampusAdmin", "AcademicStaff")
+        policy => policy.RequireRole("SuperAdmin", "Admin", "CampusAdmin", "SubCampusAdmin", "AcademicStaff", "Principal")
     );
     options.AddPolicy(
         "AcademicScheduleConfig",
-        policy => policy.RequireRole("Admin", "SuperAdmin", "AcademicStaff", "CampusAdmin")
+        policy => policy.RequireRole("Admin", "SuperAdmin", "AcademicStaff", "CampusAdmin", "Principal")
     );
     options.AddPolicy(
         AuthPolicies.ApplicationAssignmentManage,
-        policy => policy.RequireRole("SuperAdmin", "Admin", "CampusAdmin", "SubCampusAdmin")
+        policy => policy.RequireRole("SuperAdmin", "Admin", "CampusAdmin", "SubCampusAdmin", "Principal")
     );
     options.AddPolicy(
         AuthPolicies.ApplicationReviewOperate,
-        policy => policy.RequireRole("SuperAdmin", "Admin", "CampusAdmin", "SubCampusAdmin", "AcademicStaff")
+        policy => policy.RequireRole("SuperAdmin", "Admin", "CampusAdmin", "SubCampusAdmin", "AcademicStaff", "Principal")
     );
     options.AddPolicy(
         AuthPolicies.ApplicationSensitiveDecision,
@@ -405,11 +424,11 @@ builder.Services.AddAuthorization(options =>
     );
     options.AddPolicy(
         AuthPolicies.ApplicationProcessingOperate,
-        policy => policy.RequireRole("SuperAdmin", "Admin", "CampusAdmin", "SubCampusAdmin", "AcademicStaff")
+        policy => policy.RequireRole("SuperAdmin", "Admin", "CampusAdmin", "SubCampusAdmin", "AcademicStaff", "Principal")
     );
     options.AddPolicy(
         AuthPolicies.ApplicationSystemAdmin,
-        policy => policy.RequireRole("SuperAdmin", "Admin")
+        policy => policy.RequireRole("SuperAdmin", "Admin", "Principal")
     );
 });
 
@@ -427,12 +446,30 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseMiddleware<ExceptionMiddleware>();
+app.UseResponseCompression();
+
+// Mọi mutation thành công có thể làm thay đổi dữ liệu tổng hợp BGH. Invalidate
+// theo prefix để tránh trả dữ liệu cũ giữa các module điểm, lịch, đánh giá và CTĐT.
+app.Use(async (context, next) =>
+{
+    await next();
+    if (!HttpMethods.IsGet(context.Request.Method) &&
+        !HttpMethods.IsHead(context.Request.Method) &&
+        !HttpMethods.IsOptions(context.Request.Method) &&
+        context.Response.StatusCode is >= 200 and < 400)
+    {
+        context.RequestServices
+            .GetRequiredService<IBghPerformanceCache>()
+            .RemoveByPrefix("bgh:");
+    }
+});
 if (!app.Environment.IsDevelopment()) app.UseHttpsRedirection();
 
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await context.Database.MigrateAsync();
+    await Backend.Data.DatabaseSchemaPatcher.PatchMissingColumnsAsync(context);
 
     // Chạy BlockDataSeeder để migration data cũ nếu cần
     var blockSeeder = new Backend.Data.Seeders.BlockDataSeeder(context);
@@ -456,14 +493,58 @@ using (var scope = app.Services.CreateScope())
 }
 
 var seedProfile = builder.Configuration["SeedProfile"];
-await Data.SeedRolesAsync(app.Services);
-if (string.Equals(seedProfile, "LargeDemo", StringComparison.OrdinalIgnoreCase))
+var shouldSeedBase = string.Equals(seedProfile, "Base", StringComparison.OrdinalIgnoreCase) ||
+                      string.Equals(seedProfile, "LargeDemo", StringComparison.OrdinalIgnoreCase);
+var continueOnSeedFailure = builder.Configuration.GetValue(
+    "SeedContinueOnError",
+    app.Environment.IsDevelopment());
+var baseSeedSucceeded = true;
+if (shouldSeedBase)
 {
-    app.Logger.LogInformation("Running LargeDemoSeeder...");
+    try
+    {
+        app.Logger.LogInformation("Running {SeedProfile} base seed...", seedProfile);
+        await Data.SeedRolesAsync(app.Services);
+        app.Logger.LogInformation("{SeedProfile} base seed completed.", seedProfile);
+    }
+    catch (Exception ex)
+    {
+        baseSeedSucceeded = false;
+        app.Logger.LogError(ex, "{SeedProfile} base seed failed. Backend will {Behavior}.",
+            seedProfile,
+            continueOnSeedFailure ? "continue without terminating" : "stop");
+        if (!continueOnSeedFailure) throw;
+    }
+}
+if (baseSeedSucceeded && string.Equals(seedProfile, "LargeDemo", StringComparison.OrdinalIgnoreCase))
+{
+    try
+    {
+        app.Logger.LogInformation("Running LargeDemoSeeder...");
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        context.Database.SetCommandTimeout(180);
+        await Backend.Data.Seeders.LargeDemoSeeder.SeedAsync(context);
+        app.Logger.LogInformation("LargeDemoSeeder completed.");
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "LargeDemoSeeder failed. Backend will {Behavior}.",
+            continueOnSeedFailure ? "continue without terminating" : "stop");
+        if (!continueOnSeedFailure) throw;
+    }
+}
+
+try
+{
     using var scope = app.Services.CreateScope();
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    await Backend.Data.Seeders.LargeDemoSeeder.SeedAsync(context);
-    app.Logger.LogInformation("LargeDemoSeeder completed.");
+    await Backend.Data.Seeders.TeacherRichDataSeeder.SeedAsync(context);
+    app.Logger.LogInformation("TeacherRichDataSeeder completed.");
+}
+catch (Exception ex)
+{
+    app.Logger.LogWarning(ex, "TeacherRichDataSeeder failed to execute.");
 }
 
 app.UseMiddleware<Backend.Middlewares.SecurityHeadersMiddleware>();
@@ -476,7 +557,7 @@ app.UseMiddleware<RequestAuditMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapHub<ExamMonitoringHub>("/hubs/exam-monitoring");
+app.MapHub<ExamMonitoringHub>("/api/hubs/exam-monitoring");
 
 app.Run();
 

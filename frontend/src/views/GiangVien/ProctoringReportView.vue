@@ -24,13 +24,6 @@
         >
           <Printer :size="16" /> In biên bản (PDF)
         </button>
-        <button
-          type="button"
-          class="px-4 py-2 rounded-xl surface-input border-card text-heading font-semibold text-xs hover:bg-black/5 dark:hover:bg-white/10 transition cursor-pointer"
-          @click="goBack"
-        >
-          <Monitor :size="16" /> Quay lại Giám sát
-        </button>
       </div>
     </div>
 
@@ -402,7 +395,7 @@ const printReport = () => {
 }
 
 const goBack = () => {
-  router.push({ name: 'teacher-proctoring-dashboard', params: { sessionId } })
+  router.push({ name: 'teacher-proctoring-sessions' })
 }
 
 onMounted(() => {

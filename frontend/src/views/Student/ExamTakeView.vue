@@ -432,17 +432,19 @@ async function startExamEnvironment() {
     detectBrowserCapabilities()
     attachLockdownListeners()
 
+    // 1. Chia sẻ màn hình
     const stream = await requestExamScreenShare()
     attachScreenStream(stream)
 
-    await requestExamFullscreen()
-    await lockExamKeyboard()
-
-    if (!document.fullscreenElement) {
-      throw new Error('Toàn màn hình chưa được kích hoạt ổn định.')
+    // 2. Fullscreen (optional, best-effort)
+    try {
+      await requestExamFullscreen()
+      await lockExamKeyboard()
+    } catch (fsErr) {
+      console.warn('[ExamTake] Fullscreen skipped:', fsErr)
     }
-    
-    // 2. Gọi API bắt đầu thi
+
+    // 3. Start Exam Session via API
     const preflightRaw = sessionStorage.getItem(`exam_preflight_passed_${examId}`)
     let envScore = 0
     let isAgentActive = false
@@ -450,12 +452,10 @@ async function startExamEnvironment() {
       try {
         const pf = JSON.parse(preflightRaw)
         envScore = pf.riskScore || 0
-        // If there's an agent check in checks, parse it
         isAgentActive = pf.checks?.some(c => c.id === 'env_agent' && c.status === 'pass') || false
       } catch(e) {}
     }
-    
-    // Tạo fingerprint cơ bản
+
     const fingerprint = btoa(navigator.userAgent + screen.width + screen.height + screen.colorDepth).substring(0, 50)
 
     const session = await examApi.startExam({ 
@@ -467,16 +467,16 @@ async function startExamEnvironment() {
     maPhienThi.value = session.maPhienThi
     maDeKiemTra.value = session.maDeKiemTra
     exam.value.durationMinutes = session.thoiGianLamBai || 45
-    
-    // 3. Lấy câu hỏi
+
+    // 4. Lấy danh sách câu hỏi
     const quizResponse = await examApi.getExamQuestions(session.maPhienThi)
     questions.value = (quizResponse || []).map(q => {
-      let type = 'essay';
+      let type = 'essay'
       if (q.loaiCauHoi === 'trac_nghiem') {
-        type = q.kieuLuaChon === 'nhieu_lua_chon' ? 'multiple_choice' : 'single_choice';
+        type = q.kieuLuaChon === 'nhieu_lua_chon' ? 'multiple_choice' : 'single_choice'
       }
-      let parsedChoices = typeof q.luaChon === 'string' ? JSON.parse(q.luaChon) : (q.luaChon || []);
-      parsedChoices = parsedChoices.map(c => ({...c, label: c.id}));
+      let parsedChoices = typeof q.luaChon === 'string' ? JSON.parse(q.luaChon) : (q.luaChon || [])
+      parsedChoices = parsedChoices.map(c => ({...c, label: c.id}))
       
       return {
         id: q.maCauHoi,
@@ -484,16 +484,36 @@ async function startExamEnvironment() {
         type: type,
         choices: parsedChoices,
         ...q
-      };
+      }
     })
     exam.value.totalQuestions = questions.value.length
+
+    // 5. ẨN MODAL & VÀO LÀM BÀI NGAY LẬP TỨC
+    examStarted.value = true
+    monitoringStatus.value = 'active'
+    timeLeftSeconds.value = Number(exam.value.durationMinutes) * 60
     
-    // 4. Kết nối WebRTC Hub
+    startTimer()
+    startRuntimeMonitoring()
+    saveDraft()
+
+    // 6. Khởi động WebRTC Hub ngầm trong nền
+    void initProctoringHubBackground(stream)
+
+  } catch (error) {
+    monitoringStatus.value = 'idle'
+    cleanupScreenStream(false)
+    startError.value = error?.message || error?.response?.data?.message || 'Không thể bắt đầu bài thi. Vui lòng thử lại.'
+    if (document.fullscreenElement) {
+      await document.exitFullscreen().catch(() => {})
+    }
+  }
+}
+
+async function initProctoringHubBackground(stream) {
+  try {
     const token = localStorage.getItem('lms_access_token') || sessionStorage.getItem('lms_access_token') || ''
     await examProctoringHub.connect(token)
-
-    // Lưu trữ peer connections theo connectionId của giám thị
-    // (đã được chuyển lên cấp component để tái sử dụng)
 
     function getStudentIceQueue(proctorConnId) {
       if (!studentPendingIce.has(proctorConnId)) studentPendingIce.set(proctorConnId, [])
@@ -518,7 +538,6 @@ async function startExamEnvironment() {
       if (import.meta.env.DEV) console.debug('[Student] ProctorRequestedConnections', payload)
       await examProctoringHub.joinAsStudent(caThiId, STUDENT_ID.value)
 
-      // Re-broadcast stream status so the newly joined proctor updates the UI from 'waiting' to 'streaming'
       if (screenStream.value) {
         await examProctoringHub.screenShareStarted(caThiId, STUDENT_ID.value)
       }
@@ -527,21 +546,15 @@ async function startExamEnvironment() {
     // WebRTC: Giám thị phản hồi StudentConnectionIdBroadcast
     examProctoringHub.eventHandlers.onProctorAcknowledged = async (payload) => {
       if (import.meta.env.DEV) console.debug('[Student] ProctorAcknowledged', payload)
-      // Thí sinh chỉ cần chờ giám thị gửi Offer, không cần gửi Offer nữa.
     }
 
-    // Xử lý ICE từ giám thị — cần queue vì ICE có thể tới trước setRemoteDescription xong
+    // Xử lý ICE từ giám thị
     examProctoringHub.eventHandlers.onReceiveIceCandidate = async (iceDto) => {
       if (!iceDto?.candidate?.candidate) return
-
-      // Bỏ qua own ICE
-      if (iceDto.fromConnectionId === examProctoringHub.connectionId) {
-        if (import.meta.env.DEV) console.debug('[Student] Skip own ICE candidate')
-        return
-      }
+      if (iceDto.fromConnectionId === examProctoringHub.connectionId) return
 
       const targetPc = studentPeerConnections.get(iceDto.fromConnectionId)
-      const candidateInit = iceDto.candidate // đã là typed { candidate, sdpMid, sdpMLineIndex }
+      const candidateInit = iceDto.candidate
 
       if (!targetPc || !targetPc.remoteDescription) {
         if (import.meta.env.DEV) console.debug('[Student] ICE queued for proctor', iceDto.fromConnectionId)
@@ -555,26 +568,19 @@ async function startExamEnvironment() {
 
     // WebRTC: Nhận Offer từ giám thị
     examProctoringHub.eventHandlers.onReceiveOffer = async (dto) => {
-      if (!dto?.offer) {
-        console.warn('[Student] ReceiveOffer: invalid dto', dto)
-        return
-      }
-
-      if (dto.fromConnectionId === examProctoringHub.connectionId) {
-        return
-      }
+      if (!dto?.offer) return
+      if (dto.fromConnectionId === examProctoringHub.connectionId) return
 
       const proctorConnectionId = dto.fromConnectionId
       if (import.meta.env.DEV) console.debug('[Student] ReceiveOffer from proctor', proctorConnectionId)
 
-      // Dọn dẹp PeerConnection cũ nếu có
       if (studentPeerConnections.has(proctorConnectionId)) {
         studentPeerConnections.get(proctorConnectionId).close()
         studentPeerConnections.delete(proctorConnectionId)
       }
 
       const pc = createStudentPeerConnection(
-        screenStream.value,
+        screenStream.value || stream,
         (candidate) => examProctoringHub.sendIceCandidate({
           maCaThi: caThiId,
           maHocSinh: STUDENT_ID.value,
@@ -588,9 +594,7 @@ async function startExamEnvironment() {
         if (import.meta.env.DEV) console.debug('[Student] Peer connectionState:', pc.connectionState)
         if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected' || pc.connectionState === 'closed') {
            const oldPc = studentPeerConnections.get(proctorConnectionId)
-           if (oldPc) {
-             oldPc.close()
-           }
+           if (oldPc) oldPc.close()
            studentPeerConnections.delete(proctorConnectionId)
         }
       }
@@ -619,7 +623,6 @@ async function startExamEnvironment() {
     // Xử lý cảnh báo từ giám thị
     examProctoringHub.eventHandlers.onWarningReceived = (payload) => {
       const message = payload?.message || 'Giám thị đã gửi một nhắc nhở.'
-      
       examSoftLock.value = {
         visible: true,
         type: 'PROCTOR_WARNING',
@@ -632,9 +635,7 @@ async function startExamEnvironment() {
         requireScreenShare: true,
         violationCount: examSoftLock.value.violationCount,
       }
-      
       pushWarning('Nhắc nhở từ giám thị: ' + message, 'high')
-      
       try {
         const audio = new Audio('/sound.mp3')
         audio.play().catch(() => {})
@@ -649,7 +650,6 @@ async function startExamEnvironment() {
         examSoftLock.value.violationCount = 0
         fullscreenExitCount.value = 0
         tabSwitchCount.value = 0
-        // Clear old violations so they don't count towards the next 3
         violations.value = []
         pushWarning('Giám thị đã mở khóa bài thi cho bạn. Vui lòng tiếp tục làm bài.', 'info')
       }
@@ -658,7 +658,6 @@ async function startExamEnvironment() {
     examProctoringHub.eventHandlers.onStudentSuspended = (payload) => {
       const reason = payload?.lyDo || 'Vi phạm quy chế thi'
       isSuspended.value = true
-      
       examSoftLock.value = {
         visible: true,
         type: 'SUSPENDED',
@@ -671,11 +670,8 @@ async function startExamEnvironment() {
         requireScreenShare: false,
         violationCount: 99,
       }
-      
       pushWarning(`Bạn đã bị đình chỉ thi. Lý do: ${reason}`, 'critical')
-      
       saveDraft()
-      
       monitoringStatus.value = 'stopped'
       clearInterval(timerInterval)
       clearInterval(autosaveInterval)
@@ -684,29 +680,15 @@ async function startExamEnvironment() {
       stopDevtoolsDetection()
       submitLocked = true
       cleanupScreenStream(false)
-      
       localStorage.setItem(`exam_suspended_${examId}_${STUDENT_ID.value}`, reason)
     }
 
     await examProctoringHub.joinAsStudent(caThiId, STUDENT_ID.value)
-    await examProctoringHub.screenShareStarted(caThiId, STUDENT_ID.value)
-
-    // Đã gọi attachScreenStream(stream) ở trên cùng của hàm
-    
-    examStarted.value = true
-    monitoringStatus.value = 'active'
-    timeLeftSeconds.value = Number(exam.value.durationMinutes) * 60
-    
-    startTimer()
-    startRuntimeMonitoring()
-    saveDraft()
-  } catch (error) {
-    monitoringStatus.value = 'idle'
-    cleanupScreenStream(false)
-    startError.value = error?.message || error?.response?.data?.message || 'Bạn cần chia sẻ màn hình và bật toàn màn hình để bắt đầu bài thi.'
-    if (document.fullscreenElement) {
-      await document.exitFullscreen().catch(() => {})
+    if (screenStream.value || stream) {
+      await examProctoringHub.screenShareStarted(caThiId, STUDENT_ID.value)
     }
+  } catch (hubErr) {
+    console.warn('[ExamTake] Proctoring hub initialization non-fatal warning:', hubErr)
   }
 }
 
@@ -1828,9 +1810,9 @@ onUnmounted(() => {
           <span><MonitorCheck :size="14" /> Chia sẻ màn hình bắt buộc</span>
           <span><ClipboardX :size="14" /> Chặn copy/paste/bôi đen</span>
         </div>
-        <button type="button" class="btn-start" :disabled="monitoringStatus === 'starting'" @click="startExamEnvironment">
+        <button type="button" class="btn-start w-full mt-4" :disabled="monitoringStatus === 'starting'" @click="startExamEnvironment">
           <PlayCircle :size="18" />
-          {{ monitoringStatus === 'starting' ? 'Đang khởi động...' : 'Bắt đầu môi trường thi' }}
+          {{ monitoringStatus === 'starting' ? 'Đang khởi động...' : 'Chia sẻ màn hình & Bắt đầu làm bài' }}
         </button>
         <p class="start-note">
           Browser không thể chặn tuyệt đối Print Screen hoặc Snipping Tool. Watermark được dùng để răn đe và truy vết nếu đề thi bị lộ.

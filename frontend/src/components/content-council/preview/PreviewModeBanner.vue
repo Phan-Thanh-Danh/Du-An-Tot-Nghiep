@@ -22,11 +22,10 @@ const props = defineProps({
 const emit = defineEmits(['update:showDrafts'])
 
 const goBackToEditor = () => {
-  // If there's a selected lesson, we can pass it, but SubjectEditorPage doesn't take lessonId in the URL 
-  // currently. So we just go back to the editor page.
   router.push({ 
     name: 'content-council-subject-editor', 
-    params: { subjectId: props.subjectId } 
+    params: { subjectId: props.subjectId },
+    query: props.currentLessonId ? { lessonId: props.currentLessonId } : {}
   })
 }
 </script>

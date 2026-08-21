@@ -6,6 +6,8 @@ using Backend.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Backend.Services.Notifications;
+using Backend.DTOs.Notifications;
 
 namespace Backend.Controllers;
 
@@ -15,10 +17,12 @@ namespace Backend.Controllers;
 public class StudentDashboardController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
+    private readonly INotificationService _notificationService;
 
-    public StudentDashboardController(ApplicationDbContext db)
+    public StudentDashboardController(ApplicationDbContext db, INotificationService notificationService)
     {
         _db = db;
+        _notificationService = notificationService;
     }
 
     [HttpGet]
@@ -334,21 +338,17 @@ public class StudentDashboardController : ControllerBase
             };
 
             // 15. Notifications
-            var notifications = await _db.ThongBaoNguoiNhans
-                .Include(nn => nn.ThongBao)
-                .Where(nn => nn.MaNguoiNhan == currentUser.UserId && !nn.DaAn)
-                .OrderByDescending(nn => nn.NgayTao)
-                .Take(10)
-                .Select(nn => new NotificationDto
-                {
-                    Id = nn.MaThongBaoNguoiNhan.ToString(),
-                    Title = nn.ThongBao != null ? nn.ThongBao.TieuDe ?? "" : "",
-                    Content = nn.ThongBao != null ? (nn.ThongBao.TomTat ?? nn.ThongBao.NoiDung) : "",
-                    Time = nn.NgayTao.ToString("dd/MM/yyyy HH:mm"),
-                    Category = nn.ThongBao != null ? nn.ThongBao.LoaiThongBao : "",
-                    Unread = !nn.DaDoc
-                })
-                .ToListAsync();
+            var notifParams = new NotificationQueryParameters { PageSize = 10, PageIndex = 1 };
+            var notifResult = await _notificationService.GetMyNotificationsAsync(notifParams);
+            var notifications = notifResult.Items.Select(n => new Backend.DTOs.StudentDashboard.NotificationDto
+            {
+                Id = n.MaThongBao.ToString(),
+                Title = n.TieuDe ?? "",
+                Content = !string.IsNullOrEmpty(n.TomTat) ? n.TomTat : (!string.IsNullOrEmpty(n.TomTatNoiDung) ? n.TomTatNoiDung : ""),
+                Time = n.NhanLuc.ToString("dd/MM/yyyy HH:mm"),
+                Category = n.LoaiThongBao ?? "",
+                Unread = !n.DaDoc
+            }).ToList();
 
             // 16. KPIs
             var kpis = new List<KpiDto>

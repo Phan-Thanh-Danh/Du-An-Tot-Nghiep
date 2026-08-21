@@ -69,7 +69,6 @@
     <div v-else-if="error" class="flex flex-col items-center justify-center min-h-[400px] gap-4">
       <AlertCircle :size="48" class="text-rose-400" />
       <p class="text-rose-600 font-semibold">{{ error }}</p>
-      <button @click="router.push({ name: 'teacher-proctoring-sessions' })" class="btn-primary">Quay lại</button>
     </div>
     <template v-else-if="currentSession">
       <!-- DASHBOARD TOOLBAR -->
@@ -1263,7 +1262,7 @@ function confirmEndExamSession() {
     cancelText: 'Hủy bỏ',
     variant: 'danger',
     onConfirm: async () => {
-      const sId = currentSession.value?.id || sessionId
+      const sId = currentSession.value?.id || route.params.sessionId
       if (sId) {
         try {
           await teacherApi.endExamSession(sId)
@@ -1283,7 +1282,7 @@ async function endExamSession() {
 }
 
 function openExamReportModal() {
-  const sId = currentSession.value?.id || sessionId
+  const sId = currentSession.value?.id || route.params.sessionId
   router.push({ name: 'teacher-proctoring-report', params: { sessionId: sId } })
 }
 

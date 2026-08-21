@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="space-y-4">
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-20">
@@ -16,16 +16,6 @@
       </div>
     </div>
     <template v-else>
-    <div class="flex items-center gap-3">
-      <select v-model="semesterFilter" class="surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
-        <option v-for="s in semesters" :key="s" :value="s">{{ s }}</option>
-      </select>
-      <select v-model="campusFilter" class="surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
-        <option value="">Tất cả cơ sở</option>
-        <option>FPT Polytechnic Hồ Chí Minh</option>
-        <option>FPT Polytechnic Đà Nẵng</option>
-      </select>
-    </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <div v-for="stat in stats" :key="stat.id" class="surface-card border border-card rounded-2xl p-4 group hover:border-(--border-input-focus) transition-all">
@@ -53,9 +43,8 @@
               <th class="px-4 py-3 font-bold text-heading">Khoa</th>
               <th class="px-4 py-3 font-bold text-heading">Điểm TB</th>
               <th class="px-4 py-3 font-bold text-heading">Số lượt</th>
-              <th class="px-4 py-3 font-bold text-heading">Chất lượng</th>
-              <th class="px-4 py-3 font-bold text-heading">Phương pháp</th>
-              <th class="px-4 py-3 font-bold text-heading">Đúng giờ</th>
+              <th class="px-4 py-3 font-bold text-heading">Phản hồi tích cực</th>
+              <th class="px-4 py-3 font-bold text-heading">Phản hồi tiêu cực</th>
               <th class="px-4 py-3 font-bold text-heading">Xu hướng</th>
             </tr>
           </thead>
@@ -86,25 +75,17 @@
               <td class="px-4 py-3">
                 <div class="flex items-center gap-1.5">
                   <div class="w-16 h-1.5 rounded-full bg-default overflow-hidden">
-                    <div class="h-full rounded-full" :class="gv.chatLuong >= 4.5 ? 'bg-(--color-success-text)' : gv.chatLuong >= 4.0 ? 'bg-(--color-info-text)' : gv.chatLuong >= 3.5 ? 'bg-(--color-warning-text)' : 'bg-(--color-danger-text)'" :style="{ width: (gv.chatLuong / 5 * 100) + '%' }" />
+                    <div class="h-full rounded-full bg-(--color-success-text)" :style="{ width: gv.tichCuc + '%' }" />
                   </div>
-                  <span class="text-xs font-bold text-heading">{{ gv.chatLuong.toFixed(1) }}</span>
+                  <span class="text-xs font-bold text-(--color-success-text)">{{ gv.tichCuc }}%</span>
                 </div>
               </td>
               <td class="px-4 py-3">
                 <div class="flex items-center gap-1.5">
                   <div class="w-16 h-1.5 rounded-full bg-default overflow-hidden">
-                    <div class="h-full rounded-full" :class="gv.phuongPhap >= 4.5 ? 'bg-(--color-success-text)' : gv.phuongPhap >= 4.0 ? 'bg-(--color-info-text)' : 'bg-(--color-warning-text)'" :style="{ width: (gv.phuongPhap / 5 * 100) + '%' }" />
+                    <div class="h-full rounded-full bg-(--color-danger-text)" :style="{ width: gv.tieuCuc + '%' }" />
                   </div>
-                  <span class="text-xs font-bold text-heading">{{ gv.phuongPhap.toFixed(1) }}</span>
-                </div>
-              </td>
-              <td class="px-4 py-3">
-                <div class="flex items-center gap-1.5">
-                  <div class="w-16 h-1.5 rounded-full bg-default overflow-hidden">
-                    <div class="h-full rounded-full bg-(--color-success-text)" :style="{ width: (gv.dungGio / 5 * 100) + '%' }" />
-                  </div>
-                  <span class="text-xs font-bold text-heading">{{ gv.dungGio.toFixed(1) }}</span>
+                  <span class="text-xs font-bold text-(--color-danger-text)">{{ gv.tieuCuc }}%</span>
                 </div>
               </td>
               <td class="px-4 py-3">
@@ -171,6 +152,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { Star, TrendingUp, TrendingDown, ThumbsUp, MessageSquare, Users, Award, AlertCircle, Loader2 } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
+import LmsSelect from '@/components/LmsSelect.vue'
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
 
@@ -178,27 +160,76 @@ const loading = ref(false)
 const error = ref(null)
 
 const router = useRouter()
-const semesterFilter = ref('Spring 2026')
-const campusFilter = ref('')
-const semesters = ['Spring 2026', 'Fall 2025', 'Summer 2025', 'Spring 2025']
 
 const stats = ref([])
 const teacherRankings = ref([])
-const deptStats = ref([])
+const departmentStats = ref([])
 const comments = ref([])
 
 async function loadData() {
   loading.value = true
   error.value = null
   try {
-    const res = await bghApi.getEvaluations()
-    const data = unwrapApiData(res)
-    if (data) {
-      if (data.teacherRankings) teacherRankings.value = data.teacherRankings
-      if (data.stats) stats.value = data.stats
-      if (data.comments) comments.value = data.comments
-      if (data.departmentStats) deptStats.value = data.departmentStats
-    }
+    const [summaryRes, rankingRes, overviewRes] = await Promise.all([
+      bghApi.getEvaluations(),
+      bghApi.getEvaluationRanking(),
+      bghApi.getEvaluationOverview(),
+    ])
+    const summary = unwrapApiData(summaryRes) || {}
+    const rankings = unwrapApiData(rankingRes) || []
+    const overview = unwrapApiData(overviewRes) || {}
+
+    stats.value = [
+      { id: 'teachers', label: 'Tổng giảng viên', value: summary.totalTeachers ?? 0, icon: Users, bg: 'bg-(--color-info-bg)', iconColor: 'text-(--color-info-text)' },
+      { id: 'reviews', label: 'Tổng lượt đánh giá', value: summary.totalReviews ?? 0, icon: MessageSquare, bg: 'bg-(--color-info-bg)', iconColor: 'text-link' },
+      { id: 'average', label: 'Điểm trung bình', value: Number(summary.avgRating ?? 0).toFixed(1), icon: Award, bg: 'bg-(--color-success-bg)', iconColor: 'text-(--color-success-text)' },
+      { id: 'positive', label: 'Đánh giá tích cực', value: (overview.ratingDistribution || []).filter(item => item.rating >= 4).reduce((sum, item) => sum + item.count, 0), icon: ThumbsUp, bg: 'bg-(--color-warning-bg)', iconColor: 'text-(--color-warning-text)' },
+    ]
+    teacherRankings.value = rankings.map(item => ({
+      id: item.teacherId,
+      maCodeGv: String(item.teacherId),
+      hoTen: item.teacherName || '',
+      initials: (item.teacherName || 'GV').trim().split(/\s+/).pop().slice(0, 2).toUpperCase(),
+      khoa: item.departmentName || 'Chưa phân khoa',
+      diemTb: Number(item.avgRating || 0),
+      soLuot: item.reviewCount || 0,
+      tichCuc: Number(item.positive || 0),
+      tieuCuc: Number(item.negative || 0),
+      xuHuong: Number(item.trendDelta || 0),
+    }))
+    const depts = {}
+    rankings.forEach(item => {
+      const dept = item.departmentName || 'Chưa phân khoa'
+      if (!depts[dept]) depts[dept] = { ten: dept, soGv: 0, totalRating: 0, soLuotKhaoSat: 0, xuHuong: 0 }
+      depts[dept].soGv++
+      depts[dept].totalRating += (item.avgRating || 0)
+      depts[dept].soLuotKhaoSat += (item.reviewCount || 0)
+      depts[dept].xuHuong += (item.trendDelta || 0)
+    })
+    departmentStats.value = Object.values(depts).map(d => ({
+      ten: d.ten,
+      soGv: d.soGv,
+      diemTb: d.soGv ? d.totalRating / d.soGv : 0,
+      soLuotKhaoSat: d.soLuotKhaoSat,
+      xuHuong: d.soGv ? d.xuHuong / d.soGv : 0,
+    })).sort((a, b) => b.diemTb - a.diemTb).slice(0, 3)
+
+    const detailResponses = await Promise.all(
+      rankings.slice(0, 5).map(item => bghApi.getEvaluationDetail(item.teacherId).catch(() => null)),
+    )
+    comments.value = detailResponses.flatMap((response) => {
+      const detail = response ? unwrapApiData(response) : null
+      if (!detail) return []
+      return (detail.recentFeedback || []).slice(0, 2).map((feedback, index) => ({
+        id: `${detail.teacherId}-${index}-${feedback.date}`,
+        initials: (detail.teacherName || 'GV').trim().split(/\s+/).pop().slice(0, 2).toUpperCase(),
+        giangVien: detail.teacherName || '',
+        monHoc: '',
+        ngay: feedback.date ? new Date(feedback.date).toLocaleDateString('vi-VN') : '',
+        noiDung: feedback.comment || '',
+        rating: feedback.rating || 0,
+      }))
+    })
   } catch (e) {
     error.value = e?.message || 'Lỗi tải dữ liệu đánh giá'
   } finally {
@@ -207,7 +238,6 @@ async function loadData() {
 }
 
 const filteredRankings = computed(() => {
-  if (!campusFilter.value) return teacherRankings.value
   return teacherRankings.value
 })
 

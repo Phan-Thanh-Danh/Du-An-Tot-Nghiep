@@ -45,12 +45,13 @@ const filteredAssignments = computed(() => {
   if (!searchQuery.value) return assignments.value
   const lower = searchQuery.value.toLowerCase()
   return assignments.value.filter(a => 
-    (a.tieuDe ?? a.TieuDe ?? a.name ?? a.Name ?? '').toLowerCase().includes(lower)
+    (a.title ?? a.Title ?? a.tieuDe ?? a.TieuDe ?? a.name ?? a.Name ?? '').toLowerCase().includes(lower) ||
+    (a.description ?? a.Description ?? a.moTa ?? a.MoTa ?? '').toLowerCase().includes(lower)
   )
 })
 
 function goToSubmissions(asm) {
-  const assignmentId = asm.maBaiTap ?? asm.MaBaiTap ?? asm.id ?? asm.Id
+  const assignmentId = asm.id ?? asm.Id ?? asm.maBaiTap ?? asm.MaBaiTap
   router.push(`/teacher/assignments/${courseId}/${assignmentId}`)
 }
 
@@ -94,7 +95,7 @@ function formatDate(dateString) {
           <div class="eyebrow">Teacher Assignments</div>
           <h1 class="page-title">Bài tập & Đồ án</h1>
           <p class="page-subtitle">
-            Quản lý bài tập, đồ án và đánh giá sinh viên
+            Khóa học: {{ selectedCourse?.courseName ?? selectedCourse?.CourseName ?? selectedCourse?.title ?? 'Đang tải...' }} ({{ selectedCourse?.className ?? selectedCourse?.ClassName ?? 'Tất cả lớp' }})
           </p>
         </div>
       </div>
@@ -124,8 +125,8 @@ function formatDate(dateString) {
     <div class="courses-content-area mt-4">
       <div class="panel-heading mb-4 px-1">
         <div>
-          <h2>Bài tập: {{ selectedCourse?.courseName ?? selectedCourse?.CourseName ?? 'Chưa xác định' }}</h2>
-          <p>Lớp: {{ selectedCourse?.className ?? selectedCourse?.ClassName ?? 'Chưa xác định' }}</p>
+          <h2>Bài tập: {{ selectedCourse?.courseName ?? selectedCourse?.CourseName ?? selectedCourse?.title ?? 'Khóa học' }}</h2>
+          <p>Lớp: {{ selectedCourse?.className ?? selectedCourse?.ClassName ?? 'Tất cả lớp' }} · {{ filteredAssignments.length }} bài tập</p>
         </div>
         <GlassBadge variant="primary" size="sm">LMS Academic</GlassBadge>
       </div>
@@ -137,7 +138,7 @@ function formatDate(dateString) {
       <div v-else class="assignments-list">
         <div 
           v-for="asm in filteredAssignments" 
-          :key="asm.maBaiTap ?? asm.MaBaiTap ?? asm.id ?? asm.Id"
+          :key="asm.id ?? asm.Id ?? asm.maBaiTap ?? asm.MaBaiTap"
           class="assignment-item surface-card border-card cursor-pointer"
           @click="goToSubmissions(asm)"
         >
@@ -145,11 +146,17 @@ function formatDate(dateString) {
             <FileText :size="24" class="text-blue-500" />
           </div>
           <div class="asm-content">
-            <h3 class="font-medium text-heading text-lg">{{ asm.tieuDe ?? asm.TieuDe ?? asm.name ?? asm.Name }}</h3>
-            <p class="text-sm text-body mt-1 line-clamp-2">{{ asm.moTa ?? asm.MoTa ?? asm.description ?? asm.Description }}</p>
-            <div class="flex gap-4 mt-3 text-sm text-body">
+            <h3 class="font-medium text-heading text-lg">{{ asm.title ?? asm.Title ?? asm.tieuDe ?? asm.TieuDe ?? asm.name ?? asm.Name ?? 'Bài tập' }}</h3>
+            <p class="text-sm text-body mt-1 line-clamp-2">{{ asm.description ?? asm.Description ?? asm.moTa ?? asm.MoTa }}</p>
+            <div class="flex flex-wrap gap-4 mt-3 text-sm text-body">
               <span class="flex items-center gap-1">
-                <CheckCircle2 :size="14" class="text-green-500" /> Hạn nộp: {{ formatDate(asm.hanNop ?? asm.HanNop ?? asm.deadline ?? asm.Deadline) }}
+                <CheckCircle2 :size="14" class="text-green-500" /> Hạn nộp: {{ formatDate(asm.deadline ?? asm.Deadline ?? asm.hanNop ?? asm.HanNop) }}
+              </span>
+              <span v-if="asm.submissionsCount !== undefined" class="text-muted">
+                Đã nộp: <strong>{{ asm.submissionsCount }}</strong> / {{ asm.totalStudents ?? 0 }}
+              </span>
+              <span v-if="asm.pendingGrades !== undefined && asm.pendingGrades > 0" class="text-amber-500 font-semibold">
+                Chờ chấm: {{ asm.pendingGrades }}
               </span>
             </div>
           </div>

@@ -1110,4 +1110,282 @@ public class TrainingProgramService : ITrainingProgramService
             NgayCapNhat = program.NgayCapNhat
         };
     }
+
+    public async Task<List<CurriculumSubjectDto>> GetCurriculumAsync(int programId, CancellationToken cancellationToken = default)
+    {
+        var program = await _context.ChuongTrinhDaoTaos
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.MaChuongTrinh == programId, cancellationToken);
+            
+        if (program == null)
+        {
+            throw new ApiException(404, $"Không tìm thấy chương trình đào tạo với ID = {programId}");
+        }
+
+        var subjects = await _context.MonHocTrongChuongTrinhs
+            .Include(x => x.DanhMucMonHoc)
+            .Where(x => x.MaChuongTrinh == programId && x.ConHoatDong)
+            .OrderBy(x => x.HocKyDuKien)
+            .ThenBy(x => x.ThuTu)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        var subjectIds = subjects.Select(s => s.MaMonHoc).ToList();
+
+        var prerequisites = await _context.MonHocTienQuyets
+            .Include(x => x.MonTienQuyet)
+            .Where(x => subjectIds.Contains(x.MaMonHoc))
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        var prereqLookup = prerequisites
+            .GroupBy(x => x.MaMonHoc)
+            .ToDictionary(g => g.Key, g => g.Select(p => new PrerequisiteSubjectDto
+            {
+                MaMonTienQuyet = p.MaMonTienQuyet,
+                MaCodeMonTienQuyet = p.MonTienQuyet?.MaCodeMonHoc ?? string.Empty,
+                TenMonTienQuyet = p.MonTienQuyet?.TenMonHoc ?? string.Empty,
+                DiemToiThieu = p.DiemToiThieu
+            }).ToList());
+
+        return subjects.Select(s => new CurriculumSubjectDto
+        {
+            MaChuongTrinhMonHoc = s.MaChuongTrinhMonHoc,
+            MaChuongTrinh = s.MaChuongTrinh,
+            MaMonHoc = s.MaMonHoc,
+            MaCodeMonHoc = s.DanhMucMonHoc?.MaCodeMonHoc ?? string.Empty,
+            TenMonHoc = s.DanhMucMonHoc?.TenMonHoc ?? string.Empty,
+            HocKyDuKien = s.HocKyDuKien,
+            SoTinChi = s.SoTinChi > 0 ? s.SoTinChi : (s.DanhMucMonHoc?.SoTinChi ?? 3),
+            SoTietLyThuyet = (s.SoTinChi > 0 ? s.SoTinChi : (s.DanhMucMonHoc?.SoTinChi ?? 3)) * 15,
+            SoTietThucHanh = 0,
+            LoaiMonHoc = s.LoaiMonHoc == "bat_buoc" ? "Bắt buộc" : s.LoaiMonHoc == "tu_chon" ? "Tự chọn" : s.LoaiMonHoc,
+            BatBuoc = s.BatBuoc || s.LoaiMonHoc == "bat_buoc",
+            ThuTu = s.ThuTu,
+            GhiChu = s.GhiChu,
+            ConHoatDong = s.ConHoatDong,
+            MonTienQuyets = prereqLookup.TryGetValue(s.MaMonHoc, out var prereqs) ? prereqs : []
+        }).ToList();
+    }
+
+    public async Task<CurriculumSubjectDto> AddCurriculumSubjectAsync(int programId, AddCurriculumSubjectRequest request, CancellationToken cancellationToken = default)
+    {
+        var program = await _context.ChuongTrinhDaoTaos.FirstOrDefaultAsync(x => x.MaChuongTrinh == programId, cancellationToken);
+        if (program == null) throw new ApiException(404, "Chương trình đào tạo không tồn tại");
+
+        var subject = await _context.DanhMucMonHocs.FirstOrDefaultAsync(x => x.MaMonHoc == request.MaMonHoc, cancellationToken);
+        if (subject == null) throw new ApiException(404, "Môn học không tồn tại");
+
+        var existing = await _context.MonHocTrongChuongTrinhs.FirstOrDefaultAsync(x => x.MaChuongTrinh == programId && x.MaMonHoc == request.MaMonHoc, cancellationToken);
+        if (existing != null)
+        {
+            if (!existing.ConHoatDong)
+            {
+                existing.ConHoatDong = true;
+                existing.HocKyDuKien = request.HocKyDuKien;
+                existing.SoTinChi = request.SoTinChi > 0 ? request.SoTinChi : subject.SoTinChi;
+                existing.LoaiMonHoc = request.BatBuoc ? "bat_buoc" : "tu_chon";
+                existing.BatBuoc = request.BatBuoc;
+                existing.ThuTu = request.ThuTu;
+                existing.GhiChu = request.GhiChu;
+                existing.NgayCapNhat = DateTime.Now;
+            }
+            else
+            {
+                throw new ApiException(400, "Môn học đã có trong chương trình đào tạo này");
+            }
+        }
+        else
+        {
+            existing = new MonHocTrongChuongTrinh
+            {
+                MaChuongTrinh = programId,
+                MaMonHoc = request.MaMonHoc,
+                HocKyDuKien = request.HocKyDuKien,
+                SoTinChi = request.SoTinChi > 0 ? request.SoTinChi : subject.SoTinChi,
+                LoaiMonHoc = request.BatBuoc ? "bat_buoc" : "tu_chon",
+                BatBuoc = request.BatBuoc,
+                ThuTu = request.ThuTu,
+                GhiChu = request.GhiChu,
+                ConHoatDong = true,
+                NgayTao = DateTime.Now
+            };
+            _context.MonHocTrongChuongTrinhs.Add(existing);
+        }
+
+        if (request.MaMonTienQuyetIds != null && request.MaMonTienQuyetIds.Any())
+        {
+            foreach (var prereqId in request.MaMonTienQuyetIds)
+            {
+                if (prereqId == request.MaMonHoc) continue;
+                var hasPrereq = await _context.MonHocTienQuyets.AnyAsync(x => x.MaMonHoc == request.MaMonHoc && x.MaMonTienQuyet == prereqId, cancellationToken);
+                if (!hasPrereq)
+                {
+                    _context.MonHocTienQuyets.Add(new MonHocTienQuyet
+                    {
+                        MaMonHoc = request.MaMonHoc,
+                        MaMonTienQuyet = prereqId,
+                        DiemToiThieu = 5.0m
+                    });
+                }
+            }
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+        var curriculumList = await GetCurriculumAsync(programId, cancellationToken);
+        return curriculumList.First(x => x.MaMonHoc == request.MaMonHoc);
+    }
+
+    public async Task<CurriculumSubjectDto> UpdateCurriculumSubjectAsync(int programId, int subjectId, UpdateCurriculumSubjectRequest request, CancellationToken cancellationToken = default)
+    {
+        var existing = await _context.MonHocTrongChuongTrinhs.FirstOrDefaultAsync(x => x.MaChuongTrinh == programId && x.MaMonHoc == subjectId, cancellationToken);
+        if (existing == null) throw new ApiException(404, "Môn học không có trong chương trình đào tạo này");
+
+        existing.HocKyDuKien = request.HocKyDuKien;
+        if (request.SoTinChi > 0) existing.SoTinChi = request.SoTinChi;
+        existing.LoaiMonHoc = request.BatBuoc ? "bat_buoc" : "tu_chon";
+        existing.BatBuoc = request.BatBuoc;
+        existing.ThuTu = request.ThuTu;
+        existing.GhiChu = request.GhiChu;
+        existing.NgayCapNhat = DateTime.Now;
+
+        if (request.MaMonTienQuyetIds != null)
+        {
+            var oldPrereqs = await _context.MonHocTienQuyets.Where(x => x.MaMonHoc == subjectId).ToListAsync(cancellationToken);
+            _context.MonHocTienQuyets.RemoveRange(oldPrereqs);
+
+            foreach (var prereqId in request.MaMonTienQuyetIds)
+            {
+                if (prereqId == subjectId) continue;
+                _context.MonHocTienQuyets.Add(new MonHocTienQuyet
+                {
+                    MaMonHoc = subjectId,
+                    MaMonTienQuyet = prereqId,
+                    DiemToiThieu = 5.0m
+                });
+            }
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+        var curriculumList = await GetCurriculumAsync(programId, cancellationToken);
+        return curriculumList.First(x => x.MaMonHoc == subjectId);
+    }
+
+    public async Task RemoveCurriculumSubjectAsync(int programId, int subjectId, CancellationToken cancellationToken = default)
+    {
+        var existing = await _context.MonHocTrongChuongTrinhs.FirstOrDefaultAsync(x => x.MaChuongTrinh == programId && x.MaMonHoc == subjectId, cancellationToken);
+        if (existing != null)
+        {
+            existing.ConHoatDong = false;
+            existing.NgayCapNhat = DateTime.Now;
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+    }
+
+    public async Task<CompareTrainingProgramsDto> CompareProgramsAsync(int sourceProgramId, int targetProgramId, CancellationToken cancellationToken = default)
+    {
+        var sourceProgram = await GetByIdAsync(sourceProgramId, cancellationToken);
+        var targetProgram = await GetByIdAsync(targetProgramId, cancellationToken);
+
+        var sourceCurriculum = await GetCurriculumAsync(sourceProgramId, cancellationToken);
+        var targetCurriculum = await GetCurriculumAsync(targetProgramId, cancellationToken);
+
+        var sourceDict = sourceCurriculum.ToDictionary(x => x.MaMonHoc);
+        var targetDict = targetCurriculum.ToDictionary(x => x.MaMonHoc);
+
+        var diffs = new List<CurriculumSubjectDiffDto>();
+        var allSubjectIds = sourceDict.Keys.Union(targetDict.Keys).ToList();
+
+        foreach (var subId in allSubjectIds)
+        {
+            bool inSource = sourceDict.TryGetValue(subId, out var srcSub);
+            bool inTarget = targetDict.TryGetValue(subId, out var tgtSub);
+
+            if (!inSource && inTarget)
+            {
+                diffs.Add(new CurriculumSubjectDiffDto
+                {
+                    MaMonHoc = subId,
+                    MaCodeMonHoc = tgtSub!.MaCodeMonHoc,
+                    TenMonHoc = tgtSub.TenMonHoc,
+                    SourceHocKy = null,
+                    TargetHocKy = tgtSub.HocKyDuKien,
+                    SourceTinChi = null,
+                    TargetTinChi = tgtSub.SoTinChi,
+                    SourceLoaiMon = null,
+                    TargetLoaiMon = tgtSub.LoaiMonHoc,
+                    DiffType = "added"
+                });
+            }
+            else if (inSource && !inTarget)
+            {
+                diffs.Add(new CurriculumSubjectDiffDto
+                {
+                    MaMonHoc = subId,
+                    MaCodeMonHoc = srcSub!.MaCodeMonHoc,
+                    TenMonHoc = srcSub.TenMonHoc,
+                    SourceHocKy = srcSub.HocKyDuKien,
+                    TargetHocKy = null,
+                    SourceTinChi = srcSub.SoTinChi,
+                    TargetTinChi = null,
+                    SourceLoaiMon = srcSub.LoaiMonHoc,
+                    TargetLoaiMon = null,
+                    DiffType = "removed"
+                });
+            }
+            else if (inSource && inTarget)
+            {
+                bool shifted = srcSub!.HocKyDuKien != tgtSub!.HocKyDuKien;
+                bool modified = srcSub.SoTinChi != tgtSub.SoTinChi || srcSub.LoaiMonHoc != tgtSub.LoaiMonHoc;
+                string diffType = (shifted && modified) ? "modified" : shifted ? "shifted" : modified ? "modified" : "unchanged";
+
+                diffs.Add(new CurriculumSubjectDiffDto
+                {
+                    MaMonHoc = subId,
+                    MaCodeMonHoc = srcSub.MaCodeMonHoc,
+                    TenMonHoc = srcSub.TenMonHoc,
+                    SourceHocKy = srcSub.HocKyDuKien,
+                    TargetHocKy = tgtSub.HocKyDuKien,
+                    SourceTinChi = srcSub.SoTinChi,
+                    TargetTinChi = tgtSub.SoTinChi,
+                    SourceLoaiMon = srcSub.LoaiMonHoc,
+                    TargetLoaiMon = tgtSub.LoaiMonHoc,
+                    DiffType = diffType
+                });
+            }
+        }
+
+        return new CompareTrainingProgramsDto
+        {
+            SourceProgram = sourceProgram,
+            TargetProgram = targetProgram,
+            Differences = diffs.OrderBy(x => x.TargetHocKy ?? x.SourceHocKy ?? 0).ToList(),
+            TotalAdded = diffs.Count(x => x.DiffType == "added"),
+            TotalRemoved = diffs.Count(x => x.DiffType == "removed"),
+            TotalShifted = diffs.Count(x => x.DiffType == "shifted"),
+            TotalModified = diffs.Count(x => x.DiffType == "modified"),
+            TotalUnchanged = diffs.Count(x => x.DiffType == "unchanged")
+        };
+    }
+
+    public async Task<TrainingProgramDto> AssignProgramAsync(int programId, AssignTrainingProgramRequest request, CancellationToken cancellationToken = default)
+    {
+        var program = await _context.ChuongTrinhDaoTaos.FirstOrDefaultAsync(x => x.MaChuongTrinh == programId, cancellationToken);
+        if (program == null) throw new ApiException(404, "Chương trình đào tạo không tồn tại");
+
+        if (request.MaKhoaTuyenSinhIds.Any())
+        {
+            program.MaKhoaTuyenSinh = request.MaKhoaTuyenSinhIds.First();
+        }
+
+        if (request.NgayHieuLuc.HasValue) program.NgayHieuLuc = request.NgayHieuLuc;
+        if (request.NgayHetHieuLuc.HasValue) program.NgayHetHieuLuc = request.NgayHetHieuLuc;
+
+        program.TrangThai = ActiveStatus;
+        program.ConHoatDong = true;
+        program.NgayCapNhat = DateTime.Now;
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return await GetByIdAsync(programId, cancellationToken);
+    }
 }

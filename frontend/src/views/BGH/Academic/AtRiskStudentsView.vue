@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { 
   Search, 
@@ -10,7 +10,6 @@ import {
   Zap,
   Download,
   FileText,
-  ChevronDown,
   Loader2,
   Inbox,
   Send,
@@ -22,7 +21,8 @@ import {
   AlertCircle,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
-import { exportToExcel, triggerPrint } from '@/services/exportService.js'
+import LmsSelect from '@/components/LmsSelect.vue'
+import { exportBghToExcel, exportAtRiskToPdf } from '@/components/BGH/performance/bghExport.js'
 import { usePopupStore } from '@/stores/popup'
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
@@ -32,18 +32,28 @@ const router = useRouter()
 
 const loading = ref(false)
 const error = ref(null)
-const semesterFilter = ref('spring-2026')
+const semesterFilter = ref('all')
 const riskFilter = ref('all')
 const searchQuery = ref('')
+const currentPage = ref(1)
+const pageSize = 20
+const totalPages = ref(1)
+let searchTimer = null
 
 async function loadData() {
   loading.value = true
   error.value = null
   try {
-    const res = await bghApi.getAtRiskStudents()
+    const res = await bghApi.getAtRiskStudents({
+      pageIndex: currentPage.value,
+      pageSize,
+      semesterId: semesterFilter.value === 'all' ? null : semesterFilter.value,
+      keyword: searchQuery.value.trim(),
+    })
     const data = unwrapApiData(res)
     if (data) {
       totalAtRisk.value = data.totalAtRisk ?? 0
+      totalPages.value = Math.max(1, data.totalPages ?? 1)
       const rawSummary = data.summary || {}
       summaryStats.value = [
         { label: 'Tổng SV nguy cơ', count: data.totalAtRisk ?? 0, unit: 'SV', color: 'text-(--color-danger-text)', bg: 'bg-(--color-danger-bg)' },
@@ -56,7 +66,7 @@ async function loadData() {
         name: s.name,
         code: s.email || '—',
         class: s.classCode || '—',
-        subject: '',
+        subject: s.riskSubjectName || '',
         grade: s.avgGpa,
         attendance: null,
         risk: s.failCount >= 3 ? 'critical' : s.failCount >= 2 ? 'high' : 'medium',
@@ -65,21 +75,47 @@ async function loadData() {
       }))
     }
   } catch (e) {
+    if (e.name === 'AbortError' || e.message?.includes('cancelled') || e.message?.includes('aborted')) return
     error.value = e.message
   } finally {
     loading.value = false
   }
 }
-onMounted(() => { loadData() })
+async function loadSemesters() {
+  const response = await bghApi.getAcademicTerms()
+  semesters.value = [
+    { value: 'all', label: 'Tất cả học kỳ' },
+    ...(unwrapApiData(response) || []).map(term => ({
+      value: String(term.maHocKy || term.id),
+      label: `${term.tenHocKy}${term.namHoc ? ` · ${term.namHoc}` : ''}`,
+    })),
+  ]
+}
+
+onMounted(async () => {
+  try {
+    await loadSemesters()
+  } catch {
+    semesters.value = [{ value: 'all', label: 'Tất cả học kỳ' }]
+  }
+  await loadData()
+})
+onUnmounted(() => {
+  isDrawerOpen.value = false
+  selectedStudent.value = null
+  clearTimeout(searchTimer)
+})
 
 const totalAtRisk = ref(0)
 const summaryStats = ref([])
 const riskStudents = ref([])
 
-const semesters = [
-  { value: 'spring-2026', label: 'Kỳ Spring 2026' },
-  { value: 'fall-2025', label: 'Kỳ Fall 2025' },
-]
+const semesters = ref([{ value: 'all', label: 'Tất cả học kỳ' }])
+
+const criticalRate = computed(() => {
+  const criticalCount = Number(summaryStats.value[1]?.count || 0)
+  return totalAtRisk.value > 0 ? Math.round((criticalCount / totalAtRisk.value) * 1000) / 10 : 0
+})
 
 const filteredStudents = computed(() => {
   let result = riskStudents.value
@@ -99,6 +135,33 @@ const filteredStudents = computed(() => {
   }
 
   return result
+})
+
+function prevPage() {
+  if (currentPage.value > 1) {
+    currentPage.value--
+    loadData()
+  }
+}
+
+function nextPage() {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++
+    loadData()
+  }
+}
+
+watch(searchQuery, () => {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    currentPage.value = 1
+    loadData()
+  }, 250)
+})
+
+watch(semesterFilter, () => {
+  currentPage.value = 1
+  loadData()
 })
 
 const getRiskBadge = (risk) => {
@@ -124,7 +187,29 @@ function prepareExcelData() {
 }
 
 function exportExcel() {
-  exportToExcel(prepareExcelData(), `SV-NguyCo-${semesterFilter.value}.xlsx`, 'Nguy cơ rớt môn')
+  exportBghToExcel(prepareExcelData(), `SV-NguyCo-${semesterFilter.value}.xlsx`, 'Nguy cơ rớt môn')
+}
+
+const exportingPdf = ref(false)
+async function exportPdf() {
+  if (exportingPdf.value) return
+  exportingPdf.value = true
+  try {
+    const sem = semesters.value.find(s => String(s.value) === String(semesterFilter.value))?.label || 'Tất cả học kỳ'
+    const criticalCount = summaryStats.value.length ? summaryStats.value[1].count : 0
+    await exportAtRiskToPdf({
+      students: filteredStudents.value,
+      totalAtRisk: totalAtRisk.value,
+      criticalRate: criticalRate.value,
+      criticalCount: criticalCount,
+      semesterLabel: sem
+    })
+  } catch (err) {
+    popup.error('Lỗi', 'Không thể xuất file PDF. Vui lòng thử lại.')
+    console.error(err)
+  } finally {
+    exportingPdf.value = false
+  }
 }
 
 function viewStudentHistory(st) {
@@ -154,14 +239,16 @@ function sendBulkWarning() {
 </script>
 
 <template>
+  <div>
   <PageContainer 
     title="Sinh viên có nguy cơ rớt môn" 
     subtitle="Hệ thống cảnh báo sớm (AI Early Warning) dựa trên dữ liệu điểm số, chuyên cần và tiến độ học tập."
   >
     <template #actions>
       <div class="flex items-center gap-3">
-         <button @click="triggerPrint" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
-            <FileText :size="18" /> PDF Report
+         <button @click="exportPdf" :disabled="exportingPdf" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
+            <Loader2 v-if="exportingPdf" :size="18" class="animate-spin" />
+            <FileText v-else :size="18" /> {{ exportingPdf ? 'Đang xử lý...' : 'PDF Report' }}
          </button>
          <button @click="exportExcel" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
             <Download :size="18" /> Excel Data
@@ -208,8 +295,8 @@ function sendBulkWarning() {
             </div>
             <div class="flex flex-wrap justify-center gap-3">
                <div class="px-4 py-3 surface-card rounded-2xl border border-(--color-info-text)/20 text-center">
-                  <p class="text-[10px] font-semibold uppercase tracking-widest text-muted">Độ chính xác</p>
-                  <p class="text-lg font-semibold text-heading">94.2%</p>
+                  <p class="text-[10px] font-semibold uppercase tracking-widest text-muted">Tỷ lệ Critical</p>
+                  <p class="text-lg font-semibold text-heading">{{ criticalRate }}%</p>
                </div>
                <div class="px-4 py-3 surface-card rounded-2xl border border-(--color-info-text)/20 text-center">
                   <p class="text-[10px] font-semibold uppercase tracking-widest text-muted">Cần can thiệp</p>
@@ -226,17 +313,16 @@ function sendBulkWarning() {
               <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-placeholder" />
               <input v-model="searchQuery" type="text" placeholder="Tìm tên sinh viên, mã số hoặc lớp..." class="w-full surface-input border border-input rounded-xl pl-9 pr-4 py-2 text-sm font-medium outline-none focus:border-(--border-input-focus)">
            </div>
-           <select v-model="semesterFilter" class="surface-input border border-input rounded-xl px-4 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
+           <LmsSelect v-model="semesterFilter" class="surface-input border border-input rounded-xl px-4 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
              <option v-for="s in semesters" :key="s.value" :value="s.value">{{ s.label }}</option>
-           </select>
+           </LmsSelect>
            <div class="relative">
-             <select v-model="riskFilter" class="surface-input border border-input rounded-xl px-4 py-2 text-xs font-bold outline-none appearance-none cursor-pointer pr-10">
+             <LmsSelect v-model="riskFilter" class="surface-input border border-input rounded-xl px-4 py-2 text-xs font-bold outline-none appearance-none cursor-pointer pr-10">
                <option value="all">Tất cả mức độ</option>
                <option value="critical">Critical</option>
                <option value="high">High</option>
                <option value="medium">Medium</option>
-             </select>
-             <ChevronDown :size="14" class="absolute right-3 top-1/2 -translate-y-1/2 text-placeholder pointer-events-none" />
+             </LmsSelect>
            </div>
         </div>
         <button @click="sendBulkWarning" class="lg-button-primary py-2.5 px-4 text-sm font-semibold flex items-center gap-2">
@@ -251,62 +337,59 @@ function sendBulkWarning() {
         <p class="text-sm text-placeholder mt-1">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.</p>
       </div>
 
-      <!-- ── Risk List ── -->
-      <div v-else class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-         <div 
-           v-for="st in filteredStudents" 
-           :key="st.id" 
-           class="surface-card border border-card rounded-2xl p-5 group hover:border-(--border-input-focus) transition-all shadow-sm"
-         >
-            <div class="flex items-start justify-between mb-4">
-               <div class="flex items-center gap-4">
-                  <div class="h-10 w-10 rounded-2xl surface-solid flex items-center justify-center text-muted group-hover:bg-(--color-info-bg) group-hover:text-(--color-info-text) transition-all">
-                     <User :size="28" />
+      <!-- ── Risk Table View ── -->
+      <div v-else class="surface-card border border-card rounded-2xl shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-body whitespace-nowrap">
+            <thead class="bg-(--surface-card) border-b border-card sticky top-0 z-10 backdrop-blur-md">
+              <tr>
+                <th class="px-4 py-3 font-bold text-heading text-center w-12">STT</th>
+                <th class="px-4 py-3 font-bold text-heading">Mã SV</th>
+                <th class="px-4 py-3 font-bold text-heading">Họ và tên</th>
+                <th class="px-4 py-3 font-bold text-heading">Lớp hành chính</th>
+                <th class="px-4 py-3 font-bold text-heading">Môn nguy cơ</th>
+                <th class="px-4 py-3 font-bold text-heading text-center">GPA môn</th>
+                <th class="px-4 py-3 font-bold text-heading text-center">Mức nguy cơ</th>
+                <th class="px-4 py-3 font-bold text-heading text-right">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-card">
+              <tr v-for="(st, idx) in filteredStudents" :key="st.id" class="hover:bg-(--surface-input)/50 transition-colors">
+                <td class="px-4 py-3 text-center font-medium text-muted">{{ (currentPage - 1) * pageSize + idx + 1 }}</td>
+                <td class="px-4 py-3 font-bold text-heading font-mono text-xs">{{ st.code }}</td>
+                <td class="px-4 py-3 font-bold text-heading">
+                  <div class="flex items-center gap-2">
+                    <User :size="16" class="text-muted" />
+                    <span>{{ st.name }}</span>
                   </div>
-                  <div>
-                     <h4 class="text-lg font-semibold text-heading leading-tight group-hover:text-link transition-colors">{{ st.name }}</h4>
-                     <p class="text-[11px] font-bold text-muted uppercase tracking-widest mt-1">{{ st.code }} • Lớp {{ st.class }}</p>
+                </td>
+                <td class="px-4 py-3 text-xs font-semibold">{{ st.class }}</td>
+                <td class="px-4 py-3 text-xs">{{ st.subject || 'Đang cập nhật' }}</td>
+                <td class="px-4 py-3 text-center">
+                  <span class="font-bold text-sm" :class="st.grade < 4 ? 'text-(--color-danger-text)' : 'text-(--color-warning-text)'">{{ st.grade }}</span>
+                </td>
+                <td class="px-4 py-3 text-center">
+                  <span :class="['inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider border shadow-xs', getRiskBadge(st.risk)]">
+                    {{ st.risk }}
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-right">
+                  <div class="flex items-center justify-end gap-1">
+                    <button @click="viewStudentHistory(st)" class="p-1.5 hover:bg-(--surface-input) rounded-lg text-muted hover:text-heading transition-colors" title="Lịch sử học tập"><History :size="16" /></button>
+                    <button @click="sendNotification(st)" class="p-1.5 hover:bg-(--surface-input) rounded-lg text-muted hover:text-heading transition-colors" title="Gửi cảnh báo"><Bell :size="16" /></button>
+                    <button @click="openDrawer(st)" class="p-1.5 hover:bg-(--surface-input) rounded-lg text-link hover:underline text-xs font-bold transition-colors" title="Xem chi tiết"><ExternalLink :size="16" /></button>
                   </div>
-               </div>
-               <div :class="['px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-widest border shadow-sm', getRiskBadge(st.risk)]">
-                  {{ st.risk }}
-               </div>
-            </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-            <div class="grid grid-cols-2 gap-4 mb-8">
-               <div class="p-4 surface-solid rounded-2xl border border-default">
-                  <p class="text-[9px] font-semibold text-muted uppercase tracking-widest mb-1.5">Môn học hiện tại</p>
-                  <p class="text-xs font-bold text-label">{{ st.subject || 'Đang cập nhật' }}</p>
-               </div>
-               <div class="p-4 surface-solid rounded-2xl border border-default">
-                  <p class="text-[9px] font-semibold text-muted uppercase tracking-widest mb-1.5">GPA TB / Môn rớt</p>
-                  <div class="flex items-center justify-between">
-                     <span class="text-sm font-semibold" :class="st.grade < 4 ? 'text-(--color-danger-text)' : 'text-(--color-warning-text)'">{{ st.grade }}</span>
-                     <div class="text-right">
-                       <span class="text-[10px] font-bold text-label">{{ st.reason }}</span>
-                     </div>
-                  </div>
-               </div>
-            </div>
-
-            <div class="flex items-start gap-3 p-4 bg-(--color-danger-bg) rounded-2xl border border-(--color-danger-text)/20 mb-4">
-               <Zap :size="16" class="text-(--color-danger-text) shrink-0 mt-0.5" />
-               <div>
-                  <p class="text-[10px] font-semibold text-(--color-danger-text) uppercase tracking-widest">Dự đoán của AI</p>
-                  <p class="text-[11px] text-body font-medium leading-relaxed mt-1">{{ st.reason }}</p>
-               </div>
-            </div>
-
-            <div class="flex items-center justify-between pt-6">
-               <div class="flex items-center gap-1">
-                  <button @click="viewStudentHistory(st)" class="p-2 hover:bg-(--surface-input) rounded-lg text-muted" title="Xem lịch sử"><History :size="18" /></button>
-                  <button @click="sendNotification(st)" class="p-2 hover:bg-(--surface-input) rounded-lg text-muted" title="Gửi thông báo"><Bell :size="18" /></button>
-               </div>
-               <button @click="openDrawer(st)" class="text-xs font-semibold text-link uppercase tracking-widest flex items-center gap-1 hover:underline">
-                   Xem chi tiết hồ sơ <ExternalLink :size="14" />
-                </button>
-            </div>
-         </div>
+      <div v-if="totalPages > 1" class="flex items-center justify-end gap-2 pt-2 text-sm">
+        <button @click="prevPage" :disabled="currentPage === 1" class="px-3 py-1.5 rounded-lg border border-default hover:bg-(--surface-input) disabled:opacity-50 disabled:cursor-not-allowed font-bold">Trang trước</button>
+        <span class="px-2 font-bold text-heading">Trang {{ currentPage }} / {{ totalPages }}</span>
+        <button @click="nextPage" :disabled="currentPage >= totalPages" class="px-3 py-1.5 rounded-lg border border-default hover:bg-(--surface-input) disabled:opacity-50 disabled:cursor-not-allowed font-bold">Trang sau</button>
       </div>
 
     </div>
@@ -401,6 +484,7 @@ function sendBulkWarning() {
       </div>
     </Transition>
   </Teleport>
+  </div>
 </template>
 
 <style scoped>

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { X, UploadCloud, Download, FileSpreadsheet, CheckCircle2, AlertCircle } from 'lucide-vue-next'
+import { contentCouncilApi } from '@/services/contentCouncilApi'
+import ConfirmModal from '@/components/common/ConfirmModal.vue'
 
 const props = defineProps<{
   isOpen: boolean
@@ -18,6 +20,28 @@ const checkResult = ref<{
   errors: Array<{row: number, col: string, msg: string}>
 } | null>(null)
 
+const modalState = ref({
+  isOpen: false,
+  title: 'Thông báo',
+  message: '',
+  variant: 'warning' as 'warning' | 'danger' | 'info' | 'success',
+  confirmText: 'Đóng',
+  cancelText: 'Hủy',
+  isAlert: true
+})
+
+const showAlert = (msg: string, title = 'Thông báo', variant: 'warning' | 'danger' | 'info' | 'success' = 'warning') => {
+  modalState.value = {
+    isOpen: true,
+    title,
+    message: msg,
+    variant,
+    confirmText: 'Đóng',
+    cancelText: 'Hủy',
+    isAlert: true
+  }
+}
+
 const close = () => {
   selectedFile.value = null
   checkResult.value = null
@@ -28,13 +52,12 @@ const onFileSelect = (e: Event) => {
   const target = e.target as HTMLInputElement
   if (target.files && target.files.length > 0) {
     const file = target.files[0]
-    // Mock check extension & size
     if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.csv')) {
-      alert('Vui lòng chọn file Excel (.xlsx) hoặc CSV.')
+      showAlert('Vui lòng chọn file Excel (.xlsx) hoặc CSV.', 'Định dạng file không hỗ trợ', 'warning')
       return
     }
     if (file.size > 10 * 1024 * 1024) {
-      alert('Dung lượng file không được vượt quá 10MB.')
+      showAlert('Dung lượng file không được vượt quá 10MB.', 'File quá lớn', 'warning')
       return
     }
     selectedFile.value = file
@@ -52,34 +75,116 @@ const removeFile = () => {
   if (fileInput.value) fileInput.value.value = ''
 }
 
-const checkFile = () => {
+import * as XLSX from 'xlsx'
+
+const isUploading = ref(false)
+
+const checkFile = async () => {
   if (!selectedFile.value) return
   isChecking.value = true
   
-  // Mock delay
-  setTimeout(() => {
-    isChecking.value = false
-    // Mock result
-    checkResult.value = {
-      total: 45,
-      valid: 42,
-      invalid: 3,
-      errors: [
-        { row: 8, col: 'Đáp án đúng', msg: 'Không tìm thấy lựa chọn C' },
-        { row: 16, col: 'Môn học', msg: 'Mã môn học không tồn tại' },
-        { row: 22, col: 'Độ khó', msg: 'Giá trị không hợp lệ (Dễ, Trung bình, Khó)' }
-      ]
+  try {
+    const arrayBuffer = await selectedFile.value.arrayBuffer()
+    const workbook = XLSX.read(arrayBuffer, { type: 'array' })
+    const sheetName = workbook.SheetNames.includes('Questions') ? 'Questions' : workbook.SheetNames[0]
+    const worksheet = sheetName ? workbook.Sheets[sheetName] : null
+    
+    if (!worksheet) {
+      isChecking.value = false
+      checkResult.value = {
+        total: 0,
+        valid: 0,
+        invalid: 1,
+        errors: [{ row: 1, col: 'File', msg: 'Không tìm thấy sheet dữ liệu trong file Excel' }]
+      }
+      return
     }
-  }, 1500)
+
+    const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: '' })
+    const errors: Array<{row: number, col: string, msg: string}> = []
+    let validCount = 0
+
+    jsonData.forEach((row: any, idx: number) => {
+      const rowNum = idx + 2 // Row 1 is header
+      const maMonHoc = String(row['MaCodeMonHoc'] || row['Mã môn'] || row['MaMonHoc'] || '').trim()
+      const loai = String(row['LoaiCauHoi'] || row['Loại câu hỏi'] || '').trim()
+      const noiDung = String(row['NoiDung'] || row['Nội dung'] || '').trim()
+
+      if (!maMonHoc) {
+        errors.push({ row: rowNum, col: 'MaCodeMonHoc', msg: 'Thiếu mã môn học' })
+      } else if (!noiDung) {
+        errors.push({ row: rowNum, col: 'NoiDung', msg: 'Thiếu nội dung câu hỏi' })
+      } else if (loai === 'trac_nghiem') {
+        const choiceA = String(row['LuaChonA'] || row['Lựa chọn A'] || row['Đáp án A'] || '').trim()
+        const choiceB = String(row['LuaChonB'] || row['Lựa chọn B'] || row['Đáp án B'] || '').trim()
+        const legacyChoices = String(row['LuaChon'] || row['Lựa chọn'] || '').trim()
+        const dapAnDung = String(row['DapAnDung'] || row['Đáp án đúng'] || '').trim()
+
+        const hasOptionCols = choiceA || choiceB
+        const hasLegacyChoice = legacyChoices
+
+        if (!hasOptionCols && !hasLegacyChoice) {
+          errors.push({ row: rowNum, col: 'LuaChonA', msg: 'Câu trắc nghiệm phải có ít nhất các lựa chọn A và B' })
+        } else if (!dapAnDung) {
+          errors.push({ row: rowNum, col: 'DapAnDung', msg: 'Câu trắc nghiệm phải có đáp án đúng' })
+        } else {
+          validCount++
+        }
+      } else {
+        validCount++
+      }
+    })
+
+    checkResult.value = {
+      total: jsonData.length,
+      valid: validCount,
+      invalid: jsonData.length - validCount,
+      errors
+    }
+  } catch (err: any) {
+    showAlert('Không thể đọc dữ liệu file Excel. Vui lòng kiểm tra định dạng file.', 'Lỗi đọc file', 'danger')
+    checkResult.value = { total: 0, valid: 0, invalid: 0, errors: [] }
+  } finally {
+    isChecking.value = false
+  }
 }
 
-const downloadTemplate = () => {
-  alert('Chức năng tải file mẫu sẽ được cung cấp khi kết nối với Backend.')
+const downloadTemplate = async () => {
+  try {
+    const token = localStorage.getItem('lms_access_token') || sessionStorage.getItem('lms_access_token') || ''
+    const response = await fetch('/api/question-bank/questions/import-template', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    if (!response.ok) throw new Error('Không thể tải file mẫu')
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'QuestionImportTemplate.xlsx'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+  } catch (err: any) {
+    showAlert(err?.message || 'Không thể tải file mẫu.', 'Lỗi tải file mẫu', 'danger')
+  }
 }
 
-const importData = () => {
-  emit('import', checkResult.value?.valid || 0)
-  close()
+const importData = async () => {
+  if (!selectedFile.value) return
+  isUploading.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', selectedFile.value)
+    const res = await contentCouncilApi.importQuestions(formData)
+    const count = res?.count ?? 1
+    emit('import', count)
+    close()
+  } catch (err: any) {
+    showAlert(err?.message || 'Có lỗi xảy ra khi import câu hỏi từ file Excel.', 'Lỗi import', 'danger')
+  } finally {
+    isUploading.value = false
+  }
 }
 </script>
 
@@ -225,7 +330,7 @@ const importData = () => {
         <!-- Footer -->
         <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
           <div class="text-xs text-slate-500 italic">
-            Lưu ý: Chức năng Import thực tế sẽ được làm ở Backend.
+            File sẽ được kiểm tra và lưu trực tiếp vào cơ sở dữ liệu.
           </div>
           <div class="flex items-center gap-3">
             <button @click="close" class="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 rounded-lg transition-colors">
@@ -250,5 +355,16 @@ const importData = () => {
 
       </div>
     </div>
+
+    <!-- Confirm / Alert Modal Popup -->
+    <ConfirmModal 
+      v-model:is-open="modalState.isOpen"
+      :title="modalState.title"
+      :message="modalState.message"
+      :variant="modalState.variant"
+      :confirm-text="modalState.confirmText"
+      :cancel-text="modalState.cancelText"
+      :is-alert="modalState.isAlert"
+    />
   </div>
 </template>

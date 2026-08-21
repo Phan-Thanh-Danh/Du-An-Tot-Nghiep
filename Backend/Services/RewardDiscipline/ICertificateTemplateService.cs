@@ -26,6 +26,11 @@ public interface ICertificateTemplateService
         int id,
         CancellationToken cancellationToken = default);
 
+    // Hard delete template if not referenced by rewards/campaigns
+    Task DeleteAsync(
+        int id,
+        CancellationToken cancellationToken = default);
+
     Task<CertificateTemplatePreviewDto> PreviewAsync(
         int id,
         CertificateTemplatePreviewRequest request,

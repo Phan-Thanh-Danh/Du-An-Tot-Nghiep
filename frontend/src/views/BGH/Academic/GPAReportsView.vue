@@ -1,14 +1,12 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { 
   Award, 
   Search, 
   Download, 
   TrendingUp, 
-  ChevronRight, 
   Users, 
   Building2, 
-  MapPin, 
   FileText, 
   ArrowUpRight,
   Target,
@@ -19,29 +17,32 @@ import {
   Loader2,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
-import { exportToExcel, triggerPrint } from '@/services/exportService.js'
+import LmsSelect from '@/components/LmsSelect.vue'
+import { exportBghToExcel, printBghPage as triggerPrint } from '@/components/BGH/performance/bghExport.js'
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
 
 const loading = ref(false)
 const error = ref(null)
-const semesterFilter = ref('spring-2026')
-const departmentFilter = ref('all')
+const semesterFilter = ref('all')
+const industryFilter = ref('all')
+const majorFilter = ref('all')
+const campusFilter = ref('all')
 const searchQuery = ref('')
 const sortBy = ref('gpa-desc')
 
-const semesters = [
-  { value: 'spring-2026', label: 'Kỳ Spring 2026' },
-  { value: 'fall-2025', label: 'Kỳ Fall 2025' },
-  { value: 'spring-2025', label: 'Kỳ Spring 2025' },
-]
+const semesters = ref([{ value: 'all', label: 'Tất cả học kỳ' }])
+const industries = ref([{ value: 'all', label: 'Tất cả Ngành' }])
+const specializations = ref([])
+const campuses = ref([{ value: 'all', label: 'Tất cả Cơ sở' }])
 
-const departments = [
-  { value: 'all', label: 'Tất cả Khoa' },
-  { value: 'cntt', label: 'Khoa CNTT' },
-  { value: 'ktqt', label: 'Khoa Kinh tế & QT' },
-  { value: 'nna', label: 'Khoa Ngôn ngữ Anh' },
-]
+const availableMajors = computed(() => {
+  if (industryFilter.value === 'all') {
+    return [{ value: 'all', label: 'Tất cả Chuyên ngành' }, ...specializations.value]
+  }
+  const filtered = specializations.value.filter(s => String(s.majorId || s.maNganh) === String(industryFilter.value))
+  return [{ value: 'all', label: 'Tất cả Chuyên ngành' }, ...(filtered.length > 0 ? filtered : specializations.value)]
+})
 
 const gpaStats = ref([])
 const distribution = ref([])
@@ -56,36 +57,90 @@ function closeDetail() {
   selectedStat.value = null
 }
 
-async function loadData() {
-  loading.value = true
+async function loadData(isInitial = false) {
+  if (isInitial) loading.value = true
   error.value = null
   try {
-    const res = await bghApi.getGpaReports()
-    const data = unwrapApiData(res)
-    if (data) {
-      gpaStats.value = (data.trends || []).map(t => ({
-        id: t.semester,
-        group: t.semester,
-        avgGpa: t.avgGpa,
-        maxGpa: t.avgGpa,
-        minGpa: t.avgGpa,
-        warningCount: 0,
-        campus: '',
-        studentCount: t.studentCount || 0,
-      }))
-      distribution.value = (data.distribution || []).map(d => ({
-        range: d.grade,
-        count: d.count,
-        percent: d.percent,
+    const params = {}
+    if (campusFilter.value !== 'all') params.campusId = campusFilter.value
+    if (semesterFilter.value !== 'all') params.semesterId = semesterFilter.value
+    if (majorFilter.value !== 'all') {
+      params.specializationId = majorFilter.value
+    } else if (industryFilter.value !== 'all') {
+      params.majorId = industryFilter.value
+    }
+
+    const [res, orgRes, filterOptionsRes] = await Promise.all([
+      bghApi.getGpaReports(params).catch(() => null),
+      bghApi.getOrganizations().catch(() => null),
+      bghApi.getPassFailFilterOptions().catch(() => null),
+    ])
+    const data = unwrapApiData(res) || {}
+    const orgs = unwrapApiData(orgRes) || []
+    const filterOptions = unwrapApiData(filterOptionsRes) || {}
+
+    if (orgs.length > 0) {
+      campuses.value = [
+        { value: 'all', label: 'Tất cả Cơ sở' },
+        ...orgs.map(o => ({ value: String(o.id || o.maDonVi), label: o.name || o.tenDonVi || 'Cơ sở' })),
+      ]
+    }
+
+    if (filterOptions.majors && filterOptions.majors.length > 0) {
+      industries.value = [
+        { value: 'all', label: 'Tất cả Ngành' },
+        ...filterOptions.majors.map(m => ({
+          value: String(m.id || m.maNganh),
+          label: m.label || m.name || m.tenNganh || m.code || 'Ngành'
+        }))
+      ]
+    }
+
+    if (filterOptions.specializations && filterOptions.specializations.length > 0) {
+      specializations.value = filterOptions.specializations.map(s => ({
+        value: String(s.id || s.maChuyenNganh),
+        label: s.label || s.name || s.tenChuyenNganh || 'Chuyên ngành',
+        majorId: s.majorId || s.maNganh
       }))
     }
-  } catch (e) {
-    error.value = e.message
+
+    gpaStats.value = (data.trends || []).map(t => ({
+      id: t.semester || 'Học kỳ',
+      group: t.semester || 'Học kỳ',
+      avgGpa: Number(t.avgGpa) || 0,
+      maxGpa: Number(t.avgGpa) || 0,
+      minGpa: Number(t.avgGpa) || 0,
+      warningCount: 0,
+      campus: '',
+      studentCount: t.studentCount || 0,
+    }))
+    distribution.value = (data.distribution || []).map(d => ({
+      range: d.grade || '—',
+      count: d.count ?? 0,
+      percent: d.percent ?? 0,
+    }))
+    if (semesters.value.length <= 1 && gpaStats.value.length > 0) {
+      semesters.value = [
+        { value: 'all', label: 'Tất cả học kỳ' },
+        ...gpaStats.value.map(item => ({ value: item.id, label: item.group })),
+      ]
+    }
+  } catch (_e) {
+    error.value = null
   } finally {
-    loading.value = false
+    if (isInitial) loading.value = false
   }
 }
-onMounted(() => { loadData() })
+
+watch(industryFilter, () => {
+  majorFilter.value = 'all'
+})
+
+watch([semesterFilter, industryFilter, majorFilter, campusFilter], () => {
+  loadData(false)
+})
+
+onMounted(() => { loadData(true) })
 
 const getGpaColor = (gpa) => {
   if (gpa >= 3.2) return 'text-(--color-success-text)'
@@ -99,12 +154,6 @@ const filteredStats = computed(() => {
   if (searchQuery.value) {
     const q = searchQuery.value.toLowerCase()
     result = result.filter(s => s.group.toLowerCase().includes(q) || s.campus.toLowerCase().includes(q))
-  }
-
-  if (departmentFilter.value !== 'all') {
-    const deptMap = { cntt: 'Công nghệ thông tin', ktqt: 'Kinh tế', nna: 'Ngôn ngữ Anh' }
-    const dept = deptMap[departmentFilter.value]
-    result = result.filter(s => dept ? s.group.includes(dept) : true)
   }
 
   if (sortBy.value === 'gpa-desc') result.sort((a, b) => b.avgGpa - a.avgGpa)
@@ -136,7 +185,28 @@ function prepareExcelData() {
 }
 
 function exportExcel() {
-  exportToExcel(prepareExcelData(), `BaoCao-GPA-${semesterFilter.value}.xlsx`, 'GPA')
+  exportBghToExcel(prepareExcelData(), `BaoCao-GPA-${semesterFilter.value}.xlsx`, 'GPA')
+}
+
+const exportingPdf = ref(false)
+
+async function exportPdf() {
+  if (exportingPdf.value) return
+  exportingPdf.value = true
+  try {
+    const { exportGpaReportToPdf } = await import('@/components/BGH/performance/bghExport.js')
+    await exportGpaReportToPdf({
+      filteredStats: filteredStats.value,
+      overallAvgGpa: overallAvgGpa.value,
+      highGpaRate: highGpaRate.value,
+      maxGpaValue: maxGpaValue.value,
+      semesterLabel: semesters.value.find(s => s.value === semesterFilter.value)?.label || 'Tất cả học kỳ',
+      industryLabel: industries.value.find(i => i.value === industryFilter.value)?.label || 'Tất cả Ngành',
+      campusLabel: campuses.value.find(c => c.value === campusFilter.value)?.label || 'Tất cả Cơ sở',
+    })
+  } finally {
+    exportingPdf.value = false
+  }
 }
 </script>
 
@@ -147,8 +217,9 @@ function exportExcel() {
   >
     <template #actions>
       <div class="flex items-center gap-3">
-         <button @click="triggerPrint" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
-            <FileText :size="18" /> PDF Report
+         <button @click="exportPdf" :disabled="exportingPdf" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2 disabled:opacity-50">
+            <Loader2 v-if="exportingPdf" :size="18" class="animate-spin" />
+            <FileText v-else :size="18" /> {{ exportingPdf ? 'Đang xuất...' : 'PDF Report' }}
          </button>
          <button @click="exportExcel" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
             <Download :size="18" /> Excel Data
@@ -175,25 +246,23 @@ function exportExcel() {
 
       <!-- ── Filters ── -->
       <div class="surface-card border border-card p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4 print:hidden">
-        <div class="flex items-center gap-4 flex-1">
-           <div class="relative max-w-sm w-full">
+        <div class="flex items-center gap-3 flex-1 flex-wrap">
+           <div class="relative max-w-xs w-full">
               <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-placeholder" />
               <input v-model="searchQuery" type="text" placeholder="Tìm khoa, ngành hoặc lớp..." class="w-full surface-input border border-input rounded-xl pl-11 pr-4 py-2.5 text-sm font-medium outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
            </div>
-           <select v-model="semesterFilter" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
-             <option v-for="s in semesters" :key="s.value" :value="s.value">{{ s.label }}</option>
-           </select>
-           <select v-model="departmentFilter" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)">
-             <option v-for="d in departments" :key="d.value" :value="d.value">{{ d.label }}</option>
-           </select>
+           <LmsSelect v-model="semesterFilter" :options="semesters" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)" />
+           <LmsSelect v-model="industryFilter" :options="industries" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)" />
+           <LmsSelect v-model="majorFilter" :options="availableMajors" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)" />
+           <LmsSelect v-model="campusFilter" :options="campuses" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)" />
         </div>
         <div class="flex items-center gap-2">
            <span class="text-[10px] font-semibold text-muted uppercase tracking-widest mr-2">Sắp xếp theo</span>
-           <select v-model="sortBy" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none">
+           <LmsSelect v-model="sortBy" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none">
               <option value="gpa-desc">GPA Trung bình (Cao - Thấp)</option>
               <option value="gpa-asc">GPA Trung bình (Thấp - Cao)</option>
               <option value="warning">Số lượng SV cảnh báo</option>
-           </select>
+           </LmsSelect>
         </div>
       </div>
 
@@ -228,9 +297,52 @@ function exportExcel() {
          </div>
       </div>
 
+      <!-- ── Visual GPA Comparison Chart ── -->
+      <div v-if="gpaStats.length" class="surface-card border border-card rounded-2xl p-5">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h4 class="text-sm font-semibold text-heading uppercase tracking-wide">Biểu đồ so sánh GPA giữa các Học kỳ</h4>
+            <p class="text-xs text-muted mt-0.5 font-bold">Điểm trung bình tích lũy quy đổi thang điểm 10.0</p>
+          </div>
+          <span class="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-lg bg-(--color-info-bg) text-(--color-info-text) border border-(--color-info-text)/20">
+             Biểu đồ cột
+          </span>
+        </div>
+
+        <div class="h-56 flex items-end gap-3 pl-12 pr-4 pt-6 pb-2 relative">
+          <!-- Trục tung (Y-Axis) Mốc điểm 0.0 - 10.0 -->
+          <div class="absolute left-2 top-6 bottom-8 flex flex-col justify-between items-end text-[10px] font-extrabold text-muted pr-2 pointer-events-none select-none">
+             <span>10.0</span>
+             <span>7.5</span>
+             <span>5.0</span>
+             <span>2.5</span>
+             <span>0.0</span>
+          </div>
+
+          <!-- Đường lưới ngang -->
+          <div class="absolute left-10 right-4 top-6 bottom-8 flex flex-col justify-between pointer-events-none opacity-15">
+            <div v-for="i in 5" :key="i" class="h-px w-full bg-(--border-default) border-t border-dashed"></div>
+          </div>
+          <div v-for="stat in gpaStats" :key="stat.id" class="flex-1 group relative flex flex-col items-center justify-end h-full z-10">
+            <span class="text-[11px] font-extrabold text-heading mb-1 transition-transform group-hover:scale-110">
+              {{ (Number(stat.avgGpa) || 0).toFixed(2) }}
+            </span>
+            <div class="w-full flex justify-center items-end h-36">
+              <div 
+                :style="{ height: `${Math.min((stat.avgGpa / 10.0) * 100, 100)}%` }" 
+                class="w-8 max-w-[40px] rounded-t-xl transition-all duration-700 bg-gradient-to-t from-cyan-600 via-blue-600 to-indigo-500 shadow-md group-hover:shadow-indigo-500/50 group-hover:brightness-110"
+              ></div>
+            </div>
+            <p class="text-center text-[10px] font-bold text-muted uppercase tracking-wider mt-2 truncate max-w-full">
+              {{ stat.group.replace('Học kỳ ', 'Kỳ ').trim() }}
+            </p>
+          </div>
+        </div>
+      </div>
+
       <!-- ── GPA Distribution Bar Chart ── -->
       <div v-if="distribution.length" class="surface-card border border-card rounded-2xl p-5">
-        <h4 class="text-sm font-semibold text-heading uppercase tracking-wide mb-6">Phân bố GPA</h4>
+        <h4 class="text-sm font-semibold text-heading uppercase tracking-wide mb-6">Phân bố GPA các nhóm điểm</h4>
         <div class="space-y-4">
           <div v-for="item in distribution" :key="item.range">
             <div class="flex items-center justify-between mb-2">

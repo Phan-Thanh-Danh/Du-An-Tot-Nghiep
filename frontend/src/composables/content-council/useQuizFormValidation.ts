@@ -42,8 +42,13 @@ export function useQuizFormValidation(formData: Ref<QuizFormData>) {
     }
     
     if (data.format === 'mixed') {
-      if (data.multipleChoicePercentage <= 0 || data.essayPercentage <= 0) {
-        fErrors['percentages'] = 'Tỷ lệ câu hỏi mỗi loại phải lớn hơn 0%.'
+      if (
+        data.multipleChoicePercentage < 0 ||
+        data.multipleChoicePercentage > 100 ||
+        data.essayPercentage < 0 ||
+        data.essayPercentage > 100
+      ) {
+        fErrors['percentages'] = 'Tỷ lệ câu hỏi phải từ 0% đến 100%.'
         sErrors.structure.push(fErrors['percentages'])
       }
       if (data.multipleChoicePercentage + data.essayPercentage !== 100) {

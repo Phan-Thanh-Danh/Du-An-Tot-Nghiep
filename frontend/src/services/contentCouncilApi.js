@@ -13,6 +13,14 @@ export const contentCouncilApi = {
     return apiRequest(`/api/master-data/subjects${qs ? '?' + qs : ''}`)
   },
 
+  getAcademicTerms(params = {}) {
+    const query = new URLSearchParams()
+    if (params.pageSize) query.append('pageSize', params.pageSize)
+    else query.append('pageSize', '100')
+    const qs = query.toString()
+    return apiRequest(`/api/master-data/academic-terms${qs ? '?' + qs : ''}`)
+  },
+
   getMajors(params = {}) {
     const query = new URLSearchParams()
     if (params.pageSize) query.append('pageSize', params.pageSize)
@@ -50,6 +58,14 @@ export const contentCouncilApi = {
 
   deleteSubject(id) {
     return apiRequest(`/api/master-data/subjects/${id}`, { method: 'DELETE' })
+  },
+
+  publishSubject(subjectId) {
+    return apiRequest(`/api/curriculum/subjects/${subjectId}/publish`, { method: 'POST' })
+  },
+
+  unpublishSubject(subjectId) {
+    return apiRequest(`/api/curriculum/subjects/${subjectId}/unpublish`, { method: 'POST' })
   },
 
   // Curriculum chapters
@@ -157,10 +173,18 @@ export const contentCouncilApi = {
   // Question bank
   getQuestions(params = {}) {
     const query = new URLSearchParams()
-    if (params.subjectId) query.append('subjectId', params.subjectId)
+    if (params.subjectId && params.subjectId !== 'all') query.append('maMonHoc', params.subjectId)
+    if (params.maMonHoc && params.maMonHoc !== 'all') query.append('maMonHoc', params.maMonHoc)
     if (params.keyword) query.append('keyword', params.keyword)
-    if (params.status) query.append('status', params.status)
-    if (params.pageIndex) query.append('pageIndex', params.pageIndex)
+    if (params.questionType && params.questionType !== 'all') query.append('loaiCauHoi', params.questionType)
+    if (params.loaiCauHoi && params.loaiCauHoi !== 'all') query.append('loaiCauHoi', params.loaiCauHoi)
+    if (params.selectionType && params.selectionType !== 'all') query.append('kieuLuaChon', params.selectionType)
+    if (params.kieuLuaChon && params.kieuLuaChon !== 'all') query.append('kieuLuaChon', params.kieuLuaChon)
+    if (params.difficulty && params.difficulty !== 'all') query.append('doKho', params.difficulty)
+    if (params.doKho && params.doKho !== 'all') query.append('doKho', params.doKho)
+    if (params.status && params.status !== 'all') query.append('conHoatDong', params.status === 'active' ? 'true' : 'false')
+    if (params.conHoatDong !== undefined) query.append('conHoatDong', String(params.conHoatDong))
+    if (params.pageIndex || params.pageNumber) query.append('pageNumber', params.pageIndex || params.pageNumber)
     if (params.pageSize) query.append('pageSize', params.pageSize)
     const qs = query.toString()
     return apiRequest(`/api/question-bank/questions${qs ? '?' + qs : ''}`)
@@ -206,11 +230,14 @@ export const contentCouncilApi = {
   // Quizzes
   getQuizzes(params = {}) {
     const query = new URLSearchParams()
-    if (params.subjectId) query.append('subjectId', params.subjectId)
+    if (params.subjectId && params.subjectId !== 'all') query.append('maMonHoc', params.subjectId)
+    if (params.maMonHoc && params.maMonHoc !== 'all') query.append('maMonHoc', params.maMonHoc)
     if (params.keyword) query.append('keyword', params.keyword)
-    if (params.status) query.append('status', params.status)
-    if (params.pageIndex) query.append('pageIndex', params.pageIndex)
+    if (params.status && params.status !== 'all') query.append('trangThai', params.status)
+    if (params.trangThai && params.trangThai !== 'all') query.append('trangThai', params.trangThai)
+    if (params.pageIndex || params.pageNumber) query.append('pageNumber', params.pageIndex || params.pageNumber)
     if (params.pageSize) query.append('pageSize', params.pageSize)
+    else query.append('pageSize', '100')
     const qs = query.toString()
     return apiRequest(`/api/exam/de-kiem-tra/search${qs ? '?' + qs : ''}`)
   },
@@ -286,10 +313,5 @@ export const contentCouncilApi = {
 
   closeQuiz(id) {
     return apiRequest(`/api/exam/de-kiem-tra/${id}/close`, { method: 'POST' })
-  },
-
-  // Academic terms (for select options)
-  getAcademicTerms() {
-    return apiRequest('/api/master-data/academic-terms')
   },
 }

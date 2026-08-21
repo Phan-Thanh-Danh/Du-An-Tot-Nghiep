@@ -27,15 +27,32 @@ const handlePreview = async (formPayload) => {
 }
 
 const handleSubmit = async (formPayload) => {
-  const recipientCount = previewData.value?.count ?? previewData.value?.tongNguoiNhan ?? 0
+  let recipientCount = previewData.value?.count ?? previewData.value?.tongNguoiNhan ?? 0
+  if (recipientCount === 0 && !previewData.value) {
+    try {
+      loadingSubmit.value = true
+      const data = await notificationsApi.previewRecipients(formPayload)
+      previewData.value = data
+      recipientCount = data.count ?? data.tongNguoiNhan ?? 0
+    } catch (err) {
+      errorMessage.value = 'Lỗi khi kiểm tra người nhận: ' + err.message
+      loadingSubmit.value = false
+      return
+    } finally {
+      loadingSubmit.value = false
+    }
+  }
+
   if (recipientCount === 0) {
     errorMessage.value = 'Không thể gửi thông báo cho 0 người nhận'
     return
   }
 
-  if (!confirm('Bạn có chắc chắn muốn gửi thông báo này không? Thao tác này không thể hoàn tác hoàn toàn.')) {
-    return
-  }
+  // Confirmation is now handled by the ConfirmActionDialog in NotificationComposeForm
+  // so we don't need the native confirm() here anymore, or we can keep it for double safety.
+  // Actually, the ComposeForm already asks for confirmation, so we can remove this native confirm()
+  // to avoid double prompts!
+  
 
   loadingSubmit.value = true
   errorMessage.value = ''

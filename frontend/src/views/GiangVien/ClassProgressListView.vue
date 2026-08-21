@@ -8,6 +8,7 @@ import {
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import TeacherClassCard from '@/components/GiangVien/TeacherClassCard.vue'
+import LmsSelect from '@/components/LmsSelect.vue'
 import { teacherApi } from '@/services/teacherApi'
 
 const loading = ref(false)
@@ -112,13 +113,13 @@ onMounted(() => { loadClasses() })
           />
         </div>
         <div class="flex items-center gap-3 w-full md:w-auto">
-          <select v-model="filterSemester" class="lg-control flex-1 md:w-48">
+          <LmsSelect v-model="filterSemester" class="w-48">
             <option value="">Tất cả học kỳ</option>
             <option v-for="sem in availableSemesters" :key="sem" :value="sem">{{ sem }}</option>
-          </select>
+          </LmsSelect>
           <button
             @click="searchQuery = ''; filterSemester = ''"
-            title="Xóa bộ lọc"
+            title="Lọc / Đặt lại bộ lọc"
             class="lg-icon-button h-10 w-10 rounded-xl border border-card surface-card text-muted hover:text-heading hover:bg-(--accent-primary)/10 transition-all flex items-center justify-center shrink-0"
           >
             <Filter :size="18" />

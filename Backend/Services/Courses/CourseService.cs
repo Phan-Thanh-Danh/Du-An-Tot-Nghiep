@@ -66,6 +66,15 @@ public class CourseService : ICourseService
             query = query.Where(x => x.Course.MaMonHoc == parameters.MaMonHoc.Value);
         }
 
+        if (parameters.MaChuyenNganh.HasValue)
+        {
+            query = query.Where(x => x.Subject.MaChuyenNganh == parameters.MaChuyenNganh.Value);
+        }
+        else if (parameters.MaNganh.HasValue)
+        {
+            query = query.Where(x => x.Subject.MaNganh == parameters.MaNganh.Value);
+        }
+
         if (parameters.MaGiaoVien.HasValue)
         {
             query = query.Where(x => x.Course.MaGiaoVien == parameters.MaGiaoVien.Value);
@@ -103,7 +112,7 @@ public class CourseService : ICourseService
         }
 
         var totalItems = await query.CountAsync(cancellationToken);
-        var items = await query
+        var pagedItems = await query
             .OrderBy(x => x.Organization.TenDonVi)
             .ThenBy(x => x.Term == null ? string.Empty : x.Term.TenHocKy)
             .ThenBy(x => x.Subject.TenMonHoc)
@@ -111,8 +120,23 @@ public class CourseService : ICourseService
             .ThenBy(x => x.Teacher.HoTen)
             .Skip((parameters.PageIndex - 1) * parameters.PageSize)
             .Take(parameters.PageSize)
-            .Select(x => ToDto(x.Course, x.Organization, x.Subject, x.Teacher, x.Term, x.Class))
             .ToListAsync(cancellationToken);
+
+        var classIds = pagedItems.Select(x => x.Class.MaLop).Distinct().ToList();
+        var studentCounts = await _context.NguoiDungs
+            .AsNoTracking()
+            .Where(u => u.MaLop != null && classIds.Contains(u.MaLop.Value))
+            .GroupBy(u => u.MaLop!.Value)
+            .Select(g => new { ClassId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.ClassId, x => x.Count, cancellationToken);
+
+        var items = pagedItems.Select(x =>
+        {
+            var dto = ToDto(x.Course, x.Organization, x.Subject, x.Teacher, x.Term, x.Class);
+            dto.SiSo = studentCounts.TryGetValue(x.Class.MaLop, out var cnt) ? cnt : 0;
+            dto.StudentCount = dto.SiSo;
+            return dto;
+        }).ToList();
 
         return new PagedResultDto<KhoaHocDto>
         {
@@ -135,7 +159,11 @@ public class CourseService : ICourseService
             throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy khóa học.");
         }
 
+        var classId = result.Class.MaLop;
+        var siso = await _context.NguoiDungs.AsNoTracking().CountAsync(u => u.MaLop == classId, cancellationToken);
         var dto = ToDetailDto(result.Course, result.Organization, result.Subject, result.Teacher, result.Term, result.Class);
+        dto.SiSo = siso;
+        dto.StudentCount = siso;
         dto.Chuongs = await GetCourseChaptersAsync(result.Course.MaMonHoc, cancellationToken);
         return dto;
     }
@@ -612,12 +640,12 @@ public class CourseService : ICourseService
         CurrentUserContext currentUser,
         HashSet<int> allowedOrganizationIds)
     {
-        query = query.Where(x => allowedOrganizationIds.Contains(x.Course.MaDonVi));
-
-        if (currentUser.Role == AuthRoles.Teacher)
+        if (currentUser.Role == AuthRoles.Teacher || currentUser.Role == "giao_vien")
         {
-            query = query.Where(x => x.Course.MaGiaoVien == currentUser.UserId);
+            return query.Where(x => x.Course.MaGiaoVien == currentUser.UserId);
         }
+
+        query = query.Where(x => allowedOrganizationIds.Contains(x.Course.MaDonVi));
 
         return query;
     }

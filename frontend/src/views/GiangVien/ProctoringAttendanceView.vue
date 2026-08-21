@@ -203,9 +203,12 @@ async function startMonitoring() {
     const attendancePayload = {
       maCaThi: currentSession.value.id,
       danhSachDiemDanh: currentStudents.value.map(s => {
-        let mappedStatus = 'cho_thi';
+        let mappedStatus = 'vang_mat';
         if (s.attendanceStatus === 'present') mappedStatus = 'co_mat';
-        if (s.attendanceStatus === 'absent') mappedStatus = 'vang_mat';
+        else if (s.attendanceStatus === 'late') mappedStatus = 'di_muon_qua_gio';
+        else if (s.attendanceStatus === 'problem') mappedStatus = 'su_co';
+        else mappedStatus = 'vang_mat';
+
         return {
           maHocSinh: s.studentId || s.id,
           trangThaiDiemDanh: mappedStatus,

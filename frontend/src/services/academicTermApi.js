@@ -5,7 +5,7 @@ function buildQuery(params = {}) {
   Object.entries(params).forEach(([key, value]) => {
     if (value === undefined || value === null || value === '') return
     const normalizedKey = key === 'PageSize' ? 'pageSize' : key === 'PageIndex' ? 'pageIndex' : key
-    const normalizedValue = normalizedKey === 'pageSize' ? Math.min(Number(value) || 20, 100) : value
+    const normalizedValue = normalizedKey === 'pageSize' ? Math.min(Number(value) || 20, 1000) : value
     query.set(normalizedKey, normalizedValue)
   })
   const qs = query.toString()
@@ -50,4 +50,9 @@ export const academicTermApi = {
   unlock(id) {
     return apiRequest(`/api/master-data/academic-terms/${id}/unlock`, { method: 'PATCH' })
   },
+
+  remove(id) {
+    return apiRequest(`/api/master-data/academic-terms/${id}`, { method: 'DELETE' })
+  }
 }
+

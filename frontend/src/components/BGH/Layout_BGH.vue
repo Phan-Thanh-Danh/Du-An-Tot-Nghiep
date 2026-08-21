@@ -11,6 +11,8 @@ import AppTopbar from '../SinhVien/AppTopbar.vue'
 import PageContainer from '../SinhVien/PageContainer.vue'
 import AiAssistant from '@/components/ui/AiAssistant.vue'
 import AnnouncementBanner from '@/components/ui/AnnouncementBanner.vue'
+import { bghApi } from '@/services/bghApi'
+import { cancelBghRoutePrefetch } from './performance/bghRoutePrefetch'
 
 // ── Sidebar state ──────────────────────────────────────────
 const sidebarCollapsed = ref(false)
@@ -32,6 +34,10 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', checkScreen)
+  document.body.style.overflow = ''
+  cancelBghRoutePrefetch()
+  bghApi.abortScope(route.path)
+  bghApi.abortScope('prefetch')
 })
 
 function toggleSidebar() {
@@ -57,6 +63,8 @@ const currentPageMeta = computed(() => {
 // ── Auto-close mobile sidebar on route change ──────────────
 watch(() => route.path, () => {
   closeMobileSidebar()
+  cancelBghRoutePrefetch()
+  bghApi.abortScope('prefetch')
 })
 
 // ── Body scroll lock when mobile drawer is open ────────────
@@ -185,5 +193,26 @@ html {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-placeholder);
+}
+
+/* Custom override for BGH Topbar elements to match mockup */
+.lg-topbar button[aria-label="Mở command palette"] {
+  border-radius: 9999px !important;
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+}
+
+.lg-topbar button[aria-label="Thông báo"],
+.lg-topbar .lg-theme-toggle {
+  border-radius: 9999px !important;
+}
+
+.lg-topbar button[aria-label="Tạo nhanh"] {
+  background: linear-gradient(135deg, #2563eb, #0891b2) !important;
+  border-radius: 9999px !important;
+}
+
+.lg-topbar .app-topbar-avatar {
+  border-radius: 9999px !important;
 }
 </style>

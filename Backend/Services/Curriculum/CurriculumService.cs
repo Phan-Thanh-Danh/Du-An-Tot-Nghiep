@@ -303,7 +303,19 @@ public class CurriculumService : ICurriculumService
         if (dto.DaAn.HasValue)
             entity.DaAn = dto.DaAn.Value;
         if (dto.TrangThai is not null)
+        {
             entity.TrangThai = dto.TrangThai;
+
+            var childBlocks = await _context.BaiHocNoiDungs
+                .Where(n => n.MaBaiHoc == lessonId)
+                .ToListAsync(ct);
+
+            foreach (var cb in childBlocks)
+            {
+                cb.TrangThai = dto.TrangThai;
+                cb.NgayCapNhat = DateTime.UtcNow;
+            }
+        }
         entity.NgayCapNhat = DateTime.UtcNow;
 
         await _context.SaveChangesAsync(ct);
@@ -517,6 +529,16 @@ public class CurriculumService : ICurriculumService
         if (dto.TrangThai is not null)
             entity.TrangThai = dto.TrangThai;
         entity.NgayCapNhat = DateTime.UtcNow;
+
+        if (entity.TrangThai == "da_xuat_ban" || entity.TrangThai == "published")
+        {
+            var parentLesson = await _context.BaiHocs.FirstOrDefaultAsync(b => b.MaBaiHoc == entity.MaBaiHoc, ct);
+            if (parentLesson != null && parentLesson.TrangThai != "da_xuat_ban")
+            {
+                parentLesson.TrangThai = "da_xuat_ban";
+                parentLesson.NgayCapNhat = DateTime.UtcNow;
+            }
+        }
 
         await _context.SaveChangesAsync(ct);
 
@@ -745,4 +767,114 @@ public class CurriculumService : ICurriculumService
         };
 
     private static BaiHocNoiDungDto MapContentProjection(BaiHocNoiDung n) => MapContent(n);
+
+    public async Task PublishSubjectAsync(int subjectId, CancellationToken ct = default)
+    {
+        var subject = await _context.DanhMucMonHocs.FirstOrDefaultAsync(s => s.MaMonHoc == subjectId, ct)
+            ?? throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy môn học.");
+
+        subject.ConHoatDong = true;
+
+        var chapters = await _context.Chuongs
+            .Include(c => c.BaiHocs)
+                .ThenInclude(b => b.BaiHocNoiDungs)
+            .Where(c => c.MaMonHoc == subjectId)
+            .ToListAsync(ct);
+
+        var lessons = chapters.SelectMany(c => c.BaiHocs).ToList();
+        var contentBlocks = lessons.SelectMany(b => b.BaiHocNoiDungs).ToList();
+
+        foreach (var b in lessons)
+        {
+            b.TrangThai = "da_xuat_ban";
+            b.NgayCapNhat = DateTime.UtcNow;
+        }
+
+        foreach (var cb in contentBlocks)
+        {
+            cb.TrangThai = "da_xuat_ban";
+            cb.NgayCapNhat = DateTime.UtcNow;
+        }
+
+        var quizIds = contentBlocks
+            .Where(cb => cb.MaDeKiemTra != null)
+            .Select(cb => cb.MaDeKiemTra!.Value)
+            .Distinct()
+            .ToList();
+
+        if (quizIds.Count > 0)
+        {
+            var quizzes = await _context.DeKiemTras
+                .Where(q => quizIds.Contains(q.MaDeKiemTra))
+                .ToListAsync(ct);
+
+            foreach (var q in quizzes)
+            {
+                q.TrangThai = "da_xuat_ban";
+                q.NgayCapNhat = DateTime.UtcNow;
+            }
+        }
+
+        await _context.SaveChangesAsync(ct);
+
+        await _audit.LogAsync(
+            "DanhMucMonHoc",
+            subjectId.ToString(),
+            "PublishSubject",
+            null,
+            new { subjectId, chaptersCount = chapters.Count, lessonsCount = lessons.Count, contentCount = contentBlocks.Count },
+            0,
+            null,
+            "Xuất bản môn học và toàn bộ nội dung",
+            ct
+        );
+    }
+
+    public async Task UnpublishSubjectAsync(int subjectId, CancellationToken ct = default)
+    {
+        var subject = await _context.DanhMucMonHocs.FirstOrDefaultAsync(s => s.MaMonHoc == subjectId, ct)
+            ?? throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy môn học.");
+
+        var chapters = await _context.Chuongs
+            .Include(c => c.BaiHocs)
+                .ThenInclude(b => b.BaiHocNoiDungs)
+            .Where(c => c.MaMonHoc == subjectId)
+            .ToListAsync(ct);
+
+        var lessons = chapters.SelectMany(c => c.BaiHocs).ToList();
+        var contentBlocks = lessons.SelectMany(b => b.BaiHocNoiDungs).ToList();
+
+        foreach (var b in lessons)
+        {
+            b.TrangThai = "nhap";
+            b.NgayCapNhat = DateTime.UtcNow;
+        }
+
+        foreach (var cb in contentBlocks)
+        {
+            cb.TrangThai = "nhap";
+            cb.NgayCapNhat = DateTime.UtcNow;
+        }
+
+        var quizIds = contentBlocks
+            .Where(cb => cb.MaDeKiemTra != null)
+            .Select(cb => cb.MaDeKiemTra!.Value)
+            .Distinct()
+            .ToList();
+
+        if (quizIds.Count > 0)
+        {
+            var quizzes = await _context.DeKiemTras
+                .Where(q => quizIds.Contains(q.MaDeKiemTra))
+                .ToListAsync(ct);
+
+            foreach (var q in quizzes)
+            {
+                q.TrangThai = "nhap";
+                q.NgayCapNhat = DateTime.UtcNow;
+            }
+        }
+
+        await _context.SaveChangesAsync(ct);
+    }
 }

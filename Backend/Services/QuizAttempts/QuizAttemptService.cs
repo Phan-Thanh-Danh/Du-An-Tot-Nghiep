@@ -48,9 +48,27 @@ public class QuizAttemptService : IQuizAttemptService
         _logger = logger;
     }
 
-    public Task<QuizAvailabilityDto> GetAvailabilityAsync(int quizId, int studentId, CancellationToken ct)
+    public async Task<QuizAvailabilityDto> GetAvailabilityAsync(int quizId, int studentId, CancellationToken ct)
     {
-        return _availabilityService.GetAvailabilityAsync(quizId, studentId, ct);
+        var quiz = await _db.DeKiemTras.FirstOrDefaultAsync(x => x.MaDeKiemTra == quizId, ct);
+        if (quiz == null)
+        {
+            throw new ApiException(404, "Không tìm thấy quiz");
+        }
+
+        await EnsureLessonQuizAsync(quiz, ct);
+        var availability = await _availabilityService.GetAvailabilityAsync(quizId, studentId, ct);
+
+        // Quiz bài học là bài luyện tập: sinh viên được làm lại đến khi đạt.
+        availability.KhongGioiHanSoLan = true;
+        availability.SoLanLamToiDa = null;
+        if (availability.TrangThai == "dang_mo")
+        {
+            availability.CoTheLam = true;
+            availability.LyDoKhongTheLam = null;
+        }
+
+        return availability;
     }
 
     public async Task<StartQuizAttemptResponse> StartAsync(int quizId, int studentId, CancellationToken ct)
@@ -82,14 +100,6 @@ public class QuizAttemptService : IQuizAttemptService
                 await transaction.CommitAsync(ct);
                 return await BuildStartResponseAsync(existingActive.MaPhienThi, ct);
             }
-        }
-
-        var completedCount = await _db.PhienThiHocSinhs
-            .CountAsync(x => x.MaDeKiemTra == quizId && x.MaHocSinh == studentId && x.MaCaThi == null && x.TrangThaiLuong == "da_dung", ct);
-
-        if (!config.KhongGioiHanSoLan && completedCount >= config.SoLanLamToiDa)
-        {
-            throw new ApiException(409, "Đã hết số lượt làm quiz");
         }
 
         var questions = await LoadQuestionsAsync(quizId, ct);
@@ -170,7 +180,7 @@ public class QuizAttemptService : IQuizAttemptService
         attempt = await AutoSubmitIfExpiredAsync(attempt, config, ct);
         if (attempt.TrangThaiLuong != "dang_hoat_dong")
         {
-            return await BuildResultAsync(attempt, config, config.HienKetQuaSauKhiNop, config.HienDapAnDungSauKhiNop, ct);
+            return await BuildResultAsync(attempt, config, true, true, ct);
         }
 
         ValidateAnswers(request.Answers, quizId);
@@ -188,7 +198,7 @@ public class QuizAttemptService : IQuizAttemptService
             "Học sinh nộp bài quiz bài học",
             ct);
 
-        return await BuildResultAsync(attempt, config, config.HienKetQuaSauKhiNop, config.HienDapAnDungSauKhiNop, ct);
+        return await BuildResultAsync(attempt, config, true, true, ct);
     }
 
     public async Task<QuizAttemptHistoryDto> GetHistoryAsync(int quizId, int studentId, CancellationToken ct)
@@ -446,7 +456,8 @@ public class QuizAttemptService : IQuizAttemptService
     private async Task EnsureLessonQuizAsync(DeKiemTra quiz, CancellationToken ct)
     {
         var isLessonContent = await _db.BaiHocNoiDungs
-            .AnyAsync(x => x.MaDeKiemTra == quiz.MaDeKiemTra && x.LoaiNoiDung == "quiz", ct);
+            .AnyAsync(x => x.MaDeKiemTra == quiz.MaDeKiemTra
+                && (x.LoaiNoiDung == "quiz" || x.LoaiNoiDung == "trac_nghiem"), ct);
 
         if (!isLessonContent)
         {
@@ -496,7 +507,8 @@ public class QuizAttemptService : IQuizAttemptService
 
         // Sync to learning progress if this quiz is part of a lesson content
         var content = await _db.BaiHocNoiDungs
-            .FirstOrDefaultAsync(x => x.MaDeKiemTra == attempt.MaDeKiemTra && x.LoaiNoiDung == "trac_nghiem", ct);
+            .FirstOrDefaultAsync(x => x.MaDeKiemTra == attempt.MaDeKiemTra
+                && (x.LoaiNoiDung == "quiz" || x.LoaiNoiDung == "trac_nghiem"), ct);
         if (content != null)
         {
             await _progressSyncService.SyncQuizProgressAsync(attempt.MaHocSinh, content.MaNoiDung, attempt);

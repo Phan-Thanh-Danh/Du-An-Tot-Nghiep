@@ -1,7 +1,9 @@
 <script setup>
-import { ref, computed, onUnmounted, nextTick } from 'vue'
-import { ChevronDown, Check } from 'lucide-vue-next'
+import { ref, computed, useSlots, useId, watch, onUnmounted, nextTick, Fragment, Text, Comment } from 'vue'
+import { ChevronDown, Check, Search } from 'lucide-vue-next'
 import { onClickOutside } from '@vueuse/core'
+
+defineOptions({ inheritAttrs: false })
 
 const props = defineProps({
   modelValue: {
@@ -10,7 +12,8 @@ const props = defineProps({
   },
   options: {
     type: Array,
-    required: true,
+    default: () => [],
+    // Expected format: [{ value: '...', label: '...', disabled?: false }]
   },
   label: String,
   placeholder: {
@@ -21,76 +24,131 @@ const props = defineProps({
   required: Boolean,
   id: String,
   error: String,
+  searchable: Boolean,
+  teleport: {
+    type: Boolean,
+    default: true
+  }
 })
+
+const isTest = typeof globalThis.process !== 'undefined' && globalThis.process.env?.NODE_ENV === 'test' || import.meta.env?.MODE === 'test'
+const useTeleport = computed(() => props.teleport && !isTest)
 
 const emit = defineEmits(['update:modelValue', 'change'])
+const slots = useSlots()
+const generatedId = useId()
 
 const isOpen = ref(false)
-const dropdownRef = ref(null)
+const triggerRef = ref(null)
 const menuRef = ref(null)
-const menuStyle = ref({})
+const dropdownStyle = ref({})
+const searchQuery = ref('')
 
-onClickOutside(dropdownRef, (event) => {
-  if (menuRef.value && menuRef.value.contains(event.target)) return
-  closeDropdown()
-})
+const normalizeText = (s) => String(s || '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase()
 
-const selectedOption = computed(() => {
-  return props.options.find(opt => opt.value === props.modelValue)
-})
+onClickOutside(triggerRef, () => {
+  isOpen.value = false
+  searchQuery.value = ''
+}, { ignore: [menuRef] })
 
-const updatePosition = () => {
-  if (!dropdownRef.value || !isOpen.value) return
-  const inputEl = dropdownRef.value.querySelector('.lg-input') || dropdownRef.value
-  const rect = inputEl.getBoundingClientRect()
-  
-  menuStyle.value = {
-    position: 'fixed',
-    top: `${rect.bottom + 4}px`,
-    left: `${rect.left}px`,
-    width: `${rect.width}px`,
-    zIndex: 9999
-  }
+function updatePosition() {
+  if (!triggerRef.value) return
+  const rect = triggerRef.value.getBoundingClientRect()
+  dropdownStyle.value = useTeleport.value
+    ? {
+        position: 'fixed',
+        top: `${rect.bottom + 4}px`,
+        left: `${rect.left}px`,
+        width: `${rect.width}px`,
+        zIndex: 999999
+      }
+    : {}
 }
 
-const toggleDropdown = async () => {
-  if (props.disabled) return
-  isOpen.value = !isOpen.value
-  if (isOpen.value) {
-    await nextTick()
-    updatePosition()
+watch(isOpen, (newVal) => {
+  if (newVal) {
+    nextTick(() => {
+      updatePosition()
+    })
     window.addEventListener('scroll', updatePosition, true)
     window.addEventListener('resize', updatePosition)
   } else {
-    removeListeners()
+    window.removeEventListener('scroll', updatePosition, true)
+    window.removeEventListener('resize', updatePosition)
+  }
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', updatePosition, true)
+  window.removeEventListener('resize', updatePosition)
+})
+
+function flattenVNodes(nodes) {
+  return nodes.flatMap((node) => {
+    if (!node || node.type === Comment) return []
+    if (node.type === Fragment) return flattenVNodes(Array.isArray(node.children) ? node.children : [])
+    return [node]
+  })
+}
+
+function vnodeText(value) {
+  if (typeof value === 'string' || typeof value === 'number') return String(value)
+  if (!Array.isArray(value)) return ''
+  return value.map((child) => {
+    if (typeof child === 'string' || typeof child === 'number') return String(child)
+    if (child?.type === Text) return String(child.children ?? '')
+    return vnodeText(child?.children)
+  }).join('')
+}
+
+const normalizedOptions = computed(() => {
+  if (props.options && props.options.length) return props.options
+
+  const defaultSlot = slots.default?.()
+  if (!defaultSlot) return []
+
+  return flattenVNodes(defaultSlot)
+    .filter((node) => node && node.type === 'option')
+    .map((node) => ({
+      value: node.props?.value ?? '',
+      label: vnodeText(node.children).trim(),
+      disabled: node.props?.disabled === '' || node.props?.disabled === true,
+    }))
+})
+
+const filteredOptions = computed(() => {
+  if (!props.searchable) return normalizedOptions.value
+  const q = normalizeText(searchQuery.value)
+  if (!q) return normalizedOptions.value
+  return normalizedOptions.value.filter(o => normalizeText(o.label).includes(q))
+})
+
+const selectedOption = computed(() => {
+  return normalizedOptions.value.find(opt => String(opt.value) === String(props.modelValue))
+})
+
+const toggleDropdown = () => {
+  if (!props.disabled) {
+    isOpen.value = !isOpen.value
   }
 }
 
-const closeDropdown = () => {
-  isOpen.value = false
-  removeListeners()
-}
-
-const removeListeners = () => {
-  window.removeEventListener('scroll', updatePosition, true)
-  window.removeEventListener('resize', updatePosition)
-}
-
-onUnmounted(() => {
-  removeListeners()
-})
-
 const selectOption = (option) => {
+  if (option.disabled) return
   emit('update:modelValue', option.value)
   emit('change', option.value)
-  closeDropdown()
+  isOpen.value = false
+  searchQuery.value = ''
 }
 
-const selectId = computed(() => props.id || `lms-select-${Math.random().toString(36).substr(2, 9)}`)
+const selectId = computed(() => props.id || `lms-select-${generatedId}`)
 </script>
 
 <template>
-  <div class="space-y-2 relative" ref="dropdownRef">
+  <div class="min-w-[180px] space-y-1 relative">
     <label
       v-if="label"
       :for="selectId"
@@ -100,9 +158,10 @@ const selectId = computed(() => props.id || `lms-select-${Math.random().toString
       {{ label }}
     </label>
 
-    <div 
+    <div
       :id="selectId"
-      class="lg-input flex items-center justify-between cursor-pointer select-none px-4 py-3 text-sm transition-all duration-200"
+      ref="triggerRef"
+      class="lg-input flex items-center justify-between cursor-pointer select-none px-4 py-2.5 text-sm transition-all duration-150"
       :class="[
         isOpen ? 'ring-2 ring-(--focus-ring) border-(--focus-ring)' : '',
         disabled ? 'cursor-not-allowed opacity-60' : '',
@@ -116,14 +175,14 @@ const selectId = computed(() => props.id || `lms-select-${Math.random().toString
       <span class="truncate flex-1 text-left" :class="selectedOption ? 'text-(--text-heading)' : 'text-(--text-placeholder)'">
         {{ selectedOption ? selectedOption.label : placeholder }}
       </span>
-      <ChevronDown 
-        class="w-4 h-4 text-(--text-muted) transition-transform duration-200" 
-        :class="{ 'rotate-180': isOpen }" 
+      <ChevronDown
+        class="w-4 h-4 text-(--text-muted) transition-transform duration-150"
+        :class="{ 'rotate-180': isOpen }"
       />
     </div>
 
-    <!-- Dropdown Menu Teleport to Body -->
-    <Teleport to="body">
+    <!-- Floating Dropdown Teleported to Body -->
+    <Teleport to="body" :disabled="!useTeleport">
       <Transition
         enter-active-class="transition duration-100 ease-out"
         enter-from-class="transform scale-95 opacity-0"
@@ -132,27 +191,43 @@ const selectId = computed(() => props.id || `lms-select-${Math.random().toString
         leave-from-class="transform scale-100 opacity-100"
         leave-to-class="transform scale-95 opacity-0"
       >
-        <div 
-          v-if="isOpen" 
+        <div
+          v-if="isOpen"
           ref="menuRef"
-          :style="menuStyle"
-          class="surface-dropdown border border-card rounded-lg shadow-2xl overflow-hidden py-1"
+          class="surface-dropdown border border-card rounded-xl shadow-2xl overflow-hidden py-1 backdrop-blur-md"
+          :class="{ 'absolute left-0 right-0 z-50 w-full mt-1': !useTeleport }"
+          :style="useTeleport ? dropdownStyle : {}"
         >
-          <ul class="max-h-60 overflow-y-auto">
-            <li 
-              v-for="option in options" 
+          <div v-if="searchable" class="px-2 pb-2 border-b border-card" @click.stop @mousedown.stop>
+            <div class="relative">
+              <Search class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-(--text-muted)" />
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="Nhập mã / tên để tìm..."
+                class="lg-input w-full text-sm pl-8 py-2"
+                @keydown.enter.prevent
+                @keydown.escape.prevent="isOpen = false; searchQuery = ''"
+              />
+            </div>
+          </div>
+          <ul v-if="filteredOptions.length" class="max-h-60 overflow-y-auto">
+            <li
+              v-for="option in filteredOptions"
               :key="option.value"
               @click="selectOption(option)"
               class="px-4 py-2.5 text-sm cursor-pointer flex items-center justify-between hover:bg-(--surface-table-row-hover) transition-colors"
               :class="{
-                'bg-(--surface-table-row-hover) text-(--text-heading) font-semibold': option.value === modelValue,
-                'text-(--text-body)': option.value !== modelValue
+                'bg-(--surface-table-row-hover) text-(--text-heading) font-semibold': String(option.value) === String(modelValue),
+                'text-(--text-body)': String(option.value) !== String(modelValue),
+                'cursor-not-allowed opacity-50': option.disabled
               }"
             >
               <span class="truncate flex-1 text-left">{{ option.label }}</span>
-              <Check v-if="option.value === modelValue" class="w-4 h-4 text-(--text-heading) shrink-0 ml-2" />
+              <Check v-if="String(option.value) === String(modelValue)" class="w-4 h-4 text-link shrink-0 ml-2" />
             </li>
           </ul>
+          <p v-else class="px-4 py-3 text-sm text-(--text-muted)">Không tìm thấy kết quả phù hợp.</p>
         </div>
       </Transition>
     </Teleport>
@@ -179,4 +254,3 @@ ul::-webkit-scrollbar-thumb {
   background-color: rgba(71, 85, 105, 0.5);
 }
 </style>
-

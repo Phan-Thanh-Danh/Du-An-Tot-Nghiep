@@ -4,6 +4,7 @@ using Backend.DTOs.Common;
 using Backend.Services.Buildings;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Backend.Services.Bgh;
 
 namespace Backend.Controllers;
 
@@ -13,6 +14,7 @@ namespace Backend.Controllers;
 public class BuildingsController : ControllerBase
 {
     private const string ReaderRoles =
+        AuthRoles.Principal + "," +
         AuthRoles.SuperAdmin + "," +
         AuthRoles.Admin + "," +
         AuthRoles.CampusAdmin + "," +
@@ -20,16 +22,19 @@ public class BuildingsController : ControllerBase
         AuthRoles.AcademicStaff;
 
     private const string ManagerRoles =
+        AuthRoles.Principal + "," +
         AuthRoles.SuperAdmin + "," +
         AuthRoles.Admin + "," +
         AuthRoles.CampusAdmin + "," +
         AuthRoles.SubCampusAdmin;
 
     private readonly IBuildingService _buildingService;
+    private readonly IBghPerformanceCache _cache;
 
-    public BuildingsController(IBuildingService buildingService)
+    public BuildingsController(IBuildingService buildingService, IBghPerformanceCache cache)
     {
         _buildingService = buildingService;
+        _cache = cache;
     }
 
     [HttpGet]
@@ -57,6 +62,7 @@ public class BuildingsController : ControllerBase
         CancellationToken cancellationToken)
     {
         var building = await _buildingService.CreateAsync(request, cancellationToken);
+        _cache.RemoveByPrefix("bgh:");
         return CreatedAtAction(
             nameof(GetById),
             new { id = building.MaToaNha },
@@ -71,6 +77,7 @@ public class BuildingsController : ControllerBase
         CancellationToken cancellationToken)
     {
         var building = await _buildingService.UpdateAsync(id, request, cancellationToken);
+        _cache.RemoveByPrefix("bgh:");
         return Ok(ApiResponseDto<BuildingDto>.Ok(building, "Cập nhật tòa nhà thành công"));
     }
 
@@ -79,6 +86,7 @@ public class BuildingsController : ControllerBase
     public async Task<ActionResult<ApiResponseDto>> Delete(int id, CancellationToken cancellationToken)
     {
         await _buildingService.DeleteAsync(id, cancellationToken);
+        _cache.RemoveByPrefix("bgh:");
         return Ok(ApiResponseDto.Ok("Xóa tòa nhà thành công"));
     }
 }

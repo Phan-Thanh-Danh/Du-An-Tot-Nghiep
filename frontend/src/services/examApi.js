@@ -10,6 +10,24 @@ export const examApi = {
     const qs = new URLSearchParams(params).toString()
     return apiRequest(`/api/exam/ky-thi${qs ? '?' + qs : ''}`).then(unwrapApiData)
   },
+  getExamPeriod(id) {
+    return apiRequest(`/api/exam/ky-thi/${id}`).then(unwrapApiData)
+  },
+  createExamPeriod(payload) {
+    return apiRequest('/api/exam/ky-thi', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }).then(unwrapApiData)
+  },
+  publishExamPeriod(id) {
+    return apiRequest(`/api/exam/ky-thi/${id}/publish`, { method: 'POST' }).then(unwrapApiData)
+  },
+  closeExamPeriod(id) {
+    return apiRequest(`/api/exam/ky-thi/${id}/close`, { method: 'POST' }).then(unwrapApiData)
+  },
+  getExamPeriodLichThiTongs(id) {
+    return apiRequest(`/api/exam/ky-thi/${id}/lich-thi-tong`).then(unwrapApiData)
+  },
 
   // ===== Student Exam Taking =====
   getStudentExams() {
@@ -63,6 +81,9 @@ export const examApi = {
       method: 'POST',
       body: JSON.stringify(payload),
     }).then(unwrapApiData)
+  },
+  getQuizHistory(quizId) {
+    return apiRequest(`/api/quiz-attempts/${quizId}/history`).then(unwrapApiData)
   },
 
   // ===== Teacher Proctoring =====

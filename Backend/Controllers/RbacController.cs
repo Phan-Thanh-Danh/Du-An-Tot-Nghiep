@@ -63,6 +63,25 @@ public class RbacController : ControllerBase
         return Ok(ApiResponseDto<RoleDto>.Ok(role, "Cập nhật vai trò thành công"));
     }
 
+    [HttpGet("roles/{id:int}/permissions")]
+    public async Task<ActionResult<ApiResponseDto<RolePermissionsDto>>> GetRolePermissions(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        var result = await _rbacService.GetRolePermissionsAsync(id, cancellationToken);
+        return Ok(ApiResponseDto<RolePermissionsDto>.Ok(result));
+    }
+
+    [HttpPut("roles/{id:int}/permissions")]
+    public async Task<ActionResult<ApiResponseDto<RolePermissionsDto>>> UpdateRolePermissions(
+        int id,
+        UpdateRolePermissionsRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _rbacService.UpdateRolePermissionsAsync(id, request, cancellationToken);
+        return Ok(ApiResponseDto<RolePermissionsDto>.Ok(result, "Cập nhật ma trận phân quyền thành công"));
+    }
+
     [HttpDelete("roles/{id:int}")]
     public async Task<ActionResult<ApiResponseDto>> DeleteRole(int id, CancellationToken cancellationToken)
     {

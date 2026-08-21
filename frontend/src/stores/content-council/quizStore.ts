@@ -5,6 +5,58 @@ import type { ContentCouncilQuiz, QuizBuilderQuestion } from '@/types/content-co
 import { useQuestionStore } from './questionStore'
 
 
+function normalizeQuiz(raw: any): ContentCouncilQuiz {
+  if (!raw) return {} as ContentCouncilQuiz
+  const id = raw.maDeKiemTra ?? raw.MaDeKiemTra ?? raw.id
+  const loaiBe = raw.loaiDeThi ?? raw.LoaiDeThi
+  const format: 'multiple_choice' | 'essay' | 'mixed' =
+    loaiBe === 'trac_nghiem' ? 'multiple_choice'
+    : loaiBe === 'tu_luan' ? 'essay'
+    : loaiBe === 'ket_hop' ? 'mixed'
+    : 'multiple_choice'
+
+  const cfg = raw.cauHinh ?? raw.CauHinh ?? {}
+  const cachTinhDat = cfg.cachTinhDat ?? cfg.CachTinhDat ?? 'theo_diem'
+  const cachTinhDiemCuoi = cfg.cachTinhDiemCuoi ?? cfg.CachTinhDiemCuoi ?? 'lay_diem_cao_nhat'
+
+  return {
+    id,
+    code: raw.code ?? `QZ-${id}`,
+    title: raw.tieuDe ?? raw.TieuDe ?? raw.title ?? '',
+    description: raw.moTa ?? raw.MoTa ?? '',
+    subjectId: raw.maMonHoc ?? raw.MaMonHoc ?? raw.subjectId ?? 0,
+    subjectCode: raw.maCodeMonHoc ?? raw.MaCodeMonHoc ?? raw.subjectCode ?? '',
+    subjectName: raw.tenMonHoc ?? raw.TenMonHoc ?? raw.subjectName ?? '',
+    status: raw.trangThai ?? raw.TrangThai ?? raw.status ?? 'draft',
+    examType: 'lesson_quiz',
+    format,
+    durationMinutes: raw.thoiGianPhut ?? raw.ThoiGianPhut ?? 15,
+    multipleChoicePercentage: raw.tyLeTracNghiem ?? raw.TyLeTracNghiem ?? 100,
+    essayPercentage: raw.tyLeTuLuan ?? raw.TyLeTuLuan ?? 0,
+    questionCount: raw.soCauHoi ?? raw.SoCauHoi ?? raw.tongSoCauHoi ?? 0,
+    multipleChoiceQuestionCount: raw.soCauTracNghiem ?? raw.SoCauTracNghiem ?? 0,
+    essayQuestionCount: raw.soCauTuLuan ?? raw.SoCauTuLuan ?? 0,
+    totalScore: cfg.tongDiem ?? cfg.TongDiem ?? raw.tongDiem ?? raw.TongDiem ?? 10,
+    passingScore: cfg.diemDat ?? cfg.DiemDat ?? null,
+    minimumCorrectAnswers: cfg.soCauDungToiThieu ?? cfg.SoCauDungToiThieu ?? null,
+    passMethod: cachTinhDat === 'theo_so_cau_dung' ? 'correct_answer_count' : 'score',
+    unlimitedAttempts: cfg.khongGioiHanSoLan ?? cfg.KhongGioiHanSoLan ?? true,
+    maximumAttempts: cfg.soLanLamToiDa ?? cfg.SoLanLamToiDa ?? null,
+    finalScoreMethod: cachTinhDiemCuoi === 'lay_lan_cuoi' ? 'last' : (cachTinhDiemCuoi === 'lay_trung_binh' ? 'average' : 'highest'),
+    shuffleQuestions: cfg.xaoTronCauHoi ?? cfg.XaoTronCauHoi ?? false,
+    shuffleAnswers: cfg.xaoTronDapAn ?? cfg.XaoTronDapAn ?? false,
+    showResultAfterSubmit: cfg.hienKetQuaSauKhiNop ?? cfg.HienKetQuaSauKhiNop ?? true,
+    showCorrectAnswerAfterSubmit: cfg.hienDapAnDungSauKhiNop ?? cfg.HienDapAnDungSauKhiNop ?? false,
+    showExplanationAfterSubmit: false,
+    openAt: cfg.moLuc ?? cfg.MoLuc ?? null,
+    closeAt: cfg.dongLuc ?? cfg.DongLuc ?? null,
+    usageCount: 0,
+    trangThaiDuyet: raw.trangThaiDuyet ?? raw.TrangThaiDuyet ?? 'nhap',
+    createdAt: raw.ngayTao ?? raw.NgayTao ?? new Date().toISOString(),
+    updatedAt: raw.ngayCapNhat ?? raw.NgayCapNhat ?? new Date().toISOString(),
+  }
+}
+
 export const useQuizStore = defineStore('contentCouncilQuiz', () => {
   const quizzes = ref<ContentCouncilQuiz[]>([])
   const quizQuestions = ref<Record<number, QuizBuilderQuestion[]>>({})
@@ -14,14 +66,18 @@ export const useQuizStore = defineStore('contentCouncilQuiz', () => {
 
   const questionStore = useQuestionStore()
 
-  async function init() {
-    if (initialized.value) return
+  async function init(force = false) {
+    if (!force && initialized.value) return
     loading.value = true
     error.value = null
     try {
       const res = await contentCouncilApi.getQuizzes()
-      const data = res?.data ?? res?.items ?? res ?? []
-      quizzes.value = Array.isArray(data) ? data : []
+      const rawData = res?.data?.items ?? res?.data?.Items ?? res?.items ?? res?.Items ?? (Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []))
+      if (Array.isArray(rawData)) {
+        quizzes.value = rawData.map(normalizeQuiz)
+      } else {
+        quizzes.value = []
+      }
       initialized.value = true
     } catch (e: any) {
       error.value = e?.message || 'Không thể tải bài kiểm tra'
@@ -131,8 +187,16 @@ export const useQuizStore = defineStore('contentCouncilQuiz', () => {
 
   async function publishQuizAction(id: number) {
     try {
-      await contentCouncilApi.publishQuiz(id)
       const q = getQuizById(id)
+      if (q && q.trangThaiDuyet !== 'da_xac_thuc') {
+        try {
+          await contentCouncilApi.validateQuiz(id)
+          q.trangThaiDuyet = 'da_xac_thuc'
+        } catch (vErr) {
+          console.warn('Validate quiz step note:', vErr)
+        }
+      }
+      await contentCouncilApi.publishQuiz(id)
       if (q) {
         q.status = 'published'
         q.trangThaiDuyet = 'da_xac_thuc'

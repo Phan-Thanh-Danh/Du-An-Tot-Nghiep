@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Award, Search, Users } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
+import { Award, Search, Users, Loader2 } from 'lucide-vue-next'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
@@ -8,10 +9,43 @@ import TableShell from '@/components/ui/TableShell.vue'
 import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import { rewardDisciplineApi } from '@/services/rewardDisciplineApi'
+import { organizationApi } from '@/services/organizationService'
+import { certificateTemplateApi } from '@/services/certificateTemplateApi'
+import { academicTermApi } from '@/services/academicTermApi'
+import { useAuthStore } from '@/stores/auth'
 import { unwrapApiData } from '@/services/apiClient'
 import { usePopupStore } from '@/stores/popup'
 
 const popupStore = usePopupStore()
+const showCreateModal = ref(false)
+const isSubmitting = ref(false)
+const terms = ref([])
+const campuses = ref([])
+const templates = ref([])
+const createForm = ref({
+  tenDot: '',
+  maHocKy: null,
+  maDonVi: null,
+  soLuongToiDa: 100,
+  maMauBangKhen: null,
+  ghiChu: ''
+})
+
+const resetCreateForm = () => {
+  createForm.value = {
+    tenDot: '',
+    maHocKy: null,
+    maDonVi: null,
+    soLuongToiDa: 100,
+    maMauBangKhen: null,
+    ghiChu: ''
+  }
+}
+
+const filteredTerms = computed(() => {
+  if (!createForm.value.maDonVi) return []
+  return terms.value.filter(t => t.maDonVi === createForm.value.maDonVi || t.MaDonVi === createForm.value.maDonVi)
+})
 const campaigns = ref([])
 const loading = ref(false)
 const confirmAction = ref(null)
@@ -19,6 +53,11 @@ const searchQuery = ref('')
 const filter = ref('all')
 const selectedCampaign = ref(null)
 const candidates = ref([])
+const genProgress = ref(null)
+
+const showCandidatesModal = ref(false)
+const fullCandidates = ref([])
+const isLoadingCandidates = ref(false)
 
 const mapCampaign = (item) => ({
   id: item.maDotKhenThuong ?? item.MaDotKhenThuong,
@@ -27,6 +66,8 @@ const mapCampaign = (item) => ({
   hocKy: item.tenHocKy ?? item.TenHocKy ?? 'Chưa có học kỳ',
   donVi: item.tenDonVi ?? item.TenDonVi,
   trangThai: normalizeCampaignStatus(item.trangThai ?? item.TrangThai ?? 'nhap'),
+  maMauBangKhen: item.maMauBangKhen ?? item.MaMauBangKhen,
+  tenMauBangKhen: item.tenMauBangKhen ?? item.TenMauBangKhen,
   tongUngVien: 0,
   daDuyet: 0,
 })
@@ -34,6 +75,7 @@ const mapCampaign = (item) => ({
 function normalizeCampaignStatus(status) {
   if (['da_duyet', 'cho_duyet'].includes(status)) return 'approved'
   if (['da_cong_bo', 'completed'].includes(status)) return 'completed'
+  if (['da_huy', 'cancelled'].includes(status)) return 'cancelled'
   return 'evaluating'
 }
 
@@ -62,7 +104,81 @@ const fetchCampaigns = async () => {
   }
 }
 
-onMounted(() => fetchCampaigns())
+onMounted(async () => {
+  fetchCampaigns()
+  try {
+    const [termsRes, templatesRes, orgRes] = await Promise.all([
+      academicTermApi.list({ pageIndex: 1, pageSize: 1000 }),
+      certificateTemplateApi.getTemplates({ pageIndex: 1, pageSize: 100 }),
+      organizationApi.getAll().catch(() => null)
+    ])
+    terms.value = termsRes || []
+    
+    // Filter campuses
+    const orgs = unwrapApiData(orgRes) || []
+    const campusList = orgs.filter(o => o.loaiDonVi === 'Campus' || o.LoaiDonVi === 'Campus')
+    campuses.value = campusList.length ? campusList : orgs
+
+    const tplData = unwrapApiData(templatesRes)
+    templates.value = tplData?.items ?? tplData?.Items ?? []
+  } catch (err) {
+    console.error('Lỗi tải danh mục:', err)
+  }
+})
+
+const submitCreateForm = async () => {
+  if (!createForm.value.tenDot || !createForm.value.maHocKy || !createForm.value.maDonVi) {
+    popupStore.error('Thiếu thông tin', 'Vui lòng nhập tên đợt, chọn cơ sở và học kỳ.')
+    return
+  }
+  isSubmitting.value = true
+  try {
+    await rewardDisciplineApi.createTop100Campaign({
+      MaDonVi: createForm.value.maDonVi,
+      MaHocKy: createForm.value.maHocKy,
+      TenDot: createForm.value.tenDot,
+      SoLuongToiDa: createForm.value.soLuongToiDa,
+      MaMauBangKhen: createForm.value.maMauBangKhen,
+      GhiChu: createForm.value.ghiChu
+    })
+    popupStore.success('Thành công', 'Đã tạo đợt khen thưởng mới.')
+    showCreateModal.value = false
+    resetCreateForm()
+    fetchCampaigns()
+  } catch (err) {
+    popupStore.error('Lỗi', err?.message || 'Không thể tạo đợt khen thưởng.')
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+const evaluateCampaignAction = async () => {
+  if (!selectedCampaign.value) return
+  const cmp = selectedCampaign.value
+  try {
+    popupStore.success('Đang xử lý', 'Hệ thống đang quét dữ liệu điểm số...')
+    await rewardDisciplineApi.evaluateCampaign(cmp.id, { isDryRun: false })
+    popupStore.success('Thành công', 'Tính toán xếp hạng thành công.')
+    selectCampaign(cmp)
+  } catch (err) {
+    popupStore.error('Lỗi', err?.message || 'Không thể tính toán xếp hạng.')
+  }
+}
+
+const fetchFullCandidates = async () => {
+  if (!selectedCampaign.value) return
+  isLoadingCandidates.value = true
+  showCandidatesModal.value = true
+  try {
+    const res = await rewardDisciplineApi.getRewardCampaignCandidates(selectedCampaign.value.id, { pageIndex: 1, pageSize: 500 })
+    const data = unwrapApiData(res)
+    fullCandidates.value = (data?.items ?? data?.Items ?? []).map(mapCandidate)
+  } catch (err) {
+    popupStore.error('Lỗi', err?.message || 'Không thể tải danh sách ứng viên.')
+  } finally {
+    isLoadingCandidates.value = false
+  }
+}
 
 const filteredCampaigns = computed(() => {
   let list = campaigns.value
@@ -80,32 +196,68 @@ const selectCampaign = async (cmp) => {
   selectedCampaign.value = cmp
   candidates.value = []
   try {
-    const res = await rewardDisciplineApi.getRewardCampaignCandidates(cmp.id, { pageIndex: 1, pageSize: 3 })
-    const data = unwrapApiData(res)
+    const [candidatesRes, summaryRes] = await Promise.all([
+      rewardDisciplineApi.getRewardCampaignCandidates(cmp.id, { pageIndex: 1, pageSize: 3 }),
+      rewardDisciplineApi.getApprovalSummary(cmp.id).catch(() => null)
+    ])
+    
+    const data = unwrapApiData(candidatesRes)
     candidates.value = (data?.items ?? data?.Items ?? []).map(mapCandidate)
+
+    if (summaryRes) {
+      const summary = unwrapApiData(summaryRes)
+      if (summary) {
+        cmp.tongUngVien = summary.totalCandidates ?? summary.TotalCandidates ?? 0
+        cmp.daDuyet = summary.selectedCount ?? summary.SelectedCount ?? summary.approvedCandidateCount ?? summary.ApprovedCandidateCount ?? 0
+      }
+    }
   } catch (err) {
-    popupStore.error('Không thể tải ứng viên', err?.message || 'Không thể tải danh sách ứng viên.')
+    popupStore.error('Không thể tải thông tin', err?.message || 'Không thể tải thông tin đợt khen thưởng.')
   }
+}
+
+function parseConfig(json) {
+  try {
+    const value = typeof json === 'string' ? JSON.parse(json) : json
+    return value || null
+  } catch {
+    return null
+  }
+}
+
+async function generateCertificatesFrontend(campaign) {
+  await rewardDisciplineApi.generateRewardCertificates(campaign.id, {
+    forceRegenerate: true,
+  })
+  return { mode: 'backend' }
 }
 
 const generateCertificates = () => {
   if (!selectedCampaign.value) return
+  const cmp = selectedCampaign.value
+  const hasHtmlTemplate = Boolean(cmp.maMauBangKhen)
   confirmAction.value = {
     title: 'Phát sinh bằng khen',
-    message: `Bạn muốn tạo bằng khen (PDF) cho đợt "${selectedCampaign.value.tenDot}"? Thao tác này sẽ xử lý ${selectedCampaign.value.daDuyet} ứng viên.`,
-    label: 'Bắt đầu tạo',
+    message: hasHtmlTemplate
+      ? `Đợt này dùng mẫu giấy khen "${cmp.tenMauBangKhen || '—'}" (HTML/CSS). Sinh viên sẽ tự render PDF khi tải về. Bạn chỉ đang duyệt cấp phát.`
+      : `Bạn muốn tạo bằng khen (PDF) cho đợt "${cmp.tenDot}"? Thao tác này sẽ xử lý toàn bộ ứng viên đã duyệt.`,
+    label: 'Cấp phát bằng khen',
     variant: 'primary',
     run: async () => {
       confirmAction.value = null
       try {
-        await rewardDisciplineApi.generateRewardCertificates(selectedCampaign.value.id, {})
-        popupStore.success('Thành công', 'Đã phát sinh bằng khen.')
-        selectedCampaign.value.trangThai = 'completed'
-      } catch (_e) {
-        console.error(_e)
-        popupStore.error('Lỗi', _e?.message || 'Có lỗi xảy ra khi tạo bằng khen.')
+        genProgress.value = { current: 0, total: cmp.daDuyet || 1, message: 'Đang xử lý...' }
+        const result = await generateCertificatesFrontend(cmp)
+        
+        popupStore.success('Hoàn tất', 'Đã cấp phát bằng khen thành công.')
+        cmp.trangThai = 'completed'
+      } catch (err) {
+        console.error(err)
+        popupStore.error('Lỗi', err?.message || 'Có lỗi xảy ra khi tạo bằng khen.')
+      } finally {
+        genProgress.value = null
       }
-    }
+    },
   }
 }
 
@@ -125,6 +277,27 @@ const approveCampaign = () => {
         popupStore.success('Thành công', 'Đã chốt danh sách đợt khen thưởng.')
       } catch (err) {
         popupStore.error('Lỗi', err?.message || 'Không thể chốt danh sách khen thưởng.')
+      }
+    }
+  }
+}
+
+const cancelCampaignAction = () => {
+  if (!selectedCampaign.value) return
+  confirmAction.value = {
+    title: 'Hủy đợt khen thưởng',
+    message: `Bạn có chắc chắn muốn hủy đợt khen thưởng "${selectedCampaign.value.tenDot}"? Thao tác này không thể hoàn tác.`,
+    label: 'Xác nhận hủy',
+    variant: 'danger',
+    run: async () => {
+      try {
+        await rewardDisciplineApi.cancelCampaign(selectedCampaign.value.id, { LyDoHuy: 'Hủy bởi Super Admin' })
+        selectedCampaign.value = null
+        confirmAction.value = null
+        popupStore.success('Thành công', 'Đã hủy đợt khen thưởng.')
+        fetchCampaigns()
+      } catch (err) {
+        popupStore.error('Lỗi', err?.message || 'Không thể hủy đợt khen thưởng.')
       }
     }
   }
@@ -171,8 +344,9 @@ const approveCampaign = () => {
           <option value="evaluating">Đang xét duyệt</option>
           <option value="approved">Đã duyệt (Chờ cấp bằng)</option>
           <option value="completed">Đã hoàn tất</option>
+          <option value="cancelled">Đã hủy</option>
         </select>
-        <GlassButton variant="primary" class="h-10">Tạo đợt mới</GlassButton>
+        <GlassButton @click="showCreateModal = true" variant="primary" class="h-10">Tạo đợt mới</GlassButton>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 min-h-[500px]">
@@ -198,6 +372,7 @@ const approveCampaign = () => {
                   <td>
                     <GlassBadge v-if="cmp.trangThai === 'approved'" variant="warning" size="sm">Đã duyệt</GlassBadge>
                     <GlassBadge v-else-if="cmp.trangThai === 'evaluating'" variant="info" size="sm">Đang xét</GlassBadge>
+                    <GlassBadge v-else-if="cmp.trangThai === 'cancelled'" variant="danger" size="sm">Đã hủy</GlassBadge>
                     <GlassBadge v-else variant="success" size="sm">Hoàn tất</GlassBadge>
                   </td>
                 </tr>
@@ -219,12 +394,14 @@ const approveCampaign = () => {
               <div class="flex items-center gap-2 mb-4">
                 <GlassBadge v-if="selectedCampaign.trangThai === 'approved'" variant="warning" size="sm">Đã chốt danh sách</GlassBadge>
                 <GlassBadge v-else-if="selectedCampaign.trangThai === 'evaluating'" variant="info" size="sm">Đang xét duyệt</GlassBadge>
+                <GlassBadge v-else-if="selectedCampaign.trangThai === 'cancelled'" variant="danger" size="sm">Đã hủy</GlassBadge>
                 <GlassBadge v-else variant="success" size="sm">Hoàn tất bằng khen</GlassBadge>
                 <span class="text-xs text-(--text-muted) font-mono">{{ selectedCampaign.maDot }}</span>
               </div>
               <div class="space-y-2 text-sm">
                 <div class="flex justify-between"><span class="text-(--text-muted)">Học kỳ</span><span class="font-medium text-(--text-body)">{{ selectedCampaign.hocKy }}</span></div>
                 <div class="flex justify-between"><span class="text-(--text-muted)">Đơn vị</span><span class="font-medium text-(--text-body)">{{ selectedCampaign.donVi || 'Toàn trường' }}</span></div>
+                <div v-if="selectedCampaign.tenMauBangKhen" class="flex justify-between"><span class="text-(--text-muted)">Mẫu giấy khen</span><span class="font-medium text-(--text-body)">{{ selectedCampaign.tenMauBangKhen }}</span></div>
               </div>
             </div>
 
@@ -256,11 +433,14 @@ const approveCampaign = () => {
                   </div>
                 </div>
               </div>
-              <GlassButton variant="ghost" size="sm" class="w-full mt-3 text-sm justify-center">Xem toàn bộ danh sách</GlassButton>
+              <GlassButton @click="fetchFullCandidates" variant="ghost" size="sm" class="w-full mt-3 text-sm justify-center">Xem toàn bộ danh sách</GlassButton>
             </div>
 
             <div class="p-5 mt-auto bg-(--surface-modal)">
               <div class="flex flex-col gap-2">
+                <GlassButton v-if="selectedCampaign.trangThai === 'evaluating'" variant="primary" class="w-full justify-center bg-indigo-600 hover:bg-indigo-700 text-white border-none" @click="evaluateCampaignAction">
+                  Bắt đầu tính toán xếp hạng
+                </GlassButton>
                 <GlassButton v-if="selectedCampaign.trangThai === 'evaluating'" variant="primary" class="w-full justify-center" @click="approveCampaign">
                   Chốt danh sách khen thưởng
                 </GlassButton>
@@ -273,6 +453,9 @@ const approveCampaign = () => {
                 <GlassButton v-if="selectedCampaign.trangThai === 'approved' || selectedCampaign.trangThai === 'completed'" variant="ghost" class="w-full justify-center">
                   Gửi thông báo cho sinh viên
                 </GlassButton>
+                <GlassButton v-if="['evaluating', 'approved'].includes(selectedCampaign.trangThai)" variant="ghost" class="w-full justify-center text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20" @click="cancelCampaignAction">
+                  Hủy đợt khen thưởng
+                </GlassButton>
               </div>
             </div>
           </div>
@@ -282,7 +465,7 @@ const approveCampaign = () => {
 
     <ConfirmActionDialog
       v-if="confirmAction"
-      :show="true"
+      :model-value="true"
       :title="confirmAction.title"
       :message="confirmAction.message"
       :confirmLabel="confirmAction.label"
@@ -290,5 +473,134 @@ const approveCampaign = () => {
       @confirm="confirmAction.run"
       @cancel="confirmAction = null"
     />
+
+    <div v-if="genProgress" class="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
+      <div class="lg-glass-strong w-full max-w-md rounded-2xl border border-(--border-card) p-6">
+        <div class="mb-2 flex items-center gap-2">
+          <Loader2 class="h-5 w-5 animate-spin text-(--color-info-text)" />
+          <h3 class="text-heading font-bold">Đang cấp phát bằng khen...</h3>
+        </div>
+        <p class="text-label mb-3 text-sm">
+          Đã xử lý {{ genProgress.done }}/{{ genProgress.total }} —
+          {{ genProgress.current || 'Đang chuẩn bị' }}
+        </p>
+        <div class="h-2 w-full overflow-hidden rounded-full bg-(--surface-input)">
+          <div
+            class="h-full bg-(--color-info-text) transition-all duration-200"
+            :style="{ width: `${genProgress.total ? (genProgress.done / genProgress.total) * 100 : 0}%` }"
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showCreateModal" class="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
+      <div class="lg-glass-strong w-full max-w-lg rounded-2xl border border-(--border-card) p-6">
+        <h3 class="text-xl font-bold text-(--text-heading) mb-4">Tạo đợt khen thưởng mới (Top 100)</h3>
+        
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-(--text-label) mb-1">Tên đợt khen thưởng <span class="text-red-500">*</span></label>
+            <input v-model="createForm.tenDot" type="text" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg focus:ring-2 focus:ring-(--border-focus) outline-none transition-shadow text-sm" placeholder="VD: Khen thưởng Top 100 Học kỳ..." />
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div class="flex flex-col gap-1.5">
+              <label class="text-sm font-medium text-(--text-body)">Cơ sở <span class="text-red-500">*</span></label>
+              <select v-model="createForm.maDonVi" @change="createForm.maHocKy = null" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg focus:ring-2 focus:ring-(--border-focus) outline-none transition-shadow text-sm">
+                <option :value="null">-- Chọn cơ sở --</option>
+                <option v-for="c in campuses" :key="c.id || c.Id || c.maDonVi" :value="c.id || c.Id || c.maDonVi">
+                  {{ c.tenDonVi || c.TenDonVi || c.name }}
+                </option>
+              </select>
+            </div>
+            
+            <div class="flex flex-col gap-1.5">
+              <label class="text-sm font-medium text-(--text-body)">Học kỳ <span class="text-red-500">*</span></label>
+              <select v-model="createForm.maHocKy" :disabled="!createForm.maDonVi" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg focus:ring-2 focus:ring-(--border-focus) outline-none transition-shadow text-sm disabled:opacity-50 disabled:bg-gray-100 dark:disabled:bg-gray-800">
+                <option :value="null">-- Chọn học kỳ --</option>
+                <option v-for="t in filteredTerms" :key="t.maHocKy || t.MaHocKy" :value="t.maHocKy || t.MaHocKy">
+                  {{ t.tenHocKy || t.TenHocKy }}
+                </option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-(--text-label) mb-1">Số lượng tối đa</label>
+              <input v-model.number="createForm.soLuongToiDa" type="number" min="1" max="1000" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg focus:ring-2 focus:ring-(--border-focus) outline-none transition-shadow text-sm" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-(--text-label) mb-1">Mẫu bằng khen</label>
+            <select v-model="createForm.maMauBangKhen" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg focus:ring-2 focus:ring-(--border-focus) outline-none transition-shadow text-sm">
+              <option :value="null">-- Mặc định --</option>
+              <option v-for="tpl in templates" :key="tpl.maMauBangKhen || tpl.MaMauBangKhen" :value="tpl.maMauBangKhen || tpl.MaMauBangKhen">
+                {{ tpl.tenMau || tpl.TenMau }}
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-(--text-label) mb-1">Ghi chú</label>
+            <textarea v-model="createForm.ghiChu" class="w-full p-3 bg-(--surface-input) border border-(--border-input) rounded-lg focus:ring-2 focus:ring-(--border-focus) outline-none transition-shadow text-sm resize-none" rows="3" placeholder="Nhập ghi chú..."></textarea>
+          </div>
+        </div>
+
+        <div class="mt-6 flex justify-end gap-3">
+          <GlassButton @click="showCreateModal = false" variant="ghost">Hủy</GlassButton>
+          <GlassButton @click="submitCreateForm" variant="primary" :disabled="isSubmitting">
+            <Loader2 v-if="isSubmitting" class="animate-spin mr-2 h-4 w-4" />
+            Tạo đợt
+          </GlassButton>
+        </div>
+      </div>
+    </div>
+
+    <!-- Candidates Modal -->
+    <div v-if="showCandidatesModal" class="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4">
+      <div class="lg-glass-strong w-full max-w-4xl max-h-[85vh] rounded-2xl border border-(--border-card) flex flex-col overflow-hidden">
+        <div class="p-5 border-b border-(--border-default) flex justify-between items-center bg-(--surface-card)">
+          <h3 class="text-xl font-bold text-(--text-heading)">Danh sách ứng viên khen thưởng</h3>
+          <button @click="showCandidatesModal = false" class="text-(--text-muted) hover:text-(--text-heading) transition-colors">
+            ✕
+          </button>
+        </div>
+        <div class="p-0 overflow-y-auto flex-1 bg-(--surface-card)">
+          <div v-if="isLoadingCandidates" class="p-8 flex justify-center items-center">
+            <Loader2 class="animate-spin text-(--color-info-text) h-8 w-8" />
+          </div>
+          <TableShell v-else-if="fullCandidates.length > 0">
+            <table>
+              <thead class="sticky top-0 bg-(--surface-card) z-10 shadow-sm">
+                <tr>
+                  <th class="w-16 text-center">Hạng</th>
+                  <th>MSSV</th>
+                  <th>Họ Tên</th>
+                  <th class="text-right">Điểm xét</th>
+                  <th class="text-center">Trạng thái</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="c in fullCandidates" :key="c.id" class="hover:bg-(--surface-hover) transition-colors">
+                  <td class="text-center font-bold text-amber-600">{{ c.rank }}</td>
+                  <td class="font-mono text-sm">{{ c.rollNum }}</td>
+                  <td class="font-medium text-(--text-heading)">{{ c.name }}</td>
+                  <td class="text-right font-bold text-(--lg-primary)">{{ c.gpa }}</td>
+                  <td class="text-center">
+                    <GlassBadge v-if="c.status === 'approved'" variant="success" size="sm">Đã duyệt</GlassBadge>
+                    <GlassBadge v-else variant="info" size="sm">Đang xét</GlassBadge>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </TableShell>
+          <div v-else class="p-12 text-center text-(--text-muted)">
+            Không có ứng viên nào trong danh sách.
+          </div>
+        </div>
+        <div class="p-4 border-t border-(--border-default) bg-(--surface-card) flex justify-end">
+          <GlassButton @click="showCandidatesModal = false" variant="ghost">Đóng</GlassButton>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

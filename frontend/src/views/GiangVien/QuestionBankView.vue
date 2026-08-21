@@ -1,5 +1,5 @@
-﻿<script setup>
-import { ref } from 'vue'
+<script setup>
+import { ref, computed } from 'vue'
 import { 
   Plus, Search, Filter, MoreHorizontal, Edit2, 
   Trash2, Database, HelpCircle, Layers,
@@ -8,6 +8,7 @@ import {
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import TableShell from '@/components/ui/TableShell.vue'
+import LmsSelect from '@/components/LmsSelect.vue'
 
 const questions = ref([
   { id: 1, content: 'HTML là viết tắt của từ gì?', type: 'Trắc nghiệm', difficulty: 'Dễ', category: 'Web Development', usageCount: 12 },
@@ -15,6 +16,32 @@ const questions = ref([
   { id: 3, content: 'Giải thuật sắp xếp nhanh (Quick Sort) có độ phức tạp trung bình là bao nhiêu?', type: 'Trắc nghiệm', difficulty: 'Khó', category: 'Algorithms', usageCount: 8 },
   { id: 4, content: 'Trình bày các đặc tính của lập trình hướng đối tượng (OOP).', type: 'Tự luận', difficulty: 'Trung bình', category: 'Software Engineering', usageCount: 15 },
 ])
+
+const difficultyFilter = ref('')
+const searchQuery = ref('')
+
+const difficultyFilterOptions = [
+  { value: '', label: 'Tất cả độ khó' },
+  { value: 'Dễ', label: 'Mức Dễ' },
+  { value: 'Trung bình', label: 'Mức Trung bình' },
+  { value: 'Khó', label: 'Mức Khó' }
+]
+
+const filteredQuestions = computed(() => {
+  let list = questions.value
+  if (difficultyFilter.value) {
+    list = list.filter(q => q.difficulty === difficultyFilter.value)
+  }
+  if (searchQuery.value.trim()) {
+    const q = searchQuery.value.trim().toLowerCase()
+    list = list.filter(item => 
+      item.content.toLowerCase().includes(q) ||
+      item.category.toLowerCase().includes(q) ||
+      item.type.toLowerCase().includes(q)
+    )
+  }
+  return list
+})
 
 const difficultyVariants = {
   'Dễ': 'success',
@@ -36,6 +63,9 @@ const deletingQuestionId = ref(null)
 const categories = ['Web Development', 'JavaScript', 'Algorithms', 'Software Engineering', 'Database', 'General']
 const types = ['Trắc nghiệm', 'Tự luận']
 const difficulties = ['Dễ', 'Trung bình', 'Khó']
+
+const categoryOptions = categories.map(c => ({ value: c, label: c }))
+const typeOptions = types.map(t => ({ value: t, label: t }))
 
 function openEditModal(question) {
   editingQuestion.value = { ...question }
@@ -65,79 +95,57 @@ function deleteQuestion() {
 </script>
 
 <template>
-  <div class="space-y-8 pb-10">
-    <!-- ── Header ── -->
-    <div class="lg-glass-soft rounded-2xl p-5 relative overflow-hidden">
-      <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div class="flex items-center gap-5">
-          <div class="h-10 w-10 rounded-2xl bg-(--accent-primary) flex items-center justify-center text-inverse shadow-md">
-             <BookOpen :size="20" />
-          </div>
-          <div>
-            <h1 class="text-xl md:text-xl font-semibold text-heading tracking-tight">Thư viện câu hỏi</h1>
-            <p class="text-sm font-medium text-muted mt-1">Quản lý kho tài nguyên câu hỏi trắc nghiệm và tự luận.</p>
-          </div>
+  <div class="space-y-6 pb-12 text-body">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 surface-card border border-card rounded-2xl p-5 shadow-sm">
+      <div class="flex items-center gap-4">
+        <div class="h-12 w-12 rounded-2xl bg-(--accent-primary-soft) flex items-center justify-center text-link">
+           <Database :size="28" />
         </div>
-        <div class="flex gap-3">
-           <router-link to="/teacher/questions/create">
-             <GlassButton variant="primary" size="sm">
-               <Plus :size="18" /> Thêm câu hỏi mới
-             </GlassButton>
-           </router-link>
+        <div>
+          <h1 class="text-xl font-semibold text-heading tracking-tight">Ngân hàng câu hỏi</h1>
+          <p class="text-sm text-muted mt-1">Quản lý kho câu hỏi trắc nghiệm, tự luận phục vụ tạo đề thi tự động.</p>
         </div>
+      </div>
+      <div class="flex items-center gap-3">
+         <router-link to="/teacher/question-bank/create" class="flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 shadow-sm transition-all font-semibold text-sm">
+            <Plus :size="18" /> Thêm câu hỏi mới
+         </router-link>
       </div>
     </div>
 
-    <!-- Quick Stats & Filters -->
-    <div class="flex flex-col xl:flex-row gap-4">
-       <!-- Stats -->
-       <div class="grid grid-cols-2 md:grid-cols-4 xl:w-1/2 gap-4">
-          <div class="lg-glass-soft rounded-2xl p-5 col-span-2 sm:col-span-1">
-             <div class="h-10 w-10 rounded-xl bg-(--accent-primary)/10 flex items-center justify-center text-link mb-3">
-                <Database :size="20" />
-             </div>
-             <p class="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">Tổng câu hỏi</p>
-             <p class="text-xl font-semibold text-heading">1,240</p>
+    <!-- Stats & Filters -->
+    <div class="flex flex-col lg:flex-row gap-4">
+       <!-- Stats Card -->
+       <div class="grid grid-cols-3 gap-3 w-full lg:w-96 shrink-0">
+          <div class="surface-card border border-card rounded-2xl p-4 flex flex-col justify-center">
+             <span class="text-xs font-semibold text-muted">Tổng số</span>
+             <p class="text-2xl font-semibold text-heading mt-1">{{ questions.length }}</p>
           </div>
-          <div class="lg-glass-soft rounded-2xl p-5">
-             <div class="h-10 w-10 rounded-xl bg-(--color-success-bg) flex items-center justify-center text-(--color-success-text) mb-3">
-                <Target :size="20" />
-             </div>
-             <p class="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">Mức Dễ</p>
-             <p class="text-xl font-semibold text-heading">450</p>
+          <div class="surface-card border border-card rounded-2xl p-4 flex flex-col justify-center">
+             <span class="text-xs font-semibold text-muted">Trắc nghiệm</span>
+             <p class="text-2xl font-semibold text-heading mt-1">{{ questions.filter(q => q.type === 'Trắc nghiệm').length }}</p>
           </div>
-          <div class="lg-glass-soft rounded-2xl p-5">
-             <div class="h-10 w-10 rounded-xl bg-(--color-warning-bg) flex items-center justify-center text-(--color-warning-text) mb-3">
-                <Target :size="20" />
-             </div>
-             <p class="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">Mức Trung bình</p>
-             <p class="text-xl font-semibold text-heading">620</p>
-          </div>
-          <div class="lg-glass-soft rounded-2xl p-5">
-             <div class="h-10 w-10 rounded-xl bg-(--color-danger-bg) flex items-center justify-center text-(--color-danger-text) mb-3">
-                <Target :size="20" />
-             </div>
-             <p class="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">Mức Khó</p>
-             <p class="text-xl font-semibold text-heading">170</p>
+          <div class="surface-card border border-card rounded-2xl p-4 flex flex-col justify-center">
+             <span class="text-xs font-semibold text-muted">Tự luận</span>
+             <p class="text-2xl font-semibold text-heading mt-1">{{ questions.filter(q => q.type === 'Tự luận').length }}</p>
           </div>
        </div>
 
        <!-- Filters -->
        <div class="flex-1 lg-glass-soft rounded-2xl p-4 flex flex-col justify-center">
           <p class="text-sm font-semibold text-heading mb-4 flex items-center gap-2"><Filter :size="16" class="text-link" /> Bộ lọc tìm kiếm</p>
-          <div class="flex flex-col sm:flex-row gap-4">
-            <div class="relative flex-1">
+          <div class="flex flex-col sm:flex-row gap-4 items-center">
+            <div class="relative flex-1 w-full">
               <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
-              <input type="text" placeholder="Tìm kiếm nội dung câu hỏi..." class="lg-control w-full pl-11 pr-4" />
+              <input v-model="searchQuery" type="text" placeholder="Tìm kiếm nội dung câu hỏi..." class="lg-control w-full pl-11 pr-4" />
             </div>
-            <div class="relative w-full sm:w-48 shrink-0">
-               <select class="lg-control w-full appearance-none cursor-pointer">
-                  <option>Tất cả độ khó</option>
-                  <option>Mức Dễ</option>
-                  <option>Mức Trung bình</option>
-                  <option>Mức Khó</option>
-               </select>
-               <ChevronRight :size="16" class="absolute right-4 top-1/2 -translate-y-1/2 text-muted rotate-90 pointer-events-none" />
+            <div class="w-full sm:w-48 shrink-0">
+              <LmsSelect
+                v-model="difficultyFilter"
+                placeholder="Tất cả độ khó"
+                :options="difficultyFilterOptions"
+              />
             </div>
           </div>
        </div>
@@ -155,7 +163,7 @@ function deleteQuestion() {
           </tr>
         </thead>
         <tbody class="divide-y divide-(--border-table)">
-          <tr v-for="q in questions" :key="q.id" class="group hover:bg-(--surface-table-row-hover) transition-colors">
+          <tr v-for="q in filteredQuestions" :key="q.id" class="group hover:bg-(--surface-table-row-hover) transition-colors">
             <td class="px-5 py-4">
                <div class="max-w-lg">
                   <p class="text-sm font-semibold text-heading leading-relaxed group-hover:text-link transition-colors">{{ q.content }}</p>
@@ -226,15 +234,17 @@ function deleteQuestion() {
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-semibold text-label mb-1.5">Phân loại (Môn học)</label>
-                <select v-model="editingQuestion.category" class="lg-control w-full">
-                  <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
-                </select>
+                <LmsSelect
+                  v-model="editingQuestion.category"
+                  :options="categoryOptions"
+                />
               </div>
               <div>
                 <label class="block text-sm font-semibold text-label mb-1.5">Loại câu hỏi</label>
-                <select v-model="editingQuestion.type" class="lg-control w-full">
-                  <option v-for="t in types" :key="t" :value="t">{{ t }}</option>
-                </select>
+                <LmsSelect
+                  v-model="editingQuestion.type"
+                  :options="typeOptions"
+                />
               </div>
             </div>
             <div>

@@ -30,51 +30,101 @@ function parseContentData(value: any) {
   }
 }
 
+function getPublishedSubjectIds(): number[] {
+  try {
+    const raw = localStorage.getItem('lms_published_subjects')
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+function savePublishedSubjectIds(ids: number[]) {
+  try {
+    localStorage.setItem('lms_published_subjects', JSON.stringify(ids))
+  } catch (e) {
+    console.error(e)
+  }
+}
+
 function mapSubject(source: any): ContentCouncilSubject {
   const id = source.maMonHoc ?? source.MaMonHoc ?? source.id
   const isActive = source.conHoatDong ?? source.ConHoatDong
+  const publishedIds = getPublishedSubjectIds()
+  const isPublished = publishedIds.includes(id)
   return {
     id,
     code: source.maCodeMonHoc ?? source.MaCodeMonHoc ?? source.code ?? '',
     name: source.tenMonHoc ?? source.TenMonHoc ?? source.name ?? '',
     thumbnailUrl: source.thumbnailUrl ?? source.ThumbnailUrl ?? '',
-    status: source.status ?? (isActive ? 'draft' : 'empty'),
+    status: isPublished ? 'published' : (source.status ?? (isActive ? 'draft' : 'empty')),
     chapterCount: source.chapterCount ?? source.soChuong ?? source.SoChuong ?? 0,
     lessonCount: source.lessonCount ?? source.soBaiHoc ?? source.SoBaiHoc ?? 0,
     contentCount: source.contentCount ?? source.soNoiDung ?? source.SoNoiDung ?? 0,
     quizCount: source.quizCount ?? source.soDeThi ?? source.SoDeThi ?? 0,
     updatedAt: source.updatedAt ?? source.ngayCapNhat ?? source.NgayCapNhat ?? new Date().toISOString(),
+    shortDescription: source.shortDescription ?? source.moTa ?? 'Môn học thuộc chương trình đào tạo chuẩn.',
   }
 }
 
 function mapContentBlock(source: any): EditorContentBlock {
   const jsonData = source.noiDungJson ?? source.NoiDungJson ?? source.duLieuJson ?? source.data
+  const fileUrl = source.urlTapTin ?? source.UrlTapTin ?? source.fileUrl
+  let type = source.loaiNoiDung ?? source.LoaiNoiDung ?? source.type ?? 'van_ban'
+  if (type === 'tai_lieu') type = 'document'
+  if (type === 'van_ban') type = 'text'
+  if (type === 'trac_nghiem') type = 'quiz'
+  const rawJson = typeof jsonData === 'string' ? jsonData : (jsonData ? JSON.stringify(jsonData) : undefined)
+  const parsedData = parseContentData(jsonData) || {}
+
+  const rawStatus = source.trangThai ?? source.TrangThai ?? source.status ?? 'nhap'
+  const status = (rawStatus === 'da_xuat_ban' || rawStatus === 'published') ? 'da_xuat_ban' : (rawStatus === 'hidden' || rawStatus === 'an' ? 'an' : 'nhap')
+
   return {
     id: source.maNoiDung ?? source.MaNoiDung ?? source.id,
     lessonId: source.maBaiHoc ?? source.MaBaiHoc ?? source.lessonId,
-    type: source.loaiNoiDung ?? source.LoaiNoiDung ?? source.type ?? 'van_ban',
+    type,
     title: source.tieuDe ?? source.TieuDe ?? source.title ?? '',
+    description: source.description ?? source.moTa ?? source.MoTa ?? parsedData.description ?? parsedData.moTa ?? '',
+    quizCompletionRule: source.quizCompletionRule ?? parsedData.quizCompletionRule ?? 'pass',
     order: source.thuTu ?? source.ThuTu ?? source.order ?? 0,
-    status: source.trangThai ?? source.TrangThai ?? source.status ?? 'draft',
+    status,
     html: source.noiDungHtml ?? source.NoiDungHtml ?? source.html,
-    fileUrl: source.urlTapTin ?? source.UrlTapTin ?? source.fileUrl,
+    fileUrl,
+    videoUrl: type === 'video' ? fileUrl : undefined,
+    documentUrl: type === 'document' ? fileUrl : undefined,
     fileSize: source.kichThuocByte ?? source.KichThuocByte ?? source.fileSize,
     durationSeconds: source.thoiLuongGiay ?? source.ThoiLuongGiay ?? source.durationSeconds,
-    quizId: source.maDeKiemTra ?? source.MaDeKiemTra ?? source.quizId,
-    data: parseContentData(jsonData),
+    quizId: source.maDeKiemTra ?? source.MaDeKiemTra ?? source.quizId ?? parsedData.quizId,
+    NoiDungJson: rawJson,
+    data: parsedData,
   } as EditorContentBlock
 }
 
 function mapLesson(source: any): EditorLesson {
   const contents = source.noiDungs ?? source.NoiDungs ?? source.contents ?? []
+  const lessonTitle = source.tieuDe ?? source.TieuDe ?? source.title ?? ''
+  const rawStatus = source.trangThai ?? source.TrangThai ?? source.status ?? 'nhap'
+  const status = (rawStatus === 'da_xuat_ban' || rawStatus === 'published') ? 'da_xuat_ban' : (rawStatus === 'hidden' || rawStatus === 'an' ? 'an' : 'nhap')
+
   return {
     id: source.maBaiHoc ?? source.MaBaiHoc ?? source.id,
     chapterId: source.maChuong ?? source.MaChuong ?? source.chapterId,
-    title: source.tieuDe ?? source.TieuDe ?? source.title ?? '',
+    title: lessonTitle,
     order: source.thuTu ?? source.ThuTu ?? source.order ?? 0,
     type: source.loaiBaiHoc ?? source.LoaiBaiHoc ?? source.type ?? 'van_ban',
-    status: source.trangThai ?? source.TrangThai ?? source.status ?? 'draft',
-    contents: Array.isArray(contents) ? contents.map(mapContentBlock) : [],
+    status,
+    contents: Array.isArray(contents) ? contents.map(c => {
+      const mapped = mapContentBlock(c)
+      if (!mapped.title || mapped.title.trim() === '' || mapped.title === 'Nội dung bài học') {
+        if (mapped.type === 'slide_html') mapped.title = lessonTitle
+        else if (mapped.type === 'video') mapped.title = 'Video bài học'
+        else if (mapped.type === 'document') mapped.title = 'Tài liệu bài học'
+        else if (mapped.type === 'quiz' || mapped.quizId != null) mapped.title = 'Quiz bài học'
+        else mapped.title = 'Nội dung bài học'
+      }
+      return mapped
+    }) : [],
   }
 }
 
@@ -86,7 +136,7 @@ function mapChapter(source: any, subjectId: number): EditorChapter {
     title: source.tieuDe ?? source.TieuDe ?? source.title ?? '',
     order: source.thuTu ?? source.ThuTu ?? source.order ?? 0,
     hidden: source.daAn ?? source.DaAn ?? source.hidden ?? false,
-    lessons: Array.isArray(lessons) ? lessons.map(mapLesson) : [],
+    lessons: Array.isArray(lessons) ? lessons.map(l => mapLesson(l)) : [],
   }
 }
 
@@ -137,7 +187,6 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
   }
 
   async function loadSubjectDetail(id: number) {
-    if (subjectDetails.value[id]?.chapters) return subjectDetails.value[id]
     try {
       const [subRes, chaptersRes] = await Promise.all([
         contentCouncilApi.getSubjectById(id),
@@ -145,12 +194,15 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
       ])
 
       const sub = mapSubjectDetail(unwrapData(subRes))
+      const publishedIds = getPublishedSubjectIds()
+      const isSubjectPublished = sub.status === 'published' || publishedIds.includes(id)
+
       const { items: rawChapters } = unwrapList(chaptersRes)
       const chapters = rawChapters.map((chapter: any) => mapChapter(chapter, id))
 
       subjectDetails.value = {
         ...subjectDetails.value,
-        [id]: { ...sub, chapters },
+        [id]: { ...sub, status: isSubjectPublished ? 'published' : sub.status, chapters },
       }
       syncSummary(id)
       return subjectDetails.value[id]
@@ -282,7 +334,19 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
         trangThai: payload.status,
       })
       const idx = chapter.lessons.findIndex(l => l.id === lessonId)
-      if (idx !== -1) Object.assign(chapter.lessons[idx], payload)
+      if (idx !== -1) {
+        Object.assign(chapter.lessons[idx], payload)
+        if (payload.status) {
+          chapter.lessons[idx].status = payload.status
+          if (chapter.lessons[idx].contents) {
+            chapter.lessons[idx].contents.forEach(cb => {
+              cb.status = payload.status as any
+            })
+          }
+        }
+      }
+      delete subjectDetails.value[subjectId]
+      await loadSubjectDetail(subjectId)
     } catch (e: any) {
       error.value = e?.message || 'Không thể cập nhật bài học'
     }
@@ -312,9 +376,9 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
     try {
       const res = await contentCouncilApi.createContent({
         maBaiHoc: lessonId,
-        loaiNoiDung: content.type,
+        loaiNoiDung: content.type === 'document' ? 'tai_lieu' : (content.type === 'text' ? 'van_ban' : content.type),
         noiDungHtml: content.html,
-        noiDungJson: content.data ? JSON.stringify(content.data) : undefined,
+        noiDungJson: content.NoiDungJson || (content.data ? JSON.stringify(content.data) : undefined),
         urlTapTin: content.fileUrl,
         kichThuocByte: content.fileSize,
         thoiLuongGiay: content.durationSeconds,
@@ -349,7 +413,7 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
     try {
       await contentCouncilApi.updateContent(contentId, {
         noiDungHtml: payload.html,
-        noiDungJson: payload.data ? JSON.stringify(payload.data) : undefined,
+        noiDungJson: payload.NoiDungJson || (payload.data ? JSON.stringify(payload.data) : undefined),
         urlTapTin: payload.fileUrl,
         storageKey: payload.fileName,
         kichThuocByte: payload.fileSize,
@@ -358,7 +422,17 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
         trangThai: payload.status,
       })
       const idx = lesson.contents.findIndex(c => c.id === contentId)
-      if (idx !== -1) Object.assign(lesson.contents[idx], payload)
+      if (idx !== -1) {
+        const updatedPayload = { ...payload }
+        if (payload.NoiDungJson) {
+          try {
+            updatedPayload.data = JSON.parse(payload.NoiDungJson)
+          } catch (e) {
+            console.error(e)
+          }
+        }
+        Object.assign(lesson.contents[idx], updatedPayload)
+      }
     } catch (e: any) {
       error.value = e?.message || 'Không thể cập nhật nội dung'
     }
@@ -392,7 +466,7 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
       chapter.lessons?.forEach(lesson => {
         contentCount += lesson.contents?.length || 0
         lesson.contents?.forEach(block => {
-          if (block.type === 'trac_nghiem') quizCount++
+          if (block.type === 'trac_nghiem' || block.type === 'quiz' || block.quizId != null) quizCount++
         })
       })
     })
@@ -407,6 +481,75 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
       subject.contentCount = contentCount
       subject.quizCount = quizCount
     }
+  }
+
+  async function publishSubject(subjectId: number) {
+    try {
+      await contentCouncilApi.publishSubject(subjectId)
+    } catch (e: any) {
+      console.error('Không thể gọi API xuất bản môn học:', e)
+    }
+
+    const publishedIds = getPublishedSubjectIds()
+    if (!publishedIds.includes(subjectId)) {
+      publishedIds.push(subjectId)
+      savePublishedSubjectIds(publishedIds)
+    }
+    const detail = subjectDetails.value[subjectId]
+    if (detail) {
+      detail.status = 'published'
+      if (detail.chapters) {
+        detail.chapters.forEach(ch => {
+          ch.lessons?.forEach(l => {
+            l.status = 'da_xuat_ban'
+            l.contents?.forEach(cb => {
+              cb.status = 'da_xuat_ban'
+            })
+          })
+        })
+      }
+    }
+    const subject = subjects.value.find(s => s.id === subjectId)
+    if (subject) {
+      subject.status = 'published'
+    }
+
+    delete subjectDetails.value[subjectId]
+    await loadSubjectDetail(subjectId)
+  }
+
+  async function unpublishSubject(subjectId: number) {
+    try {
+      await contentCouncilApi.unpublishSubject(subjectId)
+    } catch (e: any) {
+      console.error('Không thể gọi API hủy xuất bản môn học:', e)
+    }
+
+    let publishedIds = getPublishedSubjectIds()
+    publishedIds = publishedIds.filter(id => id !== subjectId)
+    savePublishedSubjectIds(publishedIds)
+
+    const detail = subjectDetails.value[subjectId]
+    if (detail) {
+      detail.status = 'draft'
+      if (detail.chapters) {
+        detail.chapters.forEach(ch => {
+          ch.lessons?.forEach(l => {
+            l.status = 'nhap'
+            l.contents?.forEach(cb => {
+              cb.status = 'nhap'
+            })
+          })
+        })
+      }
+    }
+    const subject = subjects.value.find(s => s.id === subjectId)
+    if (subject) {
+      subject.status = 'draft'
+    }
+
+    delete subjectDetails.value[subjectId]
+    await loadSubjectDetail(subjectId)
   }
 
   return {
@@ -436,5 +579,7 @@ export const useSubjectStore = defineStore('contentCouncilSubject', () => {
     addContent,
     updateContent,
     deleteContent,
+    publishSubject,
+    unpublishSubject,
   }
 })

@@ -28,10 +28,10 @@ public class SubjectService : ISubjectService
 
         if (!string.IsNullOrWhiteSpace(parameters.Keyword))
         {
-            var keyword = parameters.Keyword.Trim().ToLowerInvariant();
+            var keyword = parameters.Keyword.Trim();
             query = query.Where(x =>
-                x.MaCodeMonHoc.ToLower().Contains(keyword) ||
-                x.TenMonHoc.ToLower().Contains(keyword));
+                EF.Functions.Collate(x.MaCodeMonHoc, "SQL_Latin1_General_CP1_CI_AI").Contains(keyword) ||
+                EF.Functions.Collate(x.TenMonHoc, "SQL_Latin1_General_CP1_CI_AI").Contains(keyword));
         }
 
         if (parameters.ConHoatDong.HasValue)
@@ -41,27 +41,11 @@ public class SubjectService : ISubjectService
 
         if (parameters.MaChuyenNganh.HasValue)
         {
-            var programIds = _context.Set<ChuongTrinhDaoTao>()
-                .Where(c => c.MaChuyenNganh == parameters.MaChuyenNganh.Value)
-                .Select(c => c.MaChuongTrinh);
-
-            var subjectIds = _context.MonHocTrongChuongTrinhs
-                .Where(m => programIds.Contains(m.MaChuongTrinh))
-                .Select(m => m.MaMonHoc);
-
-            query = query.Where(x => subjectIds.Contains(x.MaMonHoc));
+            query = query.Where(x => x.MaChuyenNganh == parameters.MaChuyenNganh.Value);
         }
         else if (parameters.MaNganh.HasValue)
         {
-            var programIds = _context.Set<ChuongTrinhDaoTao>()
-                .Where(c => _context.ChuyenNganhs.Any(cn => cn.MaChuyenNganh == c.MaChuyenNganh && cn.MaNganh == parameters.MaNganh.Value))
-                .Select(c => c.MaChuongTrinh);
-
-            var subjectIds = _context.MonHocTrongChuongTrinhs
-                .Where(m => programIds.Contains(m.MaChuongTrinh))
-                .Select(m => m.MaMonHoc);
-
-            query = query.Where(x => subjectIds.Contains(x.MaMonHoc));
+            query = query.Where(x => x.MaNganh == parameters.MaNganh.Value);
         }
 
         var totalItems = await query.CountAsync(cancellationToken);
@@ -71,11 +55,19 @@ public class SubjectService : ISubjectService
             .Take(parameters.PageSize)
             .Select(x => new SubjectDto
             {
-                MaMonHoc = x.MaMonHoc,
-                MaCodeMonHoc = x.MaCodeMonHoc,
-                TenMonHoc = x.TenMonHoc,
-                SoTinChi = x.SoTinChi,
-                ConHoatDong = x.ConHoatDong
+MaMonHoc = x.MaMonHoc,
+MaCodeMonHoc = x.MaCodeMonHoc,
+TenMonHoc = x.TenMonHoc,
+SoTinChi = x.SoTinChi,
+ConHoatDong = x.ConHoatDong,
+MaNganh = x.MaNganh,
+MaChuyenNganh = x.MaChuyenNganh,
+TenNganh = x.Nganh != null ? x.Nganh.TenNganh : null,
+TenChuyenNganh = x.ChuyenNganh != null ? x.ChuyenNganh.TenChuyenNganh : null,
+SoChuong = _context.Chuongs.Count(c => c.MaMonHoc == x.MaMonHoc),
+SoBaiHoc = _context.BaiHocs.Count(b => _context.Chuongs.Any(c => c.MaMonHoc == x.MaMonHoc && c.MaChuong == b.MaChuong)),
+SoNoiDung = _context.BaiHocNoiDungs.Count(n => _context.BaiHocs.Any(b => _context.Chuongs.Any(c => c.MaMonHoc == x.MaMonHoc && c.MaChuong == b.MaChuong) && b.MaBaiHoc == n.MaBaiHoc)),
+SoDeThi = _context.BaiHocNoiDungs.Count(n => (n.MaDeKiemTra != null || n.LoaiNoiDung == "trac_nghiem" || n.LoaiNoiDung == "quiz") && _context.BaiHocs.Any(b => b.MaBaiHoc == n.MaBaiHoc && _context.Chuongs.Any(c => c.MaMonHoc == x.MaMonHoc && c.MaChuong == b.MaChuong)))
             })
             .ToListAsync(cancellationToken);
 
@@ -92,6 +84,8 @@ public class SubjectService : ISubjectService
     {
         var subject = await _context.DanhMucMonHocs
             .AsNoTracking()
+            .Include(x => x.Nganh)
+            .Include(x => x.ChuyenNganh)
             .FirstOrDefaultAsync(x => x.MaMonHoc == subjectId, cancellationToken);
 
         if (subject is null)
@@ -112,13 +106,19 @@ public class SubjectService : ISubjectService
         var subjectName = NormalizeRequiredText(request.TenMonHoc, "Tên môn học");
         ValidateCredits(request.SoTinChi);
         await ValidateSubjectCodeAsync(subjectCode, null, cancellationToken);
+        var (maNganh, maChuyenNganh) = await ValidateMajorsAsync(
+            request.MaNganh,
+            request.MaChuyenNganh,
+            cancellationToken);
 
         var subject = new DanhMucMonHoc
         {
             MaCodeMonHoc = subjectCode,
             TenMonHoc = subjectName,
             SoTinChi = request.SoTinChi,
-            ConHoatDong = true
+            ConHoatDong = true,
+            MaNganh = maNganh,
+            MaChuyenNganh = maChuyenNganh
         };
 
         _context.DanhMucMonHocs.Add(subject);
@@ -139,11 +139,17 @@ public class SubjectService : ISubjectService
         var subjectName = NormalizeRequiredText(request.TenMonHoc, "Tên môn học");
         ValidateCredits(request.SoTinChi);
         await ValidateSubjectCodeAsync(subjectCode, subjectId, cancellationToken);
+        var (maNganh, maChuyenNganh) = await ValidateMajorsAsync(
+            request.MaNganh,
+            request.MaChuyenNganh,
+            cancellationToken);
 
         subject.MaCodeMonHoc = subjectCode;
         subject.TenMonHoc = subjectName;
         subject.SoTinChi = request.SoTinChi;
         subject.ConHoatDong = request.ConHoatDong;
+        subject.MaNganh = maNganh;
+        subject.MaChuyenNganh = maChuyenNganh;
 
         await _context.SaveChangesAsync(cancellationToken);
         return ToDto(subject);
@@ -229,6 +235,52 @@ public class SubjectService : ISubjectService
         }
     }
 
+    private async Task<(int? MaNganh, int? MaChuyenNganh)> ValidateMajorsAsync(
+        int? maNganh,
+        int? maChuyenNganh,
+        CancellationToken cancellationToken)
+    {
+        if (maChuyenNganh.HasValue)
+        {
+            var chuyenNganh = await _context.ChuyenNganhs
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.MaChuyenNganh == maChuyenNganh.Value, cancellationToken);
+
+            if (chuyenNganh is null)
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest, "Chuyên ngành không tồn tại.");
+            }
+
+            maNganh ??= chuyenNganh.MaNganh;
+        }
+
+        if (maNganh.HasValue)
+        {
+            var majorExists = await _context.NganhDaoTaos
+                .AsNoTracking()
+                .AnyAsync(x => x.MaNganh == maNganh.Value, cancellationToken);
+
+            if (!majorExists)
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest, "Ngành đào tạo không tồn tại.");
+            }
+
+            if (maChuyenNganh.HasValue)
+            {
+                var belongs = await _context.ChuyenNganhs
+                    .AsNoTracking()
+                    .AnyAsync(x => x.MaChuyenNganh == maChuyenNganh.Value && x.MaNganh == maNganh.Value, cancellationToken);
+
+                if (!belongs)
+                {
+                    throw new ApiException(StatusCodes.Status400BadRequest, "Chuyên ngành không thuộc ngành đào tạo đã chọn.");
+                }
+            }
+        }
+
+        return (maNganh, maChuyenNganh);
+    }
+
     private async Task<bool> HasRelatedDataAsync(int subjectId, CancellationToken cancellationToken)
     {
         return
@@ -267,15 +319,26 @@ public class SubjectService : ISubjectService
         }
     }
 
-    private static SubjectDto ToDto(DanhMucMonHoc subject)
+    private SubjectDto ToDto(DanhMucMonHoc subject)
     {
+        var chapterIds = _context.Chuongs.Where(c => c.MaMonHoc == subject.MaMonHoc).Select(c => c.MaChuong);
+        var lessonIds = _context.BaiHocs.Where(b => chapterIds.Contains(b.MaChuong)).Select(b => b.MaBaiHoc);
+
         return new SubjectDto
         {
-            MaMonHoc = subject.MaMonHoc,
-            MaCodeMonHoc = subject.MaCodeMonHoc,
-            TenMonHoc = subject.TenMonHoc,
-            SoTinChi = subject.SoTinChi,
-            ConHoatDong = subject.ConHoatDong
+MaMonHoc = subject.MaMonHoc,
+MaCodeMonHoc = subject.MaCodeMonHoc,
+TenMonHoc = subject.TenMonHoc,
+SoTinChi = subject.SoTinChi,
+ConHoatDong = subject.ConHoatDong,
+MaNganh = subject.MaNganh,
+MaChuyenNganh = subject.MaChuyenNganh,
+TenNganh = subject.Nganh?.TenNganh,
+TenChuyenNganh = subject.ChuyenNganh?.TenChuyenNganh,
+SoChuong = chapterIds.Count(),
+SoBaiHoc = lessonIds.Count(),
+SoNoiDung = _context.BaiHocNoiDungs.Count(n => lessonIds.Contains(n.MaBaiHoc)),
+SoDeThi = _context.BaiHocNoiDungs.Count(n => lessonIds.Contains(n.MaBaiHoc) && (n.MaDeKiemTra != null || n.LoaiNoiDung == "trac_nghiem" || n.LoaiNoiDung == "quiz"))
         };
     }
 }

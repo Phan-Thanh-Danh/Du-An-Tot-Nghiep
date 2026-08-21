@@ -10,14 +10,16 @@ public static class ApplicationTemplateSeeder
 {
     public static async Task SeedAsync(ApplicationDbContext context)
     {
-        if (!await context.MauDonTus.AnyAsync())
+        try
         {
-            Console.WriteLine("Seeding MauDonTus...");
-        }
-        else
-        {
-            Console.WriteLine("Updating MauDonTus...");
-        }
+            if (!await context.MauDonTus.AnyAsync())
+            {
+                Console.WriteLine("Seeding MauDonTus...");
+            }
+            else
+            {
+                Console.WriteLine("Updating MauDonTus...");
+            }
 
         Console.WriteLine("Seeding MauDonTus...");
 
@@ -256,12 +258,12 @@ public static class ApplicationTemplateSeeder
                     {
                         new { key = "student_info", type = "studentInfo", label = "Thông tin sinh viên", @readonly = true },
                         new { 
-                            key = "subject_id", 
+                            key = "course_id", 
                             type = "related_entity", 
-                            label = "Môn học đăng ký thi lại", 
+                            label = "Khóa học đăng ký thi lại", 
                             required = true, 
                             autoFill = "availableRetakeSubjects",
-                            relatedEntity = "mon_hoc"
+                            relatedEntity = "khoa_hoc"
                         },
                         new { 
                             key = "exam_session_id", 
@@ -269,7 +271,7 @@ public static class ApplicationTemplateSeeder
                             label = "Ca thi", 
                             required = true, 
                             autoFill = "availableExamSessions",
-                            dependsOn = "subject_id",
+                            dependsOn = "course_id",
                             relatedEntity = "ca_thi"
                         },
                         new { key = "reason", type = "textarea", label = "Ghi chú", required = false, maxLength = 500 },
@@ -397,7 +399,12 @@ public static class ApplicationTemplateSeeder
             }
         }
 
-        await context.SaveChangesAsync();
-        Console.WriteLine("MauDonTus seeded/updated successfully.");
+            await context.SaveChangesAsync();
+            Console.WriteLine("MauDonTus seeded/updated successfully.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Warning] ApplicationTemplateSeeder skipped: {ex.Message}");
+        }
     }
 }

@@ -225,10 +225,14 @@ public class AccountService : IAccountService
             SoDienThoai = user.SoDienThoai,
             VaiTroChinh = user.VaiTroChinh,
             TrangThai = user.TrangThai,
+            MaDonVi = user.MaDonVi,
+            TenDonVi = user.DonVi?.TenDonVi,
+            DonVi = user.DonVi?.TenDonVi,
             Campus = user.DonVi?.TenDonVi,
             ClassName = user.Lop?.TenLop,
             Major = user.Lop?.ChuongTrinh?.ChuyenNganh?.TenChuyenNganh,
-            Semester = currentHocKy?.TenHocKy
+            Semester = currentHocKy?.TenHocKy,
+            NgayTao = user.NgayTao
         };
     }
 }

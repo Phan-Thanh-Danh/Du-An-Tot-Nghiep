@@ -59,7 +59,6 @@ function getRoleRoutes() {
     { id: 'bgh-terms', label: 'Học kỳ & Khóa', icon: 'CalendarDays', route: '/bgh/academic-terms', category: 'BGH' },
     { id: 'bgh-organizations', label: 'Quản lý Đơn vị', icon: 'Building2', route: '/bgh/organizations', category: 'BGH' },
     { id: 'bgh-users', label: 'Quản lý Người dùng', icon: 'Users', route: '/bgh/users', category: 'BGH' },
-    { id: 'bgh-roles', label: 'Vai trò & Phân quyền', icon: 'ShieldCheck', route: '/bgh/roles', category: 'BGH' },
     { id: 'bgh-facilities', label: 'Cơ sở vật chất', icon: 'MapPin', route: '/bgh/facilities', category: 'BGH' },
     { id: 'bgh-audit', label: 'Nhật ký kiểm toán', icon: 'History', route: '/bgh/audit-logs', category: 'BGH' },
     { id: 'bgh-profile', label: 'Hồ sơ cá nhân', icon: 'UserCircle', route: '/bgh/profile', category: 'BGH' },

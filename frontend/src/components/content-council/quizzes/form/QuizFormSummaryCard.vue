@@ -54,7 +54,7 @@ const getFormatLabel = (format: string) => {
       
       <div class="flex justify-between gap-4">
         <span class="text-slate-500">Hình thức:</span>
-        <span class="font-medium text-slate-800 text-right">{{ getFormatLabel(formData.format) }}</span>
+        <span class="font-medium text-slate-800 text-right">Trắc nghiệm</span>
       </div>
       
       <div class="flex justify-between gap-4">

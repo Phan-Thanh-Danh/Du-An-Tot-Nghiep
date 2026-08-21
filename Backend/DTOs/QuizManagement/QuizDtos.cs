@@ -12,6 +12,7 @@ public class QuizDto
     public int? MaHocKy { get; set; }
     public string? TenHocKy { get; set; }
     public string TieuDe { get; set; } = string.Empty;
+    public string? MoTa { get; set; }
     public int ThoiGianPhut { get; set; }
     public string TrangThai { get; set; } = string.Empty;
     public string? LoaiDeThi { get; set; }
@@ -25,6 +26,7 @@ public class QuizDto
     public decimal TongDiem { get; set; }
     public DateTime NgayTao { get; set; }
     public DateTime? NgayCapNhat { get; set; }
+    public QuizConfigurationDto CauHinh { get; set; } = new();
 }
 
 public class QuizDetailDto
@@ -34,6 +36,7 @@ public class QuizDetailDto
     public string? TenMonHoc { get; set; }
     public int? MaHocKy { get; set; }
     public string TieuDe { get; set; } = string.Empty;
+    public string? MoTa { get; set; }
     public int ThoiGianPhut { get; set; }
     public string TrangThai { get; set; } = string.Empty;
     public string? LoaiDeThi { get; set; }

@@ -1,14 +1,15 @@
 using Backend.Data;
+using Backend.DTOs.Auth;
 using Backend.DTOs.Common;
 using Backend.DTOs.Exam;
 using Backend.DTOs.QuizAttempts;
 using Backend.Exceptions;
 using Backend.Models;
 using Backend.Services.QuizGrading;
-using Microsoft.EntityFrameworkCore;
-
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
 using Backend.Hubs;
+using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Services.Exam;
 
@@ -19,19 +20,22 @@ public class ExamService : IExamService
     private readonly Backend.Services.Grading.IGradeAggregationService _gradeAggregationService;
     private readonly ILogger<ExamService> _logger;
     private readonly IHubContext<ExamMonitoringHub> _hubContext;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
     public ExamService(
         ApplicationDbContext db, 
         IQuizGradingService gradingService,
         Backend.Services.Grading.IGradeAggregationService gradeAggregationService,
         ILogger<ExamService> logger,
-        IHubContext<ExamMonitoringHub> hubContext)
+        IHubContext<ExamMonitoringHub> hubContext,
+        IHttpContextAccessor httpContextAccessor)
     {
         _db = db;
         _gradingService = gradingService;
         _gradeAggregationService = gradeAggregationService;
         _logger = logger;
         _hubContext = hubContext;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     // ===== KyThi =====
@@ -40,6 +44,7 @@ public class ExamService : IExamService
     {
         var query = _db.KyThis
             .Include(k => k.HocKy)
+            .Include(k => k.Nganh)
             .Include(k => k.LichThiTongs)
             .AsQueryable();
 
@@ -61,11 +66,15 @@ public class ExamService : IExamService
                 TenKyThi = k.TenKyThi,
                 MaHocKy = k.MaHocKy,
                 TenHocKy = k.HocKy != null ? k.HocKy.TenHocKy : null,
+                MaNganh = k.MaNganh,
+                TenNganh = k.Nganh != null ? k.Nganh.TenNganh : null,
                 LoaiKyThi = k.LoaiKyThi,
                 TrangThai = k.TrangThai,
                 NgayTao = k.NgayTao,
                 NgayCapNhat = k.NgayCapNhat,
-                SoLichThiTong = k.LichThiTongs.Count
+                SoLichThiTong = k.LichThiTongs.Count,
+                SoMonCoDeThi = k.LichThiTongs.Count(l => l.MaDeKiemTra.HasValue),
+                SoMonChuaCoDeThi = k.LichThiTongs.Count(l => !l.MaDeKiemTra.HasValue)
             })
             .ToListAsync(ct);
 
@@ -82,6 +91,7 @@ public class ExamService : IExamService
     {
         var k = await _db.KyThis
             .Include(x => x.HocKy)
+            .Include(x => x.Nganh)
             .Include(x => x.LichThiTongs)
             .FirstOrDefaultAsync(x => x.MaKyThi == id, ct)
             ?? throw new ApiException(404, "Không tìm thấy kỳ thi.");
@@ -92,11 +102,15 @@ public class ExamService : IExamService
             TenKyThi = k.TenKyThi,
             MaHocKy = k.MaHocKy,
             TenHocKy = k.HocKy?.TenHocKy,
+            MaNganh = k.MaNganh,
+            TenNganh = k.Nganh?.TenNganh,
             LoaiKyThi = k.LoaiKyThi,
             TrangThai = k.TrangThai,
             NgayTao = k.NgayTao,
             NgayCapNhat = k.NgayCapNhat,
-            SoLichThiTong = k.LichThiTongs.Count
+            SoLichThiTong = k.LichThiTongs.Count,
+            SoMonCoDeThi = k.LichThiTongs.Count(l => l.MaDeKiemTra.HasValue),
+            SoMonChuaCoDeThi = k.LichThiTongs.Count(l => !l.MaDeKiemTra.HasValue)
         };
     }
 
@@ -105,16 +119,25 @@ public class ExamService : IExamService
         var hocKy = await _db.HocKys.FindAsync(new object[] { request.MaHocKy }, ct)
             ?? throw new ApiException(400, "Học kỳ không tồn tại.");
 
+        if (request.MaNganh.HasValue)
+        {
+            _ = await _db.NganhDaoTaos.FindAsync(new object[] { request.MaNganh.Value }, ct)
+                ?? throw new ApiException(400, "Ngành đào tạo không tồn tại.");
+        }
+
         var entity = new KyThi
         {
             TenKyThi = request.TenKyThi,
             MaHocKy = request.MaHocKy,
+            MaNganh = request.MaNganh,
             LoaiKyThi = request.LoaiKyThi,
             TrangThai = "nhap"
         };
 
         _db.KyThis.Add(entity);
         await _db.SaveChangesAsync(ct);
+
+        await AutoGenerateLichThiTongsAsync(entity, hocKy, ct);
 
         return await GetKyThiByIdAsync(entity.MaKyThi, ct);
     }
@@ -124,17 +147,152 @@ public class ExamService : IExamService
         var entity = await _db.KyThis.FindAsync(new object[] { id }, ct)
             ?? throw new ApiException(404, "Không tìm thấy kỳ thi.");
 
+        if (entity.TrangThai == "da_ket_thuc")
+            throw new ApiException(400, "Kỳ thi đã kết thúc, không thể cập nhật.");
+
         if (!string.IsNullOrWhiteSpace(request.TenKyThi))
             entity.TenKyThi = request.TenKyThi;
         if (!string.IsNullOrWhiteSpace(request.TrangThai))
+        {
+            var allowed = new[] { "nhap", "dang_dien_ra", "da_ket_thuc" };
+            if (!allowed.Contains(request.TrangThai))
+                throw new ApiException(400, "Trạng thái kỳ thi không hợp lệ.");
             entity.TrangThai = request.TrangThai;
+        }
         if (!string.IsNullOrWhiteSpace(request.LoaiKyThi))
             entity.LoaiKyThi = request.LoaiKyThi;
+        if (request.MaNganh.HasValue)
+        {
+            _ = await _db.NganhDaoTaos.FindAsync(new object[] { request.MaNganh.Value }, ct)
+                ?? throw new ApiException(400, "Ngành đào tạo không tồn tại.");
+            entity.MaNganh = request.MaNganh;
+        }
 
         entity.NgayCapNhat = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
 
         return await GetKyThiByIdAsync(id, ct);
+    }
+
+    public async Task<KyThiDto> PublishKyThiAsync(int id, CancellationToken ct)
+    {
+        var entity = await _db.KyThis.FindAsync(new object[] { id }, ct)
+            ?? throw new ApiException(404, "Không tìm thấy kỳ thi.");
+
+        if (entity.TrangThai != "nhap")
+            throw new ApiException(400, "Chỉ có thể mở giai đoạn thi khi kỳ thi ở trạng thái nháp.");
+
+        entity.TrangThai = "dang_dien_ra";
+        entity.NgayCapNhat = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+
+        return await GetKyThiByIdAsync(id, ct);
+    }
+
+    public async Task<KyThiDto> CloseKyThiAsync(int id, CancellationToken ct)
+    {
+        var entity = await _db.KyThis.FindAsync(new object[] { id }, ct)
+            ?? throw new ApiException(404, "Không tìm thấy kỳ thi.");
+
+        if (entity.TrangThai != "dang_dien_ra")
+            throw new ApiException(400, "Chỉ có thể đóng giai đoạn thi khi kỳ thi đang diễn ra.");
+
+        entity.TrangThai = "da_ket_thuc";
+        entity.NgayCapNhat = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+
+        return await GetKyThiByIdAsync(id, ct);
+    }
+
+    public async Task<IReadOnlyList<LichThiTongDto>> GetLichThiTongsByKyThiAsync(int maKyThi, CancellationToken ct)
+    {
+        _ = await _db.KyThis.FindAsync(new object[] { maKyThi }, ct)
+            ?? throw new ApiException(404, "Không tìm thấy kỳ thi.");
+
+        return await _db.LichThiTongs
+            .AsNoTracking()
+            .Include(l => l.KyThi)
+            .Include(l => l.MonHoc)
+            .Include(l => l.DeKiemTra)
+            .Include(l => l.CaThis)
+            .Where(l => l.MaKyThi == maKyThi)
+            .OrderBy(l => l.MonHoc != null ? l.MonHoc.TenMonHoc : "")
+            .Select(l => new LichThiTongDto
+            {
+                MaLichThiTong = l.MaLichThiTong,
+                MaKyThi = l.MaKyThi,
+                TenKyThi = l.KyThi != null ? l.KyThi.TenKyThi : null,
+                MaMonHoc = l.MaMonHoc,
+                TenMonHoc = l.MonHoc != null ? l.MonHoc.TenMonHoc : null,
+                MaDeKiemTra = l.MaDeKiemTra,
+                TenDeKiemTra = l.DeKiemTra != null ? l.DeKiemTra.TieuDe : null,
+                HinhThucThi = l.HinhThucThi,
+                NgayThiDuKien = l.NgayThiDuKien,
+                TrangThai = l.TrangThai,
+                NgayTao = l.NgayTao,
+                SoCaThi = l.CaThis.Count
+            })
+            .ToListAsync(ct);
+    }
+
+    private async Task AutoGenerateLichThiTongsAsync(KyThi kyThi, HocKy hocKy, CancellationToken ct)
+    {
+        var subjectsQuery = _db.DanhMucMonHocs.AsNoTracking().Where(x => x.ConHoatDong);
+        if (kyThi.MaNganh.HasValue)
+        {
+            subjectsQuery = subjectsQuery.Where(x => x.MaNganh == kyThi.MaNganh.Value);
+        }
+        var subjects = await subjectsQuery.ToListAsync(ct);
+        if (subjects.Count == 0)
+        {
+            return;
+        }
+
+        var existingSubjectIds = await _db.LichThiTongs
+            .Where(l => l.MaKyThi == kyThi.MaKyThi)
+            .Select(l => l.MaMonHoc)
+            .ToListAsync(ct);
+
+        var deKiemTras = await _db.DeKiemTras
+            .AsNoTracking()
+            .Where(x => x.MaMonHoc.HasValue)
+            .ToListAsync(ct);
+
+        var ngayThiDuKien = hocKy.NgayKetThuc != default
+            ? hocKy.NgayKetThuc.ToDateTime(TimeOnly.MinValue)
+            : DateTime.UtcNow.AddDays(7);
+
+        var newLichThiTongs = new List<LichThiTong>();
+        foreach (var subject in subjects)
+        {
+            if (existingSubjectIds.Contains(subject.MaMonHoc))
+            {
+                continue;
+            }
+
+            var de = deKiemTras
+                .Where(x => x.MaMonHoc == subject.MaMonHoc)
+                .OrderByDescending(x => x.MaHocKy == kyThi.MaHocKy)
+                .ThenByDescending(x => x.TrangThaiDuyet == "da_duyet")
+                .ThenByDescending(x => x.NgayTao)
+                .FirstOrDefault();
+
+            newLichThiTongs.Add(new LichThiTong
+            {
+                MaKyThi = kyThi.MaKyThi,
+                MaMonHoc = subject.MaMonHoc,
+                MaDeKiemTra = de?.MaDeKiemTra,
+                HinhThucThi = de?.HinhThucThi ?? "online_tap_trung",
+                NgayThiDuKien = ngayThiDuKien,
+                TrangThai = "nhap"
+            });
+        }
+
+        if (newLichThiTongs.Count > 0)
+        {
+            _db.LichThiTongs.AddRange(newLichThiTongs);
+            await _db.SaveChangesAsync(ct);
+        }
     }
 
     // ===== LichThiTong =====
@@ -277,12 +435,19 @@ public class ExamService : IExamService
 
     public async Task<PagedResultDto<CaThiDto>> GetCaThisAsync(CaThiQueryParameters parameters, CancellationToken ct)
     {
+        var currentUser = _httpContextAccessor.HttpContext?.Items["CurrentUser"] as CurrentUserContext;
         var query = _db.CaThis
             .Include(c => c.Phong)
             .Include(c => c.DonVi)
-            .Include(c => c.ThiSinhCaThis)
             .Include(c => c.PhanCongGiamThis)
+                .ThenInclude(pc => pc.GiamThi)
+            .AsSplitQuery()
             .AsQueryable();
+
+        if (currentUser != null && (currentUser.Role == "Teacher" || currentUser.Role == "giao_vien"))
+        {
+            query = query.Where(c => c.PhanCongGiamThis.Any(pc => pc.MaGiamThi == currentUser.UserId));
+        }
 
         if (parameters.MaLichThiTong.HasValue)
             query = query.Where(c => c.MaLichThiTong == parameters.MaLichThiTong.Value);
@@ -296,11 +461,47 @@ public class ExamService : IExamService
             query = query.Where(c => c.NgayThi <= parameters.DenNgay.Value);
 
         var totalItems = await query.CountAsync(ct);
-        var items = await query
+        var caThis = await query
             .OrderBy(c => c.NgayThi).ThenBy(c => c.ThoiGianBatDau)
             .Skip((parameters.PageIndex - 1) * parameters.PageSize)
             .Take(parameters.PageSize)
-            .Select(c => new CaThiDto
+            .ToListAsync(ct);
+
+        var caThiIds = caThis.Select(c => c.MaCaThi).ToList();
+
+        var candidateCounts = await _db.ThiSinhCaThis
+            .Where(t => caThiIds.Contains(t.MaCaThi))
+            .GroupBy(t => t.MaCaThi)
+            .Select(g => new { MaCaThi = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.MaCaThi, x => x.Count, ct);
+
+        var coMatStats = await _db.DiemDanhThis
+            .Where(d => caThiIds.Contains(d.MaCaThi) && d.TrangThaiDiemDanh == "co_mat")
+            .GroupBy(d => d.MaCaThi)
+            .Select(g => new { MaCaThi = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.MaCaThi, x => x.Count, ct);
+
+        var viPhamStats = await _db.NhatKyViPhamThis
+            .Where(v => caThiIds.Contains(v.MaCaThi))
+            .GroupBy(v => v.MaCaThi)
+            .Select(g => new { MaCaThi = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.MaCaThi, x => x.Count, ct);
+
+        var phienThiStats = await _db.PhienThiHocSinhs
+            .Where(p => p.MaCaThi.HasValue && caThiIds.Contains(p.MaCaThi.Value))
+            .GroupBy(p => new { MaCaThi = p.MaCaThi!.Value, p.TrangThaiLuong })
+            .Select(g => new { g.Key.MaCaThi, TrangThai = g.Key.TrangThaiLuong, Count = g.Count() })
+            .ToListAsync(ct);
+
+        var items = caThis.Select(c =>
+        {
+            int soThiSinh = candidateCounts.GetValueOrDefault(c.MaCaThi);
+            int soCoMat = coMatStats.GetValueOrDefault(c.MaCaThi);
+            int soViPham = viPhamStats.GetValueOrDefault(c.MaCaThi);
+            int soDaNop = phienThiStats.Where(p => p.MaCaThi == c.MaCaThi && p.TrangThai == "da_nop").Sum(p => p.Count);
+            int soDangLam = phienThiStats.Where(p => p.MaCaThi == c.MaCaThi && p.TrangThai == "dang_lam").Sum(p => p.Count);
+
+            return new CaThiDto
             {
                 MaCaThi = c.MaCaThi,
                 MaLichThiTong = c.MaLichThiTong,
@@ -314,10 +515,16 @@ public class ExamService : IExamService
                 TenDonVi = c.DonVi != null ? c.DonVi.TenDonVi : null,
                 TrangThai = c.TrangThai,
                 GhiChu = c.GhiChu,
-                SoThiSinh = c.ThiSinhCaThis.Count,
-                SoGiamThi = c.PhanCongGiamThis.Count
-            })
-            .ToListAsync(ct);
+                SoThiSinh = soThiSinh,
+                TongThiSinh = soThiSinh,
+                SoGiamThi = c.PhanCongGiamThis.Count,
+                SoThiSinhCoMat = soCoMat,
+                SoThiSinhDangLamBai = soDangLam,
+                SoThiSinhDaNop = soDaNop,
+                SoThiSinhViPham = soViPham,
+                GiamThis = c.PhanCongGiamThis.Select(pc => pc.GiamThi != null ? pc.GiamThi.HoTen : "").Where(n => !string.IsNullOrEmpty(n)).ToList()
+            };
+        }).ToList();
 
         return new PagedResultDto<CaThiDto>
         {
@@ -804,14 +1011,20 @@ public class ExamService : IExamService
         _ = await _db.CaThis.FindAsync(new object[] { request.MaCaThi }, ct)
             ?? throw new ApiException(400, "Ca thi không tồn tại.");
 
+        var validStatuses = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "co_mat", "vang_mat", "di_muon_qua_gio", "su_co" };
+
         foreach (var item in request.DanhSachDiemDanh)
         {
+            var normalizedStatus = validStatuses.Contains(item.TrangThaiDiemDanh)
+                ? item.TrangThaiDiemDanh.ToLowerInvariant()
+                : "vang_mat";
+
             var existing = await _db.DiemDanhThis
                 .FirstOrDefaultAsync(d => d.MaCaThi == request.MaCaThi && d.MaHocSinh == item.MaHocSinh, ct);
 
             if (existing != null)
             {
-                existing.TrangThaiDiemDanh = item.TrangThaiDiemDanh;
+                existing.TrangThaiDiemDanh = normalizedStatus;
                 existing.ThoiDiemDiemDanh = DateTime.UtcNow;
                 existing.MaNguoiDiemDanh = maNguoiDiemDanh;
                 existing.GhiChu = item.GhiChu;
@@ -822,10 +1035,11 @@ public class ExamService : IExamService
                 {
                     MaCaThi = request.MaCaThi,
                     MaHocSinh = item.MaHocSinh,
-                    TrangThaiDiemDanh = item.TrangThaiDiemDanh,
+                    TrangThaiDiemDanh = normalizedStatus,
                     ThoiDiemDiemDanh = DateTime.UtcNow,
                     MaNguoiDiemDanh = maNguoiDiemDanh,
-                    GhiChu = item.GhiChu
+                    GhiChu = item.GhiChu,
+                    NgayTao = DateTime.UtcNow
                 });
             }
 
@@ -834,11 +1048,11 @@ public class ExamService : IExamService
                 .FirstOrDefaultAsync(t => t.MaCaThi == request.MaCaThi && t.MaHocSinh == item.MaHocSinh, ct);
             if (thiSinhCaThi != null)
             {
-                if (item.TrangThaiDiemDanh == "co_mat")
+                if (normalizedStatus == "co_mat")
                 {
                     thiSinhCaThi.TrangThaiDuThi = "duoc_thi";
                 }
-                else if (item.TrangThaiDiemDanh == "vang_mat" && thiSinhCaThi.TrangThaiDuThi != "dinh_chi")
+                else if (normalizedStatus == "vang_mat" && thiSinhCaThi.TrangThaiDuThi != "dinh_chi")
                 {
                     thiSinhCaThi.TrangThaiDuThi = "vang_thi";
                 }

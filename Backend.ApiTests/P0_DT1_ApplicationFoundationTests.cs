@@ -5,7 +5,10 @@ using Backend.Constants;
 using Backend.Data;
 using Backend.Exceptions;
 using Backend.Services.Applications;
+using Backend.Services.Audit;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using NUnit.Framework;
 
 namespace Backend.ApiTests;
@@ -393,7 +396,12 @@ public class P0_DT1_ApplicationFoundationUnitTests
     public async Task ApplicationSchemaService_NullBlankType_ShouldReturnBadRequest()
     {
         await using var context = P0Dt1TestDatabase.CreateDbContext();
-        var service = new ApplicationSchemaService(context, new ApplicationStateMachine());
+        var service = new ApplicationSchemaService(
+            context,
+            new ApplicationStateMachine(),
+            Mock.Of<IHttpContextAccessor>(),
+            Mock.Of<IAuditLogService>(),
+            new ApplicationTemplateValidator());
 
         foreach (var value in new string?[] { null, string.Empty, "   " })
         {
@@ -412,7 +420,12 @@ public class P0_DT1_ApplicationFoundationUnitTests
     public async Task ApplicationSchemaService_UppercaseType_ShouldReturnCanonicalType()
     {
         await using var context = P0Dt1TestDatabase.CreateDbContext();
-        var service = new ApplicationSchemaService(context, new ApplicationStateMachine());
+        var service = new ApplicationSchemaService(
+            context,
+            new ApplicationStateMachine(),
+            Mock.Of<IHttpContextAccessor>(),
+            Mock.Of<IAuditLogService>(),
+            new ApplicationTemplateValidator());
 
         var template = await service.GetActiveTemplateByTypeAsync(" NGHI_PHEP ", CancellationToken.None);
 

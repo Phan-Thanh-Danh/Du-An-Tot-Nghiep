@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { CheckCircle2, AlertTriangle, AlertCircle } from 'lucide-vue-next'
+import { CheckCircle2, AlertTriangle, AlertCircle, Send } from 'lucide-vue-next'
 
 const props = defineProps<{
   canSave: boolean
@@ -8,6 +8,8 @@ const props = defineProps<{
   errors: string[]
   warnings: string[]
 }>()
+
+const emit = defineEmits(['publish'])
 
 const isPerfect = computed(() => props.canPublish && props.warnings.length === 0)
 const hasErrors = computed(() => props.errors.length > 0)
@@ -18,9 +20,18 @@ const hasWarnings = computed(() => props.warnings.length > 0)
 <template>
   <div class="mb-4">
     <!-- Perfect State -->
-    <div v-if="isPerfect" class="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-xl text-green-800">
-      <CheckCircle2 class="w-5 h-5 shrink-0" />
-      <span class="text-sm font-medium">Cấu trúc Quiz hợp lệ và đã sẵn sàng để xuất bản.</span>
+    <div v-if="isPerfect" class="flex items-center justify-between gap-3 p-3.5 bg-green-50 border border-green-200 rounded-xl text-green-800 shadow-sm">
+      <div class="flex items-center gap-3">
+        <CheckCircle2 class="w-5 h-5 shrink-0 text-green-600" />
+        <span class="text-sm font-medium">Cấu trúc Quiz hợp lệ và đã sẵn sàng để xuất bản.</span>
+      </div>
+      <button 
+        @click="emit('publish')" 
+        class="px-3.5 py-1.5 bg-green-600 hover:bg-green-700 text-white font-semibold text-xs rounded-lg transition-colors shadow-sm flex items-center gap-1.5 shrink-0"
+      >
+        <Send class="w-3.5 h-3.5" />
+        Xuất bản ngay
+      </button>
     </div>
 
     <!-- Has Errors or Warnings -->

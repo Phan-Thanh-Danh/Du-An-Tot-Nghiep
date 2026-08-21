@@ -9,11 +9,15 @@ public class KyThiDto
     public string TenKyThi { get; set; } = string.Empty;
     public int MaHocKy { get; set; }
     public string? TenHocKy { get; set; }
+    public int? MaNganh { get; set; }
+    public string? TenNganh { get; set; }
     public string LoaiKyThi { get; set; } = string.Empty;
     public string TrangThai { get; set; } = string.Empty;
     public DateTime NgayTao { get; set; }
     public DateTime? NgayCapNhat { get; set; }
     public int SoLichThiTong { get; set; }
+    public int SoMonCoDeThi { get; set; }
+    public int SoMonChuaCoDeThi { get; set; }
 }
 
 public class CreateKyThiRequest
@@ -24,6 +28,8 @@ public class CreateKyThiRequest
 
     [Required(ErrorMessage = "Mã học kỳ là bắt buộc.")]
     public int MaHocKy { get; set; }
+
+    public int? MaNganh { get; set; }
 
     [Required(ErrorMessage = "Loại kỳ thi là bắt buộc.")]
     [RegularExpression("^(giua_ky|cuoi_ky)$", ErrorMessage = "Loại kỳ thi phải là 'giua_ky' hoặc 'cuoi_ky'.")]
@@ -36,6 +42,8 @@ public class UpdateKyThiRequest
     public string? TenKyThi { get; set; }
 
     public string? TrangThai { get; set; }
+
+    public int? MaNganh { get; set; }
 
     [RegularExpression("^(giua_ky|cuoi_ky)$", ErrorMessage = "Loại kỳ thi phải là 'giua_ky' hoặc 'cuoi_ky'.")]
     public string? LoaiKyThi { get; set; }
@@ -100,6 +108,12 @@ public class CaThiDto
     public string? GhiChu { get; set; }
     public int SoThiSinh { get; set; }
     public int SoGiamThi { get; set; }
+    public int TongThiSinh { get; set; }
+    public int SoThiSinhCoMat { get; set; }
+    public int SoThiSinhDangLamBai { get; set; }
+    public int SoThiSinhDaNop { get; set; }
+    public int SoThiSinhViPham { get; set; }
+    public List<string> GiamThis { get; set; } = [];
 }
 
 public class CreateCaThiRequest

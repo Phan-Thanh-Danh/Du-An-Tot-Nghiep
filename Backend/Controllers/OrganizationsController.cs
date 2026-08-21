@@ -49,7 +49,7 @@ public class OrganizationsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = AuthRoles.SuperAdmin)]
+    [Authorize(Roles = AuthRoles.SuperAdmin + "," + AuthRoles.Admin + "," + AuthRoles.Principal)]
     public async Task<ActionResult<OrganizationResponseDto>> Create(OrganizationCreateDto request)
     {
         var organization = await _organizationService.CreateAsync(request, GetCurrentUserId());
@@ -57,7 +57,7 @@ public class OrganizationsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = AuthRoles.SuperAdmin)]
+    [Authorize(Roles = AuthRoles.SuperAdmin + "," + AuthRoles.Admin + "," + AuthRoles.Principal)]
     public async Task<ActionResult<OrganizationResponseDto>> Update(int id, OrganizationUpdateDto request)
     {
         var organization = await _organizationService.UpdateAsync(id, request, GetCurrentUserId());
@@ -65,7 +65,7 @@ public class OrganizationsController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = AuthRoles.SuperAdmin)]
+    [Authorize(Roles = AuthRoles.SuperAdmin + "," + AuthRoles.Admin + "," + AuthRoles.Principal)]
     public async Task<IActionResult> Delete(int id)
     {
         await _organizationService.SoftDeleteAsync(id, GetCurrentUserId());
@@ -73,7 +73,7 @@ public class OrganizationsController : ControllerBase
     }
 
     [HttpDelete("{id:int}/hard-delete")]
-    [Authorize(Roles = AuthRoles.SuperAdmin)]
+    [Authorize(Roles = AuthRoles.SuperAdmin + "," + AuthRoles.Admin + "," + AuthRoles.Principal)]
     public async Task<IActionResult> HardDelete(int id)
     {
         await _organizationService.HardDeleteAsync(id, GetCurrentUserId());

@@ -111,7 +111,7 @@ public class BuildingService : IBuildingService
         var buildingCode = NormalizeRequiredText(request.MaCodeToaNha, "Mã tòa nhà").ToUpperInvariant();
         var buildingName = NormalizeRequiredText(request.TenToaNha, "Tên tòa nhà");
 
-        await ValidateBuildingCodeAsync(organization.MaDonVi, buildingCode, null, cancellationToken);
+        await ValidateBuildingCodeAsync(organization.MaDonVi, buildingCode, buildingName, null, cancellationToken);
 
         var building = new ToaNha
         {
@@ -128,6 +128,24 @@ public class BuildingService : IBuildingService
         _context.ToaNhas.Add(building);
         await _context.SaveChangesAsync(cancellationToken);
 
+        // Tòa mới tạo tự sinh các tầng theo SoTang (đồng bộ convention seed)
+        if (request.SoTang is > 0)
+        {
+            for (var floorNumber = 1; floorNumber <= request.SoTang; floorNumber++)
+            {
+                _context.Tangs.Add(new Tang
+                {
+                    MaToaNha = building.MaToaNha,
+                    TenTang = $"Tầng {floorNumber}",
+                    ThuTuTang = floorNumber,
+                    MoTa = $"{building.TenToaNha} - Tầng {floorNumber}",
+                    ConHoatDong = true
+                });
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
         return ToDto(building, organization);
     }
 
@@ -139,7 +157,7 @@ public class BuildingService : IBuildingService
         var buildingCode = NormalizeRequiredText(request.MaCodeToaNha, "Mã tòa nhà").ToUpperInvariant();
         var buildingName = NormalizeRequiredText(request.TenToaNha, "Tên tòa nhà");
 
-        await ValidateBuildingCodeAsync(organization.MaDonVi, buildingCode, buildingId, cancellationToken);
+        await ValidateBuildingCodeAsync(organization.MaDonVi, buildingCode, buildingName, buildingId, cancellationToken);
 
         building.MaDonVi = organization.MaDonVi;
         building.MaCodeToaNha = buildingCode;
@@ -211,9 +229,9 @@ public class BuildingService : IBuildingService
         return organization;
     }
 
-    private async Task ValidateBuildingCodeAsync(int organizationId, string buildingCode, int? excludedBuildingId, CancellationToken cancellationToken)
+    private async Task ValidateBuildingCodeAsync(int organizationId, string buildingCode, string buildingName, int? excludedBuildingId, CancellationToken cancellationToken)
     {
-        var exists = await _context.ToaNhas
+        var existsCode = await _context.ToaNhas
             .AsNoTracking()
             .AnyAsync(x =>
                 x.MaDonVi == organizationId &&
@@ -221,9 +239,22 @@ public class BuildingService : IBuildingService
                 (!excludedBuildingId.HasValue || x.MaToaNha != excludedBuildingId.Value),
                 cancellationToken);
 
-        if (exists)
+        if (existsCode)
         {
             throw new ApiException(StatusCodes.Status409Conflict, "Mã tòa nhà đã tồn tại trong đơn vị này.");
+        }
+
+        var existsName = await _context.ToaNhas
+            .AsNoTracking()
+            .AnyAsync(x =>
+                x.MaDonVi == organizationId &&
+                x.TenToaNha.ToLower() == buildingName.ToLower() &&
+                (!excludedBuildingId.HasValue || x.MaToaNha != excludedBuildingId.Value),
+                cancellationToken);
+
+        if (existsName)
+        {
+            throw new ApiException(StatusCodes.Status409Conflict, "Tên tòa nhà đã tồn tại trong đơn vị này.");
         }
     }
 
@@ -240,12 +271,12 @@ public class BuildingService : IBuildingService
 
     private async Task<HashSet<int>> GetAllowedOrganizationIdsAsync(CurrentUserContext currentUser, CancellationToken cancellationToken)
     {
-        if (currentUser.Role == AuthRoles.SuperAdmin)
+        if (currentUser.Role == AuthRoles.SuperAdmin || currentUser.Role == AuthRoles.Admin || currentUser.Role == AuthRoles.Principal)
         {
             return await _context.DonVis.AsNoTracking().Select(x => x.MaDonVi).ToHashSetAsync(cancellationToken);
         }
 
-        if (currentUser.Role == AuthRoles.CampusAdmin)
+        if (currentUser.Role == AuthRoles.CampusAdmin || currentUser.Role == AuthRoles.SubCampusAdmin)
         {
             var organizations = await _context.DonVis.AsNoTracking().Select(x => new { x.MaDonVi, x.MaDonViCha }).ToListAsync(cancellationToken);
             var allowedIds = new HashSet<int> { currentUser.CampusId };

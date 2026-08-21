@@ -180,6 +180,12 @@ const router = createRouter({
           meta: { title: 'Đánh giá giảng viên' },
         },
         {
+          path: 'organizations',
+          name: 'student-organizations',
+          component: () => import('../views/SuperAdmin/OrganizationsView.vue'),
+          meta: { title: 'Quản lý Cơ sở' },
+        },
+        {
           path: 'profile',
           name: 'student-profile',
           component: () => import('../views/Student/ProfileView.vue'),
@@ -389,12 +395,12 @@ const router = createRouter({
         { path: 'academic-terms', name: 'staff-academic-terms', component: () => import('../views/GiaoVu/AcademicTerms/AcademicTermManagementView.vue'), meta: { title: 'Quản lý học kỳ' } },
         { path: 'subjects', name: 'staff-subjects', component: () => import('../views/GiaoVu/Subjects/SubjectManagementView.vue'), meta: { title: 'Quản lý môn học' } },
         { path: 'courses', name: 'staff-courses', component: () => import('../views/GiaoVu/Courses/CourseManagementView.vue'), meta: { title: 'Danh sách khóa học', subtitle: 'Quản lý và phân phối môn học cho giảng viên và lớp hành chính' } },
-        
+
         // Đăng ký, Dung lượng, Trạng thái khóa học
         { path: 'registrations', name: 'staff-registrations', component: () => import('../views/GiaoVu/Registration/RegistrationPeriodsView.vue'), meta: { title: 'Quản lý đợt đăng ký', subtitle: 'Cấu hình và quản lý các đợt đăng ký môn học' } },
         { path: 'capacity', name: 'staff-capacity', component: () => import('../views/GiaoVu/Registration/CapacityAdjustmentView.vue'), meta: { title: 'Điều chỉnh dung lượng', subtitle: 'Quản lý sức chứa và danh sách chờ các lớp học' } },
         { path: 'course-status', name: 'staff-course-status', component: () => import('../views/GiaoVu/Registration/CourseStatusView.vue'), meta: { title: 'Trạng thái khóa học', subtitle: 'Giám sát trạng thái các lớp học và xử lý hủy lớp' } },
-        
+
         // Đơn từ (Requests)
         { path: 'requests', name: 'staff-requests', component: () => import('../views/GiaoVu/Requests/PendingRequestsView.vue') , meta: { title: 'Đơn cần xử lý' } },
         { path: 'requests/:id', name: 'staff-request-detail', component: () => import('../views/GiaoVu/Requests/RequestDetailView.vue') , meta: { title: 'Chi tiết đơn' } },
@@ -435,6 +441,8 @@ const router = createRouter({
           meta: { title: 'Dashboard chiến lược', subtitle: 'Tổng quan hệ thống đào tạo, chất lượng và thống kê', section: 'Dashboard' },
         },
         // Cơ cấu tổ chức
+        { path: 'human-resources', name: 'bgh-human-resources', component: () => import('../views/BGH/HumanResources/TeacherPersonnelListView.vue'), meta: { title: 'Nhân sự Giảng viên', subtitle: 'Quản lý hồ sơ chuyên môn và tải giảng dạy', section: 'Cơ cấu tổ chức' } },
+        { path: 'human-resources/:id', name: 'bgh-human-resources-detail', component: () => import('../views/BGH/HumanResources/TeacherPersonnelDetailView.vue'), meta: { title: 'Chi tiết Giảng viên', subtitle: 'Hồ sơ chuyên môn, tải giảng dạy và nhật ký ca dạy', section: 'Cơ cấu tổ chức' } },
         { path: 'organizations', name: 'bgh-organizations', component: () => import('../views/BGH/OrganizationsView.vue'), meta: { title: 'Quản lý Đơn vị', subtitle: 'Cơ cấu tổ chức các khoa, phòng ban', section: 'Cơ cấu tổ chức' } },
         { path: 'users', name: 'bgh-users', component: () => import('../views/BGH/UsersView.vue'), meta: { title: 'Quản lý Người dùng', subtitle: 'Danh sách tài khoản sinh viên, giảng viên và nhân sự', section: 'Cơ cấu tổ chức' } },
         { path: 'roles', name: 'bgh-roles', component: () => import('../views/BGH/RolesView.vue'), meta: { title: 'Vai trò & Phân quyền', subtitle: 'Cấu hình quyền hạn truy cập hệ thống', section: 'Cơ cấu tổ chức' } },
@@ -461,6 +469,7 @@ const router = createRouter({
         { path: 'evaluations/ai-analysis', name: 'bgh-evaluations-ai-analysis', component: () => import('../views/BGH/Evaluations/AIFeedbackAnalysisView.vue'), meta: { title: 'Phân tích Feedback AI', subtitle: 'AI phân tích cảm xúc và trích xuất chủ đề từ nhận xét sinh viên', section: 'Phê duyệt & Đánh giá' } },
         // Cơ sở vật chất
         { path: 'facilities', name: 'bgh-facilities', component: () => import('../views/BGH/FacilitiesView.vue'), meta: { title: 'Cơ sở vật chất', subtitle: 'Quản lý Tòa nhà, Tầng và Phòng học', section: 'Cơ sở vật chất' } },
+        { path: 'facilities/:buildingId', name: 'bgh-facility-detail', component: () => import('../views/BGH/Facilities/FacilityDetailView.vue'), meta: { title: 'Chi tiết Tòa nhà & Thiết bị', subtitle: 'Chi tiết phòng học và trang thiết bị tòa nhà', section: 'Cơ sở vật chất' } },
         // Giám sát hệ thống
         { path: 'audit-logs', name: 'bgh-audit-logs', component: () => import('../views/BGH/AuditLogsView.vue'), meta: { title: 'Nhật ký kiểm toán', subtitle: 'Theo dõi lịch sử thay đổi trên hệ thống', section: 'Giám sát hệ thống' } },
         // Cá nhân
@@ -527,6 +536,12 @@ const router = createRouter({
           meta: { title: 'Cấu hình học kỳ' },
         },
         {
+          path: 'training/cohorts',
+          name: 'super-admin-training-cohorts',
+          component: () => import('../views/SuperAdmin/CohortsView.vue'),
+          meta: { title: 'Quản lý khóa tuyển sinh', subtitle: 'Tạo, sửa và quản lý khóa tuyển sinh' },
+        },
+        {
           path: 'training/programs',
           name: 'super-admin-training-programs',
           component: () => import('../views/SuperAdmin/ProgramsView.vue'),
@@ -556,12 +571,6 @@ const router = createRouter({
           name: 'super-admin-operations-attendance-policy',
           component: () => import('../views/SuperAdmin/AttendancePolicyView.vue'),
           meta: { title: 'Quỹ vắng & Chuyên cần' },
-        },
-        {
-          path: 'operations/registration-periods',
-          name: 'super-admin-operations-registration-periods',
-          component: () => import('../views/SuperAdmin/RegistrationPeriodsView.vue'),
-          meta: { title: 'Mở/Đóng đăng ký môn' },
         },
         {
           path: 'operations/pass-fail-rules',
@@ -609,13 +618,14 @@ const router = createRouter({
         {
           path: 'approvals/requests',
           name: 'super-admin-approvals-requests',
-          component: () => import('../views/SuperAdmin/ApprovalsRequestsView.vue'),
-          meta: { title: 'Đơn cần duyệt' },
+          component: () => import('../views/SuperAdmin/ApplicationTemplatesView.vue'),
+          meta: { title: 'Quản lý mẫu đơn từ' },
         },
         {
-          path: 'approvals/history',
-          name: 'super-admin-approvals-history',
-          component: () => import('../views/SuperAdmin/ApprovalsHistoryView.vue'),
+          path: 'approvals/requests/:loaiDon',
+          name: 'super-admin-approvals-request-edit',
+          component: () => import('../views/SuperAdmin/ApplicationTemplateEditorView.vue'),
+          meta: { title: 'Sửa mẫu đơn từ' },
         },
         {
           path: 'approvals/reports',
@@ -654,16 +664,28 @@ const router = createRouter({
           meta: { title: 'Cấu hình đánh giá GV' },
         },
         {
-          path: 'evaluations/results',
-          name: 'super-admin-evaluations-results',
-          component: () => import('../views/SuperAdmin/EvaluationsResultsView.vue'),
-          meta: { title: 'Kết quả đánh giá GV' },
-        },
-        {
           path: 'awards',
           name: 'super-admin-awards',
           component: () => import('../views/SuperAdmin/AwardsView.vue'),
           meta: { title: 'Khen thưởng' },
+        },
+        {
+          path: 'awards/certificate-templates',
+          name: 'super-admin-awards-certificate-templates',
+          component: () => import('../views/SuperAdmin/CertificateTemplatesView.vue'),
+          meta: { title: 'Cấu hình giấy khen' },
+        },
+        {
+          path: 'awards/certificate-templates/new',
+          name: 'super-admin-awards-certificate-templates-new',
+          component: () => import('../views/SuperAdmin/CertificateTemplateEditorView.vue'),
+          meta: { title: 'Tạo mẫu giấy khen' },
+        },
+        {
+          path: 'awards/certificate-templates/:id/edit',
+          name: 'super-admin-awards-certificate-templates-edit',
+          component: () => import('../views/SuperAdmin/CertificateTemplateEditorView.vue'),
+          meta: { title: 'Sửa mẫu giấy khen' },
         },
         {
           path: 'discipline',
@@ -710,6 +732,18 @@ const router = createRouter({
           name: 'super-admin-notifications-templates',
           component: () => import('../views/SuperAdmin/NotificationTemplatesView.vue'),
           meta: { title: 'Template thông báo' },
+        },
+        {
+          path: 'notifications/templates/create',
+          name: 'super-admin-notifications-templates-create',
+          component: () => import('../views/SuperAdmin/NotificationTemplateFormView.vue'),
+          meta: { title: 'Tạo mẫu thông báo' },
+        },
+        {
+          path: 'notifications/templates/:id/edit',
+          name: 'super-admin-notifications-templates-edit',
+          component: () => import('../views/SuperAdmin/NotificationTemplateFormView.vue'),
+          meta: { title: 'Sửa mẫu thông báo' },
         },
         {
           path: 'notifications/send',

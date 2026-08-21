@@ -15,19 +15,26 @@ namespace Backend.Controllers;
 public class AdminNotificationTemplatesController : ControllerBase
 {
     private readonly INotificationTemplateService _templateService;
+    private readonly IApplicationCampusScopeService _scopeService;
 
-    public AdminNotificationTemplatesController(INotificationTemplateService templateService)
+    public AdminNotificationTemplatesController(
+        INotificationTemplateService templateService,
+        IApplicationCampusScopeService scopeService)
     {
         _templateService = templateService;
+        _scopeService = scopeService;
     }
 
-    private ApplicationActorContext GetCurrentActor()
+    private async Task<ApplicationActorContext> GetCurrentActorAsync(CancellationToken cancellationToken)
     {
-        if (HttpContext.Items["CurrentUser"] is ApplicationActorContext actor)
+        try
         {
-            return actor;
+            return await _scopeService.GetCurrentActorAsync(cancellationToken);
         }
-        throw new ApiException(401, "Không tìm thấy thông tin xác thực.");
+        catch (Exception ex)
+        {
+            throw new ApiException(401, "Không tìm thấy thông tin xác thực hoặc lỗi phân quyền: " + ex.Message);
+        }
     }
 
     [HttpGet]
@@ -35,7 +42,7 @@ public class AdminNotificationTemplatesController : ControllerBase
         [FromQuery] NotificationTemplateQueryParameters query,
         CancellationToken cancellationToken)
     {
-        var actor = GetCurrentActor();
+        var actor = await GetCurrentActorAsync(cancellationToken);
         var data = await _templateService.GetTemplatesAsync(query, actor, cancellationToken);
         return Ok(ApiResponseDto<PagedResultDto<NotificationTemplateListItemDto>>.Ok(data));
     }
@@ -45,7 +52,7 @@ public class AdminNotificationTemplatesController : ControllerBase
         int id,
         CancellationToken cancellationToken)
     {
-        var actor = GetCurrentActor();
+        var actor = await GetCurrentActorAsync(cancellationToken);
         var data = await _templateService.GetTemplateDetailAsync(id, actor, cancellationToken);
         return Ok(new ApiResponseDto<NotificationTemplateDetailDto>
         {
@@ -59,7 +66,7 @@ public class AdminNotificationTemplatesController : ControllerBase
         [FromBody] CreateNotificationTemplateRequest request,
         CancellationToken cancellationToken)
     {
-        var actor = GetCurrentActor();
+        var actor = await GetCurrentActorAsync(cancellationToken);
         var data = await _templateService.CreateTemplateAsync(request, actor, cancellationToken);
         return CreatedAtAction(nameof(GetTemplateDetail), new { id = data.MaMauThongBao }, new ApiResponseDto<NotificationTemplateDetailDto>
         {
@@ -75,7 +82,7 @@ public class AdminNotificationTemplatesController : ControllerBase
         [FromBody] UpdateNotificationTemplateRequest request,
         CancellationToken cancellationToken)
     {
-        var actor = GetCurrentActor();
+        var actor = await GetCurrentActorAsync(cancellationToken);
         var data = await _templateService.UpdateTemplateAsync(id, request, actor, cancellationToken);
         return Ok(new ApiResponseDto<NotificationTemplateDetailDto>
         {
@@ -90,7 +97,7 @@ public class AdminNotificationTemplatesController : ControllerBase
         int id,
         CancellationToken cancellationToken)
     {
-        var actor = GetCurrentActor();
+        var actor = await GetCurrentActorAsync(cancellationToken);
         await _templateService.ActivateTemplateAsync(id, actor, cancellationToken);
         return Ok(new ApiResponseDto<object>
         {
@@ -105,7 +112,7 @@ public class AdminNotificationTemplatesController : ControllerBase
         [FromBody] DeactivateNotificationTemplateRequest request,
         CancellationToken cancellationToken)
     {
-        var actor = GetCurrentActor();
+        var actor = await GetCurrentActorAsync(cancellationToken);
         await _templateService.DeactivateTemplateAsync(id, request, actor, cancellationToken);
         return Ok(new ApiResponseDto<object>
         {
@@ -119,7 +126,7 @@ public class AdminNotificationTemplatesController : ControllerBase
         int id,
         CancellationToken cancellationToken)
     {
-        var actor = GetCurrentActor();
+        var actor = await GetCurrentActorAsync(cancellationToken);
         await _templateService.DeleteTemplateAsync(id, actor, cancellationToken);
         return Ok(new ApiResponseDto<object>
         {
@@ -134,7 +141,7 @@ public class AdminNotificationTemplatesController : ControllerBase
         [FromBody] PreviewNotificationTemplateRequest request,
         CancellationToken cancellationToken)
     {
-        var actor = GetCurrentActor();
+        var actor = await GetCurrentActorAsync(cancellationToken);
         var data = await _templateService.PreviewTemplateAsync(id, request, actor, cancellationToken);
         return Ok(new ApiResponseDto<PreviewNotificationTemplateResultDto>
         {

@@ -59,7 +59,6 @@ const pageTitleMap = {
   '/super-admin/training/courses': { title: 'Quản lý khóa học', subtitle: 'Quản trị nội dung, gán giảng viên và tiến độ' },
   '/super-admin/training/exam-periods': { title: 'Mở/Đóng giai đoạn thi', subtitle: 'Điều phối ca thi và công bố kết quả bài làm' },
   '/super-admin/operations/attendance-policy': { title: 'Quỹ vắng & Chuyên cần', subtitle: 'Cấu hình ngưỡng vắng và duyệt mở khóa điểm danh' },
-  '/super-admin/operations/registration-periods': { title: 'Mở/Đóng đăng ký môn', subtitle: 'Quản lý các đợt đăng ký môn và chốt danh sách lớp' },
   '/super-admin/operations/pass-fail-rules': { title: 'Điều kiện Pass/Fail', subtitle: 'Thiết lập quy tắc đạt/rớt môn dựa trên điểm và chuyên cần' },
 
   // 5. Tài chính và Học phí
@@ -70,11 +69,12 @@ const pageTitleMap = {
 
   // 6. Hỗ trợ, Đơn từ và Đánh giá
   '/super-admin/support/tickets': { title: 'Ticket hỗ trợ', subtitle: 'Tiếp nhận và xử lý yêu cầu hỗ trợ kỹ thuật/học vụ' },
-  '/super-admin/approvals/requests': { title: 'Đơn cần duyệt', subtitle: 'Giám sát và xử lý đơn từ hành chính trực tuyến' },
-  '/super-admin/approvals/history': { title: 'Lịch sử duyệt đơn', subtitle: 'Tra cứu lộ trình xử lý đơn đã kết thúc' },
+  '/super-admin/approvals/requests': { title: 'Quản lý mẫu đơn từ', subtitle: 'Thiết kế biểu mẫu đơn hành chính, cấu hình trường nhập liệu và trạng thái hoạt động' },
   '/super-admin/evaluations/config': { title: 'Cấu hình đánh giá GV', subtitle: 'Mở đợt khảo sát và tạo câu hỏi khảo sát giảng viên' },
-  '/super-admin/evaluations/results': { title: 'Kết quả đánh giá GV', subtitle: 'Xem báo cáo ẩn danh và phân tích cảm xúc sinh viên' },
   '/super-admin/awards': { title: 'Khen thưởng', subtitle: 'Cấp bằng khen số và quản lý thành tích' },
+  '/super-admin/awards/certificate-templates': { title: 'Cấu hình giấy khen', subtitle: 'Thiết kế mẫu giấy khen bằng HTML/CSS và quản lý phiên bản' },
+  '/super-admin/awards/certificate-templates/new': { title: 'Tạo mẫu giấy khen', subtitle: 'Thiết kế mẫu giấy khen mới bằng HTML/CSS' },
+  '/super-admin/awards/certificate-templates/:id/edit': { title: 'Sửa mẫu giấy khen', subtitle: 'Chỉnh sửa mẫu giấy khen bằng HTML/CSS' },
   '/super-admin/discipline': { title: 'Kỷ luật', subtitle: 'Quản lý hồ sơ và mức độ vi phạm kỷ luật' },
 
   // 7. Báo cáo và Phân tích (Analytics)

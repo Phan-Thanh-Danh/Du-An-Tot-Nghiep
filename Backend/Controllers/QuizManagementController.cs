@@ -21,12 +21,17 @@ public class QuizManagementController : ControllerBase
 
     private int GetCurrentUserId()
     {
-        var userIdClaim = HttpContext.Items["CurrentUser"];
-        if (userIdClaim is Backend.Models.NguoiDung user)
+        if (HttpContext.Items["CurrentUser"] is Backend.DTOs.Auth.CurrentUserContext currentUser)
+            return currentUser.UserId;
+
+        if (HttpContext.Items["CurrentUser"] is Backend.Models.NguoiDung user)
             return user.MaNguoiDung;
 
-        var claim = User.FindFirst(CustomClaimTypes.UserId);
-        return claim != null ? int.Parse(claim.Value) : 0;
+        var claim = User.FindFirst(CustomClaimTypes.UserId) ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (claim != null && int.TryParse(claim.Value, out var val))
+            return val;
+
+        return 0;
     }
 
     [HttpGet("search")]

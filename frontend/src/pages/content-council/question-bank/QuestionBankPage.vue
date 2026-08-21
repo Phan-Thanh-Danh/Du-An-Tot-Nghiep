@@ -11,6 +11,52 @@ import QuestionDetailDrawer from '@/components/content-council/question-bank/Que
 import QuestionFormDrawer from '@/components/content-council/question-bank/QuestionFormDrawer.vue'
 import DeleteQuestionDialog from '@/components/content-council/question-bank/DeleteQuestionDialog.vue'
 import ImportQuestionModal from '@/components/content-council/question-bank/ImportQuestionModal.vue'
+import ConfirmModal from '@/components/common/ConfirmModal.vue'
+
+// Dialog popup state
+const modalState = ref({
+  isOpen: false,
+  title: 'Thông báo',
+  message: '',
+  variant: 'warning' as 'warning' | 'danger' | 'info' | 'success',
+  confirmText: 'Đồng ý',
+  cancelText: 'Hủy',
+  isAlert: false,
+  onConfirm: () => {}
+})
+
+const showAlert = (msg: string, title = 'Thông báo', variant: 'warning' | 'danger' | 'info' | 'success' = 'warning') => {
+  modalState.value = {
+    isOpen: true,
+    title,
+    message: msg,
+    variant,
+    confirmText: 'Đóng',
+    cancelText: 'Hủy',
+    isAlert: true,
+    onConfirm: () => {}
+  }
+}
+
+const showConfirm = (
+  msg: string,
+  onConfirmAction: () => void,
+  title = 'Xác nhận',
+  variant: 'warning' | 'danger' | 'info' | 'success' = 'warning',
+  confirmText = 'Đồng ý',
+  cancelText = 'Hủy'
+) => {
+  modalState.value = {
+    isOpen: true,
+    title,
+    message: msg,
+    variant,
+    confirmText,
+    cancelText,
+    isAlert: false,
+    onConfirm: onConfirmAction
+  }
+}
 
 const router = useRouter()
 const route = useRoute()
@@ -66,13 +112,13 @@ const filteredQuestions = computed(() => {
   const kw = filters.value.keyword.toLowerCase().trim()
   if (kw) {
     result = result.filter(q => 
-      q.code.toLowerCase().includes(kw) || 
-      q.content.toLowerCase().includes(kw)
+      (q.code || '').toLowerCase().includes(kw) || 
+      (q.content || '').toLowerCase().includes(kw)
     )
   }
   
   if (filters.value.subjectId !== 'all') {
-    result = result.filter(q => q.subjectId.toString() === filters.value.subjectId)
+    result = result.filter(q => q.subjectId && q.subjectId.toString() === filters.value.subjectId)
   }
   
   if (filters.value.questionType !== 'all') {
@@ -92,7 +138,7 @@ const filteredQuestions = computed(() => {
   }
   
   // Sort by ID desc (newest first)
-  return result.sort((a, b) => b.id - a.id)
+  return result.sort((a, b) => (b.id || 0) - (a.id || 0))
 })
 
 const totalItems = computed(() => filteredQuestions.value.length)
@@ -182,80 +228,151 @@ const handleDeleteRequest = (q: QuestionBankItem) => {
 }
 
 const handleToggleStatus = (q: QuestionBankItem) => {
-  if (!confirm(`Bạn có chắc muốn ${q.status === 'active' ? 'Vô hiệu hóa' : 'Kích hoạt'} câu hỏi này?`)) return
-  questionStore.toggleStatus(q.id)
-  showToast(`Đã ${q.status === 'active' ? 'Vô hiệu hóa' : 'Kích hoạt'} câu hỏi thành công.`)
+  const actionText = q.status === 'active' ? 'Vô hiệu hóa' : 'Kích hoạt'
+  showConfirm(
+    `Bạn có chắc muốn ${actionText.toLowerCase()} câu hỏi này?`,
+    async () => {
+      try {
+        await questionStore.toggleStatus(q.id)
+        showToast(`Đã ${actionText.toLowerCase()} câu hỏi thành công.`)
+      } catch (err: any) {
+        showAlert(err?.message || 'Có lỗi khi đổi trạng thái câu hỏi.', 'Lỗi', 'danger')
+      }
+    },
+    'Thay đổi trạng thái',
+    'warning',
+    actionText,
+    'Hủy'
+  )
 }
 
-const executeDelete = (q: QuestionBankItem) => {
-  questionStore.deleteQuestion(q.id)
-  selectedIds.value = selectedIds.value.filter(id => id !== q.id)
-  isDeleteOpen.value = false
-  isDetailOpen.value = false
-  showToast('Đã xóa câu hỏi thành công.')
-}
-
-const executeSave = (formData: any) => {
-  if (formMode.value === 'create' || formMode.value === 'duplicate') {
-    const newQuestion = {
-      ...formData,
-      id: Math.max(...questionStore.questions.map(q => q.id), 0) + 1,
-      code: formData.code || `Q-${formData.subjectCode}-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      usageCount: 0
-    }
-    questionStore.addQuestion(newQuestion)
-    showToast(formMode.value === 'create' ? 'Đã tạo câu hỏi thành công.' : 'Đã nhân bản câu hỏi thành công.')
-  } else if (formMode.value === 'edit') {
-    questionStore.updateQuestion(formData.id, {
-      ...formData,
-      updatedAt: new Date().toISOString()
-    })
+const executeDelete = async (q: QuestionBankItem) => {
+  try {
+    await questionStore.deleteQuestion(q.id)
+    selectedIds.value = selectedIds.value.filter(id => id !== q.id)
+    isDeleteOpen.value = false
+    isDetailOpen.value = false
+    showToast('Đã xóa câu hỏi thành công.')
+  } catch (err: any) {
+    showAlert(err?.message || 'Không thể xóa câu hỏi.', 'Lỗi', 'danger')
   }
-  isFormOpen.value = false
+}
+
+const executeSave = async (formData: any) => {
+  try {
+    if (formMode.value === 'create' || formMode.value === 'duplicate') {
+      await questionStore.addQuestion(formData)
+      showToast(formMode.value === 'create' ? 'Đã tạo câu hỏi thành công.' : 'Đã nhân bản câu hỏi thành công.')
+    } else if (formMode.value === 'edit') {
+      await questionStore.updateQuestion(formData.id, formData)
+      showToast('Đã cập nhật câu hỏi thành công.')
+    }
+    isFormOpen.value = false
+  } catch (err: any) {
+    showAlert(err?.message || 'Không thể lưu câu hỏi. Vui lòng kiểm tra lại thông tin.', 'Lỗi lưu câu hỏi', 'danger')
+  }
 }
 
 // Bulk
 const handleBulkActivate = () => {
-  if (!confirm(`Kích hoạt ${selectedIds.value.length} câu hỏi đã chọn?`)) return
-  allQuestions.value.forEach(q => {
-    if (selectedIds.value.includes(q.id)) q.status = 'active'
-  })
-  selectedIds.value = []
-  showToast('Đã kích hoạt các câu hỏi được chọn.')
+  showConfirm(
+    `Kích hoạt ${selectedIds.value.length} câu hỏi đã chọn?`,
+    async () => {
+      for (const id of selectedIds.value) {
+        try {
+          await contentCouncilApi.activateQuestion(id)
+          const item = questionStore.questions.find(q => q.id === id)
+          if (item) item.status = 'active'
+        } catch {}
+      }
+      selectedIds.value = []
+      showToast('Đã kích hoạt các câu hỏi được chọn.')
+    },
+    'Kích hoạt hàng loạt',
+    'info',
+    'Kích hoạt',
+    'Hủy'
+  )
 }
 
 const handleBulkDeactivate = () => {
-  if (!confirm(`Vô hiệu hóa ${selectedIds.value.length} câu hỏi đã chọn?`)) return
-  allQuestions.value.forEach(q => {
-    if (selectedIds.value.includes(q.id)) q.status = 'inactive'
-  })
-  selectedIds.value = []
-  showToast('Đã vô hiệu hóa các câu hỏi được chọn.')
+  showConfirm(
+    `Vô hiệu hóa ${selectedIds.value.length} câu hỏi đã chọn?`,
+    async () => {
+      for (const id of selectedIds.value) {
+        try {
+          await contentCouncilApi.deactivateQuestion(id)
+          const item = questionStore.questions.find(q => q.id === id)
+          if (item) item.status = 'inactive'
+        } catch {}
+      }
+      selectedIds.value = []
+      showToast('Đã vô hiệu hóa các câu hỏi được chọn.')
+    },
+    'Vô hiệu hóa hàng loạt',
+    'warning',
+    'Vô hiệu hóa',
+    'Hủy'
+  )
 }
 
 const handleBulkDelete = () => {
-  const selectedQuestions = allQuestions.value.filter(q => selectedIds.value.includes(q.id))
+  const selectedQuestions = questionStore.questions.filter(q => selectedIds.value.includes(q.id))
   const invalidToDelete = selectedQuestions.filter(q => q.usageCount > 0)
   
   if (invalidToDelete.length > 0) {
-    alert(`Không thể xóa ${invalidToDelete.length} câu hỏi vì đang được sử dụng trong Quiz. Vui lòng bỏ chọn chúng hoặc dùng chức năng Vô hiệu hóa.`)
+    showAlert(
+      `Không thể xóa ${invalidToDelete.length} câu hỏi vì đang được sử dụng trong Quiz. Vui lòng bỏ chọn chúng hoặc dùng chức năng Vô hiệu hóa.`,
+      'Không thể xóa',
+      'warning'
+    )
     return
   }
 
-  if (!confirm(`Bạn có chắc muốn xóa vĩnh viễn ${selectedIds.value.length} câu hỏi đã chọn?`)) return
-  allQuestions.value = allQuestions.value.filter(q => !selectedIds.value.includes(q.id))
-  selectedIds.value = []
-  showToast('Đã xóa các câu hỏi được chọn.')
+  showConfirm(
+    `Bạn có chắc muốn xóa vĩnh viễn ${selectedIds.value.length} câu hỏi đã chọn?`,
+    async () => {
+      for (const id of selectedIds.value) {
+        try {
+          await questionStore.deleteQuestion(id)
+        } catch {}
+      }
+      selectedIds.value = []
+      showToast('Đã xóa các câu hỏi được chọn.')
+    },
+    'Xóa vĩnh viễn câu hỏi',
+    'danger',
+    'Xóa tất cả',
+    'Hủy'
+  )
 }
 
 const handleImportSuccess = (count: number) => {
-  showToast(`Đã mô phỏng import thành công ${count} câu hỏi hợp lệ.`)
+  questionStore.reset()
+  showToast(`Đã import thành công ${count} câu hỏi hợp lệ.`)
 }
 
-const downloadTemplate = () => {
-  alert('Tính năng tải file mẫu đang trong quá trình phát triển (Chờ Backend).')
+const downloadTemplate = async () => {
+  try {
+    const token = localStorage.getItem('lms_access_token') || sessionStorage.getItem('lms_access_token') || ''
+    const response = await fetch('/api/question-bank/questions/import-template', {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+    if (!response.ok) throw new Error('Không thể tải file mẫu')
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'QuestionImportTemplate.xlsx'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+  } catch (err: any) {
+    showAlert(err?.message || 'Có lỗi xảy ra khi tải file mẫu.', 'Lỗi tải file mẫu', 'danger')
+  }
 }
 </script>
 
@@ -349,6 +466,18 @@ const downloadTemplate = () => {
     <ImportQuestionModal 
       v-model:isOpen="isImportOpen"
       @import="handleImportSuccess"
+    />
+
+    <!-- Confirm / Alert Modal Popup -->
+    <ConfirmModal 
+      v-model:is-open="modalState.isOpen"
+      :title="modalState.title"
+      :message="modalState.message"
+      :variant="modalState.variant"
+      :confirm-text="modalState.confirmText"
+      :cancel-text="modalState.cancelText"
+      :is-alert="modalState.isAlert"
+      @confirm="modalState.onConfirm"
     />
 
   </div>

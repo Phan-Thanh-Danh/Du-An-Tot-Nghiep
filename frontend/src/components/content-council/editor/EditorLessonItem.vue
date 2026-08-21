@@ -32,9 +32,10 @@ const onEdit = () => {
   editor.isLessonModalOpen.value = true
 }
 
-const onToggleStatus = (newStatus: 'draft' | 'published') => {
+const onToggleStatus = async (newStatus: 'nhap' | 'da_xuat_ban') => {
   isMenuOpen.value = false
-  editor.saveLesson({ ...props.lesson, status: newStatus })
+  editor.editingLesson.value = props.lesson
+  await editor.saveLesson({ ...props.lesson, status: newStatus })
 }
 
 const onDelete = () => {
@@ -44,20 +45,24 @@ const onDelete = () => {
 }
 
 const getLessonIcon = (type: string) => {
-  switch (type) {
+  if (!props.lesson.contents || props.lesson.contents.length === 0) {
+    return FileText
+  }
+  const firstBlockType = props.lesson.contents[0]?.type || type
+  switch (firstBlockType) {
     case 'video': return Video
     case 'slide': case 'slide_html': return PlaySquare
-    case 'document': case 'pdf': return File
-    case 'text': return FileText
-    case 'quiz': return HelpCircle
+    case 'document': case 'pdf': case 'tai_lieu': return File
+    case 'text': case 'van_ban': return FileText
+    case 'quiz': case 'trac_nghiem': return HelpCircle
     default: return FileText
   }
 }
 
 const getStatusBadge = (status: string) => {
   switch (status) {
-    case 'draft': return { text: 'Nháp', class: 'bg-slate-200 text-slate-600' }
-    case 'published': return { text: 'Xuất bản', class: 'bg-green-100 text-green-700' }
+    case 'draft': case 'nhap': return { text: 'Nháp', class: 'bg-slate-200 text-slate-600' }
+    case 'published': case 'da_xuat_ban': return { text: 'Xuất bản', class: 'bg-green-100 text-green-700' }
     case 'hidden': return { text: 'Đang ẩn', class: 'bg-red-100 text-red-700' }
     case 'empty': return { text: 'Trống', class: 'bg-orange-100 text-orange-700' }
     default: return { text: status, class: 'bg-slate-100 text-slate-500' }
@@ -100,10 +105,10 @@ const getStatusBadge = (status: string) => {
         <button @click="onEdit" class="w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 flex items-center gap-2">
           <Edit2 class="w-4 h-4 text-slate-500" /> Sửa bài học
         </button>
-        <button v-if="lesson.status !== 'draft'" @click="onToggleStatus('draft')" class="w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 flex items-center gap-2">
+        <button v-if="lesson.status !== 'nhap' && lesson.status !== 'draft'" @click="onToggleStatus('nhap')" class="w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 flex items-center gap-2">
           <EyeOff class="w-4 h-4 text-slate-500" /> Chuyển về nháp
         </button>
-        <button v-if="lesson.status !== 'published'" @click="onToggleStatus('published')" class="w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 flex items-center gap-2">
+        <button v-if="lesson.status !== 'da_xuat_ban' && lesson.status !== 'published'" @click="onToggleStatus('da_xuat_ban')" class="w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 flex items-center gap-2">
           <Eye class="w-4 h-4 text-slate-500" /> Xuất bản
         </button>
         <div class="h-px bg-slate-100 my-1"></div>

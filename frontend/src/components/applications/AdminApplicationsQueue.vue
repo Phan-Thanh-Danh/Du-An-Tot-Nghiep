@@ -10,6 +10,7 @@ import {
   Search,
   Send,
   UserCheck,
+  X,
   XCircle,
 } from 'lucide-vue-next'
 
@@ -20,14 +21,38 @@ import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
 import TableShell from '@/components/ui/TableShell.vue'
+import ApplicationFormRenderer from './ApplicationFormRenderer.vue'
+import ApplicationStatusBadge from './ApplicationStatusBadge.vue'
+import ApplicationTimeline from './ApplicationTimeline.vue'
+import ApplicationEvidenceUploader from './ApplicationEvidenceUploader.vue'
 import { applicationsApi } from '@/services/applicationsApi'
 import { usePopupStore } from '@/stores/popup'
-import { formatDate, formatDateTime } from '@/utils/dateFormat'
+import { formatDate } from '@/utils/dateFormat'
 import { getStatusMeta, getStatusOptions } from '@/utils/statusLabels'
 
 const popupStore = usePopupStore()
 const applicationTypes = ref([])
 const assignableUsers = ref([])
+const detailOpen = ref(false)
+const schemaCache = ref({})
+const schemaLoading = ref(false)
+
+const TIMELINE_ACTION_LABELS = {
+  tao_nhap: 'Tạo đơn',
+  cap_nhat: 'Cập nhật đơn',
+  nop: 'Nộp đơn',
+  nop_lai: 'Nộp lại đơn',
+  phan_cong: 'Phân công xử lý',
+  phan_cong_lai: 'Phân công lại',
+  tiep_nhan: 'Tiếp nhận đơn',
+  yeu_cau_bo_sung: 'Yêu cầu bổ sung',
+  bo_sung: 'Bổ sung hồ sơ',
+  phe_duyet: 'Phê duyệt đơn',
+  tu_choi: 'Từ chối đơn',
+  leo_thang: 'Leo thang xử lý',
+  huy: 'Hủy đơn',
+  xu_ly_nghiep_vu: 'Xử lý nghiệp vụ',
+}
 
 function getApplicationTypeLabel(type) {
   return applicationTypes.value.find((item) => item.value === type)?.label || type || 'Không xác định'
@@ -37,6 +62,7 @@ const loading = ref(false)
 const error = ref('')
 const applications = ref([])
 const selectedId = ref(applications.value[0]?.id || '')
+const detailLoading = ref(false)
 const searchQuery = ref('')
 const statusFilter = ref('')
 const typeFilter = ref('')
@@ -72,6 +98,14 @@ const filteredApplications = computed(() => {
 const selectedApplication = computed(() =>
   applications.value.find((item) => item.id === selectedId.value) || filteredApplications.value[0] || null,
 )
+
+const selectedAllowed = computed(() => selectedApplication.value?.allowedActions ?? null)
+
+function canAction(...flags) {
+  const allowed = selectedAllowed.value
+  if (allowed) return flags.some((flag) => Boolean(allowed[flag]))
+  return !selectedApplication.value || !isFinal(selectedApplication.value)
+}
 
 watch(
   filteredApplications,
@@ -130,14 +164,67 @@ function statusMeta(status) {
 }
 
 function slaMeta(sla) {
-  if (sla === 'qua_han') return { label: 'Quá hạn', variant: 'danger' }
-  if (sla === 'sap_qua_han') return { label: 'Sắp quá hạn', variant: 'warning' }
+  if (sla === 'overdue') return { label: 'Quá hạn', variant: 'danger' }
+  if (sla === 'due_soon') return { label: 'Sắp quá hạn', variant: 'warning' }
+  if (sla === 'paused') return { label: 'Tạm dừng', variant: 'neutral' }
+  if (sla === 'none') return { label: 'Không áp dụng', variant: 'neutral' }
   return { label: 'Đúng hạn', variant: 'success' }
 }
 
 function selectApplication(id) {
   selectedId.value = id
   closeActionForm()
+  loadDetail(id)
+}
+
+async function openDetail(application) {
+  selectedId.value = application.id
+  detailOpen.value = true
+  closeActionForm()
+  await Promise.all([loadDetail(application.id), ensureSchema(application.loaiDon)])
+}
+
+async function ensureSchema(type) {
+  if (!type || schemaCache.value[type]) return
+  schemaLoading.value = true
+  try {
+    const template = await applicationsApi.getApplicationTemplateDetail(type)
+    const item = unwrapApiDataSafe(template)
+    const configStr = item?.cauHinhJson ?? item?.CauHinhJson
+    const config = typeof configStr === 'string' ? JSON.parse(configStr) : (configStr || { fields: [] })
+    schemaCache.value[type] = Array.isArray(config.fields) ? config.fields : []
+  } catch {
+    schemaCache.value[type] = []
+  } finally {
+    schemaLoading.value = false
+  }
+}
+
+function closeDetail() {
+  detailOpen.value = false
+}
+
+async function loadDetail(id) {
+  if (!id) return
+  detailLoading.value = true
+  try {
+    const detail = await applicationsApi.getAdminApplicationDetail(id)
+    const item = unwrapApiDataSafe(detail)
+    if (!item) return
+    const mapped = mapApplication(item)
+    const index = applications.value.findIndex((app) => app.id === String(item.maDonTu ?? item.MaDonTu ?? item.id ?? ''))
+    if (index >= 0) {
+      applications.value[index] = { ...applications.value[index], ...mapped }
+    }
+  } catch {
+    // giữ dữ liệu từ list nếu detail lỗi
+  } finally {
+    detailLoading.value = false
+  }
+}
+
+function unwrapApiDataSafe(payload) {
+  return payload?.data ?? payload?.Data ?? payload
 }
 
 function resetFilters() {
@@ -183,17 +270,13 @@ async function applyAction() {
   const assigneeName = assignableUsers.value.find((item) => item.id === assigneeId.value)?.name || ''
 
   try {
-    if (actionMode.value === 'assign') {
-      await applicationsApi.assignApplication(application.id, { assigneeId: Number(assigneeId.value), rowVersion })
-      popupStore.success('Đã phân công', `Đơn được giao cho ${assigneeName}.`)
-    } else if (actionMode.value === 'reassign') {
-      await applicationsApi.reassignApplication(application.id, {
+    if (actionMode.value === 'assign' || actionMode.value === 'reassign') {
+      await applicationsApi.assignApplication(application.id, {
         assigneeId: Number(assigneeId.value),
         rowVersion,
-        lyDo: actionText.value.trim() || 'Phân công lại từ màn hàng đợi.',
+        lyDo: actionMode.value === 'reassign' ? actionText.value.trim() || 'Phân công lại từ màn hàng đợi.' : null,
       })
-      popupStore.success('Đã phân công lại', `Đơn được giao cho ${assigneeName}.`)
-    } else if (actionMode.value === 'supplement') {
+      popupStore.success('Đã phân công', `Đơn được giao cho ${assigneeName}.`)
       await applicationsApi.requestSupplement(application.id, {
         request: actionText.value.trim(),
         rowVersion,
@@ -279,41 +362,68 @@ function unwrapList(payload) {
   return []
 }
 
-function getFormValue(data, key) {
-  return data?.[key] ?? data?.[key.charAt(0).toUpperCase() + key.slice(1)] ?? ''
-}
-
 function mapApplication(item) {
   const id = String(item.maDonTu ?? item.MaDonTu ?? item.id ?? '')
   const formData = item.duLieuBieuMau ?? item.DuLieuBieuMau ?? {}
   const attachments = item.attachments ?? item.Attachments ?? []
+  const hocSinh = item.hocSinh ?? item.HocSinh ?? {}
+  const nguoiXuLy = item.nguoiDuyetHienTai ?? item.NguoiDuyetHienTai ?? null
+  const sla = item.sla ?? item.Sla ?? {}
   return {
     id,
     rowVersion: item.rowVersion ?? item.RowVersion ?? '',
     tieuDe: item.tieuDe ?? item.TieuDe ?? '',
     loaiDon: item.loaiDon ?? item.LoaiDon ?? '',
+    tenLoaiDon: item.tenLoaiDon ?? item.TenLoaiDon ?? '',
     trangThai: item.trangThai ?? item.TrangThai ?? '',
-    sinhVien: item.tenSinhVien ?? item.TenSinhVien ?? item.sinhVien ?? item.SinhVien ?? 'Sinh viên',
-    maSinhVien: String(item.maSinhVien ?? item.MaSinhVien ?? ''),
-    nguoiXuLy: item.tenNguoiXuLy ?? item.TenNguoiXuLy ?? item.nguoiXuLy ?? item.NguoiXuLy ?? '',
-    nguoiXuLyId: item.nguoiXuLyId ?? item.NguoiXuLyId ?? '',
+    sinhVien: hocSinh.hoTen ?? hocSinh.HoTen ?? item.tenSinhVien ?? item.TenSinhVien ?? 'Sinh viên',
+    maSinhVien: String(hocSinh.maNguoiDung ?? hocSinh.MaNguoiDung ?? item.maSinhVien ?? item.MaSinhVien ?? ''),
+    nguoiXuLy: nguoiXuLy?.hoTen ?? nguoiXuLy?.HoTen ?? item.tenNguoiXuLy ?? item.TenNguoiXuLy ?? '',
+    nguoiXuLyId: nguoiXuLy?.maNguoiDung ?? nguoiXuLy?.MaNguoiDung ?? item.nguoiXuLyId ?? item.NguoiXuLyId ?? '',
     ngayNop: item.ngayNop ?? item.NgayNop,
     hanXuLy: item.hanXuLyLuc ?? item.HanXuLyLuc,
     capNhatLanCuoi: item.ngayCapNhat ?? item.NgayCapNhat,
-    sla: item.slaTrangThai ?? item.SlaTrangThai ?? 'dung_han',
+    sla: sla.status ?? sla.Status ?? item.slaTrangThai ?? item.SlaTrangThai ?? 'none',
     noiDungYeuCauBoSung: item.noiDungYeuCauBoSung ?? item.NoiDungYeuCauBoSung ?? '',
     lyDoTuChoi: item.lyDoTuChoi ?? item.LyDoTuChoi ?? '',
-    formData: [
-      { label: 'Loại đơn', value: item.tenLoaiDon ?? item.TenLoaiDon ?? getApplicationTypeLabel(item.loaiDon ?? item.LoaiDon) },
-      { label: 'Nội dung yêu cầu', value: getFormValue(formData, 'noiDungYeuCau') || '—' },
-    ],
+    rawFormData: formData,
+    formData: buildFormData(formData, item),
     evidence: attachments.map((file) => ({
       id: file.maTep ?? file.MaTep,
       name: file.tenFileGoc ?? file.TenFileGoc ?? '',
       size: file.kichThuocByte ? `${Math.round(file.kichThuocByte / 1024)} KB` : '',
       uploadedAt: file.ngayTao ?? file.NgayTao,
     })),
+    timeline: (item.timeline ?? item.Timeline ?? []).map((entry) => {
+      const action = entry.hanhDong ?? entry.HanhDong ?? ''
+      const nguoiThucHien = entry.nguoiThucHien ?? entry.NguoiThucHien ?? null
+      return {
+        id: entry.maNkDuyet ?? entry.MaNkDuyet,
+        loaiSuKien: action.toUpperCase(),
+        tieuDe: TIMELINE_ACTION_LABELS[action] ?? action,
+        thoiGian: entry.ngayTao ?? entry.NgayTao,
+        nguoiThucHien: nguoiThucHien?.hoTen ?? nguoiThucHien?.HoTen ?? '',
+        ghiChu: entry.ghiChuCongKhai ?? entry.GhiChuCongKhai ?? entry.ghiChuNoiBo ?? entry.GhiChuNoiBo ?? '',
+      }
+    }),
+    allowedActions: item.allowedActions ?? item.AllowedActions ?? null,
   }
+}
+
+function buildFormData(formData, item) {
+  const rows = []
+  const label = item.tenLoaiDon ?? item.TenLoaiDon ?? getApplicationTypeLabel(item.loaiDon ?? item.LoaiDon)
+  rows.push({ label: 'Loại đơn', value: label })
+  if (formData && typeof formData === 'object') {
+    for (const key of ['ly_do', 'noiDungYeuCau', 'noi_dung', 'lyDo', 'mo_ta', 'li_do']) {
+      const value = formData[key]
+      if (value && typeof value !== 'object') {
+        rows.push({ label: 'Nội dung yêu cầu', value: String(value) })
+        break
+      }
+    }
+  }
+  return rows
 }
 
 async function loadApplications() {
@@ -339,6 +449,9 @@ async function loadApplications() {
       .filter((item) => item.id)
     applications.value = unwrapList(queue).map(mapApplication)
     selectedId.value = applications.value[0]?.id || ''
+    if (selectedId.value) {
+      await loadDetail(selectedId.value)
+    }
   } catch (e) {
     error.value = e.message || 'Không tải được hàng đợi.'
     applications.value = []
@@ -417,9 +530,11 @@ onMounted(loadApplications)
           <span>SLA</span>
           <select v-model="slaFilter" class="lg-control">
             <option value="">Tất cả</option>
-            <option value="dung_han">Đúng hạn</option>
-            <option value="sap_qua_han">Sắp quá hạn</option>
-            <option value="qua_han">Quá hạn</option>
+            <option value="on_track">Đúng hạn</option>
+            <option value="due_soon">Sắp quá hạn</option>
+            <option value="overdue">Quá hạn</option>
+            <option value="paused">Tạm dừng</option>
+            <option value="none">Không áp dụng</option>
           </select>
         </label>
         <div class="filter-actions">
@@ -492,7 +607,7 @@ onMounted(loadApplications)
                 </td>
                 <td>{{ formatDate(application.ngayNop, 'Chưa nộp') }}</td>
                 <td>
-                  <GlassButton variant="secondary" size="sm" @click="selectApplication(application.id)">
+                  <GlassButton variant="secondary" size="sm" @click="openDetail(application)">
                     <template #leading><Eye :size="14" /></template>
                     Xem
                   </GlassButton>
@@ -535,6 +650,8 @@ onMounted(loadApplications)
       </GlassPanel>
 
       <GlassPanel v-if="selectedApplication" variant="flat" density="compact" class="detail-panel">
+        <LoadingSkeleton v-if="detailLoading" :lines="3" />
+        <template v-else>
         <div class="detail-header">
           <div>
             <h2 class="clamp-2">{{ selectedApplication.tieuDe }}</h2>
@@ -550,17 +667,17 @@ onMounted(loadApplications)
             <template #leading><UserCheck :size="16" /></template>
             Tiếp nhận
           </GlassButton>
-          <GlassButton variant="secondary" :disabled="isFinal(selectedApplication)" @click="openAction(selectedApplication.nguoiXuLy ? 'reassign' : 'assign')">
+          <GlassButton variant="secondary" :disabled="!canAction('canAssign', 'canReassign')" @click="openAction(selectedApplication.nguoiXuLy ? 'reassign' : 'assign')">
             Phân công
           </GlassButton>
-          <GlassButton variant="secondary" :disabled="isFinal(selectedApplication)" @click="openAction('supplement')">
+          <GlassButton variant="secondary" :disabled="!canAction('canRequestSupplement')" @click="openAction('supplement')">
             Bổ sung
           </GlassButton>
-          <GlassButton variant="success" :disabled="isFinal(selectedApplication)" @click="approveSelected">
+          <GlassButton variant="success" :disabled="!canAction('canApprove')" @click="approveSelected">
             <template #leading><CheckCircle2 :size="16" /></template>
             Duyệt
           </GlassButton>
-          <GlassButton variant="danger" :disabled="isFinal(selectedApplication)" @click="openAction('reject')">
+          <GlassButton variant="danger" :disabled="!canAction('canReject')" @click="openAction('reject')">
             <template #leading><XCircle :size="16" /></template>
             Từ chối
           </GlassButton>
@@ -632,14 +749,9 @@ onMounted(loadApplications)
 
         <section class="detail-section">
           <h3>Timeline</h3>
-          <div class="timeline">
-            <p v-for="item in selectedApplication.timeline" :key="item.id">
-              <span>{{ formatDateTime(item.at) }}</span>
-              <strong>{{ item.title }}</strong>
-              <small>{{ item.description }}</small>
-            </p>
-          </div>
+          <ApplicationTimeline :events="selectedApplication.timeline" />
         </section>
+        </template>
       </GlassPanel>
     </section>
 
@@ -652,6 +764,65 @@ onMounted(loadApplications)
       @update:model-value="(value) => { if (!value) confirmAction = null }"
       @confirm="confirmAction?.run?.()"
     />
+
+    <div
+      v-if="detailOpen"
+      class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
+      @click.self="closeDetail"
+    >
+      <div class="lg-glass-strong border-card flex max-h-[90vh] w-full max-w-3xl flex-col rounded-2xl border shadow-2xl">
+        <div class="flex items-start justify-between gap-4 border-b border-(--border-card) p-5">
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-3">
+              <h2 class="text-heading text-lg font-bold">{{ selectedApplication?.tieuDe }}</h2>
+              <ApplicationStatusBadge v-if="selectedApplication" :status="selectedApplication.trangThai" />
+            </div>
+            <p class="text-label mt-1 text-sm">
+              Mã đơn: {{ selectedApplication?.id }}
+              <span class="mx-1.5">·</span>
+              Sinh viên: {{ selectedApplication?.sinhVien }} ({{ selectedApplication?.maSinhVien }})
+              <span class="mx-1.5">·</span>
+              Loại: {{ getApplicationTypeLabel(selectedApplication?.loaiDon) }}
+            </p>
+          </div>
+          <button class="text-placeholder hover:text-body" @click="closeDetail">
+            <X class="h-5 w-5" />
+          </button>
+        </div>
+
+        <div class="overflow-y-auto p-5">
+          <LoadingSkeleton v-if="detailLoading || schemaLoading" :lines="5" />
+          <template v-else>
+            <section class="detail-section">
+              <h3 class="text-heading flex items-center gap-2 text-sm font-bold">
+                <FileText class="h-4 w-4" /> Nội dung đơn
+              </h3>
+              <GlassPanel variant="flat" density="compact">
+                <ApplicationFormRenderer
+                  :schema="schemaCache[selectedApplication?.loaiDon] || []"
+                  :model-value="selectedApplication?.rawFormData || {}"
+                  readonly
+                />
+              </GlassPanel>
+            </section>
+
+            <section class="detail-section mt-5">
+              <h3 class="text-heading text-sm font-bold">Minh chứng đính kèm</h3>
+              <GlassPanel variant="flat" density="compact">
+                <ApplicationEvidenceUploader :files="selectedApplication?.evidence || []" disabled />
+              </GlassPanel>
+            </section>
+
+            <section class="detail-section mt-5">
+              <h3 class="text-heading text-sm font-bold">Lịch sử xử lý</h3>
+              <GlassPanel variant="flat" density="compact">
+                <ApplicationTimeline :events="selectedApplication?.timeline || []" />
+              </GlassPanel>
+            </section>
+          </template>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 

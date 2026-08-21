@@ -23,7 +23,7 @@ export const useAnnouncementsStore = defineStore('announcements', () => {
     {
       id: 'maintenance-1',
       type: 'info',
-      message: 'Hệ thống sẽ bảo trì định kỳ vào Chủ nhật (31/05) từ 02:00 - 04:00.',
+      message: 'Hệ thống LMS đang hoạt động ổn định và sẵn sàng phục vụ học tập.',
       dismissable: true,
     },
   ])

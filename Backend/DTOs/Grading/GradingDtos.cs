@@ -40,12 +40,23 @@ public class StudentGradeDetailDto
     public int StudentId { get; set; }
     public string StudentName { get; set; } = string.Empty;
     public List<GradeTypeDetailDto> GradeTypes { get; set; } = new();
+    public List<StudentActivityDto> Activities { get; set; } = new();
     public decimal? DiemQuaTrinh { get; set; }
     public decimal? DiemGiuaKy { get; set; }
     public decimal? DiemCuoiKy { get; set; }
     public decimal? GpaMonHoc { get; set; }
     public string? TrangThai { get; set; }
     public bool DaKhoa { get; set; }
+}
+
+public class StudentActivityDto
+{
+    public string Type { get; set; } = string.Empty; // "assignment", "attendance", "quiz", "lesson"
+    public string Title { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty; // "cho_cham", "da_cham", "co_mat", "vang", "muon"
+    public decimal? Score { get; set; }
+    public DateTime? Timestamp { get; set; }
 }
 
 public class GradeTypeDetailDto
@@ -62,6 +73,10 @@ public class GradeItemDto
     public int ItemId { get; set; }
     public string ItemName { get; set; } = string.Empty;
     public decimal? Grade { get; set; }
+    public string Status { get; set; } = "chua_nop"; // "chua_nop", "cho_cham", "da_cham"
+    public DateTime? SubmittedAt { get; set; }
+    public bool IsSubmitted { get; set; }
+    public string? Note { get; set; }
 }
 
 // === Request cho POST unlock ===

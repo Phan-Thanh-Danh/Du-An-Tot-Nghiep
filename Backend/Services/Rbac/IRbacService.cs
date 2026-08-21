@@ -12,4 +12,6 @@ public interface IRbacService
     Task<IReadOnlyList<RoleMemberDto>> GetRoleMembersAsync(int roleId, CancellationToken cancellationToken = default);
     Task<UserRoleAssignmentDto> GetUserRolesAsync(int userId, CancellationToken cancellationToken = default);
     Task<UserRoleAssignmentDto> AssignUserRolesAsync(int userId, AssignUserRolesRequest request, CancellationToken cancellationToken = default);
+    Task<RolePermissionsDto> GetRolePermissionsAsync(int roleId, CancellationToken cancellationToken = default);
+    Task<RolePermissionsDto> UpdateRolePermissionsAsync(int roleId, UpdateRolePermissionsRequest request, CancellationToken cancellationToken = default);
 }
