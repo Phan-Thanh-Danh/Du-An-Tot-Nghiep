@@ -124,6 +124,8 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<KhieuNaiKyLuat> KhieuNaiKyLuats => Set<KhieuNaiKyLuat>();
 
+    public DbSet<YeuCauXuatDuLieu> YeuCauXuatDuLieus => Set<YeuCauXuatDuLieu>();
+    
     // Smart Timetable entities
     public DbSet<ScheduleGenerationJob> ScheduleGenerationJobs => Set<ScheduleGenerationJob>();
     public DbSet<ScheduleDraftItem> ScheduleDraftItems => Set<ScheduleDraftItem>();
@@ -4333,6 +4335,20 @@ public class ApplicationDbContext : DbContext
                 .HasColumnName("ten_thiet_bi")
                 .HasMaxLength(255)
                 .IsRequired();
+            entity.Property(e => e.MaCodeThietBi)
+                .HasColumnName("ma_code_thiet_bi")
+                .HasMaxLength(100);
+            entity.Property(e => e.ChungLoai)
+                .HasColumnName("chung_loai")
+                .HasMaxLength(100);
+            entity.Property(e => e.TinhTrang)
+                .HasColumnName("tinh_trang")
+                .HasMaxLength(50);
+            entity.Property(e => e.NgayKiemDinh)
+                .HasColumnName("ngay_kiem_dinh");
+            entity.Property(e => e.GhiChu)
+                .HasColumnName("ghi_chu")
+                .HasMaxLength(500);
             entity.Property(e => e.SoLuong)
                 .HasColumnName("so_luong")
                 .HasDefaultValue(1);

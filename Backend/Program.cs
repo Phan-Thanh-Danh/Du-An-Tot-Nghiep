@@ -210,6 +210,7 @@ builder.Services.AddScoped<ITrainingProgramTermService, TrainingProgramTermServi
 builder.Services.AddScoped<IBuildingService, BuildingService>();
 builder.Services.AddScoped<IFloorService, FloorService>();
 builder.Services.AddScoped<IRoomService, RoomService>();
+builder.Services.AddScoped<Backend.Services.Facilities.IEquipmentService, Backend.Services.Facilities.EquipmentService>();
 builder.Services.AddScoped<ICaHocService, CaHocService>();
 builder.Services.AddScoped<IProgramTuitionConfigService, ProgramTuitionConfigService>();
 builder.Services.AddScoped<IVietQrService, VietQrService>();
@@ -233,6 +234,8 @@ builder.Services.Configure<AttendanceAutomationOptions>(
 builder.Services.AddScoped<IAttendanceAutomationService, AttendanceAutomationService>();
 builder.Services.AddHostedService<AttendanceAutomationHostedService>();
 builder.Services.AddHostedService<QuizStatusAutomationHostedService>();
+builder.Services.AddSingleton<Backend.Services.Export.ExportQueueService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<Backend.Services.Export.ExportQueueService>());
 builder.Services.AddScoped<IAttendanceUnlockService, AttendanceUnlockService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IQuestionBankService, QuestionBankService>();

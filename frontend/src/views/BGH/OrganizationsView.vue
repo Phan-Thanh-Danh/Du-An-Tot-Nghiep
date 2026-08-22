@@ -8,7 +8,7 @@
           <p class="text-xs text-muted mt-0.5">Danh sách các khoa, phòng ban</p>
         </div>
         <button
-          v-if="canEdit"
+          v-if="canCreateRoot"
           @click="handleCreateRoot"
           class="flex items-center gap-1.5 px-3 py-1.5 bg-(--lg-primary) text-white text-xs font-bold rounded-lg hover:bg-(--lg-primary-dark) transition-colors"
         >
@@ -129,7 +129,7 @@
               class="w-full px-3 py-2 bg-(--surface-input) border border-input rounded-lg text-sm text-body focus:outline-none focus:border-(--lg-primary)"
             >
               <option value="" disabled>-- Chọn cấp đơn vị --</option>
-              <option v-for="lvl in organizationLevels" :key="lvl" :value="lvl">{{ lvl }}</option>
+              <option v-for="lvl in availableOrganizationLevels" :key="lvl.value" :value="lvl.value">{{ lvl.label }}</option>
             </LmsSelect>
           </div>
 
@@ -180,11 +180,12 @@
           <!-- View Mode Actions -->
           <template v-if="formMode === 'view' && canEdit">
             <button 
+              v-if="canAddChild(selectedNode)"
               @click="handleCreateChild"
               class="flex items-center gap-1.5 px-4 py-2 border border-input bg-(--surface-input) hover:bg-(--surface-input-hover) text-body text-xs font-bold rounded-lg transition-colors"
             >
               <Plus :size="16" />
-              <span>Thêm đơn vị con</span>
+              <span>{{ selectedNode?.organizationLevel === 'Root' ? 'Thêm cơ sở' : (selectedNode?.organizationLevel === 'Campus' ? 'Thêm cơ sở con' : 'Thêm đơn vị con') }}</span>
             </button>
             <button 
               @click="handleEdit"
@@ -235,6 +236,7 @@ import { apiRequest, unwrapApiData } from '@/services/apiClient'
 
 const authStore = useAuthStore()
 const canEdit = computed(() => authStore.hasRole(['SuperAdmin', 'Admin', 'Principal']))
+const canCreateRoot = computed(() => authStore.hasRole(['SuperAdmin', 'Admin']))
 
 const treeData = ref([])
 const flatOrganizationsList = ref([])
@@ -254,13 +256,42 @@ const formData = ref({
   organizationLevel: ''
 })
 
-const organizationLevels = ['Cơ sở', 'Khoa', 'Bộ môn', 'Phòng ban', 'Trung tâm']
+const organizationLevels = [
+  { value: 'Root', label: 'LMS Root' },
+  { value: 'Campus', label: 'Cơ sở' },
+  { value: 'SubCampus', label: 'Cơ sở con' }
+]
+
+const availableOrganizationLevels = computed(() => {
+  const parentId = formData.value.parentId;
+  if (!parentId) {
+    return [{ value: 'Root', label: 'LMS Root' }];
+  }
+
+  const parent = flatOrganizationsList.value.find(org => org.id === parentId);
+  if (!parent) return organizationLevels;
+
+  if (parent.organizationLevel === 'Root') {
+    return [{ value: 'Campus', label: 'Cơ sở' }];
+  } else if (parent.organizationLevel === 'Campus') {
+    return [{ value: 'SubCampus', label: 'Cơ sở con' }];
+  }
+  
+  return [];
+})
+
+const canAddChild = (node) => {
+  if (!node) return false;
+  if (node.organizationLevel === 'SubCampus') return false;
+  if (authStore.hasRole(['Principal']) && node.organizationLevel === 'Root') return false;
+  return true;
+}
 
 const getIconForLevel = (level) => {
   switch (level) {
-    case 'Cơ sở': return Building2
-    case 'Khoa': return Library
-    case 'Phòng ban': return Users
+    case 'Campus': return Building2
+    case 'SubCampus': return Library
+    case 'Root': return Network
     default: return Network
   }
 }
@@ -285,7 +316,12 @@ const loadData = async () => {
       bghApi.getOrganizations()
     ])
     treeData.value = unwrapApiData(treeRes) || []
-    flatOrganizationsList.value = (unwrapApiData(flatRes) || []).map(o => ({ id: o.id, name: o.name, parentId: o.parentId }))
+    flatOrganizationsList.value = (unwrapApiData(flatRes) || []).map(o => ({ 
+      id: o.id, 
+      name: o.name, 
+      parentId: o.parentId,
+      organizationLevel: o.organizationLevel
+    }))
   } catch (e) {
     errorTree.value = e?.message || 'Lỗi tải dữ liệu cơ cấu tổ chức'
   } finally {
@@ -348,7 +384,7 @@ const selectNode = (node) => {
 const handleCreateRoot = () => {
   selectedNode.value = null
   formMode.value = 'create'
-  formData.value = { id: null, parentId: null, name: '', organizationLevel: 'Cơ sở' }
+  formData.value = { id: null, parentId: null, name: '', organizationLevel: 'Root' }
   apiError.value = ''
 }
 

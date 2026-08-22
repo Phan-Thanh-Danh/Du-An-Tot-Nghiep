@@ -2,10 +2,13 @@
 import { computed, onMounted, ref } from 'vue'
 import { useBodyScrollLock } from '@/composables/useBodyScrollLock'
 import { usePopupStore } from '@/stores/popup'
+import { useAuthStore } from '@/stores/auth'
+import QRCode from 'qrcode'
 import {
   createTuitionPayment,
   getStudentTuitionInvoices,
   getStudentTuitionTransactions,
+  getTuitionPaymentStatus,
 } from '@/services/tuitionService'
 import {
   CreditCard, Wallet, Receipt, DollarSign,
@@ -15,6 +18,7 @@ import {
 } from 'lucide-vue-next'
 
 const popupStore = usePopupStore()
+const authStore = useAuthStore()
 
 const statusConfig = {
   Unpaid: { label: 'Chưa thanh toán', cls: 'badge-red', icon: AlertCircle },
@@ -53,6 +57,8 @@ const selectedInvoice = ref(null)
 const paymentMethod = ref('payos')
 const isProcessing = ref(false)
 const paymentResult = ref(null)
+const payosQrImage = ref('')
+const paymentStatusTimer = ref(null)
 
 const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(val || 0))
 const formatNumber = (val) => new Intl.NumberFormat('vi-VN').format(Number(val || 0))
@@ -98,28 +104,44 @@ const openPaymentModal = (invoice) => {
   selectedInvoice.value = invoice
   paymentMethod.value = 'payos'
   paymentResult.value = null
+  payosQrImage.value = ''
+  clearPaymentStatusPolling()
   modalOpen.value = true
 }
 
 const closePaymentModal = () => {
   if (isProcessing.value) return
+  clearPaymentStatusPolling()
   modalOpen.value = false
   selectedInvoice.value = null
   paymentResult.value = null
+  payosQrImage.value = ''
 }
 
 const confirmPayment = async () => {
   if (!selectedInvoice.value) return
 
   isProcessing.value = true
+  paymentResult.value = null
+  payosQrImage.value = ''
 
   try {
     const result = await createTuitionPayment(selectedInvoice.value.maHoaDon, paymentMethod.value)
     paymentResult.value = result
 
     if (paymentMethod.value === 'payos') {
+      if (result?.qrPayload) {
+        payosQrImage.value = await QRCode.toDataURL(result.qrPayload, {
+          width: 280,
+          margin: 1,
+          errorCorrectionLevel: 'M',
+        })
+        startPaymentStatusPolling(result)
+        return
+      }
+
       if (!result?.checkoutUrl) {
-        throw new Error('PayOS không trả về đường dẫn thanh toán.')
+        throw new Error('PayOS không trả về mã QR thanh toán.')
       }
 
       window.location.href = result.checkoutUrl
@@ -141,8 +163,191 @@ const confirmPayment = async () => {
   }
 }
 
+function startPaymentStatusPolling(result) {
+  clearPaymentStatusPolling()
+  const check = async () => {
+    try {
+      const status = await getTuitionPaymentStatus(result.maGiaoDich)
+      const raw = String(status?.trangThai || status?.TrangThai || '').toLowerCase()
+      if (raw === 'thanh_cong' || raw === 'da_thanh_toan' || raw === 'thanh_toan') {
+        clearPaymentStatusPolling()
+        popupStore.success('Thanh toán thành công', 'Hóa đơn đã được xác nhận thanh toán.')
+        modalOpen.value = false
+        selectedInvoice.value = null
+        paymentResult.value = null
+        payosQrImage.value = ''
+        loadTuitionData()
+        return
+      }
+      paymentStatusTimer.value = setTimeout(check, 5000)
+    } catch {
+      paymentStatusTimer.value = setTimeout(check, 5000)
+    }
+  }
+  paymentStatusTimer.value = setTimeout(check, 5000)
+}
+
+function clearPaymentStatusPolling() {
+  if (paymentStatusTimer.value) {
+    clearTimeout(paymentStatusTimer.value)
+    paymentStatusTimer.value = null
+  }
+}
+
 const downloadPDF = (id) => {
-  popupStore.info('Đang tải', `Đang tải hóa đơn ${id}...`)
+  const inv = invoices.value.find(i => i.id === id) || selectedInvoice.value
+  if (!inv) return
+
+  const studentName = authStore.user?.fullName || authStore.user?.FullName || authStore.displayName || 'Sinh viên'
+  const studentCode = authStore.user?.username || authStore.user?.email || inv.id
+  const campusName = authStore.user?.campusName || 'FPT Polytechnic'
+  const formattedTotal = formatCurrency(inv.total)
+  const formattedDate = formatDate(inv.dueDate)
+  const isPaid = inv.status === 'Paid'
+  const statusText = isPaid ? 'ĐÃ THANH TOÁN' : 'CHƯA THANH TOÁN'
+  const statusColor = isPaid ? '#16a34a' : '#dc2626'
+
+  const rows = inv.items
+    .map((item, idx) => `
+      <tr>
+        <td style="text-align: center;">${idx + 1}</td>
+        <td>${item.name}</td>
+        <td class="text-right">${formatCurrency(item.amount)}</td>
+      </tr>`)
+    .join('')
+
+  const scriptStart = '<scr' + 'ipt'
+  const scriptEnd = '</scr' + 'ipt>'
+
+  const html = `<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>HoaDon_${inv.id}_${studentName.replace(/\s+/g, '_')}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; color: #000; background: #fff; padding: 15mm 12mm; line-height: 1.4; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 18px; }
+    .logo-title { font-size: 15pt; font-weight: bold; text-transform: uppercase; color: #000; }
+    .logo-sub { font-size: 10pt; color: #333; margin-top: 3px; font-style: italic; }
+    .invoice-title { text-align: right; }
+    .invoice-title h2 { margin: 0; color: #000; font-size: 15pt; text-transform: uppercase; font-weight: bold; }
+    .invoice-title p { margin: 3px 0 0; color: #444; font-size: 10pt; }
+    .info-box { border: 1px solid #000; background: #fdfdfd; padding: 10px 14px; margin-bottom: 18px; font-size: 11pt; }
+    .info-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
+    .info-row:last-child { margin-bottom: 0; }
+    .info-label { font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; font-size: 11pt; margin-bottom: 20px; }
+    th, td { border: 1px solid #000; padding: 7px 10px; text-align: left; }
+    th { background: #f1f5f9; font-weight: bold; text-align: center; text-transform: uppercase; font-size: 10pt; }
+    .text-right { text-align: right; }
+    .total-row { font-weight: bold; font-size: 12pt; background: #fafafa; }
+    .stamp-container { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 30px; }
+    .stamp-box { border: 1.5px solid #ef4444; color: #ef4444; padding: 6px 10px; border-radius: 8px; font-weight: bold; text-align: center; transform: rotate(-1.5deg); background: rgba(254, 242, 242, 0.4); display: inline-block; width: 155px; word-break: break-all; line-height: 1.2; }
+    .footer-note { color: #555; font-size: 9.5pt; font-style: italic; max-width: 320px; }
+  </style>
+</head>
+<body>
+  <div id="report-content">
+    <div class="header">
+      <div>
+        <div class="logo-title">TRƯỜNG ĐẠI HỌC LMS ACADEMIC</div>
+        <div class="logo-sub">Cơ sở: ${campusName}</div>
+        <div class="logo-sub">Mã số thuế: 0102030405 | Hotline: 1900 1234</div>
+      </div>
+      <div class="invoice-title">
+        <h2>HÓA ĐƠN ĐIỆN TỬ</h2>
+        <p>Mã hóa đơn: <strong>${inv.id}</strong></p>
+        <p>Hạn thanh toán: ${formattedDate}</p>
+      </div>
+    </div>
+
+    <div class="info-box">
+      <div class="info-row">
+        <span class="info-label">Sinh viên thụ hưởng:</span>
+        <span class="info-val"><strong>${studentName}</strong> (MSSV: ${studentCode})</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Nội dung:</span>
+        <span class="info-val">${inv.semester}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Trạng thái hóa đơn:</span>
+        <span class="info-val" style="color: ${statusColor}; font-weight: bold;">${statusText}</span>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 50px; text-align: center;">STT</th>
+          <th>Tên dịch vụ / Khoản thu</th>
+          <th class="text-right" style="width: 150px;">Thành tiền (VND)</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+        <tr>
+          <td colspan="2" class="text-right" style="font-weight: bold;">Thuế giá trị gia tăng (VAT 0%):</td>
+          <td class="text-right">0 ₫</td>
+        </tr>
+        <tr class="total-row">
+          <td colspan="2" class="text-right">TỔNG CỘNG TIỀN THANH TOÁN:</td>
+          <td class="text-right">${formattedTotal}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="stamp-container">
+      <div class="footer-note">
+        * Chứng từ hóa đơn điện tử gốc được mã hóa và lưu trữ chính thức trên CSDL LMS System.
+      </div>
+      <div class="stamp-box">
+        <div style="font-size: 10pt; font-weight: 800; text-transform: uppercase; color: #ef4444; margin-bottom: 2px;">ĐÃ KÝ ĐIỆN TỬ</div>
+        <div style="font-size: 8.5pt; font-weight: 700; color: #ef4444; margin-bottom: 2px;">LMS UNIVERSITY</div>
+        <div style="font-size: 7.5pt; color: #ef4444; word-break: break-all; font-weight: 600;">${new Date().toISOString()}</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="loading-overlay" style="position:fixed;inset:0;background:rgba(255,255,255,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;font-family:sans-serif;">
+    <div style="width:48px;height:48px;border:5px solid #e2e8f0;border-top-color:#ea580c;border-radius:50%;animation:spin 0.8s linear infinite;margin-bottom:16px;"></div>
+    <p style="color:#ea580c;font-weight:700;font-size:15px;margin:0;">Đang tạo file hóa đơn PDF...</p>
+    <p style="color:#64748b;font-size:12px;margin:4px 0 0;">File PDF sẽ tự động tải về thiết bị của bạn</p>
+  </div>
+  <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+  ${scriptStart} src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous">${scriptEnd}
+  ${scriptStart}>
+    window.onload = function() {
+      var overlay = document.getElementById('loading-overlay');
+      var content = document.getElementById('report-content');
+      var filename = 'HoaDon_${inv.id}_${studentName.replace(/\s+/g, '_')}.pdf';
+      var opt = {
+        margin: [10, 10, 10, 10],
+        filename: filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      html2pdf().set(opt).from(content).save().then(function() {
+        overlay.innerHTML = '<p style="color:#ea580c;font-weight:700;font-size:16px;">✓ Tải hóa đơn PDF thành công!</p><p style="color:#64748b;font-size:12px;">Cửa sổ này sẽ tự đóng...</p>';
+        setTimeout(function() { window.close(); }, 1200);
+      }).catch(function(err) {
+        overlay.innerHTML = '<p style="color:#e11d48;font-weight:700;font-size:14px;">Lỗi tạo PDF: ' + err.message + '</p><button onclick="window.print()" style="margin-top:12px;padding:8px 20px;background:#ea580c;color:#fff;border:none;border-radius:8px;cursor:pointer;">In bằng trình duyệt</button>';
+      });
+    };
+  ${scriptEnd}
+</body>
+</html>`
+
+  const printWindow = window.open('', '_blank', 'width=900,height=700')
+  if (printWindow) {
+    printWindow.document.write(html)
+    printWindow.document.close()
+    popupStore.success('Đang tải hóa đơn PDF', `Hóa đơn ${inv.id} đang được kết xuất và tải về dưới dạng file PDF.`)
+  } else {
+    popupStore.warning('Cảnh báo Popup', 'Vui lòng cho phép mở cửa sổ bật lên (popup) để tải file PDF hóa đơn.')
+  }
 }
 
 async function loadTuitionData() {
@@ -229,7 +434,10 @@ function providerLabel(provider) {
 function setPaymentMethod(provider) {
   paymentMethod.value = provider
   paymentResult.value = null
+  payosQrImage.value = ''
 }
+
+const showPayosQr = computed(() => Boolean(payosQrImage.value))
 
 function read(source, camelKey, pascalKey) {
   return source?.[camelKey] ?? source?.[pascalKey]
@@ -478,6 +686,28 @@ function parseDate(value) {
                 <p>Sau khi chuyển khoản, kế toán sẽ đối soát và xác nhận thanh toán.</p>
               </div>
 
+              <div v-if="payosQrImage && paymentMethod === 'payos'" class="qr-result">
+                <img :src="payosQrImage" alt="QR PayOS thanh toán học phí" class="qr-image" />
+                <div class="qr-detail">
+                  <span>Số tiền</span>
+                  <strong>{{ formatCurrency(selectedInvoice?.conPhaiDong) }}</strong>
+                </div>
+                <div class="qr-detail">
+                  <span>Trạng thái</span>
+                  <strong>Đang chờ quét mã</strong>
+                </div>
+                <p>Mở ứng dụng ngân hàng quét mã QR để thanh toán qua PayOS. Hệ thống tự xác nhận khi chuyển khoản thành công.</p>
+                <a
+                  v-if="paymentResult?.checkoutUrl"
+                  :href="paymentResult.checkoutUrl"
+                  target="_blank"
+                  rel="noopener"
+                  class="qr-fallback-link"
+                >
+                  Quét không được? Mở cổng thanh toán PayOS
+                </a>
+              </div>
+
               <div class="security-badge">
                 <ShieldCheck :size="16" />
                 <span>Giao dịch được mã hóa và bảo mật bởi chữ ký số HMAC.</span>
@@ -486,9 +716,9 @@ function parseDate(value) {
 
             <div class="modal-footer">
               <button class="btn-secondary" @click="closePaymentModal" :disabled="isProcessing">
-                {{ paymentResult?.qrUrl ? 'Đóng' : 'Hủy' }}
+                {{ showPayosQr || paymentResult?.qrUrl ? 'Đóng' : 'Hủy' }}
               </button>
-              <button v-if="!(paymentResult?.qrUrl && paymentMethod === 'vietqr')" class="btn-primary" @click="confirmPayment" :disabled="isProcessing">
+              <button v-if="!showPayosQr && !(paymentResult?.qrUrl && paymentMethod === 'vietqr')" class="btn-primary" @click="confirmPayment" :disabled="isProcessing">
                 <span v-if="isProcessing" class="flex items-center gap-2">
                   <Clock class="animate-spin" :size="16" /> Đang xử lý...
                 </span>
@@ -625,6 +855,7 @@ function parseDate(value) {
 .qr-detail { width: 100%; display: flex; justify-content: space-between; gap: .75rem; color: var(--text-label); font-size: .8rem; text-align: left; }
 .qr-detail strong { color: var(--text-heading); overflow-wrap: anywhere; text-align: right; }
 .qr-result p { margin: 0; color: var(--text-body); font-size: .78rem; line-height: 1.45; }
+.qr-fallback-link { font-size: .8rem; font-weight: 750; color: var(--text-link); text-decoration: underline; }
 
 .security-badge { display: flex; align-items: center; gap: .5rem; font-size: .75rem; color: var(--color-success-text); background: var(--color-success-bg); padding: .5rem; border-radius: 8px; justify-content: center; }
 

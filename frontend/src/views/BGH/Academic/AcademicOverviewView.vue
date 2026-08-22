@@ -21,7 +21,7 @@ import {
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import LmsSelect from '@/components/LmsSelect.vue'
-import { exportBghToExcel, printBghPage as triggerPrint } from '@/components/BGH/performance/bghExport.js'
+import { exportBghToExcel, exportAcademicOverviewToPdf, exportAcademicOverviewToExcelAdvanced } from '@/components/BGH/performance/bghExport.js'
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
 
@@ -159,29 +159,44 @@ watch([semesterFilter, industryFilter, majorFilter, campusFilter], () => {
 
 onMounted(() => { loadData(true) })
 
-function prepareExcelData() {
-  return [
-    ...kpis.value.map(k => ({ 'Chỉ tiêu': k.label, 'Giá trị': k.value, 'Xu hướng': k.trend })),
-    {},
-    { 'Chỉ tiêu': 'Phân phối điểm số', 'Giá trị': '', 'Xu hướng': '' },
-    ...distribution.value.map(d => ({ 'Chỉ tiêu': d.range, 'Giá trị': `${d.count} SV`, 'Xu hướng': `${d.percent}%` })),
-    {},
-    { 'Chỉ tiêu': 'Xu hướng GPA theo kỳ', 'Giá trị': '', 'Xu hướng': '' },
-    ...chartData.value.map(d => ({ 'Chỉ tiêu': d.k, 'Giá trị': `Toàn trường: ${d.toanTruong}`, 'Xu hướng': '' })),
-    {},
-    { 'Chỉ tiêu': 'Xếp hạng môn học', 'Giá trị': '', 'Xu hướng': '' },
-    ...topSubjects.value.map(s => ({ 'Chỉ tiêu': s.name, 'Giá trị': `Lớp ${s.class} - ${s.teacher}`, 'Xu hướng': `${s.failRate}% fail` })),
-  ]
-}
-
 function exportExcel() {
-  exportBghToExcel(prepareExcelData(), `BaoCao-TongQuan-${semesterFilter.value}.xlsx`, 'Tổng quan')
+  exportAcademicOverviewToExcelAdvanced({
+    kpis: kpis.value,
+    distribution: distribution.value,
+    chartData: chartData.value,
+    topSubjects: topSubjects.value,
+    totalTeachers: totalTeachersVal.value,
+    totalClasses: totalClassesVal.value,
+    semesterLabel: semesters.value.find(s => s.value === semesterFilter.value)?.label || 'Tất cả học kỳ',
+    campusLabel: campuses.value.find(c => c.value === campusFilter.value)?.label || 'Tất cả cơ sở',
+  })
 }
 
-const exportOptions = [
-  { label: 'PDF Report', icon: FileText, action: triggerPrint },
+const exportingPdf = ref(false)
+
+async function exportPdf() {
+  if (exportingPdf.value) return
+  exportingPdf.value = true
+  try {
+    await exportAcademicOverviewToPdf({
+      kpis: kpis.value,
+      distribution: distribution.value,
+      chartData: chartData.value,
+      topSubjects: topSubjects.value,
+      totalTeachers: totalTeachersVal.value,
+      totalClasses: totalClassesVal.value,
+      semesterLabel: semesters.value.find(s => s.value === semesterFilter.value)?.label || 'Tất cả học kỳ',
+      campusLabel: campuses.value.find(c => c.value === campusFilter.value)?.label || 'Tất cả cơ sở',
+    })
+  } finally {
+    exportingPdf.value = false
+  }
+}
+
+const exportOptions = computed(() => [
+  { label: exportingPdf.value ? 'Đang xuất...' : 'PDF Report', icon: FileText, action: exportPdf },
   { label: 'Excel Data', icon: Download, action: exportExcel },
-]
+])
 
 const getBarHeight = (gpa) => {
   if (!gpa || isNaN(gpa)) return 0

@@ -27,6 +27,17 @@ export const rbacApi = {
     })
   },
 
+  getRolePermissions(id) {
+    return apiRequest(`/api/admin/rbac/roles/${id}/permissions`, { method: 'GET' })
+  },
+
+  updateRolePermissions(id, payload) {
+    return apiRequest(`/api/admin/rbac/roles/${id}/permissions`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    })
+  },
+
   deleteRole(id) {
     return apiRequest(`/api/admin/rbac/roles/${id}`, { method: 'DELETE' })
   },

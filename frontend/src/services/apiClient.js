@@ -60,6 +60,7 @@ async function tryRefreshToken() {
       const { useAuthStore } = await import('@/stores/auth')
       const authStore = useAuthStore()
       authStore.clearSession()
+      window.location.href = '/login'
     } catch {
       // Không chặn lỗi gốc nếu Pinia chưa sẵn sàng.
     }

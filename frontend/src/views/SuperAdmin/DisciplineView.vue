@@ -1,11 +1,12 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { ShieldAlert, Search, Scale, FileText, UserX, CheckCircle } from 'lucide-vue-next'
+import { ShieldAlert, Search, Scale, FileText, UserX, CheckCircle, Loader2 } from 'lucide-vue-next'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import TableShell from '@/components/ui/TableShell.vue'
 import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
+import CreateDisciplineDialog from './components/CreateDisciplineDialog.vue'
 import { rewardDisciplineApi } from '@/services/rewardDisciplineApi'
 import { unwrapApiData } from '@/services/apiClient'
 import { formatDate } from '@/utils/dateFormat'
@@ -15,8 +16,14 @@ const popupStore = usePopupStore()
 const records = ref([])
 const appeals = ref([])
 const loading = ref(false)
+const loadingDetail = ref(false)
+const pendingCount = ref(0)
 const confirmAction = ref(null)
-const currentTab = ref('records') // records, appeals
+
+// State
+const showCreateDialog = ref(false)
+
+const currentTab = ref('records') // 'records', 'pending', 'appeals'
 const searchQuery = ref('')
 const filterStatus = ref('all')
 const filterSeverity = ref('all')
@@ -25,11 +32,54 @@ const selectedRecord = ref(null)
 const selectedAppeal = ref(null)
 const appealResolution = ref({ status: 'resolved', reason: '' })
 
-const normalizeRecordStatus = (status) => ['dang_hieu_luc', 'active'].includes(status) ? 'active' : 'expired'
+// Fix 1 — Label mapping BE code → tiếng Việt
+const DISCIPLINE_LEVEL_LABEL = {
+  nhe: 'Nhẹ',
+  trung_binh: 'Trung bình',
+  nghiem_trong: 'Nghiêm trọng',
+}
+const DISCIPLINE_ACTION_LABEL = {
+  nhac_nho: 'Nhắc nhở',
+  khien_trach: 'Khiển trách',
+  canh_cao: 'Cảnh cáo',
+  dinh_chi: 'Đình chỉ',
+  khac: 'Khác',
+}
+const levelLabel = (code) => DISCIPLINE_LEVEL_LABEL[code] ?? code ?? '—'
+const actionLabel = (code) => DISCIPLINE_ACTION_LABEL[code] ?? code ?? '—'
+
+const normalizeRecordStatus = (status) => status
+
+const statusLabel = (code) => {
+  switch (code) {
+    case 'nhap': return 'Mới tạo'
+    case 'cho_duyet': return 'Chờ duyệt'
+    case 'da_duyet': return 'Đã duyệt'
+    case 'tu_choi': return 'Từ chối'
+    case 'dang_hieu_luc': return 'Đang hiệu lực'
+    case 'het_hieu_luc': return 'Hết hiệu lực'
+    case 'da_go_hieu_luc': return 'Đã gỡ'
+    case 'da_huy': return 'Đã hủy'
+    default: return code || '—'
+  }
+}
+
+const statusVariant = (code) => {
+  switch (code) {
+    case 'dang_hieu_luc': return 'danger'
+    case 'cho_duyet': return 'warning'
+    case 'da_duyet': return 'success'
+    case 'nhap': return 'info'
+    default: return 'neutral'
+  }
+}
+
+// Fix 6 — Bổ sung case da_huy
 const normalizeAppealStatus = (status) => {
   if (['chap_nhan', 'resolved'].includes(status)) return 'resolved'
   if (['tu_choi', 'rejected'].includes(status)) return 'rejected'
-  return 'pending'
+  if (['da_huy', 'cancelled'].includes(status)) return 'cancelled'
+  return 'pending'  // cho_xu_ly và mọi giá trị khác
 }
 
 const mapRecord = (item) => ({
@@ -38,12 +88,14 @@ const mapRecord = (item) => ({
   studentRollNumber: item.mssv ?? item.Mssv ?? '',
   studentClass: item.tenDonVi ?? item.TenDonVi ?? '',
   tieuDe: item.tieuDe ?? item.TieuDe ?? 'Hồ sơ kỷ luật',
+  // Fix 1 — giữ raw code để filter, dịch khi hiển thị
   mucDoKyLuat: item.mucDoKyLuat ?? item.MucDoKyLuat ?? '',
   hinhThucXuLy: item.hinhThucXuLy ?? item.HinhThucXuLy ?? '',
   trangThai: normalizeRecordStatus(item.trangThai ?? item.TrangThai),
   ngayViPham: item.ngayViPham ?? item.NgayViPham,
-  moTaCongKhai: item.moTaCongKhai ?? item.MoTaCongKhai,
-  moTaNoiBo: item.moTaNoiBo ?? item.MoTaNoiBo,
+  // Fix 3 — moTaViPham sẽ được load từ detail API khi click, để null lúc đầu
+  moTaViPham: item.moTaViPham ?? item.MoTaViPham ?? null,
+  ghiChuNoiBo: item.ghiChuNoiBo ?? item.GhiChuNoiBo ?? null,
 })
 
 const mapAppeal = (item) => ({
@@ -53,21 +105,29 @@ const mapAppeal = (item) => ({
   studentRollNumber: item.mssv ?? item.Mssv ?? '',
   trangThai: normalizeAppealStatus(item.trangThai ?? item.TrangThai),
   ngayKhieuNai: item.ngayTao ?? item.NgayTao,
-  lyDoKhieuNai: item.lyDoKhieuNai ?? item.LyDoKhieuNai ?? 'Xem chi tiết khiếu nại trên backend.',
-  ghiChuGiaiQuyet: item.ghiChuXuLy ?? item.GhiChuXuLy ?? item.lyDoXuLy ?? item.LyDoXuLy,
+  // Fix 4 — lyDoKhieuNai chỉ có trong DetailDto, để null lúc đầu
+  lyDoKhieuNai: item.lyDoKhieuNai ?? item.LyDoKhieuNai ?? null,
+  ghiChuGiaiQuyet: item.ghiChuXuLy ?? item.GhiChuXuLy ?? item.lyDoXuLy ?? item.LyDoXuLy ?? null,
 })
 
 const fetchAll = async () => {
   loading.value = true
   try {
-    const [recRes, appRes] = await Promise.all([
+    // Fix 5 — gọi thêm pending-approval để lấy stat card
+    const [recRes, appRes, pendingRes] = await Promise.all([
       rewardDisciplineApi.getDisciplineRecords({ pageIndex: 1, pageSize: 50 }),
-      rewardDisciplineApi.getDisciplineAppeals({ pageIndex: 1, pageSize: 50 })
+      rewardDisciplineApi.getDisciplineAppeals({ pageIndex: 1, pageSize: 50 }),
+      rewardDisciplineApi.getDisciplineRecordsPending({ pageIndex: 1, pageSize: 1 }).catch(() => null),
     ])
     const recData = unwrapApiData(recRes)
     const appData = unwrapApiData(appRes)
     records.value = (recData?.items ?? recData?.Items ?? []).map(mapRecord)
     appeals.value = (appData?.items ?? appData?.Items ?? []).map(mapAppeal)
+
+    if (pendingRes) {
+      const pendingData = unwrapApiData(pendingRes)
+      pendingCount.value = pendingData?.totalItems ?? pendingData?.TotalItems ?? 0
+    }
   } catch (err) {
     console.error(err)
     records.value = []
@@ -85,6 +145,7 @@ const filteredRecords = computed(() => {
   if (filterStatus.value !== 'all') {
     list = list.filter(r => r.trangThai === filterStatus.value)
   }
+  // Fix 2 — so sánh đúng với BE code (nhe/trung_binh/nghiem_trong)
   if (filterSeverity.value !== 'all') {
     list = list.filter(r => r.mucDoKyLuat === filterSeverity.value)
   }
@@ -107,6 +168,47 @@ const filteredAppeals = computed(() => {
   return list
 })
 
+// Fix 3 — fetch detail khi click record để lấy MoTaViPham
+const selectRecord = async (r) => {
+  selectedRecord.value = r
+  selectedAppeal.value = null
+  if (r.moTaViPham !== null) return  // đã có rồi, không cần fetch lại
+  loadingDetail.value = true
+  try {
+    const res = await rewardDisciplineApi.getDisciplineRecordDetail(r.id)
+    const detail = unwrapApiData(res)
+    if (detail) {
+      r.moTaViPham = detail.moTaViPham ?? detail.MoTaViPham ?? ''
+      r.ghiChuNoiBo = detail.ghiChuNoiBo ?? detail.GhiChuNoiBo ?? ''
+    }
+  } catch {
+    // Bỏ qua lỗi detail, vẫn hiển thị info list
+  } finally {
+    loadingDetail.value = false
+  }
+}
+
+// Fix 4 — fetch detail khi click appeal để lấy LyDoKhieuNai
+const selectAppeal = async (a) => {
+  selectedAppeal.value = a
+  selectedRecord.value = null
+  appealResolution.value.reason = ''
+  if (a.lyDoKhieuNai !== null) return  // đã có rồi
+  loadingDetail.value = true
+  try {
+    const res = await rewardDisciplineApi.getDisciplineAppealDetail(a.id)
+    const detail = unwrapApiData(res)
+    if (detail) {
+      a.lyDoKhieuNai = detail.lyDoKhieuNai ?? detail.LyDoKhieuNai ?? ''
+      a.ghiChuGiaiQuyet = detail.ghiChuXuLy ?? detail.GhiChuXuLy ?? detail.lyDoXuLy ?? detail.LyDoXuLy ?? ''
+    }
+  } catch {
+    // Bỏ qua lỗi detail
+  } finally {
+    loadingDetail.value = false
+  }
+}
+
 const removeEffect = () => {
   if (!selectedRecord.value) return
   confirmAction.value = {
@@ -118,13 +220,109 @@ const removeEffect = () => {
       try {
         await rewardDisciplineApi.removeDisciplineEffect(selectedRecord.value.id, {
           reason: 'Gỡ hiệu lực sớm theo thao tác quản trị.',
-          removalNote: 'Thao tác từ giao diện SuperAdmin.',
         })
-        selectedRecord.value.trangThai = 'expired'
+        selectedRecord.value.trangThai = 'da_go_hieu_luc'
         confirmAction.value = null
         popupStore.success('Thành công', 'Đã gỡ hiệu lực kỷ luật.')
       } catch (err) {
         popupStore.error('Lỗi', err?.message || 'Không thể gỡ hiệu lực kỷ luật.')
+      }
+    }
+  }
+}
+
+const submitRecord = () => {
+  if (!selectedRecord.value) return
+  confirmAction.value = {
+    title: 'Gửi duyệt hồ sơ?',
+    message: `Bạn muốn gửi duyệt hồ sơ "${selectedRecord.value.tieuDe}"?`,
+    label: 'Gửi duyệt',
+    variant: 'primary',
+    run: async () => {
+      try {
+        await rewardDisciplineApi.submitDisciplineRecord(selectedRecord.value.id)
+        selectedRecord.value.trangThai = 'cho_duyet'
+        confirmAction.value = null
+        popupStore.success('Thành công', 'Đã gửi duyệt hồ sơ kỷ luật.')
+      } catch (err) {
+        popupStore.error('Lỗi', err?.message || 'Không thể gửi duyệt hồ sơ.')
+      }
+    }
+  }
+}
+
+const approveRecord = () => {
+  if (!selectedRecord.value) return
+  confirmAction.value = {
+    title: 'Duyệt hồ sơ kỷ luật?',
+    message: `Bạn muốn duyệt hồ sơ "${selectedRecord.value.tieuDe}"?`,
+    label: 'Duyệt',
+    variant: 'success',
+    run: async () => {
+      try {
+        await rewardDisciplineApi.approveDisciplineRecord(selectedRecord.value.id, { ghiChu: 'Duyệt theo quy trình.' })
+        selectedRecord.value.trangThai = 'da_duyet'
+        confirmAction.value = null
+        popupStore.success('Thành công', 'Đã duyệt hồ sơ kỷ luật.')
+      } catch (err) {
+        popupStore.error('Lỗi', err?.message || 'Không thể duyệt hồ sơ.')
+      }
+    }
+  }
+}
+
+const rejectRecord = () => {
+  if (!selectedRecord.value) return
+  confirmAction.value = {
+    title: 'Từ chối hồ sơ kỷ luật?',
+    message: '',
+    type: 'reject',
+    payload: { lyDoTuChoi: '' },
+    label: 'Từ chối',
+    variant: 'danger',
+    run: async () => {
+      if (!confirmAction.value.payload.lyDoTuChoi) {
+        popupStore.error('Lỗi', 'Vui lòng nhập lý do từ chối.')
+        return
+      }
+      try {
+        await rewardDisciplineApi.rejectDisciplineRecord(selectedRecord.value.id, { lyDoTuChoi: confirmAction.value.payload.lyDoTuChoi })
+        selectedRecord.value.trangThai = 'tu_choi'
+        confirmAction.value = null
+        popupStore.success('Thành công', 'Đã từ chối hồ sơ kỷ luật.')
+      } catch (err) {
+        popupStore.error('Lỗi', err?.message || 'Không thể từ chối hồ sơ.')
+      }
+    }
+  }
+}
+
+const activateRecord = () => {
+  if (!selectedRecord.value) return
+  const today = new Date().toISOString().split('T')[0]
+  confirmAction.value = {
+    title: 'Kích hoạt hồ sơ kỷ luật?',
+    message: 'Thiết lập thời gian hiệu lực cho quyết định kỷ luật.',
+    type: 'activate',
+    payload: { ngayBatDau: today, ngayKetThuc: '', ghiChu: '' },
+    label: 'Kích hoạt',
+    variant: 'primary',
+    run: async () => {
+      if (!confirmAction.value.payload.ngayBatDau) {
+        popupStore.error('Lỗi', 'Vui lòng chọn ngày bắt đầu.')
+        return
+      }
+      try {
+        await rewardDisciplineApi.activateDisciplineRecord(selectedRecord.value.id, {
+          ngayBatDau: confirmAction.value.payload.ngayBatDau,
+          ngayKetThuc: confirmAction.value.payload.ngayKetThuc || null,
+          ghiChu: confirmAction.value.payload.ghiChu
+        })
+        selectedRecord.value.trangThai = 'dang_hieu_luc'
+        confirmAction.value = null
+        popupStore.success('Thành công', 'Đã kích hoạt hồ sơ kỷ luật.')
+      } catch (err) {
+        popupStore.error('Lỗi', err?.message || 'Không thể kích hoạt hồ sơ.')
       }
     }
   }
@@ -163,6 +361,7 @@ const resolveAppeal = () => {
 }
 </script>
 
+
 <template>
   <div class="sa-discipline max-w-7xl mx-auto space-y-6">
     <GlassPanel variant="flat" density="compact">
@@ -176,11 +375,11 @@ const resolveAppeal = () => {
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <GlassPanel variant="flat" density="compact" class="flex flex-col justify-center min-h-[90px] border-l-4 border-[var(--color-danger-bg, #ef4444)]">
         <p class="text-sm font-medium text-(--text-muted) mb-1">Đang hiệu lực</p>
-        <strong class="text-2xl text-(--text-heading)">{{ records.filter(r => r.trangThai === 'active').length }}</strong>
+        <strong class="text-2xl text-(--text-heading)">{{ records.filter(r => r.trangThai === 'dang_hieu_luc').length }}</strong>
       </GlassPanel>
       <GlassPanel variant="flat" density="compact" class="flex flex-col justify-center min-h-[90px] border-l-4 border-amber-500">
         <p class="text-sm font-medium text-(--text-muted) mb-1">Chờ duyệt hồ sơ</p>
-        <strong class="text-2xl text-(--text-heading)">0</strong>
+        <strong class="text-2xl text-(--text-heading)">{{ pendingCount }}</strong>
       </GlassPanel>
       <GlassPanel variant="flat" density="compact" class="flex flex-col justify-center min-h-[90px] border-l-4 border-blue-500">
         <p class="text-sm font-medium text-(--text-muted) mb-1">Khiếu nại chờ xử lý</p>
@@ -197,10 +396,10 @@ const resolveAppeal = () => {
         <div class="flex bg-(--surface-modal) rounded-lg p-1 shrink-0 h-10 border border-(--border-default)">
           <button class="px-4 h-full rounded-md text-sm transition-colors flex items-center"
                   :class="currentTab === 'records' ? 'bg-(--surface-card) shadow-sm font-medium text-(--text-heading)' : 'text-(--text-muted) hover:text-(--text-body)'"
-                  @click="currentTab = 'records'; selectedAppeal = null">Hồ sơ vi phạm</button>
+                  @click="currentTab = 'records'; selectedAppeal = null; selectedRecord = null">Hồ sơ vi phạm</button>
           <button class="px-4 h-full rounded-md text-sm transition-colors flex items-center"
                   :class="currentTab === 'appeals' ? 'bg-(--surface-card) shadow-sm font-medium text-(--text-heading)' : 'text-(--text-muted) hover:text-(--text-body)'"
-                  @click="currentTab = 'appeals'; selectedRecord = null">Đơn khiếu nại</button>
+                  @click="currentTab = 'appeals'; selectedRecord = null; selectedAppeal = null">Đơn khiếu nại</button>
         </div>
         
         <label class="flex items-center gap-2 bg-(--surface-input) px-3 h-10 rounded-lg border border-(--border-input) flex-1 min-w-[200px] focus-within:ring-2 focus-within:ring-(--border-focus) transition-shadow">
@@ -216,9 +415,9 @@ const resolveAppeal = () => {
         
         <select v-if="currentTab === 'records'" v-model="filterSeverity" class="h-10 px-3 py-0 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm focus:ring-2 focus:ring-(--border-focus) outline-none min-w-[130px]">
           <option value="all">Tất cả mức độ</option>
-          <option value="Khiển trách">Khiển trách</option>
-          <option value="Cảnh cáo">Cảnh cáo</option>
-          <option value="Đình chỉ">Đình chỉ</option>
+          <option value="nhe">Nhẹ</option>
+          <option value="trung_binh">Trung bình</option>
+          <option value="nghiem_trong">Nghiêm trọng</option>
         </select>
         
         <select v-if="currentTab === 'appeals'" v-model="filterStatus" class="h-10 px-3 py-0 bg-(--surface-input) border border-(--border-input) rounded-lg text-sm focus:ring-2 focus:ring-(--border-focus) outline-none min-w-[130px]">
@@ -226,9 +425,10 @@ const resolveAppeal = () => {
           <option value="pending">Chờ xử lý</option>
           <option value="resolved">Đã chấp nhận</option>
           <option value="rejected">Bị từ chối</option>
+          <option value="cancelled">Đã hủy</option>
         </select>
 
-        <GlassButton v-if="currentTab === 'records'" variant="primary" class="h-10">Lập hồ sơ mới</GlassButton>
+        <GlassButton v-if="currentTab === 'records'" variant="primary" class="h-10" @click="showCreateDialog = true">Lập hồ sơ mới</GlassButton>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 min-h-[500px]">
@@ -251,19 +451,19 @@ const resolveAppeal = () => {
                 <tr v-for="r in filteredRecords" :key="r.id"
                     class="cursor-pointer transition-colors"
                     :class="selectedRecord?.id === r.id ? 'bg-(--surface-hover)' : 'hover:bg-(--surface-hover)'"
-                    @click="selectedRecord = r">
+                    @click="selectRecord(r)">
                   <td>
                     <div class="font-medium text-sm">{{ r.studentName }}</div>
                     <div class="text-xs text-(--text-muted)">{{ r.studentRollNumber }}</div>
                   </td>
                   <td>
                     <div class="text-sm font-medium line-clamp-1" :title="r.tieuDe">{{ r.tieuDe }}</div>
-                    <div class="text-xs text-(--text-muted)">{{ r.mucDoKyLuat }}</div>
+                    <div class="text-xs text-(--text-muted)">{{ levelLabel(r.mucDoKyLuat) }}</div>
                   </td>
-                  <td class="text-sm">{{ r.hinhThucXuLy }}</td>
+                  <td class="text-sm">{{ actionLabel(r.hinhThucXuLy) }}</td>
                   <td>
-                    <GlassBadge :variant="r.trangThai === 'active' ? 'danger' : 'neutral'" size="sm">
-                      {{ r.trangThai === 'active' ? 'Đang hiệu lực' : 'Đã hết/Gỡ' }}
+                    <GlassBadge :variant="statusVariant(r.trangThai)" size="sm">
+                      {{ statusLabel(r.trangThai) }}
                     </GlassBadge>
                   </td>
                 </tr>
@@ -288,7 +488,7 @@ const resolveAppeal = () => {
                 <tr v-for="a in filteredAppeals" :key="a.id"
                     class="cursor-pointer transition-colors"
                     :class="selectedAppeal?.id === a.id ? 'bg-(--surface-hover)' : 'hover:bg-(--surface-hover)'"
-                    @click="selectedAppeal = a">
+                    @click="selectAppeal(a)">
                   <td>
                     <div class="font-medium text-sm">{{ a.studentName }}</div>
                     <div class="text-xs text-(--text-muted)">{{ a.studentRollNumber }}</div>
@@ -298,6 +498,7 @@ const resolveAppeal = () => {
                   <td>
                     <GlassBadge v-if="a.trangThai === 'pending'" variant="warning" size="sm">Chờ xử lý</GlassBadge>
                     <GlassBadge v-else-if="a.trangThai === 'resolved'" variant="success" size="sm">Chấp nhận</GlassBadge>
+                    <GlassBadge v-else-if="a.trangThai === 'cancelled'" variant="neutral" size="sm">Đã hủy</GlassBadge>
                     <GlassBadge v-else variant="danger" size="sm">Từ chối</GlassBadge>
                   </td>
                 </tr>
@@ -317,7 +518,7 @@ const resolveAppeal = () => {
           <!-- Record Details -->
           <div v-if="currentTab === 'records' && selectedRecord" class="flex flex-col h-full">
             <div class="p-5 border-b border-(--border-default) relative overflow-hidden">
-              <div v-if="selectedRecord.trangThai === 'active'" class="absolute top-0 left-0 w-1 h-full bg-(--color-danger-bg)"></div>
+              <div v-if="selectedRecord.trangThai === 'dang_hieu_luc'" class="absolute top-0 left-0 w-1 h-full bg-(--color-danger-bg)"></div>
               <h3 class="font-bold text-lg text-(--text-heading) leading-tight mb-3">{{ selectedRecord.tieuDe }}</h3>
               
               <div class="flex items-center gap-3 bg-(--surface-modal) p-3 rounded-lg border border-(--border-default)">
@@ -335,39 +536,75 @@ const resolveAppeal = () => {
               <div class="grid grid-cols-2 gap-4">
                 <div>
                   <div class="text-xs text-(--text-muted) mb-1">Mức độ</div>
-                  <div class="font-medium text-sm text-(--text-heading)">{{ selectedRecord.mucDoKyLuat }}</div>
+                  <div class="font-medium text-sm text-(--text-heading)">{{ levelLabel(selectedRecord.mucDoKyLuat) }}</div>
                 </div>
                 <div>
                   <div class="text-xs text-(--text-muted) mb-1">Hình thức xử lý</div>
-                  <div class="font-medium text-sm text-(--text-heading)">{{ selectedRecord.hinhThucXuLy }}</div>
+                  <div class="font-medium text-sm text-(--text-heading)">{{ actionLabel(selectedRecord.hinhThucXuLy) }}</div>
                 </div>
                 <div>
                   <div class="text-xs text-(--text-muted) mb-1">Ngày vi phạm</div>
                   <div class="text-sm text-(--text-body)">{{ formatDate(selectedRecord.ngayViPham) }}</div>
                 </div>
-                <div>
+                <div class="mb-4">
                   <div class="text-xs text-(--text-muted) mb-1">Trạng thái</div>
-                  <GlassBadge :variant="selectedRecord.trangThai === 'active' ? 'danger' : 'neutral'" size="sm">
-                    {{ selectedRecord.trangThai === 'active' ? 'Đang hiệu lực' : 'Hết hiệu lực' }}
+                  <GlassBadge :variant="statusVariant(selectedRecord.trangThai)" size="sm">
+                    {{ statusLabel(selectedRecord.trangThai) }}
                   </GlassBadge>
                 </div>
               </div>
 
               <div>
                 <div class="text-xs font-semibold text-(--text-muted) mb-2 uppercase tracking-wide">Mô tả vi phạm</div>
-                <div class="bg-(--surface-input) p-3 rounded text-sm text-(--text-body) border border-(--border-default) font-mono leading-relaxed">
-                  {{ selectedRecord.moTaCongKhai || selectedRecord.moTaNoiBo || 'Không có mô tả chi tiết.' }}
+                <div v-if="loadingDetail" class="flex items-center gap-2 text-(--text-muted) text-sm py-2">
+                  <Loader2 :size="14" class="animate-spin" />
+                  <span>Đang tải...</span>
+                </div>
+                <div v-else class="bg-(--surface-input) p-3 rounded text-sm text-(--text-body) border border-(--border-default) font-mono leading-relaxed">
+                  {{ selectedRecord.moTaViPham || 'Không có mô tả chi tiết.' }}
                 </div>
               </div>
             </div>
 
-            <div class="p-5 mt-auto bg-(--surface-modal) border-t border-(--border-default)">
-              <GlassButton v-if="selectedRecord.trangThai === 'active'" variant="secondary" class="w-full justify-center !text-(--color-danger-bg) !border-(--color-danger-bg) hover:!bg-red-500/10" @click="removeEffect">
+            <div class="p-5 mt-auto bg-(--surface-modal) border-t border-(--border-default) space-y-2">
+              <button
+                v-if="selectedRecord.trangThai === 'nhap'"
+                class="w-full py-2.5 px-4 rounded-lg bg-(--lg-primary) text-white font-semibold text-sm hover:opacity-90 transition-all duration-200 cursor-pointer"
+                @click="submitRecord"
+              >
+                Gửi duyệt hồ sơ
+              </button>
+
+              <div v-else-if="selectedRecord.trangThai === 'cho_duyet'" class="flex gap-2">
+                <button
+                  class="flex-1 py-2.5 px-4 rounded-lg bg-emerald-500 text-white font-semibold text-sm hover:opacity-90 transition-all duration-200 cursor-pointer"
+                  @click="approveRecord"
+                >
+                  Duyệt hồ sơ
+                </button>
+                <button
+                  class="flex-1 py-2.5 px-4 rounded-lg border-2 border-red-500 text-red-500 font-semibold text-sm hover:bg-red-500 hover:text-white transition-all duration-200 cursor-pointer"
+                  @click="rejectRecord"
+                >
+                  Từ chối
+                </button>
+              </div>
+
+              <button
+                v-else-if="selectedRecord.trangThai === 'da_duyet'"
+                class="w-full py-2.5 px-4 rounded-lg bg-(--lg-primary) text-white font-semibold text-sm hover:opacity-90 transition-all duration-200 cursor-pointer"
+                @click="activateRecord"
+              >
+                Kích hoạt kỷ luật
+              </button>
+
+              <button
+                v-else-if="selectedRecord.trangThai === 'dang_hieu_luc'"
+                class="w-full py-2.5 px-4 rounded-lg border-2 border-red-500 text-red-400 font-semibold text-sm hover:bg-red-500 hover:text-white transition-all duration-200 cursor-pointer"
+                @click="removeEffect"
+              >
                 Gỡ hiệu lực sớm
-              </GlassButton>
-              <GlassButton v-else variant="secondary" class="w-full justify-center opacity-70" disabled>
-                Đã gỡ hiệu lực
-              </GlassButton>
+              </button>
             </div>
           </div>
 
@@ -399,8 +636,12 @@ const resolveAppeal = () => {
               
               <div>
                 <div class="text-xs text-(--text-muted) mb-1">Lý do khiếu nại</div>
-                <div class="bg-(--surface-input) p-3 rounded-lg border border-(--border-default) text-sm text-(--text-body) leading-relaxed italic">
-                  "{{ selectedAppeal.lyDoKhieuNai }}"
+                <div v-if="loadingDetail" class="flex items-center gap-2 text-(--text-muted) text-sm py-2">
+                  <Loader2 :size="14" class="animate-spin" />
+                  <span>Đang tải...</span>
+                </div>
+                <div v-else class="bg-(--surface-input) p-3 rounded-lg border border-(--border-default) text-sm text-(--text-body) leading-relaxed italic">
+                  {{ selectedAppeal.lyDoKhieuNai ? `"${selectedAppeal.lyDoKhieuNai}"` : 'Đang tải lý do...' }}
                 </div>
               </div>
 
@@ -434,6 +675,7 @@ const resolveAppeal = () => {
                   <strong class="text-sm">Ghi chú giải quyết</strong>
                 </div>
                 <div class="text-sm text-(--text-body)">{{ selectedAppeal.ghiChuGiaiQuyet || 'Không có ghi chú.' }}</div>
+                <div v-if="selectedAppeal.trangThai === 'cancelled'" class="text-xs text-(--text-muted) mt-2 italic">Khiếu nại đã bị hủy.</div>
               </div>
             </div>
           </div>
@@ -443,13 +685,37 @@ const resolveAppeal = () => {
 
     <ConfirmActionDialog
       v-if="confirmAction"
-      :show="true"
+      :modelValue="true"
       :title="confirmAction.title"
       :message="confirmAction.message"
       :confirmLabel="confirmAction.label"
       :variant="confirmAction.variant"
       @confirm="confirmAction.run"
       @cancel="confirmAction = null"
+      @update:modelValue="confirmAction = null"
+    >
+      <div v-if="confirmAction.type === 'reject'" class="mt-4">
+        <textarea v-model="confirmAction.payload.lyDoTuChoi" class="w-full bg-(--surface-input) p-3 border border-(--border-default) rounded-md text-sm outline-none focus:ring-1 focus:ring-(--lg-primary)" placeholder="Nhập lý do từ chối (bắt buộc)"></textarea>
+      </div>
+      <div v-else-if="confirmAction.type === 'activate'" class="mt-4 flex flex-col gap-3">
+        <div>
+          <label class="text-xs text-(--text-muted) font-medium mb-1 block">Ngày bắt đầu hiệu lực (*)</label>
+          <input type="date" v-model="confirmAction.payload.ngayBatDau" class="w-full bg-(--surface-input) p-2 border border-(--border-default) rounded-md text-sm outline-none focus:ring-1 focus:ring-(--lg-primary)" />
+        </div>
+        <div>
+          <label class="text-xs text-(--text-muted) font-medium mb-1 block">Ngày kết thúc hiệu lực (Tùy chọn)</label>
+          <input type="date" v-model="confirmAction.payload.ngayKetThuc" class="w-full bg-(--surface-input) p-2 border border-(--border-default) rounded-md text-sm outline-none focus:ring-1 focus:ring-(--lg-primary)" />
+        </div>
+        <div>
+          <label class="text-xs text-(--text-muted) font-medium mb-1 block">Ghi chú kích hoạt</label>
+          <textarea v-model="confirmAction.payload.ghiChu" class="w-full bg-(--surface-input) p-2 border border-(--border-default) rounded-md text-sm outline-none focus:ring-1 focus:ring-(--lg-primary) min-h-[60px]" placeholder="VD: Áp dụng từ học kỳ Fall 2026..."></textarea>
+        </div>
+      </div>
+    </ConfirmActionDialog>
+
+    <CreateDisciplineDialog 
+      v-model="showCreateDialog" 
+      @created="fetchData" 
     />
   </div>
 </template>

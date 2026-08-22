@@ -22,7 +22,7 @@ import {
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import LmsSelect from '@/components/LmsSelect.vue'
-import { exportBghToExcel, printBghPage as triggerPrint } from '@/components/BGH/performance/bghExport.js'
+import { exportBghToExcel, exportAtRiskToPdf } from '@/components/BGH/performance/bghExport.js'
 import { usePopupStore } from '@/stores/popup'
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
@@ -190,6 +190,28 @@ function exportExcel() {
   exportBghToExcel(prepareExcelData(), `SV-NguyCo-${semesterFilter.value}.xlsx`, 'Nguy cơ rớt môn')
 }
 
+const exportingPdf = ref(false)
+async function exportPdf() {
+  if (exportingPdf.value) return
+  exportingPdf.value = true
+  try {
+    const sem = semesters.value.find(s => String(s.value) === String(semesterFilter.value))?.label || 'Tất cả học kỳ'
+    const criticalCount = summaryStats.value.length ? summaryStats.value[1].count : 0
+    await exportAtRiskToPdf({
+      students: filteredStudents.value,
+      totalAtRisk: totalAtRisk.value,
+      criticalRate: criticalRate.value,
+      criticalCount: criticalCount,
+      semesterLabel: sem
+    })
+  } catch (err) {
+    popup.error('Lỗi', 'Không thể xuất file PDF. Vui lòng thử lại.')
+    console.error(err)
+  } finally {
+    exportingPdf.value = false
+  }
+}
+
 function viewStudentHistory(st) {
   router.push({ name: 'bgh-academic-at-risk-student-history', params: { studentId: st.id } })
 }
@@ -224,8 +246,9 @@ function sendBulkWarning() {
   >
     <template #actions>
       <div class="flex items-center gap-3">
-         <button @click="triggerPrint" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
-            <FileText :size="18" /> PDF Report
+         <button @click="exportPdf" :disabled="exportingPdf" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
+            <Loader2 v-if="exportingPdf" :size="18" class="animate-spin" />
+            <FileText v-else :size="18" /> {{ exportingPdf ? 'Đang xử lý...' : 'PDF Report' }}
          </button>
          <button @click="exportExcel" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2">
             <Download :size="18" /> Excel Data

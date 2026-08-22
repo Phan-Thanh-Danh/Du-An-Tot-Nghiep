@@ -90,9 +90,9 @@
             <p class="text-xs text-muted mt-0.5">Bấm vào bất kỳ phòng học nào bên dưới để xem danh sách trang thiết bị chi tiết</p>
           </div>
           <div class="flex flex-wrap items-center gap-2">
-            <button @click="openImportExcelModal" class="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm">
+            <button @click="openImportExcelModal()" class="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm">
               <FileSpreadsheet :size="16" />
-              <span>Nhập từ Excel (Phòng & TB)</span>
+              <span>Nhập nhiều phòng (Excel)</span>
             </button>
             <button @click="openAddRoomModal" class="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm">
               <Plus :size="16" />
@@ -184,12 +184,21 @@
             </div>
           </div>
 
-          <button
-            @click="clearRoomFilter"
-            class="px-3 py-1.5 rounded-xl bg-white/80 dark:bg-slate-800 text-xs font-bold text-muted hover:text-heading border border-card transition-colors shrink-0 flex items-center gap-1"
-          >
-            ✕ Xem tất cả các phòng
-          </button>
+          <div class="flex items-center gap-2">
+            <button
+              @click="openImportExcelModal(selectedRoomDetails.maPhong)"
+              class="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200 text-xs font-bold transition-colors shrink-0 flex items-center gap-1"
+            >
+              <FileSpreadsheet :size="14" />
+              Nhập TB (Excel)
+            </button>
+            <button
+              @click="clearRoomFilter"
+              class="px-3 py-1.5 rounded-xl bg-white/80 dark:bg-slate-800 text-xs font-bold text-muted hover:text-heading border border-card transition-colors shrink-0 flex items-center gap-1"
+            >
+              ✕ Xem tất cả
+            </button>
+          </div>
         </div>
 
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -446,7 +455,7 @@ const buildingId = computed(() => parseInt(route.params.buildingId) || 1)
 const building = ref(null)
 const buildingFloors = ref([])
 const buildingRooms = ref([])
-const customEquipmentList = ref([])
+const apiEquipmentList = ref([])
 const campusName = ref('Cơ sở Đào tạo')
 
 const showRoomModal = ref(false)
@@ -496,7 +505,10 @@ function openAddRoomModal() {
   showRoomModal.value = true
 }
 
-function openImportExcelModal() {
+const targetImportRoomId = ref(null)
+
+function openImportExcelModal(roomId = null) {
+  targetImportRoomId.value = roomId
   importRoomFile.value = null
   importSuccessMsg.value = ''
   importErrorMsg.value = ''
@@ -511,17 +523,31 @@ function handleRoomFileUpload(e) {
 }
 
 function downloadSampleRoomTemplate() {
-  const headers = ['MaCodePhong', 'TenPhong', 'LoaiPhong', 'SucChua', 'TenThietBi', 'MaCodeThietBi', 'ChungLoai', 'SoLuong']
-  const row1 = ['H501', 'Phong hoc Ly thuyet H501', 'ly_thuyet', '60', 'Dieu hoa Daikin 2.5HP', 'TB-H501-AC', 'Dieu hoa', '2']
-  const row2 = ['H502', 'Phong hoc Ly thuyet H502', 'ly_thuyet', '60', 'May chieu Laser Epson', 'TB-H502-PRJ', 'May chieu', '1']
-  const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), row1.join(','), row2.join(',')].join('\n')
-  const encodedUri = encodeURI(csvContent)
-  const link = document.createElement('a')
-  link.setAttribute('href', encodedUri)
-  link.setAttribute('download', 'Mau_Import_PhongHoc_ThietBi.csv')
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
+  if (targetImportRoomId.value) {
+    const headers = ['TenThietBi', 'MaCodeThietBi', 'ChungLoai', 'SoLuong']
+    const row1 = ['Dieu hoa Daikin 2.5HP', 'TB-AC-001', 'Dieu hoa', '2']
+    const row2 = ['May chieu Laser Epson', 'TB-PRJ-001', 'May chieu', '1']
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), row1.join(','), row2.join(',')].join('\n')
+    const encodedUri = encodeURI(csvContent)
+    const link = document.createElement('a')
+    link.setAttribute('href', encodedUri)
+    link.setAttribute('download', 'Mau_Import_ThietBi_Phong.csv')
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  } else {
+    const headers = ['MaCodePhong', 'TenPhong', 'LoaiPhong', 'SucChua', 'TenThietBi', 'MaCodeThietBi', 'ChungLoai', 'SoLuong']
+    const row1 = ['H501', 'Phong hoc Ly thuyet H501', 'ly_thuyet', '60', 'Dieu hoa Daikin 2.5HP', 'TB-H501-AC', 'Dieu hoa', '2']
+    const row2 = ['H502', 'Phong hoc Ly thuyet H502', 'ly_thuyet', '60', 'May chieu Laser Epson', 'TB-H502-PRJ', 'May chieu', '1']
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), row1.join(','), row2.join(',')].join('\n')
+    const encodedUri = encodeURI(csvContent)
+    const link = document.createElement('a')
+    link.setAttribute('href', encodedUri)
+    link.setAttribute('download', 'Mau_Import_PhongHoc_ThietBi.csv')
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
 }
 
 async function submitRoomImport() {
@@ -530,89 +556,16 @@ async function submitRoomImport() {
   importErrorMsg.value = ''
   importSuccessMsg.value = ''
   try {
-    const text = await importRoomFile.value.text()
-    const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
-    let addedRoomsCount = 0
-    let addedEqCount = 0
-    
-    if (lines.length > 1) {
-      for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(',').map(c => c.trim().replace(/^"/, '').replace(/"$/, ''))
-        if (cols.length >= 2) {
-          const fullCode = cols[0] || `P${100 + i}`
-          const name = cols[1] || `Phòng ${fullCode}`
-          const type = cols[2] || 'ly_thuyet'
-          const cap = parseInt(cols[3]) || 50
-          const eqName = cols[4]
-          const eqCode = cols[5]
-          const eqCat = cols[6] || 'Thiết bị giảng dạy'
-          const eqQty = parseInt(cols[7]) || 1
-          
-          let room = buildingRooms.value.find(r => r.maCodePhong?.toUpperCase() === fullCode.toUpperCase())
-          if (!room) {
-            room = {
-              maPhong: Date.now() + i,
-              maCodePhong: fullCode,
-              tenPhong: name,
-              loaiPhong: type,
-              sucChua: cap,
-              maTang: buildingFloors.value[0]?.maTang || 1,
-              trangThai: 'dang_dung'
-            }
-            buildingRooms.value.push(room)
-            addedRoomsCount++
-          }
-          
-          if (eqName) {
-            customEquipmentList.value.push({
-              id: `EQ-IMP-${Date.now()}-${i}`,
-              code: eqCode || `TB-${fullCode}-${i}`,
-              name: eqName,
-              model: 'Tiêu chuẩn import',
-              roomId: room.maPhong,
-              roomName: room.tenPhong,
-              floorName: buildingFloors.value[0]?.tenTang || 'Tầng 1',
-              category: eqCat,
-              quantity: eqQty,
-              status: 'good',
-              lastCheckDate: new Date().toLocaleDateString('vi-VN'),
-              note: 'Import từ Excel'
-            })
-            addedEqCount++
-          }
-        }
-      }
-    }
-    
-    if (addedRoomsCount === 0 && addedEqCount === 0) {
-      addedRoomsCount = 2
-      addedEqCount = 3
-      const p1 = { maPhong: Date.now() + 1, maCodePhong: `${currentRoomPrefix.value}01`, tenPhong: `Phòng học ${currentRoomPrefix.value}01`, loaiPhong: 'ly_thuyet', sucChua: 50, maTang: buildingFloors.value[0]?.maTang || 1, trangThai: 'dang_dung' }
-      const p2 = { maPhong: Date.now() + 2, maCodePhong: `${currentRoomPrefix.value}02`, tenPhong: `Phòng học ${currentRoomPrefix.value}02`, loaiPhong: 'thuc_hanh', sucChua: 40, maTang: buildingFloors.value[0]?.maTang || 1, trangThai: 'dang_dung' }
-      buildingRooms.value.push(p1, p2)
-      customEquipmentList.value.push({
-        id: `EQ-IMP-${Date.now()}-01`,
-        code: `TB-${p1.maCodePhong}-AC`,
-        name: 'Điều hòa âm trần Inverter 2.5HP',
-        model: 'Daikin FCFC60DVM',
-        roomId: p1.maPhong,
-        roomName: p1.tenPhong,
-        floorName: 'Tầng 1',
-        category: 'Điều hòa & Thông gió',
-        quantity: 2,
-        status: 'good',
-        lastCheckDate: new Date().toLocaleDateString('vi-VN'),
-        note: 'Import từ Excel'
-      })
-    }
-
-    importSuccessMsg.value = `Đã import thành công ${addedRoomsCount} phòng học và ${addedEqCount} thiết bị vào ${building.value?.tenToaNha}!`
-    bghApi.invalidate('/api/master-data/rooms')
+    const res = await bghApi.importEquipment(importRoomFile.value, targetImportRoomId.value)
+    const data = unwrapApiData(res)
+    importSuccessMsg.value = data?.message || 'Import thành công!'
+    bghApi.invalidate('/api/master-data/equipment')
+    await loadData()
     setTimeout(() => {
       showImportModal.value = false
     }, 1500)
   } catch (e) {
-    importErrorMsg.value = e?.message || 'Lỗi đọc tập tin Excel/CSV'
+    importErrorMsg.value = e?.message || 'Lỗi xử lý file Excel'
   } finally {
     importingRoom.value = false
   }
@@ -730,9 +683,14 @@ async function toggleSoftDeleteRoom(room) {
   }
 }
 
-function toggleSoftDeleteEquipment(eq) {
-  if (!confirm(`Bạn có chắc muốn xóa mềm thiết bị "${eq.name}"?`)) return
-  customEquipmentList.value = customEquipmentList.value.filter(e => e.id !== eq.id)
+async function toggleSoftDeleteEquipment(eq) {
+  if (!confirm(`Bạn có chắc muốn xóa thiết bị "${eq.name}"?`)) return
+  try {
+    await bghApi.deleteEquipment(eq.id)
+    await loadData()
+  } catch(e) {
+    alert(e?.message || 'Lỗi xóa thiết bị')
+  }
 }
 
 const selectedRoomFilter = ref('all')
@@ -743,11 +701,12 @@ async function loadData() {
   loading.value = true
   error.value = null
   try {
-    const [bldRes, flrRes, roomRes, orgRes] = await Promise.all([
+    const [bldRes, flrRes, roomRes, orgRes, eqRes] = await Promise.all([
       bghApi.getBuildings(),
       bghApi.getFloors(),
       bghApi.getRooms(),
       bghApi.getOrganizations(),
+      bghApi.getEquipmentByBuilding(buildingId.value)
     ])
 
     const allBuildings = unwrapApiData(bldRes) || []
@@ -769,6 +728,8 @@ async function loadData() {
     const floorIds = new Set(buildingFloors.value.map(f => f.maTang))
     // Filter rooms for THIS building only, without inserting dummy fallback rooms!
     buildingRooms.value = allRooms.filter(r => floorIds.has(r.maTang) || r.maToaNha === currentBldId)
+
+    apiEquipmentList.value = unwrapApiData(eqRes) || []
 
     const foundOrg = orgs.find(o => o.id === building.value.maDonVi)
     if (foundOrg) campusName.value = foundOrg.name
@@ -823,42 +784,24 @@ function roomTypeLabel(type) {
 }
 
 const equipmentList = computed(() => {
-  const list = [...customEquipmentList.value]
-  buildingRooms.value.forEach((room, roomIdx) => {
-    const floor = buildingFloors.value.find(f => f.maTang === room.maTang)
-    const floorName = floor ? floor.tenTang : 'Tầng học'
-
-    list.push({
-      id: `EQ-${room.maPhong}-01`,
-      code: `TB-${room.maCodePhong}-AC`,
-      name: `Điều hòa âm trần Inverter 2.5HP`,
-      model: `Daikin FCFC60DVM`,
-      roomId: room.maPhong,
-      roomName: room.tenPhong,
-      floorName,
-      category: 'Điều hòa & Thông gió',
-      quantity: 2,
-      status: roomIdx % 3 === 2 ? 'maintenance' : 'good',
-      lastCheckDate: '15/05/2026',
-      note: roomIdx % 3 === 2 ? 'Cần vệ sinh phin lọc bụi' : 'Đang chạy êm'
-    })
-
-    list.push({
-      id: `EQ-${room.maPhong}-02`,
-      code: `TB-${room.maCodePhong}-PRJ`,
-      name: `Máy chiếu Laser độ nét cao 4K`,
-      model: `Epson EB-L520U`,
-      roomId: room.maPhong,
-      roomName: room.tenPhong,
-      floorName,
-      category: 'Thiết bị hiển thị',
-      quantity: 1,
-      status: 'good',
-      lastCheckDate: '20/05/2026',
-      note: 'Độ sáng 5200 Lumens'
-    })
+  return apiEquipmentList.value.map(eq => {
+    const room = buildingRooms.value.find(r => r.maPhong === eq.maPhong)
+    const floorName = room ? buildingFloors.value.find(f => f.maTang === room.maTang)?.tenTang : 'N/A'
+    return {
+      id: eq.maThietBi,
+      code: eq.maCodeThietBi,
+      name: eq.tenThietBi,
+      model: eq.chungLoai,
+      roomId: eq.maPhong,
+      roomName: room ? room.tenPhong : 'N/A',
+      floorName: floorName || 'N/A',
+      category: eq.chungLoai || 'Khác',
+      quantity: eq.soLuong || 1,
+      status: eq.tinhTrang || 'good',
+      lastCheckDate: eq.ngayKiemDinh ? new Date(eq.ngayKiemDinh).toLocaleDateString('vi-VN') : '',
+      note: eq.ghiChu
+    }
   })
-  return list
 })
 
 function getRoomEquipment(roomId) {

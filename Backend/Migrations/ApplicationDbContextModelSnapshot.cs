@@ -6989,9 +6989,28 @@ namespace Backend.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaThietBi"));
 
+                    b.Property<string>("ChungLoai")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("chung_loai");
+
+                    b.Property<string>("GhiChu")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("ghi_chu");
+
+                    b.Property<string>("MaCodeThietBi")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("ma_code_thiet_bi");
+
                     b.Property<int>("MaPhong")
                         .HasColumnType("int")
                         .HasColumnName("ma_phong");
+
+                    b.Property<DateTime?>("NgayKiemDinh")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ngay_kiem_dinh");
 
                     b.Property<int>("SoLuong")
                         .ValueGeneratedOnAdd()
@@ -7004,6 +7023,11 @@ namespace Backend.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)")
                         .HasColumnName("ten_thiet_bi");
+
+                    b.Property<string>("TinhTrang")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("tinh_trang");
 
                     b.HasKey("MaThietBi")
                         .HasName("PK_ThietBiPhong");
@@ -8373,6 +8397,62 @@ namespace Backend.Migrations
                         {
                             t.HasCheckConstraint("CK_YeuCauSuaDiem_trang_thai_1", "[trang_thai] IN (N'cho_duyet', N'da_duyet', N'tu_choi', N'het_han')");
                         });
+                });
+
+            modelBuilder.Entity("Backend.Models.YeuCauXuatDuLieu", b =>
+                {
+                    b.Property<string>("MaYeuCau")
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("ma_yeu_cau");
+
+                    b.Property<string>("CapDonVi")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("cap_don_vi");
+
+                    b.Property<string>("DinhDang")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("dinh_dang");
+
+                    b.Property<string>("DuongDanFile")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("duong_dan_file");
+
+                    b.Property<string>("HocKy")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("hoc_ky");
+
+                    b.Property<string>("LoaiBaoCao")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("loai_bao_cao");
+
+                    b.Property<string>("NguoiYeuCau")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("nguoi_yeu_cau");
+
+                    b.Property<string>("TenBaoCao")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("ten_bao_cao");
+
+                    b.Property<DateTime?>("ThoiGianHoanThanh")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("thoi_gian_hoan_thanh");
+
+                    b.Property<DateTime>("ThoiGianYeuCau")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("thoi_gian_yeu_cau");
+
+                    b.Property<string>("TrangThai")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("trang_thai");
+
+                    b.HasKey("MaYeuCau");
+
+                    b.ToTable("yeu_cau_xuat_du_lieu");
                 });
 
             modelBuilder.Entity("Backend.Models.AnhChupPhanTich", b =>

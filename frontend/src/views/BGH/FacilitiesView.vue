@@ -267,6 +267,7 @@ async function saveBuilding() {
     }
     buildings.value.unshift(created)
     bghApi.invalidate('/api/bgh/master-data/buildings')
+    bghApi.invalidate('/api/bgh/master-data/floors')
     showBuildingModal.value = false
   } catch (e) {
     buildingError.value = e?.message || 'Lỗi lưu tòa nhà'
