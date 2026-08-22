@@ -113,7 +113,47 @@ public static class DatabaseSchemaPatcher
                 ALTER TABLE [dbo].[BaiTap] ADD [loai_tap_tin_cho_phep] nvarchar(200) NULL;",
 
             @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[BaiTap]') AND name = N'dung_luong_toi_da_mb')
-                ALTER TABLE [dbo].[BaiTap] ADD [dung_luong_toi_da_mb] int NULL;"
+                ALTER TABLE [dbo].[BaiTap] ADD [dung_luong_toi_da_mb] int NULL;",
+
+            // ThietBiPhong missing columns
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[ThietBiPhong]') AND name = N'ma_code_thiet_bi')
+                ALTER TABLE [dbo].[ThietBiPhong] ADD [ma_code_thiet_bi] nvarchar(50) NULL;",
+
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[ThietBiPhong]') AND name = N'chung_loai')
+                ALTER TABLE [dbo].[ThietBiPhong] ADD [chung_loai] nvarchar(100) NULL;",
+
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[ThietBiPhong]') AND name = N'tinh_trang')
+                ALTER TABLE [dbo].[ThietBiPhong] ADD [tinh_trang] nvarchar(50) NULL;",
+
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[ThietBiPhong]') AND name = N'ngay_kiem_dinh')
+                ALTER TABLE [dbo].[ThietBiPhong] ADD [ngay_kiem_dinh] datetime2 NULL;",
+
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[ThietBiPhong]') AND name = N'ghi_chu')
+                ALTER TABLE [dbo].[ThietBiPhong] ADD [ghi_chu] nvarchar(500) NULL;",
+
+            // YeuCauXuatDuLieu table
+            @"IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = N'YeuCauXuatDuLieu')
+                CREATE TABLE [dbo].[YeuCauXuatDuLieu] (
+                    [ma_yeu_cau_xuat] int IDENTITY(1,1) NOT NULL,
+                    [loai_du_lieu] nvarchar(50) NOT NULL,
+                    [dinh_dang] nvarchar(10) NOT NULL,
+                    [pham_vi_du_lieu] nvarchar(max) NULL,
+                    [tham_so_loc_json] nvarchar(max) NULL,
+                    [trang_thai] nvarchar(30) NOT NULL,
+                    [tien_do] int NOT NULL DEFAULT 0,
+                    [file_url] nvarchar(500) NULL,
+                    [file_size] bigint NULL,
+                    [tong_so_dong] int NOT NULL DEFAULT 0,
+                    [ma_nguoi_yeu_cau] int NOT NULL,
+                    [ma_don_vi] int NULL,
+                    [thoi_gian_yeu_cau] datetime2 NOT NULL,
+                    [thoi_gian_bat_dau] datetime2 NULL,
+                    [thoi_gian_hoan_thanh] datetime2 NULL,
+                    [thoi_gian_het_han] datetime2 NULL,
+                    [thong_bao_loi] nvarchar(max) NULL,
+                    [lan_thu_lai] int NOT NULL DEFAULT 0,
+                    CONSTRAINT [PK_YeuCauXuatDuLieu] PRIMARY KEY CLUSTERED ([ma_yeu_cau_xuat] ASC)
+                );"
         };
 
         foreach (var sql in sqlCommands)
