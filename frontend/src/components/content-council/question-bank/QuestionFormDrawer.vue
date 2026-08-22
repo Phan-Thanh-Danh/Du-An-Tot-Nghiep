@@ -299,23 +299,13 @@ onMounted(() => {
               />
             </div>
 
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Loại câu hỏi <span class="text-red-500">*</span></label>
-                <LmsSelect 
-                  :model-value="formData.type"
-                  @update:model-value="handleTypeChange"
-                  :options="typeOptions"
-                />
-              </div>
-              <div v-if="formData.type === 'multiple_choice'">
-                <label class="block text-sm font-medium text-slate-700 mb-1">Kiểu lựa chọn <span class="text-red-500">*</span></label>
-                <LmsSelect 
-                  :model-value="formData.selectionType"
-                  @update:model-value="handleSelectionTypeChange"
-                  :options="selectionOptions"
-                />
-              </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Kiểu lựa chọn <span class="text-red-500">*</span></label>
+              <LmsSelect 
+                :model-value="formData.selectionType"
+                @update:model-value="handleSelectionTypeChange"
+                :options="selectionOptions"
+              />
             </div>
 
             <div class="grid grid-cols-2 gap-4">

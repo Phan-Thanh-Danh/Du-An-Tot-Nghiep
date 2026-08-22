@@ -104,6 +104,17 @@ export const studentApi = {
       method: 'GET',
     })
   },
+  getLessonNote(courseId, lessonId) {
+    return apiRequest(`/api/student/courses/${courseId}/lessons/${lessonId}/note`, {
+      method: 'GET',
+    })
+  },
+  saveLessonNote(courseId, lessonId, note) {
+    return apiRequest(`/api/student/courses/${courseId}/lessons/${lessonId}/note`, {
+      method: 'POST',
+      body: JSON.stringify({ note }),
+    })
+  },
   completeLesson(courseId, lessonId, percent = 100) {
     const query = new URLSearchParams({ percent: String(percent) })
     return apiRequest(`/api/student/courses/${courseId}/lessons/${lessonId}/complete?${query}`, {
@@ -269,21 +280,6 @@ export const studentApi = {
     return apiRequest('/api/student/grades', { method: 'GET' })
   },
 
-  getAssignments() {
-    return apiRequest('/api/student/assignments', { method: 'GET' })
-  },
-
-  getAssignmentDetail(assignmentId) {
-    return apiRequest(`/api/student/assignments/${assignmentId}`, { method: 'GET' })
-  },
-
-  submitAssignment(assignmentId, formData) {
-    return apiRequest(`/api/student/assignments/${assignmentId}/submit`, {
-      method: 'POST',
-      body: formData,
-    })
-  },
-
   getGradeDetail(monHocId, hocKyId) {
     return apiRequest(`/api/student/grades/${monHocId}/${hocKyId}/detail`, { method: 'GET' })
   },
@@ -309,6 +305,14 @@ export const studentApi = {
 
   getRewardDetail(rewardId) {
     return apiRequest(`/api/student/rewards/${rewardId}`)
+  },
+
+  getDisciplines(params = {}) {
+    return apiRequest(`/api/student/discipline-records${buildQuery(params)}`)
+  },
+
+  getDisciplineDetail(disciplineId) {
+    return apiRequest(`/api/student/discipline-records/${disciplineId}`)
   },
 
   async downloadRewardCertificate(rewardId) {
@@ -371,6 +375,10 @@ export const studentApi = {
         confirmPassword: payload.confirmPassword,
       }),
     })
+  },
+
+  getParentLinks() {
+    return apiRequest('/api/student/parent-links', { method: 'GET' })
   },
 
   inviteParent(payload) {

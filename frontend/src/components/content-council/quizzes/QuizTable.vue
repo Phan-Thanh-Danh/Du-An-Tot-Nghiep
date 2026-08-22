@@ -116,8 +116,9 @@ const displayPages = computed(() => {
         <thead class="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-semibold">
           <tr>
             <th class="p-4 w-12 text-center">STT</th>
-            <th class="p-4 w-32">Mã Quiz</th>
-            <th class="p-4">Tiêu đề & Môn học</th>
+            <th class="p-4 w-28">Mã Quiz</th>
+            <th class="p-4 min-w-[200px]">Tiêu đề Quiz</th>
+            <th class="p-4 w-48">Môn học</th>
             <th class="p-4 w-32">Cấu trúc</th>
             <th class="p-4 w-32">Thời gian & Điểm</th>
             <th class="p-4 w-36">Trạng thái</th>
@@ -146,8 +147,26 @@ const displayPages = computed(() => {
                 <span class="font-semibold text-slate-800 line-clamp-2" :title="quiz.title">
                   {{ quiz.title }}
                 </span>
-                <span class="text-xs text-slate-500 truncate" :title="quiz.subjectName">
-                  {{ quiz.subjectCode }} • {{ quiz.semesterName || '---' }}
+                <span v-if="quiz.semesterName" class="text-xs text-slate-400">
+                  Học kỳ: {{ quiz.semesterName }}
+                </span>
+              </div>
+            </td>
+
+            <td class="p-4">
+              <div v-if="quiz.subjectCode || quiz.subjectName" class="flex flex-col gap-1">
+                <div class="flex items-center gap-1.5">
+                  <span class="px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                    {{ quiz.subjectCode || 'Môn học' }}
+                  </span>
+                </div>
+                <span class="text-xs text-slate-600 truncate max-w-[180px]" :title="quiz.subjectName">
+                  {{ quiz.subjectName }}
+                </span>
+              </div>
+              <div v-else>
+                <span class="px-2 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                  Chưa gán môn
                 </span>
               </div>
             </td>

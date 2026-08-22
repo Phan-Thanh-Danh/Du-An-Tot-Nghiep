@@ -69,7 +69,14 @@ public class QuestionBankService : IQuestionBankService
             .Take(filter.PageSize)
             .ToListAsync(cancellationToken);
 
-        var dtos = items.Select(MapToDto).ToList();
+        var questionIds = items.Select(x => x.MaCauHoi).ToList();
+        var usageCounts = await _context.CauHoiDeKiemTras
+            .Where(x => questionIds.Contains(x.MaCauHoi))
+            .GroupBy(x => x.MaCauHoi)
+            .Select(g => new { MaCauHoi = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.MaCauHoi, x => x.Count, cancellationToken);
+
+        var dtos = items.Select(x => MapToDto(x, usageCounts.GetValueOrDefault(x.MaCauHoi, 0))).ToList();
 
         return new PagedResultDto<QuestionDto>
         {
@@ -85,7 +92,9 @@ public class QuestionBankService : IQuestionBankService
         var cauHoi = await _context.CauHois.Include(x => x.MonHoc).AsNoTracking()
             .FirstOrDefaultAsync(x => x.MaCauHoi == id, cancellationToken);
         if (cauHoi == null) throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy câu hỏi");
-        return MapToDto(cauHoi);
+
+        var usageCount = await _context.CauHoiDeKiemTras.CountAsync(x => x.MaCauHoi == id, cancellationToken);
+        return MapToDto(cauHoi, usageCount);
     }
 
     public async Task<QuestionDto> CreateQuestionAsync(CreateQuestionDto input, CancellationToken cancellationToken = default)
@@ -568,7 +577,7 @@ public class QuestionBankService : IQuestionBankService
         }
     }
 
-    private static QuestionDto MapToDto(CauHoi entity)
+    private static QuestionDto MapToDto(CauHoi entity, int usageCount = 0)
     {
         return new QuestionDto
         {
@@ -584,6 +593,7 @@ public class QuestionBankService : IQuestionBankService
             GiaiThichDapAn = entity.GiaiThichDapAn,
             DoKho = entity.DoKho,
             ConHoatDong = entity.ConHoatDong,
+            SoLanSuDung = usageCount,
             NgayTao = entity.NgayTao,
             NgayCapNhat = entity.NgayCapNhat
         };

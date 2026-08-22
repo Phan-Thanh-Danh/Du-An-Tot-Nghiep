@@ -20,10 +20,14 @@ const evaluations = ref([])
 const loading = ref(false)
 const error = ref('')
 
+// 6 Tiêu chí đánh giá chuẩn được cấu hình sẵn trong hệ thống (Đồng bộ 100% với Giảng viên)
 const criteriaList = [
   { key: 'r1', label: '1. Đảm bảo thời gian và nội dung môn học', desc: 'Giảng viên đến lớp đúng giờ, dạy đủ thời lượng và bám sát đề cương.' },
   { key: 'r2', label: '2. Kỹ năng sư phạm và truyền đạt', desc: 'Phương pháp giảng dạy lôi cuốn, dễ hiểu, kết hợp lý thuyết và thực hành.' },
-  { key: 'r3', label: '3. Thái độ và Hỗ trợ sinh viên', desc: 'Nhiệt tình giải đáp thắc mắc, tôn trọng và công bằng với sinh viên.' }
+  { key: 'r3', label: '3. Thái độ và hỗ trợ sinh viên', desc: 'Nhiệt tình giải đáp thắc mắc, tôn trọng và công bằng với sinh viên.' },
+  { key: 'r4', label: '4. Tài liệu học tập và chuẩn bị bài giảng', desc: 'Cung cấp slide, giáo trình, bài tập thực hành đầy đủ và rõ ràng.' },
+  { key: 'r5', label: '5. Đánh giá và chấm điểm công bằng', desc: 'Tiêu chí chấm điểm rõ ràng, minh bạch, phản hồi kết quả kịp thời.' },
+  { key: 'r6', label: '6. Tương tác và khuyến khích thảo luận', desc: 'Tạo không khí học tập tích cực, khuyến khích sinh viên đặt câu hỏi và phản biện.' }
 ]
 
 const activeEval = ref(null)
@@ -38,6 +42,7 @@ const pendingCount = computed(() => evaluations.value.filter(e => e.status === '
 
 const mapEvaluation = (item) => ({
   id: item.id ?? item.Id ?? item.maDanhGia,
+  enrollmentId: item.enrollmentId ?? item.EnrollmentId,
   subject: item.tenMonHoc ?? item.subject ?? item.Subject ?? item.tenMon ?? item.course,
   teacher: item.giangVien ?? item.teacher ?? item.Teacher ?? item.tenGiangVien,
   status: item.trangThai ?? item.status ?? item.Status ?? 'Pending',
@@ -46,6 +51,9 @@ const mapEvaluation = (item) => ({
     r1: item.diem1 ?? item.r1 ?? 0,
     r2: item.diem2 ?? item.r2 ?? 0,
     r3: item.diem3 ?? item.r3 ?? 0,
+    r4: item.diem4 ?? item.r4 ?? 0,
+    r5: item.diem5 ?? item.r5 ?? 0,
+    r6: item.diem6 ?? item.r6 ?? 0,
   },
   feedback: item.nhanXet ?? item.feedback ?? item.Feedback ?? ''
 })
@@ -69,6 +77,9 @@ onMounted(fetchEvaluations)
 
 const openEvalModal = (ev) => {
   activeEval.value = JSON.parse(JSON.stringify(ev))
+  if (!activeEval.value.ratings) {
+    activeEval.value.ratings = { r1: 0, r2: 0, r3: 0, r4: 0, r5: 0, r6: 0 }
+  }
   evalModalOpen.value = true
 }
 
@@ -81,6 +92,12 @@ const setRating = (key, val) => {
   if (activeEval.value) activeEval.value.ratings[key] = val
 }
 
+const isAllStandardRated = computed(() => {
+  if (!activeEval.value || !activeEval.value.ratings) return false
+  const r = activeEval.value.ratings
+  return r.r1 > 0 && r.r2 > 0 && r.r3 > 0 && r.r4 > 0 && r.r5 > 0 && r.r6 > 0
+})
+
 const submitEvaluation = () => {
   confirmModalOpen.value = true
 }
@@ -89,27 +106,25 @@ const confirmSubmit = async () => {
   isSubmitting.value = true
   try {
     await studentApi.submitEvaluation(activeEval.value.id, {
+      id: activeEval.value.id,
+      enrollmentId: activeEval.value.enrollmentId,
       ratings: activeEval.value.ratings,
       feedback: activeEval.value.feedback,
     })
     const idx = evaluations.value.findIndex(e => e.id === activeEval.value.id)
     if (idx !== -1) {
-      evaluations.value[idx].status = 'Completed'
-      evaluations.value[idx].ratings = { ...activeEval.value.ratings }
-      evaluations.value[idx].feedback = activeEval.value.feedback
-      if (evaluations.value[idx].editsLeft > 0) evaluations.value[idx].editsLeft -= 1
+      evaluations.value.splice(idx, 1)
     }
     confirmModalOpen.value = false
     evalModalOpen.value = false
     activeEval.value = null
+    popupStore.success('Thành công', 'Đánh giá giảng viên của bạn đã được ghi nhận ẩn danh vào hệ thống.')
   } catch (err) {
     popupStore.error('Lỗi', err?.message || 'Không thể gửi đánh giá.')
   } finally {
     isSubmitting.value = false
   }
 }
-
-const getCompletionColor = (status) => status === 'Completed' ? 'completion-dot--done' : 'completion-dot--pending'
 </script>
 
 <template>
@@ -157,35 +172,49 @@ const getCompletionColor = (status) => status === 'Completed' ? 'completion-dot-
       </div>
     </div>
 
+    <!-- Loading State -->
+    <div v-if="loading" class="text-center py-12 text-muted">
+      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--text-link) mb-3"></div>
+      <p>Đang tải danh sách đánh giá giảng viên...</p>
+    </div>
+
+    <!-- Error State -->
+    <div v-else-if="error" class="text-center py-12 text-red-500">
+      <AlertCircle :size="32" class="mx-auto mb-2" />
+      <p>{{ error }}</p>
+    </div>
+
+    <!-- Empty State (Completed All) -->
+    <div v-else-if="filteredEvals.length === 0" class="text-center py-16 surface-card rounded-2xl border border-default p-8">
+      <div class="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 mx-auto mb-4">
+        <CheckCircle2 :size="36" />
+      </div>
+      <h3 class="text-xl font-bold text-heading mb-2">Bạn đã hoàn thành tất cả đánh giá giảng viên!</h3>
+      <p class="text-sm text-muted max-w-md mx-auto">
+        Cảm ơn bạn đã đóng góp ý kiến xây dựng chất lượng đào tạo. Các môn học trong kỳ hiện tại đã được bạn đánh giá đầy đủ.
+      </p>
+    </div>
+
     <!-- Evaluation Cards Grid -->
-    <div class="eval-grid">
-      <div v-for="ev in filteredEvals" :key="ev.id" class="eval-card" :class="{'card-completed': ev.status === 'Completed'}">
+    <div v-else class="eval-grid">
+      <div v-for="ev in filteredEvals" :key="ev.id" class="eval-card">
         <div class="ec-header">
-          <span class="ec-subject">{{ ev.subject }}</span>
-          <div class="status-indicator" :class="ev.status === 'Completed' ? 'status-done' : 'status-pending'">
-            <CheckCircle2 v-if="ev.status === 'Completed'" :size="16"/>
-            <AlertCircle v-else :size="16"/>
-            <span class="text-xs font-bold uppercase">{{ ev.status === 'Completed' ? 'Hoàn thành' : 'Chưa đánh giá' }}</span>
-          </div>
+          <h3 class="subject-title">{{ ev.subject }}</h3>
+          <span class="status-badge-sm badge-pending">
+            Chưa đánh giá
+          </span>
         </div>
         
         <div class="ec-body">
-            <div class="flex items-center gap-2 text-sm font-semibold mb-2 text-label">
+          <div class="flex items-center gap-2 text-sm font-semibold mb-2 text-label">
             <User :size="16" class="icon-teacher"/>
             {{ ev.teacher }}
           </div>
-          <p class="text-xs edits-remaining italic" v-if="ev.status === 'Completed'">Bạn còn {{ ev.editsLeft }} lần chỉnh sửa.</p>
         </div>
 
         <div class="ec-footer">
-          <button v-if="ev.status === 'Pending'" class="btn-primary w-full justify-center" @click="openEvalModal(ev)">
+          <button class="btn-primary w-full justify-center" @click="openEvalModal(ev)">
             <Edit3 :size="15"/> Thực hiện đánh giá
-          </button>
-          <button v-else-if="ev.editsLeft > 0" class="btn-outline w-full justify-center" @click="openEvalModal(ev)">
-            <Edit3 :size="15"/> Chỉnh sửa đánh giá
-          </button>
-          <button v-else class="btn-secondary w-full justify-center" disabled>
-            Hết lượt chỉnh sửa
           </button>
         </div>
       </div>
@@ -203,48 +232,56 @@ const getCompletionColor = (status) => status === 'Completed' ? 'completion-dot-
               <button class="close-btn-sm" @click="closeEvalModal"><X :size="20"/></button>
             </div>
             
-            <div class="modal-body">
+            <div class="modal-body max-h-[70vh] overflow-y-auto pr-1">
               <div class="eval-target-info">
-                <div class="font-semibold text-lg text-heading">{{ activeEval.subject }}</div>
-                <div class="text-sm text-muted flex items-center gap-1 mt-1"><User :size="14"/> Giảng viên: <strong>{{ activeEval.teacher }}</strong></div>
+                <div class="font-semibold text-lg text-heading">{{ activeEval?.subject }}</div>
+                <div class="text-sm text-muted flex items-center gap-1 mt-1"><User :size="14"/> Giảng viên: <strong>{{ activeEval?.teacher }}</strong></div>
               </div>
 
-              <div class="criteria-list mt-6">
-                <div v-for="crit in criteriaList" :key="crit.key" class="criterion-item">
-                  <div class="crit-text">
-                    <h4 class="crit-label">{{ crit.label }}</h4>
-                    <p class="crit-desc">{{ crit.desc }}</p>
+              <!-- Standard Configured Criteria List (6 mục chuẩn) -->
+              <div class="criteria-list mt-6 space-y-4">
+                <div v-for="crit in criteriaList" :key="crit.key" class="criterion-item p-4 rounded-xl surface-card border border-default">
+                  <div class="crit-text mb-2">
+                    <h4 class="crit-label font-bold text-sm text-heading">{{ crit.label }}</h4>
+                    <p class="crit-desc text-xs text-muted mt-0.5">{{ crit.desc }}</p>
                   </div>
-                  <div class="crit-stars">
-                    <Star v-for="i in 5" :key="i" :size="28" 
-                          class="star-btn" :class="{'active': activeEval.ratings[crit.key] >= i}" 
+                  <div class="crit-stars flex items-center gap-1 mt-2">
+                    <Star v-for="i in 5" :key="i" :size="26" 
+                          class="star-btn cursor-pointer transition-transform hover:scale-110" 
+                          :class="activeEval?.ratings[crit.key] >= i ? 'fill-amber-400 text-amber-400' : 'text-slate-300 dark:text-slate-600'" 
                           @click="setRating(crit.key, i)" />
+                    <span class="text-xs font-bold text-heading ml-2">
+                      {{ activeEval?.ratings[crit.key] > 0 ? `${activeEval.ratings[crit.key]}/5 sao` : 'Chưa chấm' }}
+                    </span>
                   </div>
                 </div>
               </div>
 
               <div class="feedback-section mt-6">
-                <h4 class="crit-label mb-2">Nhận xét chi tiết (Feedback)</h4>
-                <textarea v-model="activeEval.feedback" class="input-glass" rows="4" placeholder="Nhập những góp ý, nhận xét tự do của bạn. Giảng viên sẽ đọc được nội dung này (ẩn danh)."></textarea>
-                
-                <div class="ai-notice mt-3">
-                  <Bot :size="16" class="shrink-0"/>
-                  Hệ thống AI (Sentiment Analysis & Topic Modeling) sẽ tự động phân tích cảm xúc và phân loại ý kiến của bạn để báo cáo tổng hợp lên Ban Giám Hiệu.
-                </div>
+                <h4 class="crit-label mb-2 font-bold text-sm text-heading">Nhận xét chi tiết (Feedback)</h4>
+                <textarea v-model="activeEval.feedback" class="input-glass w-full p-3 rounded-xl border border-default" rows="3" placeholder="Nhập những góp ý, nhận xét tự do của bạn. Giảng viên sẽ đọc được nội dung này (ẩn danh)."></textarea>
               </div>
             </div>
             
-            <div class="modal-footer">
-              <button class="btn-secondary" @click="closeEvalModal">Hủy</button>
-              <button class="btn-primary" @click="submitEvaluation" :disabled="!activeEval.ratings.r1 || !activeEval.ratings.r2 || !activeEval.ratings.r3">
-                <Send :size="15"/> Tiếp tục
-              </button>
+            <div class="modal-footer flex items-center justify-between p-4 border-t border-default bg-slate-50/50 dark:bg-slate-900/30">
+              <span class="text-xs text-muted" v-if="!isAllStandardRated">
+                * Vui lòng chấm điểm đủ 6 mục để hoàn thành đánh giá
+              </span>
+              <span class="text-xs text-emerald-600 font-medium" v-else>
+                ✓ Đã hoàn thành đủ các mục tiêu chí
+              </span>
+              <div class="flex items-center gap-2">
+                <button class="btn-secondary px-4 py-2 text-xs" @click="closeEvalModal">Hủy</button>
+                <button class="btn-primary px-4 py-2 text-xs flex items-center gap-1.5" @click="submitEvaluation" :disabled="!isAllStandardRated">
+                  <Send :size="14"/> Tiếp tục
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </Transition>
 
-      <!-- Confirmation / Anonymous Guarantee Modal -->
+      <!-- Confirmation Modal -->
       <Transition name="modal">
         <div v-if="confirmModalOpen" class="modal-overlay" @click.self="confirmModalOpen = false">
           <div class="modal-content sm">
@@ -252,19 +289,15 @@ const getCompletionColor = (status) => status === 'Completed' ? 'completion-dot-
               <h3>Xác nhận Gửi Đánh Giá</h3>
               <button class="close-btn-sm" @click="confirmModalOpen = false"><X :size="20"/></button>
             </div>
-            <div class="modal-body text-center">
-              <ShieldCheck :size="48" class="icon-privacy-lg mx-auto mb-4" />
-              <h4 class="text-lg font-semibold text-heading mb-2">Danh tính của bạn được bảo mật</h4>
-              <p class="text-sm text-muted mb-4">Bạn có chắc chắn muốn gửi đánh giá này không? Nội dung đánh giá sẽ được gửi ẩn danh hoàn toàn đến hệ thống và phân tích tự động bởi AI.</p>
-              
-              <div class="text-xs note-box text-left">
-                <strong>Lưu ý:</strong> Bạn chỉ có thể chỉnh sửa lại đánh giá tối đa 2 lần trước khi kết thúc kỳ đánh giá.
-              </div>
+            <div class="modal-body text-center py-6">
+              <ShieldCheck :size="48" class="icon-privacy-lg mx-auto mb-3" />
+              <h4 class="text-lg font-semibold text-heading mb-2">Xác nhận gửi đánh giá</h4>
+              <p class="text-base text-body font-medium">Bạn có chắc chắn muốn gửi đánh giá này không?</p>
             </div>
-            <div class="modal-footer justify-center">
-              <button class="btn-secondary w-full" @click="confirmModalOpen = false" :disabled="isSubmitting">Quay lại</button>
-              <button class="btn-primary w-full" @click="confirmSubmit" :disabled="isSubmitting">
-                {{ isSubmitting ? 'Đang gửi mã hóa...' : 'Xác nhận Gửi' }}
+            <div class="modal-footer justify-center gap-3">
+              <button class="btn-secondary flex-1" @click="confirmModalOpen = false" :disabled="isSubmitting">Quay lại</button>
+              <button class="btn-primary flex-1" @click="confirmSubmit" :disabled="isSubmitting">
+                {{ isSubmitting ? 'Đang gửi...' : 'Xác nhận Gửi' }}
               </button>
             </div>
           </div>
@@ -291,103 +324,57 @@ const getCompletionColor = (status) => status === 'Completed' ? 'completion-dot-
 .page-title { font-size: 1.875rem; font-weight: 800; margin: 0 0 .25rem; letter-spacing: -.02em; color: var(--text-heading); }
 .page-sub { font-size: .875rem; color: var(--text-muted); margin: 0; }
 
-/* Custom Select Dropdown */
-.custom-select-wrapper { position: relative; width: 220px; }
-.dropdown-backdrop { position: fixed; inset: 0; z-index: 10; }
-.custom-select { position: relative; z-index: 11; width: 100%; }
-.select-trigger { display: flex; align-items: center; justify-content: space-between; padding: .6rem 1rem; border-radius: 10px; border: 1px solid var(--border-input); background: var(--surface-card); font-size: .875rem; font-weight: 700; color: var(--text-heading); cursor: pointer; transition: all .2s; box-shadow: var(--lg-shadow-sm); backdrop-filter: blur(12px); }
-.select-trigger:hover { background: var(--surface-card-strong); border-color: var(--text-link); color: var(--text-link); }
-.select-menu { position: absolute; top: calc(100% + .5rem); right: 0; width: 100%; background: var(--surface-modal); backdrop-filter: saturate(180%) blur(24px); border: 1px solid var(--border-default); border-radius: 16px; padding: .4rem; box-shadow: 0 10px 30px color-mix(in srgb, var(--text-heading) 12%, transparent); display: flex; flex-direction: column; gap: .2rem; overflow: hidden; }
-.select-option { padding: .6rem .75rem; border-radius: 10px; font-size: .8125rem; font-weight: 500; color: var(--text-body); cursor: pointer; transition: all .15s; }
-.select-option:hover { background: var(--surface-solid); color: var(--text-link); padding-left: 1rem; }
-.select-option.selected { background: var(--accent-primary-soft); color: var(--lg-primary-dark); font-weight: 700; }
-
-/* Banners */
-.warning-banner { display: flex; align-items: flex-start; gap: 1rem; padding: 1.25rem 1.5rem; border-radius: 16px; backdrop-filter: blur(12px); box-shadow: 0 4px 20px color-mix(in srgb, var(--color-danger-text) 10%, transparent); }
-.blocker-warning { background: var(--color-danger-bg); border: 1px solid color-mix(in srgb, var(--color-danger-text) 20%, transparent); color: var(--color-danger-text); }
+.warning-banner { display: flex; align-items: flex-start; gap: 1rem; padding: 1.25rem 1.5rem; border-radius: 16px; backdrop-filter: blur(12px); box-shadow: 0 4px 20px color-mix(in srgb, var(--color-warning-text) 10%, transparent); }
+.blocker-warning { background: var(--color-warning-bg); border: 1px solid color-mix(in srgb, var(--color-warning-text) 20%, transparent); color: var(--color-warning-text); }
 .warning-icon { padding-top: .1rem; }
 .warning-content h3 { font-size: 1rem; font-weight: 800; margin: 0 0 .25rem; color: var(--text-heading); }
 .warning-content p { font-size: .875rem; margin: 0; opacity: 0.9; }
 
-.privacy-banner { display: flex; align-items: center; gap: .75rem; background: var(--color-success-bg); border: 1px solid color-mix(in srgb, var(--color-success-text) 20%, transparent); padding: .75rem 1rem; border-radius: 12px; }
+.privacy-banner { display: flex; align-items: center; gap: .875rem; padding: 1rem 1.25rem; border-radius: 12px; background: color-mix(in srgb, var(--text-link) 8%, transparent); border: 1px dashed color-mix(in srgb, var(--text-link) 30%, transparent); }
+.icon-privacy { color: var(--text-link); }
+.text-privacy { color: var(--text-heading); opacity: 0.9; }
 
-/* Cards Grid */
-.eval-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.25rem; }
-.eval-card {
-  background: var(--surface-card); border: 1px solid var(--border-card);
-  border-radius: 20px; overflow: hidden; display: flex; flex-direction: column;
-  box-shadow: var(--lg-shadow-sm); backdrop-filter: saturate(160%) blur(16px);
-  transition: transform .2s, box-shadow .2s; border-left: 4px solid var(--color-danger-text);
-}
-.eval-card:hover { transform: translateY(-3px); box-shadow: var(--lg-shadow-md); }
-.card-completed { border-left-color: var(--color-success-text); background: color-mix(in srgb, var(--color-success-bg) 60%, var(--surface-card)); }
+.eval-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; }
+.eval-card { background: var(--surface-card-strong); border: 1px solid var(--border-default); border-radius: 16px; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; transition: all .2s; }
+.eval-card:hover { border-color: var(--border-focus); transform: translateY(-2px); box-shadow: var(--lg-shadow-sm); }
+.ec-header { display: flex; justify-content: space-between; align-items: flex-start; gap: .5rem; margin-bottom: 1rem; }
+.subject-title { font-size: 1.1rem; font-weight: 700; color: var(--text-heading); margin: 0; line-height: 1.3; }
 
-.ec-header { padding: 1.25rem 1.25rem .75rem; border-bottom: 1px dashed var(--border-default); display: flex; flex-direction: column; gap: .5rem; }
-.ec-subject { font-size: 1.1rem; font-weight: 800; color: var(--text-heading); line-height: 1.3; }
-.status-indicator { display: flex; align-items: center; gap: .375rem; }
-.status-done { color: var(--color-success-text); }
-.status-pending { color: var(--text-placeholder); }
+.status-badge-sm { font-size: .75rem; font-weight: 700; padding: .25rem .6rem; border-radius: 6px; }
+.badge-pending { background: var(--color-warning-bg); color: var(--color-warning-text); }
 
-.ec-body { padding: 1rem 1.25rem; flex: 1; display: flex; flex-direction: column; gap: .25rem; }
-.ec-footer { padding: 1rem 1.25rem; border-top: 1px solid var(--border-default); background: var(--surface-solid); }
+.icon-teacher { color: var(--text-link); }
 
-/* Buttons */
-.btn-primary, .btn-secondary, .btn-outline { display: inline-flex; align-items: center; gap: .4rem; padding: .6rem 1.2rem; border-radius: 10px; font-size: .8125rem; font-weight: 700; cursor: pointer; border: none; transition: all .15s; outline: none; text-decoration: none; }
-.btn-primary { background: var(--text-link); color: var(--text-inverse); box-shadow: 0 4px 14px color-mix(in srgb, var(--text-link) 25%, transparent); }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 999; padding: 1rem; }
+.modal-content { background: var(--surface-card-strong); border: 1px solid var(--border-card); border-radius: 20px; width: 100%; box-shadow: 0 20px 40px rgba(0,0,0,0.3); overflow: hidden; display: flex; flex-direction: column; }
+.modal-content.lg { max-width: 650px; }
+.modal-content.sm { max-width: 400px; }
+.modal-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-default); display: flex; justify-content: space-between; align-items: center; }
+.modal-header h3 { font-size: 1.15rem; font-weight: 700; margin: 0; color: var(--text-heading); }
+.close-btn-sm { background: transparent; border: none; cursor: pointer; color: var(--text-placeholder); border-radius: 6px; padding: .2rem; display: flex; }
+.close-btn-sm:hover { color: var(--text-heading); background: var(--surface-solid); }
+
+.modal-body { padding: 1.5rem; }
+.modal-footer { padding: 1.25rem 1.5rem; border-top: 1px solid var(--border-default); display: flex; }
+
+.eval-target-info { background: var(--surface-solid); padding: 1rem; border-radius: 12px; border: 1px solid var(--border-default); }
+
+.btn-primary { display: inline-flex; align-items: center; gap: .4rem; padding: .75rem 1.25rem; border-radius: 10px; font-size: .875rem; font-weight: 700; cursor: pointer; border: none; background: var(--text-link); color: var(--text-inverse); box-shadow: 0 4px 14px color-mix(in srgb, var(--text-link) 25%, transparent); transition: all .15s; }
 .btn-primary:hover:not(:disabled) { background: var(--lg-primary-dark); transform: translateY(-1px); }
 .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
-.btn-secondary { background: var(--surface-solid); color: var(--text-label); border: 1px solid var(--border-input); }
-.btn-secondary:hover:not(:disabled) { border-color: var(--text-placeholder); color: var(--text-heading); }
-.btn-secondary:disabled { opacity: .6; cursor: not-allowed; }
-.btn-outline { background: var(--surface-card); color: var(--text-body); border: 1px solid var(--border-input); }
-.btn-outline:hover { color: var(--text-link); border-color: var(--text-link); }
 
-/* Modals */
-.modal-overlay { position: fixed; inset: 0; z-index: 9998; background: color-mix(in srgb, var(--text-heading) 40%, transparent); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 1rem; }
-.modal-content { position: relative; z-index: 9999; background: var(--surface-modal); backdrop-filter: saturate(180%) blur(24px); width: 100%; border-radius: 24px; box-shadow: 0 24px 80px color-mix(in srgb, var(--text-heading) 32%, transparent); overflow: hidden; border: 1px solid var(--border-card); display: flex; flex-direction: column; max-height: 90vh; }
-.modal-content.lg { max-width: 680px; }
-.modal-content.sm { max-width: 400px; }
-.modal-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-default); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
-.modal-header h3 { margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--text-heading); }
-.close-btn-sm { background: transparent; border: none; color: var(--text-placeholder); cursor: pointer; display: flex; transition: color .15s; }
-.close-btn-sm:hover { color: var(--color-danger-text); }
-.modal-body { padding: 1.5rem; flex: 1; overflow-y: auto; }
-.modal-footer { padding: 1.25rem 1.5rem; border-top: 1px solid var(--border-default); display: flex; justify-content: flex-end; gap: .75rem; background: var(--surface-solid); flex-shrink: 0; }
+.btn-secondary { display: inline-flex; align-items: center; gap: .4rem; padding: .75rem 1.25rem; border-radius: 10px; font-size: .875rem; font-weight: 600; cursor: pointer; border: 1px solid var(--border-default); background: var(--surface-card); color: var(--text-heading); transition: all .15s; }
+.btn-secondary:hover:not(:disabled) { background: var(--surface-solid); }
 
-/* Form Elements */
-.eval-target-info { background: var(--accent-primary-soft); border: 1px solid color-mix(in srgb, var(--text-link) 20%, transparent); padding: 1rem 1.25rem; border-radius: 12px; }
-.criterion-item { border-bottom: 1px dashed var(--border-default); padding: 1.25rem 0; display: flex; flex-direction: column; gap: .75rem; }
-.criterion-item:last-child { border-bottom: none; }
-.crit-label { font-size: .95rem; font-weight: 700; color: var(--text-heading); margin: 0 0 .25rem; }
-.crit-desc { font-size: .8125rem; color: var(--text-muted); margin: 0; }
-.crit-stars { display: flex; gap: .5rem; }
-.star-btn { color: var(--border-default); cursor: pointer; transition: all .2s; }
-.star-btn:hover { transform: scale(1.1); }
-.star-btn.active { color: var(--color-warning-text); fill: var(--color-warning-text); }
+.input-glass { width: 100%; border-radius: 10px; border: 1px solid var(--border-input); background: var(--surface-input); font-size: .9rem; outline: none; transition: border-color .2s; color: var(--text-body); }
+.input-glass:focus { border-color: var(--border-input-focus); background: var(--surface-input-focus); }
 
-.input-glass { width: 100%; padding: .75rem 1rem; border-radius: 12px; border: 1px solid var(--border-input); background: var(--surface-input); font-size: .875rem; outline: none; transition: border-color .2s; color: var(--text-body); }
-.input-glass:focus { border-color: var(--border-input-focus); }
-
-.ai-notice { display: flex; gap: .5rem; background: var(--accent-violet-soft); border: 1px solid color-mix(in srgb, var(--accent-violet) 20%, transparent); padding: .75rem 1rem; border-radius: 10px; color: var(--accent-violet); font-size: .8125rem; font-weight: 500; align-items: flex-start; }
-
-/* Icon helper classes */
-.icon-privacy { color: var(--color-success-text); }
-.icon-privacy-lg { color: var(--color-success-text); }
-.text-privacy { color: var(--color-success-text); }
-.icon-teacher { color: var(--text-placeholder); }
-.edits-remaining { color: var(--text-muted); }
-.text-heading { color: var(--text-heading); }
-.text-muted { color: var(--text-muted); }
-.note-box { color: var(--color-warning-text); background: var(--color-warning-bg); border: 1px solid color-mix(in srgb, var(--color-warning-text) 20%, transparent); border-radius: 0.5rem; padding: 0.5rem; }
-
-.completion-dot--done { background: var(--color-success-text); }
-.completion-dot--pending { background: var(--text-placeholder); }
-
-.modal-enter-active, .modal-leave-active { transition: all .3s cubic-bezier(0.16,1,.3,1); }
-.modal-enter-from, .modal-leave-to { opacity: 0; transform: scale(0.95); }
-
-@media (max-width: 640px) {
-  .eval-page { padding: 1rem; }
-  .custom-select-wrapper { width: 100%; }
-}
+.custom-select-wrapper { position: relative; }
+.custom-select { position: relative; width: 180px; }
+.select-trigger { display: flex; justify-content: space-between; align-items: center; padding: .6rem 1rem; background: var(--surface-card); border: 1px solid var(--border-card); border-radius: 10px; font-size: .875rem; font-weight: 600; cursor: pointer; color: var(--text-heading); }
+.dropdown-backdrop { position: fixed; inset: 0; z-index: 10; }
+.select-menu { position: absolute; top: calc(100% + 5px); right: 0; width: 100%; background: var(--surface-card); border: 1px solid var(--border-card); border-radius: 10px; box-shadow: var(--lg-shadow-sm); z-index: 20; overflow: hidden; padding: .3rem 0; }
+.select-option { padding: .6rem 1rem; font-size: .85rem; font-weight: 500; cursor: pointer; color: var(--text-body); transition: background .15s; }
+.select-option:hover { background: var(--surface-solid); }
+.select-option.selected { background: color-mix(in srgb, var(--text-link) 10%, transparent); color: var(--text-link); font-weight: 700; }
 </style>

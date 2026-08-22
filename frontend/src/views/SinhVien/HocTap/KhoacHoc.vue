@@ -61,6 +61,7 @@ const courses = computed(() => {
       name: course.name || course.Name,
       instructor: course.lecturer || course.Lecturer || 'Giảng viên phụ trách',
       credits: course.credits || course.Credits || 3,
+      semester: course.semester || course.Semester || '',
       progress: progress,
       totalSessions: course.total || course.Total || 15,
       completedSessions: course.completed || course.Completed || 0,
@@ -224,7 +225,12 @@ const courseSummary = computed(() => [
         class="course-card"
       >
         <header class="course-card-header">
-          <span class="subject-code">{{ course.id }}</span>
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="subject-code">{{ course.id }}</span>
+            <span v-if="course.semester" class="text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+              {{ course.semester }}
+            </span>
+          </div>
           <LmsBadge :variant="statusMeta[course.status].badge" size="sm">
             {{ statusMeta[course.status].label }}
           </LmsBadge>
@@ -287,7 +293,7 @@ const courseSummary = computed(() => [
       >
         <div class="course-row-code">
           <span>{{ course.id }}</span>
-          <small>{{ course.credits }} tín chỉ</small>
+          <small>{{ course.credits }} tín chỉ <template v-if="course.semester">· {{ course.semester }}</template></small>
         </div>
 
         <div class="course-row-main">

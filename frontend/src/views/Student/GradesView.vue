@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { X } from 'lucide-vue-next'
 import { studentApi } from '@/services/studentApi'
 import { unwrapApiData } from '@/services/apiClient'
@@ -16,6 +16,11 @@ const showDetailModal = ref(false)
 const detailLoading = ref(false)
 const detailData = ref(null)
 const detailCourseName = ref('')
+
+onBeforeUnmount(() => {
+  showDetailModal.value = false
+  detailData.value = null
+})
 
 function formatGrade(value) {
   if (value === null || value === undefined) return '—'
@@ -174,98 +179,100 @@ onMounted(async () => {
 </script>
 
 <template>
-  <StudentModulePage
-    icon="BarChart2"
-    eyebrow="Kết quả học tập"
-    title="Bảng điểm"
-    subtitle="Xem bảng điểm quá trình và điểm thi chi tiết."
-    primary-title="Điểm theo môn học"
-    primary-description="Bảng thông tin được tổ chức dạng solid card để dễ đối chiếu điểm, tín chỉ và trạng thái."
-    timeline-title="Quy tắc điểm số"
-    :metrics="metrics"
-    :rows="rows"
-    :timeline="timeline"
-    :actions="[{ label: 'Xem khóa học', to: '/student/courses' }, { label: 'Gửi yêu cầu', to: '/student/requests', primary: true }]"
-  />
+  <div class="grades-view-root">
+    <StudentModulePage
+      icon="BarChart2"
+      eyebrow="Kết quả học tập"
+      title="Bảng điểm"
+      subtitle="Xem bảng điểm quá trình và điểm thi chi tiết."
+      primary-title="Điểm theo môn học"
+      primary-description="Bảng thông tin được tổ chức dạng solid card để dễ đối chiếu điểm, tín chỉ và trạng thái."
+      timeline-title="Quy tắc điểm số"
+      :metrics="metrics"
+      :rows="rows"
+      :timeline="timeline"
+      :actions="[{ label: 'Xem khóa học', to: '/student/courses' }, { label: 'Gửi yêu cầu', to: '/student/requests', primary: true }]"
+    />
 
-  <Teleport to="body">
-    <div v-if="showDetailModal" class="modal-overlay" @click.self="closeDetail" @keydown.esc="closeDetail">
-      <GlassPanel variant="readable" density="comfortable" :clip="false" class="detail-modal">
-        <div class="detail-header">
-          <div>
-            <h2>Chi tiết điểm</h2>
-            <p>{{ detailCourseName }}</p>
+    <Teleport to="body">
+      <div v-if="showDetailModal" class="modal-overlay" @click.self="closeDetail" @keydown.esc="closeDetail">
+        <GlassPanel variant="readable" density="comfortable" :clip="false" class="detail-modal">
+          <div class="detail-header">
+            <div>
+              <h2>Chi tiết điểm</h2>
+              <p>{{ detailCourseName }}</p>
+            </div>
+            <button class="lg-icon-button detail-close" @click="closeDetail" aria-label="Đóng">
+              <X :size="16" />
+            </button>
           </div>
-          <button class="lg-icon-button detail-close" @click="closeDetail" aria-label="Đóng">
-            <X :size="16" />
-          </button>
-        </div>
 
-        <div v-if="detailLoading" class="py-8 text-center text-muted">
-          Đang tải chi tiết điểm...
-        </div>
-
-        <template v-else-if="detailData">
-          <div class="detail-types-table-wrapper" style="overflow-x: auto; margin-bottom: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); background: white;">
-            <TableShell density="comfortable" style="width: max-content; min-width: 100%;">
-              <table class="detail-table" style="color: #333;">
-                <thead>
-                  <tr style="background-color: #f1f5f9;">
-                    <th rowspan="2" class="sticky-col text-center" style="left: 0; min-width: 40px; z-index: 4; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">#</th>
-                    <th rowspan="2" class="sticky-col text-left" style="left: 40px; min-width: 120px; z-index: 4; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">Mã sinh viên</th>
-                    <th rowspan="2" class="sticky-col text-left" style="left: 160px; min-width: 180px; z-index: 4; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">Họ và tên</th>
-                    
-                    <th v-for="(gt, index) in (detailData.gradeTypes ?? detailData.GradeTypes)" :key="'gt-' + index" 
-                        :colspan="(gt.items ?? gt.Items)?.length || 1" 
-                        class="text-center font-medium text-slate-700"
-                        style="border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
-                      {{ gt.name ?? gt.Name }} <br/><span class="text-xs text-slate-500">({{ gt.weight ?? gt.Weight }}%)</span>
-                    </th>
-                    
-                    <th rowspan="2" class="text-center font-bold text-slate-700" style="min-width: 80px; border-bottom: 1px solid #e2e8f0;">Tổng kết</th>
-                    <th rowspan="2" class="text-center font-bold text-slate-700" style="min-width: 100px; border-bottom: 1px solid #e2e8f0;">Trạng thái</th>
-                  </tr>
-                  <tr style="background-color: #f8fafc;">
-                    <th v-for="(col, index) in flatColumns" :key="'col-' + index" class="text-center text-slate-600 font-medium" style="border-bottom: 1px solid #e2e8f0;">
-                      {{ col.itemName ?? col.ItemName }} <br/>
-                      <span class="text-xs text-slate-500">({{ (col.weight || 0).toFixed(1).replace('.0', '') }}%)</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody style="background: white;">
-                  <tr class="hover:bg-slate-50 transition-colors">
-                    <td class="sticky-col text-center" style="left: 0; border-right: 1px solid #f1f5f9; background: white;">1</td>
-                    <td class="sticky-col text-left font-medium" style="left: 40px; border-right: 1px solid #f1f5f9; background: white;">
-                      {{ (detailData.studentId ?? detailData.StudentId) }}
-                    </td>
-                    <td class="sticky-col text-left font-medium" style="left: 160px; border-right: 1px solid #f1f5f9; background: white;">
-                      {{ (detailData.studentName ?? detailData.StudentName) }}
-                    </td>
-                    <td v-for="(col, index) in flatColumns" :key="'td-' + index" class="text-center">
-                      <span :class="['detail-item-grade font-semibold text-[1.05rem]', (col.grade ?? col.Grade) === null ? 'text-slate-400' : 'text-slate-800']">
-                        {{ (col.grade ?? col.Grade) === null ? '—' : formatGrade(col.grade ?? col.Grade) }}
-                      </span>
-                    </td>
-                    <td class="text-center font-bold text-slate-800">
-                      {{ formatGrade(detailData.gpaMonHoc ?? detailData.GpaMonHoc) }}
-                    </td>
-                    <td class="text-center">
-                      <span :class="(detailData.trangThai ?? detailData.TrangThai) === 'Đạt' ? 'text-success font-medium' : 'text-danger font-medium'">
-                        {{ detailData.trangThai ?? detailData.TrangThai }}
-                      </span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </TableShell>
+          <div v-if="detailLoading" class="py-8 text-center text-muted">
+            Đang tải chi tiết điểm...
           </div>
-        </template>
-        <div v-else class="py-8 text-center text-muted">
-          Không thể tải chi tiết điểm.
-        </div>
-      </GlassPanel>
-    </div>
-  </Teleport>
+
+          <template v-else-if="detailData">
+            <div class="detail-types-table-wrapper" style="overflow-x: auto; margin-bottom: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); background: white;">
+              <TableShell density="comfortable" style="width: max-content; min-width: 100%;">
+                <table class="detail-table" style="color: #333;">
+                  <thead>
+                    <tr style="background-color: #f1f5f9;">
+                      <th rowspan="2" class="sticky-col text-center" style="left: 0; min-width: 40px; z-index: 4; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">#</th>
+                      <th rowspan="2" class="sticky-col text-left" style="left: 40px; min-width: 120px; z-index: 4; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">Mã sinh viên</th>
+                      <th rowspan="2" class="sticky-col text-left" style="left: 160px; min-width: 180px; z-index: 4; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">Họ và tên</th>
+                      
+                      <th v-for="(gt, index) in (detailData.gradeTypes ?? detailData.GradeTypes)" :key="'gt-' + index" 
+                          :colspan="(gt.items ?? gt.Items)?.length || 1" 
+                          class="text-center font-medium text-slate-700"
+                          style="border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
+                        {{ gt.name ?? gt.Name }} <br/><span class="text-xs text-slate-500">({{ gt.weight ?? gt.Weight }}%)</span>
+                      </th>
+                      
+                      <th rowspan="2" class="text-center font-bold text-slate-700" style="min-width: 80px; border-bottom: 1px solid #e2e8f0;">Tổng kết</th>
+                      <th rowspan="2" class="text-center font-bold text-slate-700" style="min-width: 100px; border-bottom: 1px solid #e2e8f0;">Trạng thái</th>
+                    </tr>
+                    <tr style="background-color: #f8fafc;">
+                      <th v-for="(col, index) in flatColumns" :key="'col-' + index" class="text-center text-slate-600 font-medium" style="border-bottom: 1px solid #e2e8f0;">
+                        {{ col.itemName ?? col.ItemName }} <br/>
+                        <span class="text-xs text-slate-500">({{ (col.weight || 0).toFixed(1).replace('.0', '') }}%)</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody style="background: white;">
+                    <tr class="hover:bg-slate-50 transition-colors">
+                      <td class="sticky-col text-center" style="left: 0; border-right: 1px solid #f1f5f9; background: white;">1</td>
+                      <td class="sticky-col text-left font-medium" style="left: 40px; border-right: 1px solid #f1f5f9; background: white;">
+                        {{ (detailData.studentId ?? detailData.StudentId) }}
+                      </td>
+                      <td class="sticky-col text-left font-medium" style="left: 160px; border-right: 1px solid #f1f5f9; background: white;">
+                        {{ (detailData.studentName ?? detailData.StudentName) }}
+                      </td>
+                      <td v-for="(col, index) in flatColumns" :key="'td-' + index" class="text-center">
+                        <span :class="['detail-item-grade font-semibold text-[1.05rem]', (col.grade ?? col.Grade) === null ? 'text-slate-400' : 'text-slate-800']">
+                          {{ (col.grade ?? col.Grade) === null ? '—' : formatGrade(col.grade ?? col.Grade) }}
+                        </span>
+                      </td>
+                      <td class="text-center font-bold text-slate-800">
+                        {{ formatGrade(detailData.gpaMonHoc ?? detailData.GpaMonHoc) }}
+                      </td>
+                      <td class="text-center">
+                        <span :class="(detailData.trangThai ?? detailData.TrangThai) === 'Đạt' ? 'text-success font-medium' : 'text-danger font-medium'">
+                          {{ detailData.trangThai ?? detailData.TrangThai }}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </TableShell>
+            </div>
+          </template>
+          <div v-else class="py-8 text-center text-muted">
+            Không thể tải chi tiết điểm.
+          </div>
+        </GlassPanel>
+      </div>
+    </Teleport>
+  </div>
 </template>
 
 <style scoped>

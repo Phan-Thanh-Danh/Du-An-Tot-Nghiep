@@ -8,6 +8,7 @@ using Backend.Services;
 using Backend.Services.AcademicTerms;
 using Backend.Services.AdministrativeClasses;
 using Backend.Services.AdminUsers;
+using Backend.Services.AI;
 using Backend.Services.Attendance;
 using Backend.Services.AttendanceAutomation;
 using Backend.Services.AttendanceUnlock;
@@ -105,6 +106,7 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
+{
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection"),
         sqlOptions =>
@@ -113,8 +115,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 maxRetryDelay: TimeSpan.FromSeconds(10),
                 errorNumbersToAdd: null
             )
-    )
-);
+    );
+    options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+});
 
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));
 builder.Services.Configure<PayOSOptions>(builder.Configuration.GetSection("PayOS"));
@@ -269,6 +272,13 @@ builder.Services.Configure<TeachingPreferenceOptions>(
     builder.Configuration.GetSection(TeachingPreferenceOptions.SectionName)
 );
 builder.Services.AddScoped<ITeachingPreferenceService, TeachingPreferenceService>();
+
+// Ollama AI Service
+builder.Services.Configure<OllamaOptions>(
+    builder.Configuration.GetSection(OllamaOptions.SectionName)
+);
+builder.Services.AddSingleton<IAiRequestGate, AiRequestGate>();
+builder.Services.AddHttpClient<IOllamaService, OllamaService>();
 
 builder.Services.AddSignalR(options =>
 {
@@ -467,7 +477,14 @@ if (!app.Environment.IsDevelopment()) app.UseHttpsRedirection();
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    await context.Database.MigrateAsync();
+    try
+    {
+        await context.Database.MigrateAsync();
+    }
+    catch (Microsoft.Data.SqlClient.SqlException ex) when (ex.Number == 1801 || ex.Message.Contains("already exists"))
+    {
+        app.Logger.LogInformation("Database LMS đã tồn tại, tiếp tục áp dụng schema patch và seed.");
+    }
     await Backend.Data.DatabaseSchemaPatcher.PatchMissingColumnsAsync(context);
 
     // Chạy BlockDataSeeder để migration data cũ nếu cần

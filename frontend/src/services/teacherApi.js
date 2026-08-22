@@ -37,11 +37,6 @@ export const teacherApi = {
     return apiRequest(`/api/teacher/classes/${classId}/attendance`)
   },
 
-  // √ GET /api/teacher/attendance/unlock-requests — AttendanceUnlockController
-  getUnlockRequests() {
-    return apiRequest('/api/teacher/attendance/unlock-requests')
-  },
-
   // √ GET /api/courses — CoursesController, Teacher scoped to own courses
   // Returns PagedResult<KhoaHocDto> with fields: maKhoaHoc, tenLop, tenMonHoc, tieuDe, tenHocKy, tenGiaoVien
   getClasses(params = {}) {
@@ -644,15 +639,6 @@ export const teacherApi = {
   },
 
   // ── Teacher Subjects & Lessons Detail ──
-  async getTeacherSubjects(keyword = '') {
-    const qs = keyword ? `?keyword=${encodeURIComponent(keyword)}` : ''
-    return unwrapApiData(await apiRequest(`/api/teacher/subjects${qs}`))
-  },
-
-  async getTeacherSubjectDetail(subjectId) {
-    return unwrapApiData(await apiRequest(`/api/teacher/subjects/${subjectId}`))
-  },
-
   async getSubjectLessonsDetail(subjectId) {
     return unwrapApiData(await apiRequest(`/api/teacher/subjects/${subjectId}`))
   },
@@ -702,5 +688,9 @@ export const teacherApi = {
     return unwrapApiData(await apiRequest(`/api/teacher/lessons/${lessonId}/quiz-questions/${questionId}`, {
       method: 'DELETE'
     }))
+  },
+
+  async getEvaluations() {
+    return unwrapApiData(await apiRequest('/api/teacher/evaluations'))
   }
 }

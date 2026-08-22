@@ -197,11 +197,21 @@ const submitTicket = async () => {
       attachmentUrl
     })
     const data = unwrapApiData(response) || {}
-    const created = mapTicket(data)
-    tickets.value.unshift(created)
+    const newId = data.id || data.Id || data.maPhieuHt
+
     createModalOpen.value = false
-    selectTicket(created)
     popupStore.success('Đã gửi ticket', 'Phiếu hỗ trợ đã được tạo thành công.')
+
+    await fetchTickets()
+
+    if (newId) {
+      const found = tickets.value.find(t => String(t.id) === String(newId))
+      if (found) {
+        selectTicket(found)
+      } else if (tickets.value.length > 0) {
+        selectTicket(tickets.value[0])
+      }
+    }
   } catch (err) {
     popupStore.error('Lỗi', err?.message || 'Không thể tạo ticket.')
   } finally {

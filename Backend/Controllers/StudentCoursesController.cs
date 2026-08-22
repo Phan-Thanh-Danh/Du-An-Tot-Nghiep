@@ -142,7 +142,9 @@ public class StudentCoursesController : ControllerBase
                     Id = course.MonHoc!.MaCodeMonHoc,
                     Name = course.MonHoc.TenMonHoc,
                     Code = course.MonHoc.MaCodeMonHoc,
-                    Lecturer = course.GiaoVien?.HoTen ?? "Chưa phân công",
+                    Lecturer = course.GiaoVien?.HoTen ?? "Giảng viên phụ trách",
+                    Credits = course.MonHoc.SoTinChi,
+                    Semester = course.HocKy?.TenHocKy ?? "Học kỳ 1 năm 2026",
                     Progress = progress,
                     Completed = completed,
                     Total = total,
@@ -591,6 +593,64 @@ public class StudentCoursesController : ControllerBase
         return Ok(ApiResponseDto<object>.Ok(new { message = "Lưu tiến độ bài học thành công." }));
     }
 
+    [HttpGet("{courseId}/lessons/{lessonId}/note")]
+    [Authorize(Roles = "Student")]
+    public async Task<ActionResult<ApiResponseDto<object>>> GetLessonNote(
+        string courseId, string lessonId,
+        [FromServices] Backend.Data.ApplicationDbContext context)
+    {
+        var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+        if (currentUser == null) return Unauthorized();
+
+        if (!TryParseLessonId(lessonId, out int parsedLessonId))
+        {
+            return BadRequest(ApiResponseDto.Fail("Mã bài học không hợp lệ."));
+        }
+
+        var progress = await context.TienDoBaiHocs
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.MaHocSinh == currentUser.UserId && t.MaBaiHoc == parsedLessonId);
+
+        return Ok(ApiResponseDto<object>.Ok(new { note = progress?.GhiChu ?? "" }));
+    }
+
+    [HttpPost("{courseId}/lessons/{lessonId}/note")]
+    [Authorize(Roles = "Student")]
+    public async Task<ActionResult<ApiResponseDto<object>>> SaveLessonNote(
+        string courseId, string lessonId,
+        [FromBody] SaveLessonNoteRequestDto request,
+        [FromServices] Backend.Data.ApplicationDbContext context)
+    {
+        var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+        if (currentUser == null) return Unauthorized();
+
+        if (!TryParseLessonId(lessonId, out int parsedLessonId))
+        {
+            return BadRequest(ApiResponseDto.Fail("Mã bài học không hợp lệ."));
+        }
+
+        var existing = await context.TienDoBaiHocs
+            .FirstOrDefaultAsync(t => t.MaHocSinh == currentUser.UserId && t.MaBaiHoc == parsedLessonId);
+
+        if (existing == null)
+        {
+            context.TienDoBaiHocs.Add(new TienDoBaiHoc
+            {
+                MaHocSinh = currentUser.UserId,
+                MaBaiHoc = parsedLessonId,
+                PhanTramTienDo = 0,
+                GhiChu = request.Note ?? ""
+            });
+        }
+        else
+        {
+            existing.GhiChu = request.Note ?? "";
+        }
+
+        await context.SaveChangesAsync();
+        return Ok(ApiResponseDto<object>.Ok(new { message = "Lưu ghi chú thành công.", note = request.Note ?? "" }));
+    }
+
     [HttpPost("{courseId}/reset-progress")]
     [Authorize(Roles = "Student")]
     public async Task<ActionResult<ApiResponseDto<object>>> ResetCourseProgress(
@@ -626,4 +686,9 @@ public class StudentCoursesController : ControllerBase
 
         return Ok(ApiResponseDto<object>.Ok(new { message = $"Đã reset tiến độ môn {courseId} về 0%" }));
     }
+}
+
+public class SaveLessonNoteRequestDto
+{
+    public string? Note { get; set; }
 }
