@@ -16,11 +16,13 @@ public class QuizGradingService : IQuizGradingService
             .ToDictionary(x => x.Key, x => x.Last());
 
         var details = new List<QuizQuestionGradingDetailDto>();
-        decimal objectiveScore = 0;
         var correctCount = 0;
         var wrongCount = 0;
         var unansweredCount = 0;
         var hasEssay = false;
+
+        var totalObjectiveQuestions = questions.Count(q => q.CauHoi?.LoaiCauHoi != "tu_luan");
+        var pointPerQuestion = totalObjectiveQuestions > 0 ? 10.0m / totalObjectiveQuestions : 0m;
 
         foreach (var relation in questions.OrderBy(x => x.ThuTu ?? int.MaxValue).ThenBy(x => x.MaCauHoi))
         {
@@ -50,7 +52,8 @@ public class QuizGradingService : IQuizGradingService
             var selectedAnswers = NormalizeAnswerIds(answer?.SelectedOptionIds);
             var isUnanswered = selectedAnswers.Count == 0;
             var isCorrect = !isUnanswered && selectedAnswers.SetEquals(correctAnswers);
-            var earnedScore = isCorrect ? relation.DiemSo : 0m;
+            var questionMaxScore = relation.DiemSo > 0 ? relation.DiemSo : Math.Round(pointPerQuestion, 2);
+            var earnedScore = isCorrect ? Math.Round(pointPerQuestion, 2) : 0m;
 
             if (isUnanswered)
             {
@@ -59,7 +62,6 @@ public class QuizGradingService : IQuizGradingService
             else if (isCorrect)
             {
                 correctCount++;
-                objectiveScore += earnedScore;
             }
             else
             {
@@ -69,7 +71,7 @@ public class QuizGradingService : IQuizGradingService
             details.Add(new QuizQuestionGradingDetailDto
             {
                 MaCauHoi = relation.MaCauHoi,
-                DiemToiDa = relation.DiemSo,
+                DiemToiDa = questionMaxScore,
                 DiemDatDuoc = earnedScore,
                 Dung = isCorrect,
                 ChuaTraLoi = isUnanswered,
@@ -77,6 +79,8 @@ public class QuizGradingService : IQuizGradingService
                 GiaiThichDapAn = includeAnswerKeys ? question.GiaiThichDapAn : null
             });
         }
+
+        var objectiveScore = totalObjectiveQuestions > 0 ? Math.Round((decimal)correctCount / totalObjectiveQuestions * 10.0m, 2) : 0m;
 
         return new QuizGradingResultDto
         {

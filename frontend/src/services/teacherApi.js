@@ -337,6 +337,10 @@ export const teacherApi = {
     return apiRequest(`/api/teacher/courses/${courseId}/assignments/${assignmentId}/students-status`)
   },
 
+  getStudentCourseAssignmentsStatus(courseId, studentId) {
+    return apiRequest(`/api/teacher/courses/${courseId}/students/${studentId}/assignments-status`)
+  },
+
   async downloadAllSubmissions(courseId, assignmentId) {
     const token = localStorage.getItem('lms_access_token') || sessionStorage.getItem('lms_access_token') || ''
     const url = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '') + `/api/teacher/courses/${courseId}/assignments/${assignmentId}/download-all`
@@ -674,6 +678,29 @@ export const teacherApi = {
     return unwrapApiData(await apiRequest(`/api/teacher/lessons/${lessonId}/add-quiz-question`, {
       method: 'POST',
       body: JSON.stringify({ questionId })
+    }))
+  },
+
+  async getSubjectQuizzes(subjectId) {
+    return unwrapApiData(await apiRequest(`/api/teacher/subjects/${subjectId}/quizzes`))
+  },
+
+  async attachQuizToLesson(lessonId, quizId) {
+    return unwrapApiData(await apiRequest(`/api/teacher/lessons/${lessonId}/attach-quiz`, {
+      method: 'POST',
+      body: JSON.stringify({ quizId })
+    }))
+  },
+
+  async removeQuizFromLesson(lessonId) {
+    return unwrapApiData(await apiRequest(`/api/teacher/lessons/${lessonId}/quiz`, {
+      method: 'DELETE'
+    }))
+  },
+
+  async removeQuizQuestionFromLesson(lessonId, questionId) {
+    return unwrapApiData(await apiRequest(`/api/teacher/lessons/${lessonId}/quiz-questions/${questionId}`, {
+      method: 'DELETE'
     }))
   }
 }

@@ -132,7 +132,7 @@ public class CourseService : ICourseService
 
         var items = pagedItems.Select(x =>
         {
-            var dto = ToDto(x.Course, x.Organization, x.Subject, x.Teacher, x.Term, x.Class);
+            var dto = ToDto(x.Course, x.Organization, x.Subject, x.Teacher, x.Term, x.Class, null, x.Major, x.Specialization);
             dto.SiSo = studentCounts.TryGetValue(x.Class.MaLop, out var cnt) ? cnt : 0;
             dto.StudentCount = dto.SiSo;
             return dto;
@@ -617,10 +617,19 @@ public class CourseService : ICourseService
                 on course.MaDonVi equals organization.MaDonVi
             join subject in _context.DanhMucMonHocs.AsNoTracking()
                 on course.MaMonHoc equals subject.MaMonHoc
-            join teacher in _context.NguoiDungs.AsNoTracking()
-                on course.MaGiaoVien equals teacher.MaNguoiDung
             join classEntity in _context.LopHanhChinhs.AsNoTracking()
                 on course.MaLop equals classEntity.MaLop
+            join program in _context.ChuongTrinhDaoTaos.AsNoTracking()
+                on classEntity.MaChuongTrinh equals program.MaChuongTrinh into programJoin
+            from program in programJoin.DefaultIfEmpty()
+            join chuyenNganh in _context.ChuyenNganhs.AsNoTracking()
+                on (subject.MaChuyenNganh != null ? subject.MaChuyenNganh : (program != null ? (int?)program.MaChuyenNganh : null)) equals (int?)chuyenNganh.MaChuyenNganh into chuyenNganhJoin
+            from chuyenNganh in chuyenNganhJoin.DefaultIfEmpty()
+            join nganh in _context.NganhDaoTaos.AsNoTracking()
+                on (subject.MaNganh != null ? subject.MaNganh : (chuyenNganh != null ? (int?)chuyenNganh.MaNganh : null)) equals (int?)nganh.MaNganh into nganhJoin
+            from nganh in nganhJoin.DefaultIfEmpty()
+            join teacher in _context.NguoiDungs.AsNoTracking()
+                on course.MaGiaoVien equals teacher.MaNguoiDung
             join term in _context.HocKys.AsNoTracking()
                 on course.MaHocKy equals term.MaHocKy into termJoin
             from term in termJoin.DefaultIfEmpty()
@@ -629,6 +638,8 @@ public class CourseService : ICourseService
                 Course = course,
                 Organization = organization,
                 Subject = subject,
+                Major = nganh,
+                Specialization = chuyenNganh,
                 Teacher = teacher,
                 Term = term,
                 Class = classEntity
@@ -1155,7 +1166,9 @@ public class CourseService : ICourseService
         NguoiDung teacher,
         HocKy? term,
         LopHanhChinh classEntity,
-        QuyDoiTinChi? quyDoi = null)
+        QuyDoiTinChi? quyDoi = null,
+        NganhDaoTao? major = null,
+        ChuyenNganh? specialization = null)
     {
         return new KhoaHocDto
         {
@@ -1165,6 +1178,10 @@ public class CourseService : ICourseService
             MaMonHoc = course.MaMonHoc,
             TenMonHoc = subject.TenMonHoc,
             MaMonHocCode = subject.MaCodeMonHoc,
+            MaNganh = major?.MaNganh ?? subject.MaNganh,
+            TenNganh = major?.TenNganh,
+            MaChuyenNganh = specialization?.MaChuyenNganh ?? subject.MaChuyenNganh,
+            TenChuyenNganh = specialization?.TenChuyenNganh,
             MaGiaoVien = course.MaGiaoVien,
             TenGiaoVien = teacher.HoTen,
             MaHocKy = course.MaHocKy,
@@ -1190,9 +1207,11 @@ public class CourseService : ICourseService
         NguoiDung teacher,
         HocKy? term,
         LopHanhChinh classEntity,
-        QuyDoiTinChi? quyDoi = null)
+        QuyDoiTinChi? quyDoi = null,
+        NganhDaoTao? major = null,
+        ChuyenNganh? specialization = null)
     {
-        var dto = ToDto(course, organization, subject, teacher, term, classEntity, quyDoi);
+        var dto = ToDto(course, organization, subject, teacher, term, classEntity, quyDoi, major, specialization);
         return new KhoaHocDetailDto
         {
             MaKhoaHoc = dto.MaKhoaHoc,
@@ -1201,6 +1220,10 @@ public class CourseService : ICourseService
             MaMonHoc = dto.MaMonHoc,
             TenMonHoc = dto.TenMonHoc,
             MaMonHocCode = dto.MaMonHocCode,
+            MaNganh = dto.MaNganh,
+            TenNganh = dto.TenNganh,
+            MaChuyenNganh = dto.MaChuyenNganh,
+            TenChuyenNganh = dto.TenChuyenNganh,
             MaGiaoVien = dto.MaGiaoVien,
             TenGiaoVien = dto.TenGiaoVien,
             MaHocKy = dto.MaHocKy,
@@ -1224,6 +1247,8 @@ public class CourseService : ICourseService
         public KhoaHoc Course { get; init; } = null!;
         public DonVi Organization { get; init; } = null!;
         public DanhMucMonHoc Subject { get; init; } = null!;
+        public NganhDaoTao? Major { get; init; }
+        public ChuyenNganh? Specialization { get; init; }
         public NguoiDung Teacher { get; init; } = null!;
         public HocKy? Term { get; init; }
         public LopHanhChinh Class { get; init; } = null!;

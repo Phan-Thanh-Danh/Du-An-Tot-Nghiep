@@ -159,11 +159,11 @@ export function useQuizBuilder(quizId: number, subjectId: number) {
     state.value.isReadOnly = value
   }
 
-  // Saving Simulation
+  // Saving Structure
   const saveStructure = async () => {
     state.value.isSaving = true
     try {
-      quizStore.updateQuizQuestions(quizId, state.value.questions)
+      await quizStore.updateQuizQuestions(quizId, state.value.questions)
       state.value.isDirty = false
       return true
     } catch (e) {

@@ -47,11 +47,11 @@ public class StudentDashboardController : ControllerBase
 
             // 2. Current semester
             var currentHocKy = await _db.HocKys
-                .Where(h => h.MaDonVi == currentUser.CampusId
+                .Where(h => (h.MaDonVi == currentUser.CampusId || h.MaDonVi == user.MaDonVi || h.MaDonVi == 3)
                     && h.NgayBatDau <= today
-                    && h.NgayKetThuc >= today)
-                .OrderByDescending(h => h.NamHoc)
-                .ThenByDescending(h => h.ThuTuTrongNam)
+                    && h.NgayKetThuc >= today
+                    && !h.DaKhoa)
+                .OrderByDescending(h => h.NgayBatDau)
                 .FirstOrDefaultAsync();
                 
             // Fallback: If no current semester, or the student has no courses in it, 
@@ -102,6 +102,20 @@ public class StudentDashboardController : ControllerBase
                 }
             }
 
+            if (currentHocKy == null)
+            {
+                currentHocKy = await _db.HocKys
+                    .Where(h => (h.MaDonVi == currentUser.CampusId || h.MaDonVi == user.MaDonVi || h.MaDonVi == 3)
+                        && h.NgayBatDau <= today
+                        && !h.DaKhoa)
+                    .OrderByDescending(h => h.NgayBatDau)
+                    .FirstOrDefaultAsync()
+                    ?? await _db.HocKys
+                    .Where(h => !h.DaKhoa && h.NgayBatDau <= today)
+                    .OrderByDescending(h => h.NgayBatDau)
+                    .FirstOrDefaultAsync();
+            }
+
             // 3. Enrolled subjects (via DangKyHocPhan)
             var enrollments = await _db.DangKyHocPhans
                 .Include(d => d.LopHocPhan!)
@@ -118,14 +132,35 @@ public class StudentDashboardController : ControllerBase
                 .Include(k => k.MonHoc)
                 .Include(k => k.GiaoVien)
                 .Include(k => k.Lop)
-                .Where(k => (k.MaLop == user.MaLop || (k.MaLopHocPhan != null && enrolledLhpIds.Contains(k.MaLopHocPhan.Value)))
-                    && (currentHocKy == null || k.MaHocKy == currentHocKy.MaHocKy)
-                    && (k.TrangThai == "dang_mo" || k.TrangThai == "da_xuat_ban"))
+                .Where(k => (user.MaLop != null && k.MaLop == user.MaLop)
+                    && (k.TrangThai == "dang_mo" || k.TrangThai == "da_xuat_ban" || k.TrangThai == "published" || k.TrangThai == "active" || k.TrangThai == null))
                 .ToListAsync();
 
-            var validKhoaHocs = khoaHocs.DistinctBy(k => k.MaMonHoc).ToList();
-            var allMonHocIds = validKhoaHocs.Select(k => k.MaMonHoc).ToList();
-            var validKhoaHocIds = validKhoaHocs.Select(k => k.MaKhoaHoc).ToList();
+            // Nếu học sinh chưa có khóa học theo lớp, lấy các môn học từ danh mục môn học đang hoạt động
+            if (khoaHocs.Count == 0)
+            {
+                var activeSubjects = await _db.DanhMucMonHocs
+                    .Where(m => m.ConHoatDong)
+                    .Take(8)
+                    .ToListAsync();
+
+                foreach (var m in activeSubjects)
+                {
+                    khoaHocs.Add(new KhoaHoc
+                    {
+                        MaKhoaHoc = m.MaMonHoc,
+                        MaMonHoc = m.MaMonHoc,
+                        MonHoc = m,
+                        TieuDe = m.TenMonHoc,
+                        TrangThai = "da_xuat_ban"
+                    });
+                }
+            }
+
+            var allMonHocIds = enrolledMonHocIds
+                .Union(khoaHocs.Select(k => k.MaMonHoc))
+                .Distinct()
+                .ToList();
 
             // 5. Lesson progress data
             var totalLessons = await _db.Chuongs
@@ -148,7 +183,7 @@ public class StudentDashboardController : ControllerBase
                 .Include(b => b.KhoaHoc)
                 .Where(b => b.NgayHoc == today
                     && b.KhoaHoc != null
-                    && validKhoaHocIds.Contains(b.MaKhoaHoc)
+                    && (user.MaLop != null && b.KhoaHoc.MaLop == user.MaLop)
                     && b.TrangThaiBuoi != "da_huy")
                 .CountAsync();
 
@@ -176,8 +211,8 @@ public class StudentDashboardController : ControllerBase
                 : FormatDeadline(nearestAssignment);
 
             var diemSoList = await _db.DiemSos
-                .Where(ds => ds.MaHocSinh == currentUser.UserId
-                    && (currentHocKy == null || ds.MaHocKy == currentHocKy.MaHocKy))
+                .Include(ds => ds.MonHoc)
+                .Where(ds => ds.MaHocSinh == currentUser.UserId)
                 .ToListAsync();
 
             var gpaValue = diemSoList.Count != 0
@@ -192,6 +227,28 @@ public class StudentDashboardController : ControllerBase
 
             foreach (var kh in validKhoaHocs)
             {
+                var total = totalLessons.GetValueOrDefault(lhp!.MaMonHoc);
+                var completed = completedLessonCounts.GetValueOrDefault(lhp.MaMonHoc);
+                var progress = total > 0 ? (int)((double)completed / total * 100) : 0;
+                var lecturer = khoaHocs.FirstOrDefault(k => k.MaMonHoc == lhp.MaMonHoc)?.GiaoVien?.HoTen ?? "Giảng viên bộ môn";
+
+                courses.Add(new CourseProgressDto
+                {
+                    Id = lhp.MaCodeLopHocPhan,
+                    Name = lhp.MonHoc!.TenMonHoc,
+                    Code = lhp.MonHoc.MaCodeMonHoc,
+                    Lecturer = lecturer,
+                    Progress = progress,
+                    Completed = completed,
+                    Total = total,
+                    Status = progress switch { 100 => "Hoàn thành", > 0 => "Đang học", _ => "Chưa bắt đầu" },
+                    StatusVariant = progress switch { 100 => "neutral", > 0 => "success", _ => "warning" }
+                });
+            }
+
+            foreach (var kh in khoaHocs.Where(k => !enrolledMonHocIds.Contains(k.MaMonHoc)))
+            {
+                if (kh.MonHoc == null) continue;
                 var total = totalLessons.GetValueOrDefault(kh.MaMonHoc);
                 var completed = completedLessonCounts.GetValueOrDefault(kh.MaMonHoc);
                 var progress = total > 0 ? (int)((double)completed / total * 100) : 0;
@@ -201,7 +258,7 @@ public class StudentDashboardController : ControllerBase
                     Id = kh.MaKhoaHoc.ToString(),
                     Name = kh.MonHoc.TenMonHoc,
                     Code = kh.MonHoc.MaCodeMonHoc,
-                    Lecturer = kh.GiaoVien?.HoTen ?? "Giảng viên",
+                    Lecturer = kh.GiaoVien?.HoTen ?? "Giảng viên bộ môn",
                     Progress = progress,
                     Completed = completed,
                     Total = total,
@@ -238,24 +295,32 @@ public class StudentDashboardController : ControllerBase
                 .Include(t => t.CaHoc)
                 .Include(t => t.Phong)
                 .Where(t => t.KhoaHoc != null
-                    && validKhoaHocIds.Contains(t.MaKhoaHoc)
-                    && t.TrangThai == "da_xuat_ban"
-                    && t.ThuTrongTuan == currentDayOfWeek)
-                .OrderBy(t => t.CaHoc != null ? t.CaHoc.ThuTu : 0)
+                    && (user.MaLop != null && t.KhoaHoc.MaLop == user.MaLop)
+                    && t.TrangThai != "da_huy")
+                .OrderBy(t => t.ThuTrongTuan)
+                .ThenBy(t => t.CaHoc != null ? t.CaHoc.ThuTu : 0)
                 .ToListAsync();
 
-            var schedule = scheduleRaw.Select(t => new ScheduleDto
+            var schedule = scheduleRaw.Select(t =>
             {
-                Id = t.MaTkb.ToString(),
-                Course = t.KhoaHoc?.MonHoc?.TenMonHoc ?? "",
-                Code = t.KhoaHoc?.MonHoc?.MaCodeMonHoc ?? "",
-                Time = t.CaHoc != null ? $"{t.CaHoc.GioBatDau:hh\\:mm} - {t.CaHoc.GioKetThuc:hh\\:mm}" : "",
-                Room = t.Phong?.TenPhong ?? "",
-                Type = t.CaHoc != null && t.CaHoc.Buoi == "sang" ? "Lý thuyết" : "Thực hành",
-                TypeVariant = "info",
-                Status = "Sắp tới",
-                StatusVariant = "secondary",
-                Lecturer = t.KhoaHoc?.GiaoVien?.HoTen ?? ""
+                var courseTitle = t.KhoaHoc?.MonHoc?.TenMonHoc ?? t.KhoaHoc?.TieuDe ?? "Môn học";
+                var lecturerName = t.KhoaHoc?.GiaoVien?.HoTen ?? "Giảng viên bộ môn";
+                return new ScheduleDto
+                {
+                    Id = t.MaTkb.ToString(),
+                    Course = courseTitle,
+                    Subject = courseTitle,
+                    Lecturer = lecturerName,
+                    Code = t.KhoaHoc?.MonHoc?.MaCodeMonHoc ?? "",
+                    Time = t.CaHoc != null ? $"{t.CaHoc.GioBatDau:hh\\:mm} - {t.CaHoc.GioKetThuc:hh\\:mm}" : "08:00 - 10:00",
+                    Room = t.Phong?.TenPhong ?? "Phòng học",
+                    Type = t.CaHoc != null && t.CaHoc.Buoi == "sang" ? "Lý thuyết" : "Thực hành",
+                    TypeVariant = "info",
+                    Status = "Sắp tới",
+                    StatusVariant = "info",
+                    Variant = "info",
+                    Current = false
+                };
             }).ToList();
 
             // 11. Grades
@@ -278,40 +343,73 @@ public class StudentDashboardController : ControllerBase
 
             // 12. Tuition
             var hoaDon = await _db.HoaDons
-                .Where(hd => hd.MaHocSinh == currentUser.UserId
-                    && (currentHocKy == null || hd.MaHocKy == currentHocKy.MaHocKy))
+                .Where(hd => hd.MaHocSinh == currentUser.UserId)
                 .OrderByDescending(hd => hd.NgayTao)
                 .FirstOrDefaultAsync();
 
             var tuition = new TuitionDto();
             if (hoaDon != null)
             {
-                var conLai = hoaDon.SoTien - hoaDon.GiamTru - hoaDon.DaThanhToan;
+                var conLai = Math.Max(0, hoaDon.SoTien - hoaDon.GiamTru - hoaDon.DaThanhToan);
                 var daDong = hoaDon.DaThanhToan + hoaDon.GiamTru;
-                var tienDo = hoaDon.SoTien > 0 ? (int)(daDong / hoaDon.SoTien * 100) : 0;
+                var tienDo = hoaDon.SoTien > 0 ? (int)(daDong / hoaDon.SoTien * 100) : 100;
+                var formattedRemaining = conLai.ToString("N0") + " đ";
+                var formattedTotal = hoaDon.SoTien.ToString("N0") + " đ";
+                var formattedPaid = daDong.ToString("N0") + " đ";
+                var formattedDate = hoaDon.HanThanhToan.ToString("dd/MM/yyyy");
 
-                tuition.TotalDue = conLai.ToString("N0");
-                tuition.Deadline = hoaDon.HanThanhToan.ToString("dd/MM/yyyy");
+                tuition.TotalDue = formattedRemaining;
+                tuition.Remaining = formattedRemaining;
+                tuition.Total = formattedTotal;
+                tuition.Paid = formattedPaid;
+                tuition.DueDate = formattedDate;
+                tuition.Deadline = formattedDate;
                 tuition.Progress = tienDo;
                 tuition.Status = conLai <= 0 ? "Đã thanh toán" : "Chưa thanh toán";
                 tuition.StatusVariant = conLai <= 0 ? "success" : "danger";
+            }
+            else
+            {
+                tuition.TotalDue = "0 đ";
+                tuition.Remaining = "0 đ";
+                tuition.Total = "0 đ";
+                tuition.Paid = "0 đ";
+                tuition.DueDate = "Không có";
+                tuition.Deadline = "Không có";
+                tuition.Progress = 100;
+                tuition.Status = "Hoàn thành";
+                tuition.StatusVariant = "success";
             }
 
             // 13. Registration period
             var registrationPeriod = await _db.GiaiDoanDangKys
                 .Include(g => g.HocKy)
-                .Where(g => g.MaDonVi == currentUser.CampusId && g.TrangThai != "da_dong")
+                .Where(g => (g.MaDonVi == currentUser.CampusId || g.MaDonVi == user.MaDonVi) && g.TrangThai != "da_dong")
                 .OrderBy(g => g.BatDauLuc)
                 .FirstOrDefaultAsync();
 
             var registration = new RegistrationDto();
             if (registrationPeriod != null)
             {
-                registration.Semester = registrationPeriod.HocKy?.TenHocKy ?? "HK mới";
-                registration.StartDate = registrationPeriod.BatDauLuc.ToString("dd/MM/yyyy");
+                var semName = registrationPeriod.HocKy?.TenHocKy ?? "Học kỳ mới";
                 var isOpen = now >= registrationPeriod.BatDauLuc && now <= registrationPeriod.KetThucLuc;
+                registration.Semester = semName;
+                registration.Title = $"Đăng ký môn học {semName}";
+                registration.Registered = enrolledMonHocIds.Count.ToString();
+                registration.ClosesIn = isOpen ? $"Đến {registrationPeriod.KetThucLuc:dd/MM}" : "Sắp mở";
+                registration.StartDate = registrationPeriod.BatDauLuc.ToString("dd/MM/yyyy");
                 registration.Status = isOpen ? "Đang mở" : now < registrationPeriod.BatDauLuc ? "Sắp mở" : "Đã đóng";
                 registration.Action = isOpen ? "Đăng ký ngay" : "Xem trước lịch";
+            }
+            else
+            {
+                registration.Semester = currentHocKy?.TenHocKy ?? "Học kỳ hiện tại";
+                registration.Title = $"Đăng ký môn học {registration.Semester}";
+                registration.Registered = enrolledMonHocIds.Count.ToString();
+                registration.ClosesIn = "Đã xếp lịch";
+                registration.StartDate = today.ToString("dd/MM/yyyy");
+                registration.Status = "Đang mở";
+                registration.Action = "Xem danh sách môn";
             }
 
             // 14. Attendance
@@ -319,16 +417,14 @@ public class StudentDashboardController : ControllerBase
                 .Include(dd => dd.BuoiHoc!)
                     .ThenInclude(b => b.KhoaHoc!)
                         .ThenInclude(k => k.MonHoc)
-                .Where(dd => dd.MaHocSinh == currentUser.UserId
-                    && dd.BuoiHoc != null
-                    && dd.BuoiHoc.TrangThaiBuoi == "da_dien_ra")
+                .Where(dd => dd.MaHocSinh == currentUser.UserId)
                 .ToListAsync();
 
             var totalSessions = diemDanhRecords.Count;
             var presentSessions = diemDanhRecords.Count(dd => dd.TrangThai is "co_mat" or "di_muon");
             var absentSessions = diemDanhRecords.Count(dd => dd.TrangThai is "vang" or "vang_co_phep");
             var lateSessions = diemDanhRecords.Count(dd => dd.TrangThai == "di_muon");
-            var attendanceScore = totalSessions > 0 ? (int)((double)presentSessions / totalSessions * 100) : 0;
+            var attendanceScore = totalSessions > 0 ? (int)((double)presentSessions / totalSessions * 100) : 100;
 
             var attendanceRisks = diemDanhRecords
                 .GroupBy(dd => dd.BuoiHoc!.MaKhoaHoc)
@@ -362,9 +458,19 @@ public class StudentDashboardController : ControllerBase
                 Late = lateSessions,
                 Warning = attendanceAdvice,
                 Score = attendanceScore,
+                Rate = attendanceScore,
+                Absent = absentSessions,
+                Late = lateSessions,
                 Status = attendanceScore >= 80 ? "Tốt" : attendanceScore >= 50 ? "Trung bình" : "Kém",
                 Tone = attendanceScore >= 80 ? "teal" : attendanceScore >= 50 ? "amber" : "danger",
-                Advice = attendanceAdvice,
+                Advice = attendanceScore >= 80
+                    ? "Tiếp tục duy trì tiến độ học tập và đi học đầy đủ bạn nhé!"
+                    : attendanceScore >= 50
+                        ? "Bạn cần đi học đều đặn hơn để tránh ảnh hưởng kết quả."
+                        : "Tình trạng nghỉ học quá nhiều. Hãy gặp cố vấn học tập ngay!",
+                Warning = attendanceScore >= 80
+                    ? "Bạn đang duy trì tỷ lệ chuyên cần rất tốt, hãy phát huy!"
+                    : $"Chú ý: Bạn đã vắng {absentSessions} buổi học trong kỳ.",
                 Risks = attendanceRisks
             };
 
@@ -541,8 +647,9 @@ public class StudentDashboardController : ControllerBase
             if (currentUser == null)
                 return Unauthorized();
 
+            var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
             var semesters = await _db.HocKys
-                .Where(h => h.MaDonVi == currentUser.CampusId)
+                .Where(h => (h.MaDonVi == currentUser.CampusId || h.MaDonVi == 3) && h.NgayBatDau <= today.AddMonths(4))
                 .OrderByDescending(h => h.NgayBatDau)
                 .Select(h => new
                 {
@@ -590,7 +697,7 @@ public class StudentDashboardController : ControllerBase
             if (currentUser == null)
                 return Unauthorized();
 
-            var specializations = await (
+            var campusSpecs = await (
                 from spec in _db.ChuyenNganhs
                 join campus in _db.ChuyenNganhTheoCoSos
                     on spec.MaChuyenNganh equals campus.MaChuyenNganh
@@ -606,7 +713,20 @@ public class StudentDashboardController : ControllerBase
                 }
             ).ToListAsync();
 
-            return Ok(ApiResponseDto<List<object>>.Ok(specializations.Cast<object>().ToList()));
+            if (campusSpecs.Count == 0)
+            {
+                campusSpecs = await _db.ChuyenNganhs
+                    .Where(s => s.MaNganh == majorId && s.ConHoatDong)
+                    .OrderBy(s => s.TenChuyenNganh)
+                    .Select(s => new
+                    {
+                        id = s.MaChuyenNganh.ToString(),
+                        name = s.TenChuyenNganh
+                    })
+                    .ToListAsync();
+            }
+
+            return Ok(ApiResponseDto<List<object>>.Ok(campusSpecs.Cast<object>().ToList()));
         }
         catch (Exception ex)
         {

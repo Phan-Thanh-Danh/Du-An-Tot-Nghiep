@@ -105,7 +105,8 @@ export const studentApi = {
     })
   },
   completeLesson(courseId, lessonId, percent = 100) {
-    return apiRequest(`/api/student/courses/${courseId}/lessons/${lessonId}/complete?percent=${percent}`, {
+    const query = new URLSearchParams({ percent: String(percent) })
+    return apiRequest(`/api/student/courses/${courseId}/lessons/${lessonId}/complete?${query}`, {
       method: 'POST',
     })
   },
@@ -266,6 +267,21 @@ export const studentApi = {
 
   getGrades() {
     return apiRequest('/api/student/grades', { method: 'GET' })
+  },
+
+  getAssignments() {
+    return apiRequest('/api/student/assignments', { method: 'GET' })
+  },
+
+  getAssignmentDetail(assignmentId) {
+    return apiRequest(`/api/student/assignments/${assignmentId}`, { method: 'GET' })
+  },
+
+  submitAssignment(assignmentId, formData) {
+    return apiRequest(`/api/student/assignments/${assignmentId}/submit`, {
+      method: 'POST',
+      body: formData,
+    })
   },
 
   getGradeDetail(monHocId, hocKyId) {

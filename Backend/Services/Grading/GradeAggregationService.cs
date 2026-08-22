@@ -122,8 +122,13 @@ public class GradeAggregationService : IGradeAggregationService
     public async Task<decimal?> CalculateAttendanceGradeAsync(int studentId, int subjectId, int termId, CancellationToken ct = default)
     {
         // Công thức 3: Điểm Chuyên cần = 10 * (Số buổi có mặt / Tổng số buổi học của môn)
+        var studentClassId = await _db.NguoiDungs
+            .Where(u => u.MaNguoiDung == studentId)
+            .Select(u => u.MaLop)
+            .FirstOrDefaultAsync(ct);
+
         var khoahocs = await _db.KhoaHocs
-            .Where(k => k.MaMonHoc == subjectId && k.MaHocKy == termId)
+            .Where(k => k.MaMonHoc == subjectId && (studentClassId == null || k.MaLop == studentClassId) && (k.MaHocKy == termId || k.MaHocKy == null))
             .Select(k => k.MaKhoaHoc)
             .ToListAsync(ct);
 
@@ -152,11 +157,16 @@ public class GradeAggregationService : IGradeAggregationService
 
         if (!baiTaps.Any() || config.SoLuongCot == 0) return null;
 
-        var submissions = await _db.BaiNops
+        var allSubmissions = await _db.BaiNops
             .Where(b => baiTaps.Contains(b.MaBaiTap) && b.MaHocSinh == studentId)
-            .GroupBy(b => b.MaBaiTap)
-            .Select(g => g.OrderByDescending(x => x.ThoiDiemNop).FirstOrDefault()) // Lấy bài nộp mới nhất
             .ToListAsync(ct);
+
+        var submissions = allSubmissions
+            .GroupBy(b => b.MaBaiTap)
+            .Select(g => g.OrderByDescending(x => x.DiemSo != null ? 1 : 0)
+                          .ThenByDescending(x => x.SoLanNop)
+                          .FirstOrDefault())
+            .ToList();
 
         decimal sumGrade = 0;
         foreach (var sub in submissions)
