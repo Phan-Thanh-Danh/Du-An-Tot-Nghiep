@@ -8,6 +8,7 @@ using Backend.Services;
 using Backend.Services.AcademicTerms;
 using Backend.Services.AdministrativeClasses;
 using Backend.Services.AdminUsers;
+using Backend.Services.AI;
 using Backend.Services.Attendance;
 using Backend.Services.AttendanceAutomation;
 using Backend.Services.AttendanceUnlock;
@@ -267,6 +268,13 @@ builder.Services.Configure<TeachingPreferenceOptions>(
 );
 builder.Services.AddScoped<ITeachingPreferenceService, TeachingPreferenceService>();
 
+// Ollama AI Service
+builder.Services.Configure<OllamaOptions>(
+    builder.Configuration.GetSection(OllamaOptions.SectionName)
+);
+builder.Services.AddSingleton<IAiRequestGate, AiRequestGate>();
+builder.Services.AddHttpClient<IOllamaService, OllamaService>();
+
 builder.Services.AddSignalR(options =>
 {
     options.EnableDetailedErrors = builder.Environment.IsDevelopment();
@@ -464,7 +472,14 @@ if (!app.Environment.IsDevelopment()) app.UseHttpsRedirection();
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    await context.Database.MigrateAsync();
+    try
+    {
+        await context.Database.MigrateAsync();
+    }
+    catch (Microsoft.Data.SqlClient.SqlException ex) when (ex.Number == 1801 || ex.Message.Contains("already exists"))
+    {
+        app.Logger.LogInformation("Database LMS đã tồn tại, tiếp tục áp dụng schema patch và seed.");
+    }
     await Backend.Data.DatabaseSchemaPatcher.PatchMissingColumnsAsync(context);
 
     // Chạy BlockDataSeeder để migration data cũ nếu cần

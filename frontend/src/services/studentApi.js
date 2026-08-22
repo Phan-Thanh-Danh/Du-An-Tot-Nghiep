@@ -265,21 +265,6 @@ export const studentApi = {
     return apiRequest('/api/student/grades', { method: 'GET' })
   },
 
-  getAssignments() {
-    return apiRequest('/api/student/assignments', { method: 'GET' })
-  },
-
-  getAssignmentDetail(assignmentId) {
-    return apiRequest(`/api/student/assignments/${assignmentId}`, { method: 'GET' })
-  },
-
-  submitAssignment(assignmentId, formData) {
-    return apiRequest(`/api/student/assignments/${assignmentId}/submit`, {
-      method: 'POST',
-      body: formData,
-    })
-  },
-
   getGradeDetail(monHocId, hocKyId) {
     return apiRequest(`/api/student/grades/${monHocId}/${hocKyId}/detail`, { method: 'GET' })
   },
