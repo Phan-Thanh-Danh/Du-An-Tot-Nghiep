@@ -127,6 +127,17 @@ public class StudentDashboardController : ControllerBase
                 .Select(d => d.MaLopHocPhan)
                 .ToList();
 
+            var enrolledLopHocPhans = enrollments
+                .Select(d => d.LopHocPhan)
+                .Where(l => l != null)
+                .ToList();
+
+            var enrolledMonHocIds = enrolledLopHocPhans
+                .Where(l => l!.MaMonHoc != 0)
+                .Select(l => l!.MaMonHoc)
+                .Distinct()
+                .ToList();
+
             // 4. Courses via KhoaHoc (student's class or enrolled LopHocPhan)
             var khoaHocs = await _db.KhoaHocs
                 .Include(k => k.MonHoc)
@@ -225,9 +236,10 @@ public class StudentDashboardController : ControllerBase
             // 8. Courses
             var courses = new List<CourseProgressDto>();
 
-            foreach (var kh in validKhoaHocs)
+            foreach (var lhp in enrolledLopHocPhans)
             {
-                var total = totalLessons.GetValueOrDefault(lhp!.MaMonHoc);
+                if (lhp?.MonHoc == null) continue;
+                var total = totalLessons.GetValueOrDefault(lhp.MaMonHoc);
                 var completed = completedLessonCounts.GetValueOrDefault(lhp.MaMonHoc);
                 var progress = total > 0 ? (int)((double)completed / total * 100) : 0;
                 var lecturer = khoaHocs.FirstOrDefault(k => k.MaMonHoc == lhp.MaMonHoc)?.GiaoVien?.HoTen ?? "Giảng viên bộ môn";
@@ -235,7 +247,7 @@ public class StudentDashboardController : ControllerBase
                 courses.Add(new CourseProgressDto
                 {
                     Id = lhp.MaCodeLopHocPhan,
-                    Name = lhp.MonHoc!.TenMonHoc,
+                    Name = lhp.MonHoc.TenMonHoc,
                     Code = lhp.MonHoc.MaCodeMonHoc,
                     Lecturer = lecturer,
                     Progress = progress,
@@ -453,10 +465,6 @@ public class StudentDashboardController : ControllerBase
 
             var attendance = new AttendanceHealthDto
             {
-                Rate = attendanceScore,
-                Absent = absentSessions,
-                Late = lateSessions,
-                Warning = attendanceAdvice,
                 Score = attendanceScore,
                 Rate = attendanceScore,
                 Absent = absentSessions,
