@@ -267,7 +267,7 @@ const diffClass = (d: string) => {
                 </button>
               </div>
               <div>Nội dung câu hỏi</div>
-              <div class="text-center">Loại</div>
+              <div class="text-center">Kiểu chọn</div>
               <div class="text-center">Mức độ</div>
               <div class="text-center">Dùng</div>
             </div>
@@ -299,8 +299,8 @@ const diffClass = (d: string) => {
               </div>
 
               <div class="flex justify-center">
-                <span class="inline-block text-xs font-medium px-2 py-0.5 rounded-full" :class="typeBadgeClass(q.type)">
-                  {{ typeLabel(q.type) }}
+                <span class="inline-block text-xs font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                  {{ q.selectionType === 'multiple' ? 'Chọn nhiều' : 'Chọn 1' }}
                 </span>
               </div>
 

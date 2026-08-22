@@ -359,6 +359,7 @@ const router = createRouter({
         { path: 'requests', name: 'teacher-requests', component: () => import('../views/GiangVien/PendingRequestsView.vue') , meta: { title: 'Đơn cần xử lý' } },
         { path: 'requests-history', name: 'teacher-requests-history', component: () => import('../views/GiangVien/RequestsHistoryView.vue') , meta: { title: 'Đơn đã xử lý' } },
         { path: 'profile', name: 'teacher-profile', component: () => import('../views/GiangVien/ProfileView.vue') },
+        { path: 'evaluations', name: 'teacher-evaluations', component: () => import('../views/GiangVien/TeacherEvaluationsView.vue'), meta: { title: 'Đánh giá từ sinh viên' } },
         { path: 'teaching-preferences', name: 'teacher-teaching-preferences', component: () => import('../views/GiangVien/TeachingPreferencesView.vue'), meta: { title: 'Đăng ký nguyện vọng giảng dạy' } },
 
         {

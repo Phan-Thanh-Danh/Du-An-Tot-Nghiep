@@ -6103,6 +6103,32 @@ public class ApplicationDbContext : DbContext
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("FK_VaiTroQuyenHan_NguoiCap");
         });
+
+        modelBuilder.Entity<TienDoBaiHoc>(entity =>
+        {
+            entity.ToTable("TienDoBaiHoc", "dbo");
+            entity.HasKey(e => e.MaTienDo).HasName("PK_TienDoBaiHoc");
+
+            entity.Property(e => e.MaTienDo).HasColumnName("ma_tien_do");
+            entity.Property(e => e.MaHocSinh).HasColumnName("ma_hoc_sinh");
+            entity.Property(e => e.MaBaiHoc).HasColumnName("ma_bai_hoc");
+            entity.Property(e => e.PhanTramTienDo).HasColumnName("phan_tram_tien_do").HasColumnType("decimal(5, 2)");
+            entity.Property(e => e.LanGuiNhipTimCuoi).HasColumnName("lan_gui_nhip_tim_cuoi");
+            entity.Property(e => e.HoanThanhLuc).HasColumnName("hoan_thanh_luc");
+            entity.Property(e => e.GhiChu).HasColumnName("ghi_chu").HasColumnType("nvarchar(max)");
+
+            entity.HasOne(d => d.HocSinh)
+                .WithMany()
+                .HasForeignKey(d => d.MaHocSinh)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_TienDoBaiHoc_ma_hoc_sinh__NguoiDung");
+
+            entity.HasOne(d => d.BaiHoc)
+                .WithMany()
+                .HasForeignKey(d => d.MaBaiHoc)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_TienDoBaiHoc_ma_bai_hoc__BaiHoc");
+        });
     }
 }
 

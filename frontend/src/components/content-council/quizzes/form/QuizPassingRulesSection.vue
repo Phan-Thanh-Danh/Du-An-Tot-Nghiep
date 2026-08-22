@@ -31,6 +31,49 @@ const updateField = (field: keyof QuizFormData, value: any) => {
   
   emit('update:modelValue', newData)
 }
+
+const blockNegativeKeys = (event: KeyboardEvent) => {
+  if (event.key === '-' || event.key === '+' || event.key === 'e' || event.key === 'E') {
+    event.preventDefault()
+  }
+}
+
+const handleTotalScoreInput = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  let val = input.value.replace(/[^0-9.]/g, '')
+  if (val === '') {
+    updateField('totalScore', 0)
+    input.value = ''
+    return
+  }
+  let num = parseFloat(val)
+  if (isNaN(num)) num = 0
+  if (num < 0) num = 0
+  if (num > 10) num = 10
+  input.value = num.toString()
+  updateField('totalScore', num)
+
+  if (formData.value.passingScore !== null && formData.value.passingScore > num) {
+    updateField('passingScore', num)
+  }
+}
+
+const handlePassingScoreInput = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  let val = input.value.replace(/[^0-9.]/g, '')
+  if (val === '') {
+    updateField('passingScore', 0)
+    input.value = ''
+    return
+  }
+  let num = parseFloat(val)
+  if (isNaN(num)) num = 0
+  if (num < 0) num = 0
+  const maxAllowed = Math.min(10, formData.value.totalScore || 10)
+  if (num > maxAllowed) num = maxAllowed
+  input.value = num.toString()
+  updateField('passingScore', num)
+}
 </script>
 
 <template>
@@ -40,7 +83,7 @@ const updateField = (field: keyof QuizFormData, value: any) => {
         <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
           3. Điểm và điều kiện đạt
         </h2>
-        <p class="text-xs text-slate-500 mt-1">Cấu hình cách tính điểm và điều kiện để học sinh vượt qua Quiz.</p>
+        <p class="text-xs text-slate-500 mt-1">Cấu hình cách tính điểm và điều kiện để học sinh vượt qua Quiz (Thang điểm 0 - 10).</p>
       </div>
       <div v-if="errors['totalScore'] || errors['passingScore'] || errors['minimumCorrectAnswers']" class="text-xs font-medium bg-red-100 text-red-700 px-2.5 py-1 rounded-full flex items-center gap-1" role="alert">
         <span class="w-1.5 h-1.5 rounded-full bg-red-600"></span>
@@ -50,25 +93,26 @@ const updateField = (field: keyof QuizFormData, value: any) => {
 
     <div class="p-6 space-y-6">
       
-      <!-- Tổng điểm -->
+      <!-- Tổng điểm (Giới hạn cứng 0 - 10, không số âm) -->
       <div>
         <label class="block text-sm font-medium text-slate-700 mb-1.5">
-          Tổng điểm <span class="text-red-500">*</span>
+          Tổng điểm (Thang điểm 0 - 10) <span class="text-red-500">*</span>
         </label>
         <input 
           type="number" 
           :value="formData.totalScore"
-          @input="updateField('totalScore', Number(($event.target as HTMLInputElement).value))"
+          @keydown="blockNegativeKeys"
+          @input="handleTotalScoreInput"
           :disabled="isReadOnly"
-          min="1" max="1000" step="1"
-          class="w-32 border rounded-lg px-3 py-2 focus:ring-2 focus:outline-none transition-colors"
+          min="0" max="10" step="0.5"
+          class="w-36 border rounded-lg px-3 py-2 focus:ring-2 focus:outline-none transition-colors font-semibold"
           :class="[
             errors['totalScore'] ? 'border-red-300 focus:ring-red-500' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500/20',
             isReadOnly ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : 'bg-white text-slate-700'
           ]"
         />
         <p v-if="errors['totalScore']" class="mt-1.5 text-sm text-red-600">{{ errors['totalScore'] }}</p>
-        <p v-else class="mt-1.5 text-xs text-slate-500">Tổng điểm cấu hình phải khớp với tổng điểm các câu trong Quiz Builder.</p>
+        <p v-else class="mt-1.5 text-xs text-slate-500">Giới hạn thang điểm từ 0 đến 10 điểm.</p>
       </div>
 
       <hr class="border-slate-100" />
@@ -105,26 +149,25 @@ const updateField = (field: keyof QuizFormData, value: any) => {
         <!-- Inputs condition -->
         <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
           <template v-if="formData.passMethod === 'score'">
-            <label class="block text-sm font-medium text-slate-700 mb-1.5">Điểm đạt</label>
+            <label class="block text-sm font-medium text-slate-700 mb-1.5">Điểm đạt (0 - {{ formData.totalScore || 10 }})</label>
             <div class="flex items-center gap-3">
               <input 
                 type="number" 
                 :value="formData.passingScore"
-                @input="updateField('passingScore', Number(($event.target as HTMLInputElement).value))"
+                @keydown="blockNegativeKeys"
+                @input="handlePassingScoreInput"
                 :disabled="isReadOnly"
-                min="0" :max="formData.totalScore" step="1"
-                class="w-32 border border-slate-300 rounded px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                min="0" :max="Math.min(10, formData.totalScore || 10)" step="0.5"
+                class="w-36 border border-slate-300 rounded px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none font-semibold"
                 :class="[
                   errors['passingScore'] ? 'border-red-300 focus:ring-red-500' : 'border-slate-300',
                   isReadOnly ? 'bg-slate-100 text-slate-500' : 'bg-white'
                 ]"
               />
-              <span class="text-sm font-medium text-slate-600">/ {{ formData.totalScore }} điểm</span>
+              <span class="text-sm text-slate-500">/ {{ formData.totalScore }} điểm</span>
             </div>
-            <p v-if="errors['passingScore']" class="mt-2 text-sm text-red-600">{{ errors['passingScore'] }}</p>
-            <p v-else-if="formData.passingScore !== null && formData.passingScore >= 0" class="mt-2 text-sm text-slate-600">
-              Học sinh đạt khi có điểm từ <span class="font-bold">{{ formData.passingScore }}</span> trở lên.
-            </p>
+            <p v-if="errors['passingScore']" class="mt-1.5 text-sm text-red-600">{{ errors['passingScore'] }}</p>
+            <p v-else class="mt-1 text-xs text-slate-500">Học sinh đạt số điểm này trở lên sẽ được tính là Đạt.</p>
           </template>
 
           <template v-else-if="formData.passMethod === 'correct_answer_count'">
@@ -133,25 +176,21 @@ const updateField = (field: keyof QuizFormData, value: any) => {
               <input 
                 type="number" 
                 :value="formData.minimumCorrectAnswers"
-                @input="updateField('minimumCorrectAnswers', Number(($event.target as HTMLInputElement).value))"
+                @keydown="blockNegativeKeys"
+                @input="updateField('minimumCorrectAnswers', Math.max(1, Number(($event.target as HTMLInputElement).value)))"
                 :disabled="isReadOnly"
-                min="1" step="1"
+                min="1" max="500" step="1"
                 class="w-32 border border-slate-300 rounded px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 :class="[
                   errors['minimumCorrectAnswers'] ? 'border-red-300 focus:ring-red-500' : 'border-slate-300',
                   isReadOnly ? 'bg-slate-100 text-slate-500' : 'bg-white'
                 ]"
               />
-              <span class="text-sm font-medium text-slate-600">câu</span>
+              <span class="text-sm text-slate-500">câu</span>
             </div>
-            <p v-if="errors['minimumCorrectAnswers']" class="mt-2 text-sm text-red-600">{{ errors['minimumCorrectAnswers'] }}</p>
-            <p v-else-if="!hasQuestions" class="mt-2 text-sm text-amber-600">Giá trị sẽ được kiểm tra lại sau khi xây dựng đề.</p>
+            <p v-if="errors['minimumCorrectAnswers']" class="mt-1.5 text-sm text-red-600">{{ errors['minimumCorrectAnswers'] }}</p>
           </template>
         </div>
-        
-        <p v-if="formData.passMethod === 'correct_answer_count'" class="mt-2 text-xs text-slate-500 italic">
-          * Cách tính theo số câu đúng chỉ phù hợp với đề trắc nghiệm.
-        </p>
 
       </div>
 

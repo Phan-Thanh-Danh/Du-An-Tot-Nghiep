@@ -97,11 +97,8 @@ const formatDate = (dateString?: string) => {
             <!-- Đề bài -->
             <div>
               <div class="flex items-center gap-2 mb-3">
-                <span class="px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
-                  {{ questionData.type === 'essay' ? 'Tự luận' : 'Trắc nghiệm' }}
-                </span>
-                <span v-if="questionData.type === 'multiple_choice'" class="text-[11px] text-slate-500 font-medium">
-                  • {{ getSelectionTypeLabel(questionData.selectionType) }}
+                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                  {{ questionData.selectionType === 'multiple' ? 'Trắc nghiệm (Chọn nhiều đáp án)' : 'Trắc nghiệm (Chọn 1 đáp án)' }}
                 </span>
               </div>
               <SafeHtmlRenderer class="text-base text-slate-800 leading-relaxed whitespace-pre-wrap" :html="questionData.content" />

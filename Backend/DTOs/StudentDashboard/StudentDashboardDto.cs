@@ -49,6 +49,8 @@ public class CourseProgressDto
     public string Name { get; set; } = string.Empty;
     public string Code { get; set; } = string.Empty;
     public string Lecturer { get; set; } = string.Empty;
+    public int Credits { get; set; } = 3;
+    public string Semester { get; set; } = string.Empty;
     public int Progress { get; set; }
     public int Completed { get; set; }
     public int Total { get; set; }

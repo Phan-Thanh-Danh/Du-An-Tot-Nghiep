@@ -437,6 +437,109 @@ function activateLesson(chapter, lesson) {
   activeTab.value = isVideoLesson ? 'video' : (lesson.lessonType === 'quiz' ? 'quiz' : (lesson.lessonType === 'assignment' ? 'document' : 'video'))
 }
 
+// ── GHI CHÚ HỌC TẬP (STUDENT NOTES) ──────────────────────────
+const lessonNote = ref('')
+const savedNote = ref('')
+const draftNote = ref('')
+const isSavingNote = ref(false)
+const noteSaveSuccess = ref(false)
+const hasDraft = ref(false)
+
+function getDraftKey(lessonId) {
+  return `draft_note_${courseId.value}_${lessonId}`
+}
+
+async function loadLessonNote(lessonId) {
+  if (!lessonId || !courseId.value) return
+  const draftKey = getDraftKey(lessonId)
+  const localDraft = localStorage.getItem(draftKey)
+
+  try {
+    const res = await studentApi.getLessonNote(courseId.value, lessonId)
+    const data = res?.data ?? res?.Data ?? res
+    const serverNote = data?.note || ''
+    savedNote.value = serverNote
+    lessonNote.value = serverNote
+
+    if (localDraft !== null && localDraft.trim() !== '' && localDraft !== serverNote) {
+      draftNote.value = localDraft
+      hasDraft.value = true
+    } else {
+      draftNote.value = ''
+      hasDraft.value = false
+      if (localDraft === serverNote) {
+        localStorage.removeItem(draftKey)
+      }
+    }
+  } catch (err) {
+    savedNote.value = ''
+    lessonNote.value = ''
+    if (localDraft !== null && localDraft.trim() !== '') {
+      draftNote.value = localDraft
+      hasDraft.value = true
+    } else {
+      draftNote.value = ''
+      hasDraft.value = false
+    }
+  }
+}
+
+function handleNoteInput() {
+  if (!selectedLessonId.value || !courseId.value) return
+  const draftKey = getDraftKey(selectedLessonId.value)
+  if (lessonNote.value !== savedNote.value) {
+    localStorage.setItem(draftKey, lessonNote.value)
+    draftNote.value = lessonNote.value
+    hasDraft.value = true
+  } else {
+    localStorage.removeItem(draftKey)
+    draftNote.value = ''
+    hasDraft.value = false
+  }
+}
+
+function applyDraft() {
+  if (!draftNote.value) return
+  lessonNote.value = draftNote.value
+}
+
+function discardDraft() {
+  if (!selectedLessonId.value) return
+  const draftKey = getDraftKey(selectedLessonId.value)
+  localStorage.removeItem(draftKey)
+  draftNote.value = ''
+  hasDraft.value = false
+  lessonNote.value = savedNote.value
+}
+
+async function handleSaveNote() {
+  if (!selectedLessonId.value || !courseId.value) return
+  isSavingNote.value = true
+  noteSaveSuccess.value = false
+  try {
+    await studentApi.saveLessonNote(courseId.value, selectedLessonId.value, lessonNote.value)
+    savedNote.value = lessonNote.value
+    draftNote.value = ''
+    hasDraft.value = false
+    noteSaveSuccess.value = true
+    const draftKey = getDraftKey(selectedLessonId.value)
+    localStorage.removeItem(draftKey)
+    setTimeout(() => {
+      noteSaveSuccess.value = false
+    }, 3000)
+  } catch (err) {
+    console.error('Lỗi khi lưu ghi chú:', err)
+  } finally {
+    isSavingNote.value = false
+  }
+}
+
+watch(() => selectedLessonId.value, (newId) => {
+  if (newId) {
+    loadLessonNote(newId)
+  }
+}, { immediate: true })
+
 function parseDurationSeconds(duration) {
   if (!duration || !String(duration).includes(':')) return 0
   const parts = String(duration).split(':').map(Number)
@@ -1942,13 +2045,96 @@ async function handleResetCourseProgress() {
         <section class="side-card notes-card">
           <div class="side-heading">
             <h3>Ghi chú học tập</h3>
-            <component :is="resolveIcon('PenLine')" :size="16" />
+            <span v-if="savedNote" class="text-xs text-muted">Đã lưu DB</span>
           </div>
-          <textarea rows="7" placeholder="Ghi chú nhanh về bài học này..." />
-          <button type="button" class="primary-action compact">
-            <component :is="resolveIcon('Save')" :size="13" />
-            Lưu ghi chú
-          </button>
+
+          <!-- Banner thông báo có bản nháp chưa lưu -->
+          <div
+            v-if="hasDraft && draftNote !== lessonNote"
+            class="mb-2.5 p-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-xs flex flex-col gap-1.5 transition-all"
+          >
+            <div class="flex items-center justify-between font-medium text-amber-700 dark:text-amber-300">
+              <span class="flex items-center gap-1.5">
+                <component :is="resolveIcon('FileText')" :size="14" />
+                Có bản nháp chưa lưu
+              </span>
+              <button
+                type="button"
+                class="text-muted hover:text-danger p-0.5 rounded transition-colors"
+                title="Hủy bỏ bản nháp"
+                @click="discardDraft"
+              >
+                <component :is="resolveIcon('X')" :size="14" />
+              </button>
+            </div>
+            <p
+              class="text-muted italic line-clamp-2 cursor-pointer hover:underline"
+              title="Click để áp dụng bản nháp này"
+              @click="applyDraft"
+            >
+              "{{ draftNote }}"
+            </p>
+            <div class="flex items-center gap-2 mt-0.5">
+              <button
+                type="button"
+                class="px-2.5 py-1 bg-amber-500 text-white rounded text-xs font-medium hover:bg-amber-600 transition-colors"
+                @click="applyDraft"
+              >
+                Áp dụng bản nháp
+              </button>
+              <button
+                type="button"
+                class="px-2 py-1 text-xs text-muted hover:text-body transition-colors"
+                @click="discardDraft"
+              >
+                Hủy
+              </button>
+            </div>
+          </div>
+
+          <div
+            v-else-if="hasDraft && draftNote === lessonNote"
+            class="mb-2 p-2 rounded-lg border border-amber-500/20 bg-amber-500/5 text-xs flex items-center justify-between text-amber-700 dark:text-amber-300"
+          >
+            <span class="flex items-center gap-1.5">
+              <component :is="resolveIcon('Clock')" :size="13" />
+              Đang xem bản nháp chưa lưu
+            </span>
+            <button
+              type="button"
+              class="text-xs text-muted hover:text-danger underline flex items-center gap-1"
+              @click="discardDraft"
+            >
+              <component :is="resolveIcon('X')" :size="12" /> Quay về bản gốc
+            </button>
+          </div>
+
+          <textarea
+            v-model="lessonNote"
+            rows="6"
+            placeholder="Nhập ghi chú học tập trực tiếp tại đây..."
+            @input="handleNoteInput"
+          />
+
+          <div class="flex items-center justify-between gap-2 mt-2">
+            <span v-if="noteSaveSuccess" class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+              <component :is="resolveIcon('Check')" :size="14" /> Đã lưu vào hệ thống
+            </span>
+            <span v-else-if="hasDraft" class="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 font-medium">
+              <component :is="resolveIcon('FileText')" :size="13" /> Đã lưu bản nháp
+            </span>
+            <span v-else class="text-xs text-muted">Tự động gắn theo bài</span>
+
+            <button
+              type="button"
+              class="primary-action compact"
+              :disabled="isSavingNote || !selectedLessonId"
+              @click="handleSaveNote"
+            >
+              <component :is="resolveIcon(isSavingNote ? 'Loader2' : 'Save')" :size="13" :class="{ 'animate-spin': isSavingNote }" />
+              {{ isSavingNote ? 'Đang lưu...' : 'Lưu ghi chú' }}
+            </button>
+          </div>
         </section>
       </aside>
     </main>

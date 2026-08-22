@@ -688,5 +688,9 @@ export const teacherApi = {
     return unwrapApiData(await apiRequest(`/api/teacher/lessons/${lessonId}/quiz-questions/${questionId}`, {
       method: 'DELETE'
     }))
+  },
+
+  async getEvaluations() {
+    return unwrapApiData(await apiRequest('/api/teacher/evaluations'))
   }
 }
