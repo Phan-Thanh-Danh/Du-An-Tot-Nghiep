@@ -18,6 +18,31 @@ export const rewardDisciplineApi = {
     return apiRequest(`/api/admin/reward-campaigns/${campaignId}/candidates${buildQuery(params)}`)
   },
 
+  getApprovalSummary(campaignId) {
+    return apiRequest(`/api/admin/reward-campaigns/${campaignId}/approval-summary`)
+  },
+
+  createTop100Campaign(payload) {
+    return apiRequest('/api/admin/reward-campaigns/top100', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  cancelCampaign(id, payload = {}) {
+    return apiRequest(`/api/admin/reward-campaigns/${id}/cancel`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  evaluateCampaign(campaignId, payload = { isDryRun: false }) {
+    return apiRequest(`/api/admin/reward-campaigns/${campaignId}/evaluate`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
   approveRewardCampaign(campaignId) {
     return apiRequest(`/api/admin/reward-campaigns/${campaignId}/approve`, {
       method: 'POST',
@@ -39,6 +64,48 @@ export const rewardDisciplineApi = {
     return apiRequest(`/api/admin/discipline-records${buildQuery(params)}`)
   },
 
+  getDisciplineRecordDetail(id) {
+    return apiRequest(`/api/admin/discipline-records/${id}`)
+  },
+
+  createDisciplineRecord(payload) {
+    return apiRequest('/api/admin/discipline-records', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  submitDisciplineRecord(id) {
+    return apiRequest(`/api/admin/discipline-records/${id}/submit`, {
+      method: 'POST',
+    })
+  },
+
+  approveDisciplineRecord(id, payload = {}) {
+    return apiRequest(`/api/admin/discipline-records/${id}/approve`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  rejectDisciplineRecord(id, payload = {}) {
+    return apiRequest(`/api/admin/discipline-records/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  activateDisciplineRecord(id, payload = {}) {
+    return apiRequest(`/api/admin/discipline-records/${id}/activate`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+
+  getDisciplineRecordsPending(params = {}) {
+    return apiRequest(`/api/admin/discipline-records/pending-approval${buildQuery(params)}`)
+  },
+
   removeDisciplineEffect(recordId, payload) {
     return apiRequest(`/api/admin/discipline-records/${recordId}/remove-effect`, {
       method: 'POST',
@@ -48,6 +115,10 @@ export const rewardDisciplineApi = {
 
   getDisciplineAppeals(params = {}) {
     return apiRequest(`/api/admin/discipline-appeals${buildQuery(params)}`)
+  },
+
+  getDisciplineAppealDetail(id) {
+    return apiRequest(`/api/admin/discipline-appeals/${id}`)
   },
 
   resolveDisciplineAppeal(appealId, payload) {

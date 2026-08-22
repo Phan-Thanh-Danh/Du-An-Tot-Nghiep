@@ -201,7 +201,7 @@ const currentPage = ref(1)
 const detailModal = ref(false)
 const detailLog = ref(null)
 
-const entityTypes = ['User', 'Organization', 'Role', 'AcademicTerm', 'TrainingProgram', 'Course', 'Building', 'Floor', 'Room', 'HttpRequest']
+const entityTypes = ['User', 'Organization', 'Role', 'AcademicTerm', 'TrainingProgram', 'Course', 'Building', 'Floor', 'Room', 'HttpRequest', 'ThoiKhoaBieu']
 
 const filters = reactive({
   keyword: '',
@@ -218,12 +218,7 @@ watch(() => filters.fromDate, (val) => {
 })
 
 const filteredLogs = computed(() => {
-  return auditLogs.value.filter(log => {
-    if (filters.keyword && !log.moTa?.toLowerCase().includes(filters.keyword.toLowerCase()) && !log.tenNguoiThayDoi?.toLowerCase().includes(filters.keyword.toLowerCase())) return false
-    if (filters.loaiDoiTuong && log.loaiDoiTuong !== filters.loaiDoiTuong) return false
-    if (filters.hanhDong && log.hanhDong !== filters.hanhDong) return false
-    return true
-  })
+  return auditLogs.value
 })
 
 const totalPages = computed(() => serverTotalPages.value)

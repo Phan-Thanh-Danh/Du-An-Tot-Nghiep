@@ -1,4 +1,6 @@
+
 using System.Text.Json;
+using Backend.DTOs.Bgh;
 using Backend.Constants;
 using Backend.Data;
 using Backend.DTOs.Auth;
@@ -1343,6 +1345,94 @@ public class BghAcademicController : ControllerBase
             message = "Đã từ chối yêu cầu mở khoá bảng điểm.",
             requestId = yeuCau.MaYcSuaDiem
         }));
+    }
+    [HttpGet("academic/campus-comparison")]
+    [BghResponseCache(300)]
+    public async Task<ActionResult<ApiResponseDto<List<CampusComparisonDto>>>> GetCampusComparison(CancellationToken cancellationToken)
+    {
+        var cacheKey = "bgh:campus-comparison:v3";
+        var cachedData = await _cache.GetOrCreateAsync(
+            cacheKey,
+            TimeSpan.FromMinutes(30),
+            async ct =>
+            {
+                // Include both co_so and co_so_con campuses
+                var campuses = await _db.DonVis
+                    .Where(d => (d.CapDonVi == "co_so" || d.CapDonVi == "co_so_con") && d.ConHoatDong)
+                    .OrderBy(d => d.TenDonVi)
+                    .ToListAsync(ct);
+
+                // Run all per-campus queries in parallel for performance
+                var tasks = campuses.Select(async campus =>
+                {
+                    var campusId = campus.MaDonVi;
+
+                    // Students — active hoc_sinh in campus
+                    var studentsTask = _db.NguoiDungs
+                        .Where(u => u.MaDonVi == campusId && u.VaiTroChinh == "hoc_sinh")
+                        .CountAsync(ct);
+
+                    // GPA & PassRate — all grades (no TrangThai filter, matches other bgh endpoints)
+                    var gradeStatsTask = _db.DiemSos
+                        .Where(d => d.MaDonVi == campusId)
+                        .GroupBy(_ => 1)
+                        .Select(g => new
+                        {
+                            Avg = g.Average(d => (decimal?)d.GpaMonHoc) ?? 0m,
+                            Total = g.Count(),
+                            Pass = g.Count(d => d.GpaMonHoc >= 4)
+                        })
+                        .FirstOrDefaultAsync(ct);
+
+                    // AttendanceRate — present = co_mat or di_muon, absent = vang or co_phep
+                    var attendanceStatsTask = _db.DiemDanhs
+                        .Where(d => d.MaDonVi == campusId)
+                        .GroupBy(_ => 1)
+                        .Select(g => new
+                        {
+                            Total = g.Count(),
+                            Present = g.Count(d => d.TrangThai == "co_mat" || d.TrangThai == "di_muon")
+                        })
+                        .FirstOrDefaultAsync(ct);
+
+                    // Revenue — paid invoices in billion VND
+                    var revenueTask = _db.HoaDons
+                        .Where(h => h.MaDonVi == campusId && h.TrangThai == "da_thanh_toan")
+                        .SumAsync(h => (decimal?)h.DaThanhToan, ct);
+
+                    // TeacherScore — avg rating of teachers in campus
+                    var teacherScoreTask = _db.DanhGiaGiaoViens
+                        .Where(dg => dg.GiaoVien != null && dg.GiaoVien.MaDonVi == campusId)
+                        .AverageAsync(dg => (decimal?)dg.DiemSo, ct);
+
+                    await Task.WhenAll(studentsTask, gradeStatsTask, attendanceStatsTask, revenueTask, teacherScoreTask);
+
+                    var gradeStats = await gradeStatsTask;
+                    var attStats = await attendanceStatsTask;
+                    var revenue = await revenueTask ?? 0m;
+                    var teacherScore = await teacherScoreTask ?? 0m;
+
+                    return new CampusComparisonDto
+                    {
+                        Id = campusId.ToString(),
+                        Name = campus.TenDonVi,
+                        Students = await studentsTask,
+                        Gpa = gradeStats != null ? Math.Round(gradeStats.Avg, 2) : 0m,
+                        PassRate = gradeStats != null && gradeStats.Total > 0
+                            ? Math.Round((decimal)gradeStats.Pass / gradeStats.Total * 100, 1)
+                            : 0m,
+                        AttendanceRate = attStats != null && attStats.Total > 0
+                            ? Math.Round((decimal)attStats.Present / attStats.Total * 100, 1)
+                            : 0m,
+                        Revenue = Math.Round(revenue / 1_000_000_000m, 1),
+                        TeacherScore = Math.Round(teacherScore, 2)
+                    };
+                });
+
+                return (await Task.WhenAll(tasks)).ToList();
+            });
+
+        return Ok(ApiResponseDto<List<CampusComparisonDto>>.Ok(cachedData!));
     }
 }
 

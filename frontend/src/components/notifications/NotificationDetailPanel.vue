@@ -4,6 +4,7 @@ import { Calendar, User, ExternalLink } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import SafeHtmlRenderer from '@/components/common/SafeHtmlRenderer.vue'
+import SlideHtmlPreview from '@/components/content-council/editor/content/SlideHtmlPreview.vue'
 import { formatDate } from '@/utils/dateFormat'
 import { getStatusMeta } from '@/utils/statusLabels'
 
@@ -20,8 +21,8 @@ const props = defineProps({
     <div class="detail-header space-y-4">
       <div class="flex flex-wrap gap-2">
         <GlassBadge v-if="notification.priority === 'KHAN_CAP'" variant="danger">Khẩn cấp</GlassBadge>
-        <GlassBadge v-if="notification.category" :variant="getStatusMeta('notifCategory', notification.category).variant">
-          {{ getStatusMeta('notifCategory', notification.category).label }}
+        <GlassBadge v-if="notification.category" :variant="getStatusMeta('notificationCategory', notification.category).variant">
+          {{ getStatusMeta('notificationCategory', notification.category).label }}
         </GlassBadge>
       </div>
 
@@ -42,8 +43,9 @@ const props = defineProps({
     </div>
 
     <div class="detail-body flex-1 text-(--text-body) text-base leading-relaxed space-y-4">
-      <!-- Safe rendering of Rich Text notification body -->
-      <SafeHtmlRenderer :html="notification.body || notification.excerpt" />
+      <!-- Render EditorJS blocks if available, else fallback to SafeHtmlRenderer -->
+      <SlideHtmlPreview v-if="notification.bodyJson" :json-data="notification.bodyJson" />
+      <SafeHtmlRenderer v-else :html="notification.body || notification.excerpt" />
     </div>
 
     <div v-if="notification.relatedPath" class="detail-footer pt-6 mt-auto border-t border-(--border-default)">

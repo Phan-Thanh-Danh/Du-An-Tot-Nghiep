@@ -364,12 +364,12 @@ public class RoomService : IRoomService
 
     private async Task<HashSet<int>> GetAllowedOrganizationIdsAsync(CurrentUserContext currentUser, CancellationToken cancellationToken)
     {
-        if (currentUser.Role == AuthRoles.SuperAdmin)
+        if (currentUser.Role == AuthRoles.SuperAdmin || currentUser.Role == AuthRoles.Admin || currentUser.Role == AuthRoles.Principal)
         {
             return await _context.DonVis.AsNoTracking().Select(x => x.MaDonVi).ToHashSetAsync(cancellationToken);
         }
 
-        if (currentUser.Role == AuthRoles.CampusAdmin)
+        if (currentUser.Role == AuthRoles.CampusAdmin || currentUser.Role == AuthRoles.SubCampusAdmin)
         {
             var organizations = await _context.DonVis.AsNoTracking().Select(x => new { x.MaDonVi, x.MaDonViCha }).ToListAsync(cancellationToken);
             var allowedIds = new HashSet<int> { currentUser.CampusId };

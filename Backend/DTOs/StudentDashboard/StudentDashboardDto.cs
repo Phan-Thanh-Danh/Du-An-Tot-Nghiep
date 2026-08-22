@@ -121,6 +121,11 @@ public class RegistrationDto
 
 public class AttendanceHealthDto
 {
+    public int Rate { get; set; }
+    public int Absent { get; set; }
+    public int Late { get; set; }
+    public string Warning { get; set; } = string.Empty;
+    
     public int Score { get; set; }
     public int Rate { get; set; }
     public int Absent { get; set; }

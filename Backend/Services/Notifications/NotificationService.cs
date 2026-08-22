@@ -18,15 +18,39 @@ public class NotificationService : INotificationService
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IAuditLogService _auditLogService;
 
+    private readonly IServiceScopeFactory? _serviceScopeFactory;
+
     public NotificationService(
         ApplicationDbContext context,
         IHttpContextAccessor httpContextAccessor,
-        IAuditLogService auditLogService)
+        IAuditLogService auditLogService,
+        IServiceScopeFactory? serviceScopeFactory = null)
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
         _auditLogService = auditLogService;
+        _serviceScopeFactory = serviceScopeFactory;
     }
+
+    private IQueryable<ThongBao> BuildMyNotificationsQuery(CurrentUserContext currentUser)
+    {
+        var roleMatch = $",{Backend.Constants.AuthRoles.ToDatabaseCode(currentUser.Role)},";
+        var orgMatch = $",{currentUser.CampusId},";
+        var userId = currentUser.UserId;
+
+        return _context.ThongBaos
+            .Where(t => t.TrangThai == NotificationConstants.Statuses.Sent)
+            .Where(t => 
+                (t.NguoiNhans.Any(n => n.MaNguoiNhan == userId && !n.DaAn)) ||
+                (
+                    (t.PhamViGui == NotificationConstants.Scopes.AllSystem ||
+                     (t.PhamViGui == NotificationConstants.Scopes.Role && t.DoiTuongLienKet != null && t.DoiTuongLienKet.Contains(roleMatch)) ||
+                     (t.PhamViGui == NotificationConstants.Scopes.Organization && t.DoiTuongLienKet != null && t.DoiTuongLienKet.Contains(orgMatch)))
+                    && !t.NguoiNhans.Any(n => n.MaNguoiNhan == userId && n.DaAn)
+                )
+            );
+    }
+
 
     public async Task<PagedResultDto<NotificationDto>> GetMyNotificationsAsync(
         NotificationQueryParameters parameters,
@@ -37,63 +61,67 @@ public class NotificationService : INotificationService
         ValidateDateRange(startDate, endDate);
 
         var currentUser = GetCurrentUser();
-        var query = _context.ThongBaoNguoiNhans
-            .AsNoTracking()
-            .Include(x => x.ThongBao)
-            .Where(x =>
-                x.MaNguoiNhan == currentUser.UserId &&
-                !x.DaAn &&
-                x.ThongBao != null &&
-                x.ThongBao.TrangThai == NotificationConstants.Statuses.Sent);
+        var query = BuildMyNotificationsQuery(currentUser).AsNoTracking();
 
         var readFilter = parameters.IsRead ?? parameters.DaDoc;
         if (readFilter.HasValue)
         {
-            query = query.Where(x => x.DaDoc == readFilter.Value);
+            if (readFilter.Value)
+            {
+                query = query.Where(t => t.NguoiNhans.Any(n => n.MaNguoiNhan == currentUser.UserId && n.DaDoc));
+            }
+            else
+            {
+                query = query.Where(t => !t.NguoiNhans.Any(n => n.MaNguoiNhan == currentUser.UserId && n.DaDoc));
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(parameters.LoaiThongBao))
         {
             var type = NormalizeNotificationType(parameters.LoaiThongBao);
-            query = query.Where(x => x.ThongBao!.LoaiThongBao == type);
+            query = query.Where(t => t.LoaiThongBao == type);
         }
 
         if (!string.IsNullOrWhiteSpace(parameters.MucDo))
         {
             var level = NormalizeLevel(parameters.MucDo);
-            query = query.Where(x => x.ThongBao!.MucDo == level);
+            query = query.Where(t => t.MucDo == level);
         }
 
         if (startDate.HasValue)
         {
-            query = query.Where(x => x.NhanLuc >= startDate.Value.ToDateTime(TimeOnly.MinValue));
+            query = query.Where(t => (t.GuiLuc ?? t.NgayTao) >= startDate.Value.ToDateTime(TimeOnly.MinValue));
         }
 
         if (endDate.HasValue)
         {
-            query = query.Where(x => x.NhanLuc < endDate.Value.AddDays(1).ToDateTime(TimeOnly.MinValue));
+            query = query.Where(t => (t.GuiLuc ?? t.NgayTao) < endDate.Value.AddDays(1).ToDateTime(TimeOnly.MinValue));
         }
 
         if (!string.IsNullOrWhiteSpace(parameters.Keyword))
         {
             var keyword = parameters.Keyword.Trim().ToLowerInvariant();
-            query = query.Where(x =>
-                x.ThongBao!.TieuDe != null && x.ThongBao.TieuDe.ToLower().Contains(keyword) ||
-                x.ThongBao!.TomTatNoiDung != null && x.ThongBao.TomTatNoiDung.ToLower().Contains(keyword) ||
-                x.ThongBao!.NoiDungText != null && x.ThongBao.NoiDungText.ToLower().Contains(keyword));
+            query = query.Where(t =>
+                t.TieuDe != null && t.TieuDe.ToLower().Contains(keyword) ||
+                t.TomTatNoiDung != null && t.TomTatNoiDung.ToLower().Contains(keyword) ||
+                t.NoiDungText != null && t.NoiDungText.ToLower().Contains(keyword));
         }
 
         var totalItems = await query.CountAsync(cancellationToken);
         var rows = await query
-            .OrderByDescending(x => x.NhanLuc)
-            .ThenByDescending(x => x.MaThongBaoNguoiNhan)
+            .OrderByDescending(t => t.GuiLuc ?? t.NgayTao)
+            .ThenByDescending(t => t.MaThongBao)
             .Skip((parameters.PageIndex - 1) * parameters.PageSize)
             .Take(parameters.PageSize)
+            .Select(t => new {
+                ThongBao = t,
+                NguoiNhan = t.NguoiNhans.FirstOrDefault(n => n.MaNguoiNhan == currentUser.UserId)
+            })
             .ToListAsync(cancellationToken);
 
         return new PagedResultDto<NotificationDto>
         {
-            Items = rows.Select(x => ToDto(x.ThongBao!, x)).ToList(),
+            Items = rows.Select(x => ToDto(x.ThongBao, x.NguoiNhan, currentUser.UserId)).ToList(),
             PageIndex = parameters.PageIndex,
             PageSize = parameters.PageSize,
             TotalItems = totalItems
@@ -105,35 +133,29 @@ public class NotificationService : INotificationService
         CancellationToken cancellationToken = default)
     {
         var currentUser = GetCurrentUser();
-        var row = await _context.ThongBaoNguoiNhans
+        var row = await BuildMyNotificationsQuery(currentUser)
             .AsNoTracking()
-            .Include(x => x.ThongBao)
-            .FirstOrDefaultAsync(x =>
-                x.MaThongBao == notificationId &&
-                x.MaNguoiNhan == currentUser.UserId &&
-                !x.DaAn &&
-                x.ThongBao != null &&
-                x.ThongBao.TrangThai == NotificationConstants.Statuses.Sent,
-                cancellationToken);
+            .Where(t => t.MaThongBao == notificationId)
+            .Select(t => new {
+                ThongBao = t,
+                NguoiNhan = t.NguoiNhans.FirstOrDefault(n => n.MaNguoiNhan == currentUser.UserId)
+            })
+            .FirstOrDefaultAsync(cancellationToken);
 
-        if (row?.ThongBao is null)
+        if (row is null)
         {
             throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy thông báo.");
         }
 
-        return ToDetailDto(row.ThongBao, row);
+        return ToDetailDto(row.ThongBao, row.NguoiNhan, currentUser.UserId);
     }
 
     public async Task<UnreadCountDto> GetMyUnreadCountAsync(CancellationToken cancellationToken = default)
     {
         var currentUser = GetCurrentUser();
-        var count = await _context.ThongBaoNguoiNhans.CountAsync(x =>
-            x.MaNguoiNhan == currentUser.UserId &&
-            !x.DaDoc &&
-            !x.DaAn &&
-            x.ThongBao != null &&
-            x.ThongBao.TrangThai == NotificationConstants.Statuses.Sent,
-            cancellationToken);
+        var count = await BuildMyNotificationsQuery(currentUser)
+            .Where(t => !t.NguoiNhans.Any(n => n.MaNguoiNhan == currentUser.UserId && n.DaDoc))
+            .CountAsync(cancellationToken);
 
         return new UnreadCountDto { UnreadCount = count };
     }
@@ -143,72 +165,110 @@ public class NotificationService : INotificationService
         CancellationToken cancellationToken = default)
     {
         var currentUser = GetCurrentUser();
-        var row = await _context.ThongBaoNguoiNhans
-            .Include(x => x.ThongBao)
-            .FirstOrDefaultAsync(x =>
-                x.MaThongBao == notificationId &&
-                x.MaNguoiNhan == currentUser.UserId &&
-                !x.DaAn &&
-                x.ThongBao != null &&
-                x.ThongBao.TrangThai == NotificationConstants.Statuses.Sent,
-                cancellationToken);
+        var t = await BuildMyNotificationsQuery(currentUser)
+            .Include(x => x.NguoiNhans.Where(n => n.MaNguoiNhan == currentUser.UserId))
+            .FirstOrDefaultAsync(x => x.MaThongBao == notificationId, cancellationToken);
 
-        if (row?.ThongBao is null)
+        if (t is null)
         {
             throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy thông báo.");
         }
 
-        if (!row.DaDoc)
+        var n = t.NguoiNhans.FirstOrDefault(x => x.MaNguoiNhan == currentUser.UserId);
+        if (n == null)
         {
-            row.DaDoc = true;
-            row.DocLuc = DateTime.UtcNow;
+            n = new ThongBaoNguoiNhan { 
+                MaThongBao = t.MaThongBao, 
+                MaNguoiNhan = currentUser.UserId, 
+                MaDonVi = currentUser.CampusId, 
+                DaDoc = true, 
+                DocLuc = DateTime.UtcNow, 
+                NhanLuc = t.GuiLuc ?? t.NgayTao, 
+                NgayTao = DateTime.UtcNow 
+            };
+            _context.ThongBaoNguoiNhans.Add(n);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        else if (!n.DaDoc)
+        {
+            n.DaDoc = true;
+            n.DocLuc = DateTime.UtcNow;
             await _context.SaveChangesAsync(cancellationToken);
         }
 
-        return ToDto(row.ThongBao, row);
+        return ToDto(t, n, currentUser.UserId);
     }
 
     public async Task<UnreadCountDto> MarkAllAsReadAsync(CancellationToken cancellationToken = default)
     {
         var currentUser = GetCurrentUser();
-        var now = DateTime.UtcNow;
-        var rows = await _context.ThongBaoNguoiNhans
-            .Where(x =>
-                x.MaNguoiNhan == currentUser.UserId &&
-                !x.DaDoc &&
-                !x.DaAn &&
-                x.ThongBao != null &&
-                x.ThongBao.TrangThai == NotificationConstants.Statuses.Sent)
+        var unreadNotifications = await BuildMyNotificationsQuery(currentUser)
+            .Where(t => !t.NguoiNhans.Any(n => n.MaNguoiNhan == currentUser.UserId && n.DaDoc))
+            .Include(x => x.NguoiNhans.Where(n => n.MaNguoiNhan == currentUser.UserId))
             .ToListAsync(cancellationToken);
 
-        foreach (var row in rows)
+        var now = DateTime.UtcNow;
+        foreach (var t in unreadNotifications)
         {
-            row.DaDoc = true;
-            row.DocLuc = now;
+            var n = t.NguoiNhans.FirstOrDefault(x => x.MaNguoiNhan == currentUser.UserId);
+            if (n == null)
+            {
+                _context.ThongBaoNguoiNhans.Add(new ThongBaoNguoiNhan { 
+                    MaThongBao = t.MaThongBao, 
+                    MaNguoiNhan = currentUser.UserId, 
+                    MaDonVi = currentUser.CampusId, 
+                    DaDoc = true, 
+                    DocLuc = now, 
+                    NhanLuc = t.GuiLuc ?? t.NgayTao, 
+                    NgayTao = now 
+                });
+            }
+            else
+            {
+                n.DaDoc = true;
+                n.DocLuc = now;
+            }
         }
 
-        await _context.SaveChangesAsync(cancellationToken);
+        if (unreadNotifications.Count > 0)
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
         return await GetMyUnreadCountAsync(cancellationToken);
     }
 
     public async Task HideAsync(int notificationId, CancellationToken cancellationToken = default)
     {
         var currentUser = GetCurrentUser();
-        var row = await _context.ThongBaoNguoiNhans
-            .FirstOrDefaultAsync(x =>
-                x.MaThongBao == notificationId &&
-                x.MaNguoiNhan == currentUser.UserId,
-                cancellationToken);
+        var t = await BuildMyNotificationsQuery(currentUser)
+            .Include(x => x.NguoiNhans.Where(n => n.MaNguoiNhan == currentUser.UserId))
+            .FirstOrDefaultAsync(x => x.MaThongBao == notificationId, cancellationToken);
 
-        if (row is null)
+        if (t is null)
         {
             throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy thông báo.");
         }
 
-        if (!row.DaAn)
+        var n = t.NguoiNhans.FirstOrDefault(x => x.MaNguoiNhan == currentUser.UserId);
+        if (n == null)
         {
-            row.DaAn = true;
-            row.AnLuc = DateTime.UtcNow;
+            n = new ThongBaoNguoiNhan { 
+                MaThongBao = t.MaThongBao, 
+                MaNguoiNhan = currentUser.UserId, 
+                MaDonVi = currentUser.CampusId, 
+                DaAn = true, 
+                AnLuc = DateTime.UtcNow, 
+                NhanLuc = t.GuiLuc ?? t.NgayTao, 
+                NgayTao = DateTime.UtcNow 
+            };
+            _context.ThongBaoNguoiNhans.Add(n);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        else if (!n.DaAn)
+        {
+            n.DaAn = true;
+            n.AnLuc = DateTime.UtcNow;
             await _context.SaveChangesAsync(cancellationToken);
         }
     }
@@ -241,11 +301,17 @@ public class NotificationService : INotificationService
         EnsureCanManageNotifications(currentUser);
         var normalized = NormalizeManualRequest(request);
         var allowedOrganizationIds = await GetAllowedOrganizationIdsAsync(currentUser, cancellationToken);
-        var recipients = await ResolveRecipientsAsync(normalized.RecipientRequest, currentUser, allowedOrganizationIds, cancellationToken);
-
-        if (recipients.Count == 0)
+        
+        bool isBroadcast = normalized.PhamViGui is NotificationConstants.Scopes.AllSystem or NotificationConstants.Scopes.Role or NotificationConstants.Scopes.Organization;
+        List<RecipientInfo> recipients = new List<RecipientInfo>();
+        
+        if (!isBroadcast)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Không có người nhận hợp lệ cho thông báo.");
+            recipients = await ResolveRecipientsAsync(normalized.RecipientRequest, currentUser, allowedOrganizationIds, cancellationToken);
+            if (recipients.Count == 0)
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest, "Không có người nhận hợp lệ cho thông báo.");
+            }
         }
 
         var strategy = _context.Database.CreateExecutionStrategy();
@@ -253,34 +319,64 @@ public class NotificationService : INotificationService
         {
             await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
             var notification = BuildNotification(normalized, recipients, currentUser.UserId);
+            
+            if (isBroadcast)
+            {
+                if (normalized.PhamViGui == NotificationConstants.Scopes.Role)
+                {
+                    notification.DoiTuongLienKet = "," + string.Join(",", normalized.RecipientRequest.RoleCodes.Select(AuthRoles.ToDatabaseCode).Distinct()) + ",";
+                }
+                else if (normalized.PhamViGui == NotificationConstants.Scopes.Organization)
+                {
+                    notification.DoiTuongLienKet = "," + (normalized.RecipientRequest.MaDonVi ?? normalized.RecipientRequest.CampusId) + ",";
+                }
+                else if (normalized.PhamViGui == NotificationConstants.Scopes.AllSystem)
+                {
+                    notification.DoiTuongLienKet = "";
+                }
+            }
+
             await _context.ThongBaos.AddAsync(notification, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
 
-            var recipientRows = recipients
-                .Select(recipient => new ThongBaoNguoiNhan
-                {
-                    MaThongBao = notification.MaThongBao,
-                    MaNguoiNhan = recipient.UserId,
-                    MaDonVi = recipient.OrganizationId,
-                    DaDoc = false,
-                    DaAn = false,
-                    NhanLuc = notification.GuiLuc ?? notification.NgayTao,
-                    NgayTao = notification.NgayTao
-                })
-                .ToList();
-
-            await _context.ThongBaoNguoiNhans.AddRangeAsync(recipientRows, cancellationToken);
-            await _context.NhatKyThongBaos.AddRangeAsync(recipientRows.Select(x => new NhatKyThongBao
+            if (!isBroadcast)
             {
-                MaThongBao = notification.MaThongBao,
-                MaNguoiNhan = x.MaNguoiNhan,
-                MaDonVi = x.MaDonVi,
-                TrangThai = "da_gui",
-                KenhGui = "thong_bao_day",
-                GuiLuc = notification.GuiLuc
-            }), cancellationToken);
+                // Fire and forget background insertion for direct scopes (usually small, but we keep Task.Run for safety)
+                if (_serviceScopeFactory != null)
+                {
+                    var id = notification.MaThongBao;
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            using var scope = _serviceScopeFactory.CreateScope();
+                            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                            var chunks = recipients.Chunk(2000).ToList();
+                            foreach (var chunk in chunks)
+                            {
+                                var recipientRows = chunk.Select(recipient => new ThongBaoNguoiNhan
+                                {
+                                    MaThongBao = id,
+                                    MaNguoiNhan = recipient.UserId,
+                                    MaDonVi = recipient.OrganizationId,
+                                    DaDoc = false, DaAn = false,
+                                    NhanLuc = DateTime.UtcNow, NgayTao = DateTime.UtcNow
+                                }).ToList();
 
-            await _context.SaveChangesAsync(cancellationToken);
+                                await db.ThongBaoNguoiNhans.AddRangeAsync(recipientRows);
+                                await db.NhatKyThongBaos.AddRangeAsync(recipientRows.Select(x => new NhatKyThongBao
+                                {
+                                    MaThongBao = id, MaNguoiNhan = x.MaNguoiNhan, MaDonVi = x.MaDonVi,
+                                    TrangThai = "da_gui", KenhGui = "thong_bao_day", GuiLuc = DateTime.UtcNow
+                                }));
+                                await db.SaveChangesAsync();
+                            }
+                        }
+                        catch (Exception ex) { Console.WriteLine($"Error: {ex.Message}"); }
+                    });
+                }
+            }
+
             await transaction.CommitAsync(cancellationToken);
             return notification.MaThongBao;
         });
@@ -290,16 +386,9 @@ public class NotificationService : INotificationService
             notificationId.ToString(),
             "CREATE_NOTIFICATION",
             null,
-            new
-            {
-                MaThongBao = notificationId,
-                normalized.TieuDe,
-                normalized.LoaiThongBao,
-                normalized.PhamViGui,
-                RecipientCount = recipients.Count
-            },
+            new { MaThongBao = notificationId, normalized.TieuDe, normalized.LoaiThongBao, normalized.PhamViGui, IsBroadcast = isBroadcast },
             currentUser.UserId,
-            normalized.MaDonVi ?? recipients.First().OrganizationId,
+            normalized.MaDonVi ?? currentUser.CampusId,
             "Tạo và gửi thông báo.",
             cancellationToken);
 
@@ -336,15 +425,33 @@ public class NotificationService : INotificationService
             })
             .ToListAsync(cancellationToken);
 
+        var items = new List<AdminNotificationDto>();
+        foreach(var row in rows)
+        {
+            int recipientCount = row.RecipientCount;
+            bool isBroadcast = row.Notification.PhamViGui is NotificationConstants.Scopes.AllSystem or NotificationConstants.Scopes.Role or NotificationConstants.Scopes.Organization;
+            if (isBroadcast) 
+            {
+                // Dynamic count for UI
+                if (row.Notification.PhamViGui == NotificationConstants.Scopes.AllSystem)
+                    recipientCount = await _context.NguoiDungs.CountAsync(u => u.TrangThai == UserStatuses.DbActive, cancellationToken);
+                else if (row.Notification.PhamViGui == NotificationConstants.Scopes.Role && row.Notification.DoiTuongLienKet != null)
+                {
+                    var roles = row.Notification.DoiTuongLienKet.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                    recipientCount = await _context.NguoiDungs.CountAsync(u => roles.Contains(u.VaiTroChinh) && u.TrangThai == UserStatuses.DbActive, cancellationToken);
+                }
+                else if (row.Notification.PhamViGui == NotificationConstants.Scopes.Organization && row.Notification.DoiTuongLienKet != null)
+                {
+                    var orgs = row.Notification.DoiTuongLienKet.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToList();
+                    recipientCount = await _context.NguoiDungs.CountAsync(u => orgs.Contains(u.MaDonVi) && u.TrangThai == UserStatuses.DbActive, cancellationToken);
+                }
+            }
+            items.Add(ToAdminDto(row.Notification, recipientCount, row.ReadCount, row.HiddenCount, row.TenDonVi, row.TenNguoiTao));
+        }
+
         return new PagedResultDto<AdminNotificationDto>
         {
-            Items = rows.Select(x => ToAdminDto(
-                x.Notification,
-                x.RecipientCount,
-                x.ReadCount,
-                x.HiddenCount,
-                x.TenDonVi,
-                x.TenNguoiTao)).ToList(),
+            Items = items,
             PageIndex = parameters.PageIndex,
             PageSize = parameters.PageSize,
             TotalItems = totalItems
@@ -378,8 +485,25 @@ public class NotificationService : INotificationService
             throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy thông báo.");
         }
 
-        EnsureNotificationInScope(row.Notification, allowedOrganizationIds);
-        return ToAdminDto(row.Notification, row.RecipientCount, row.ReadCount, row.HiddenCount, row.TenDonVi, row.TenNguoiTao);
+        int recipientCount = row.RecipientCount;
+        bool isBroadcast = row.Notification.PhamViGui is NotificationConstants.Scopes.AllSystem or NotificationConstants.Scopes.Role or NotificationConstants.Scopes.Organization;
+        if (isBroadcast) 
+        {
+            if (row.Notification.PhamViGui == NotificationConstants.Scopes.AllSystem)
+                recipientCount = await _context.NguoiDungs.CountAsync(u => u.TrangThai == UserStatuses.DbActive, cancellationToken);
+            else if (row.Notification.PhamViGui == NotificationConstants.Scopes.Role && row.Notification.DoiTuongLienKet != null)
+            {
+                var roles = row.Notification.DoiTuongLienKet.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                recipientCount = await _context.NguoiDungs.CountAsync(u => roles.Contains(u.VaiTroChinh) && u.TrangThai == UserStatuses.DbActive, cancellationToken);
+            }
+            else if (row.Notification.PhamViGui == NotificationConstants.Scopes.Organization && row.Notification.DoiTuongLienKet != null)
+            {
+                var orgs = row.Notification.DoiTuongLienKet.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToList();
+                recipientCount = await _context.NguoiDungs.CountAsync(u => orgs.Contains(u.MaDonVi) && u.TrangThai == UserStatuses.DbActive, cancellationToken);
+            }
+        }
+
+        return ToAdminDto(row.Notification, recipientCount, row.ReadCount, row.HiddenCount, row.TenDonVi, row.TenNguoiTao);
     }
 
     public async Task<PagedResultDto<AdminNotificationRecipientDto>> GetAdminNotificationRecipientsAsync(
@@ -592,39 +716,62 @@ public class NotificationService : INotificationService
         }
 
         var strategy = _context.Database.CreateExecutionStrategy();
+        int notificationId = 0;
         await strategy.ExecuteAsync(async () =>
         {
             await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
             var notification = BuildNotification(normalized, recipients, normalized.NguoiTao);
             await _context.ThongBaos.AddAsync(notification, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
-
-            var recipientRows = recipients
-                .GroupBy(x => x.UserId)
-                .Select(x => x.First())
-                .Select(recipient => new ThongBaoNguoiNhan
-                {
-                    MaThongBao = notification.MaThongBao,
-                    MaNguoiNhan = recipient.UserId,
-                    MaDonVi = recipient.OrganizationId,
-                    NhanLuc = notification.GuiLuc ?? notification.NgayTao,
-                    NgayTao = notification.NgayTao
-                })
-                .ToList();
-
-            await _context.ThongBaoNguoiNhans.AddRangeAsync(recipientRows, cancellationToken);
-            await _context.NhatKyThongBaos.AddRangeAsync(recipientRows.Select(x => new NhatKyThongBao
-            {
-                MaThongBao = notification.MaThongBao,
-                MaNguoiNhan = x.MaNguoiNhan,
-                MaDonVi = x.MaDonVi,
-                TrangThai = "da_gui",
-                KenhGui = "thong_bao_day",
-                GuiLuc = notification.GuiLuc
-            }), cancellationToken);
-
-            await _context.SaveChangesAsync(cancellationToken);
+            notificationId = notification.MaThongBao;
+            
             await transaction.CommitAsync(cancellationToken);
+        });
+        
+        if (notificationId == 0) return;
+        
+        // Background insertion
+        if (_serviceScopeFactory == null) return;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var scope = _serviceScopeFactory.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                
+                var distinctRecipients = recipients.GroupBy(x => x.UserId).Select(x => x.First()).ToList();
+                var chunks = distinctRecipients.Chunk(2000).ToList();
+                
+                foreach (var chunk in chunks)
+                {
+                    var recipientRows = chunk.Select(recipient => new ThongBaoNguoiNhan
+                    {
+                        MaThongBao = notificationId,
+                        MaNguoiNhan = recipient.UserId,
+                        MaDonVi = recipient.OrganizationId,
+                        DaDoc = false,
+                        DaAn = false,
+                        NhanLuc = DateTime.UtcNow,
+                        NgayTao = DateTime.UtcNow
+                    }).ToList();
+
+                    await db.ThongBaoNguoiNhans.AddRangeAsync(recipientRows);
+                    await db.NhatKyThongBaos.AddRangeAsync(recipientRows.Select(x => new NhatKyThongBao
+                    {
+                        MaThongBao = notificationId,
+                        MaNguoiNhan = x.MaNguoiNhan,
+                        MaDonVi = x.MaDonVi,
+                        TrangThai = "da_gui",
+                        KenhGui = "thong_bao_day",
+                        GuiLuc = DateTime.UtcNow
+                    }));
+                    await db.SaveChangesAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[NotificationService] Error inserting system recipients for notification {notificationId}: {ex.Message}");
+            }
         });
     }
 
@@ -1215,15 +1362,22 @@ public class NotificationService : INotificationService
         int? creatorId)
     {
         var now = DateTime.UtcNow;
-        var firstRecipient = recipients.First();
-        var organizationId = normalized.MaDonVi ?? firstRecipient.OrganizationId;
-        var legacyRecipient = firstRecipient.UserId;
+        var organizationId = normalized.MaDonVi;
+        var legacyRecipient = creatorId ?? 1;
+
+        if (recipients.Count > 0)
+        {
+            var firstRecipient = recipients.First();
+            organizationId ??= firstRecipient.OrganizationId;
+            legacyRecipient = firstRecipient.UserId;
+        }
+
         var body = normalized.NoiDungText ?? normalized.TomTatNoiDung ?? normalized.TieuDe;
         return new ThongBao
         {
             MaNhomThongBao = Guid.NewGuid(),
             MaNguoiNhan = legacyRecipient,
-            MaDonVi = organizationId,
+            MaDonVi = organizationId ?? 1,
             LoaiSuKien = normalized.LoaiThongBao,
             LoaiThongBao = normalized.LoaiThongBao,
             TieuDe = normalized.TieuDe,
@@ -1247,57 +1401,46 @@ public class NotificationService : INotificationService
         };
     }
 
-    private static NotificationDto ToDto(ThongBao notification, ThongBaoNguoiNhan recipient)
+    private static NotificationDto ToDto(ThongBao notification, ThongBaoNguoiNhan? recipient, int userId)
     {
         return new NotificationDto
         {
             MaThongBao = notification.MaThongBao,
-            MaNhomThongBao = notification.MaNhomThongBao,
-            TieuDe = notification.TieuDe,
-            TomTat = notification.TomTatNoiDung ?? notification.TomTat,
-            TomTatNoiDung = notification.TomTatNoiDung ?? notification.TomTat,
             LoaiThongBao = notification.LoaiThongBao,
+            TieuDe = notification.TieuDe,
+            TomTatNoiDung = notification.TomTatNoiDung,
             MucDo = notification.MucDo,
-            DoiTuongLienKet = notification.LoaiDoiTuongLienKet ?? notification.DoiTuongLienKet,
-            LoaiDoiTuongLienKet = notification.LoaiDoiTuongLienKet ?? notification.DoiTuongLienKet,
-            MaDoiTuongLienKet = notification.MaDoiTuongLienKet,
             DuongDan = notification.DuongDan,
-            DaDoc = recipient.DaDoc,
-            DocLuc = recipient.DocLuc,
-            DaAn = recipient.DaAn,
-            AnLuc = recipient.AnLuc,
-            NhanLuc = recipient.NhanLuc,
-            NgayTao = notification.NgayTao
+            NgayTao = notification.NgayTao,
+            DaDoc = recipient?.DaDoc ?? false,
+            DocLuc = recipient?.DocLuc,
+            DaAn = recipient?.DaAn ?? false,
+            AnLuc = recipient?.AnLuc,
+            NhanLuc = recipient?.NhanLuc ?? notification.GuiLuc ?? notification.NgayTao
         };
     }
 
-    private static NotificationDetailDto ToDetailDto(ThongBao notification, ThongBaoNguoiNhan recipient)
+    private static NotificationDetailDto ToDetailDto(ThongBao notification, ThongBaoNguoiNhan? recipient, int userId)
     {
-        var dto = new NotificationDetailDto
+        return new NotificationDetailDto
         {
-            NoiDung = notification.NoiDung,
+            MaThongBao = notification.MaThongBao,
+            LoaiThongBao = notification.LoaiThongBao,
+            TieuDe = notification.TieuDe,
+            TomTat = notification.TomTatNoiDung,
+            TomTatNoiDung = notification.TomTatNoiDung,
+            NoiDung = notification.NoiDung ?? string.Empty,
             NoiDungJson = notification.NoiDungJson,
-            NoiDungText = notification.NoiDungText
+            NoiDungText = notification.NoiDungText,
+            MucDo = notification.MucDo,
+            DuongDan = notification.DuongDan,
+            NgayTao = notification.NgayTao,
+            DaDoc = recipient?.DaDoc ?? false,
+            DocLuc = recipient?.DocLuc,
+            DaAn = recipient?.DaAn ?? false,
+            AnLuc = recipient?.AnLuc,
+            NhanLuc = recipient?.NhanLuc ?? notification.GuiLuc ?? notification.NgayTao
         };
-        var baseDto = ToDto(notification, recipient);
-        dto.MaThongBao = baseDto.MaThongBao;
-        dto.MaNhomThongBao = baseDto.MaNhomThongBao;
-        dto.TieuDe = baseDto.TieuDe;
-        dto.TomTat = baseDto.TomTat;
-        dto.TomTatNoiDung = baseDto.TomTatNoiDung;
-        dto.LoaiThongBao = baseDto.LoaiThongBao;
-        dto.MucDo = baseDto.MucDo;
-        dto.DoiTuongLienKet = baseDto.DoiTuongLienKet;
-        dto.LoaiDoiTuongLienKet = baseDto.LoaiDoiTuongLienKet;
-        dto.MaDoiTuongLienKet = baseDto.MaDoiTuongLienKet;
-        dto.DuongDan = baseDto.DuongDan;
-        dto.DaDoc = baseDto.DaDoc;
-        dto.DocLuc = baseDto.DocLuc;
-        dto.DaAn = baseDto.DaAn;
-        dto.AnLuc = baseDto.AnLuc;
-        dto.NhanLuc = baseDto.NhanLuc;
-        dto.NgayTao = baseDto.NgayTao;
-        return dto;
     }
 
     private static AdminNotificationDto ToAdminDto(

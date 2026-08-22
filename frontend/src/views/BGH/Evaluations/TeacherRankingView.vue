@@ -49,14 +49,16 @@ const filteredRankings = computed(() => {
     list = list.filter(gv => gv.name.toLowerCase().includes(q) || gv.dept.toLowerCase().includes(q))
   }
   if (majorFilter.value !== 'all') {
-    const selectedSpec = specializationOptions.value.find(s => s.value === majorFilter.value)
-    if (selectedSpec) {
-      list = list.filter(gv => gv.dept.toLowerCase().includes(selectedSpec.label.toLowerCase()))
-    }
+    list = list.filter(gv => String(gv.deptId) === String(majorFilter.value))
   } else if (industryFilter.value !== 'all') {
-    const selectedInd = industryOptions.value.find(i => i.value === industryFilter.value)
-    if (selectedInd) {
-      list = list.filter(gv => gv.dept.toLowerCase().includes(selectedInd.label.toLowerCase()))
+    const validSpecIds = specializationOptions.value
+      .filter(s => String(s.majorId || s.maNganh) === String(industryFilter.value))
+      .map(s => String(s.value))
+    
+    if (validSpecIds.length > 0) {
+      list = list.filter(gv => validSpecIds.includes(String(gv.deptId)))
+    } else {
+      list = []
     }
   }
   if (ratingFilter.value === '5_star') {
@@ -189,7 +191,6 @@ function viewDetail(gv) {
            <LmsSelect v-model="majorFilter" :options="availableMajors" class="w-44 surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)" />
            <LmsSelect v-model="ratingFilter" :options="ratingOptions" class="w-48 surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)" />
         </div>
-        <LmsSelect v-model="semesterFilter" :options="semesterOptions" class="w-44 surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)" />
       </div>
 
       <div class="lg-table-shell overflow-hidden">

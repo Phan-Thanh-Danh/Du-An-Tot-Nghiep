@@ -180,6 +180,12 @@ const router = createRouter({
           meta: { title: 'Đánh giá giảng viên' },
         },
         {
+          path: 'organizations',
+          name: 'student-organizations',
+          component: () => import('../views/SuperAdmin/OrganizationsView.vue'),
+          meta: { title: 'Quản lý Cơ sở' },
+        },
+        {
           path: 'profile',
           name: 'student-profile',
           component: () => import('../views/Student/ProfileView.vue'),
@@ -726,6 +732,18 @@ const router = createRouter({
           name: 'super-admin-notifications-templates',
           component: () => import('../views/SuperAdmin/NotificationTemplatesView.vue'),
           meta: { title: 'Template thông báo' },
+        },
+        {
+          path: 'notifications/templates/create',
+          name: 'super-admin-notifications-templates-create',
+          component: () => import('../views/SuperAdmin/NotificationTemplateFormView.vue'),
+          meta: { title: 'Tạo mẫu thông báo' },
+        },
+        {
+          path: 'notifications/templates/:id/edit',
+          name: 'super-admin-notifications-templates-edit',
+          component: () => import('../views/SuperAdmin/NotificationTemplateFormView.vue'),
+          meta: { title: 'Sửa mẫu thông báo' },
         },
         {
           path: 'notifications/send',

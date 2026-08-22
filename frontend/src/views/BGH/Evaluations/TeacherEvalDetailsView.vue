@@ -15,11 +15,29 @@ import {
   AlertCircle,
   TrendingUp,
   Building2,
-  BadgeCheck
+  BadgeCheck,
+  Loader2
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
+import { exportTeacherEvalDetailToPdf } from '@/components/BGH/performance/bghExport.js'
+import { usePopupStore } from '@/stores/popup'
 import { bghApi } from '@/services/bghApi'
 import { unwrapApiData } from '@/services/apiClient'
+
+const popup = usePopupStore()
+const exportingPdf = ref(false)
+async function exportPdf() {
+  if (exportingPdf.value || !teacher.value) return
+  exportingPdf.value = true
+  try {
+    await exportTeacherEvalDetailToPdf({ teacher: teacher.value })
+  } catch (err) {
+    console.error(err)
+    popup.error('Lỗi xuất báo cáo', 'Không thể tạo file PDF.')
+  } finally {
+    exportingPdf.value = false
+  }
+}
 
 const route = useRoute()
 const loading = ref(false)
@@ -122,8 +140,9 @@ onMounted(() => { loadData() })
          <router-link to="/bgh/evaluations/ranking" class="lg-button-secondary px-4 py-2.5 text-xs font-bold flex items-center gap-2 rounded-xl">
             <ArrowLeft :size="16" /> Quay lại danh sách
          </router-link>
-         <button class="lg-button-primary py-2.5 px-5 text-xs font-bold flex items-center gap-2 rounded-xl shadow-sm">
-            <Download :size="16" /> Xuất báo cáo PDF
+         <button @click="exportPdf" :disabled="exportingPdf" class="lg-button-primary py-2.5 px-5 text-xs font-bold flex items-center gap-2 rounded-xl shadow-sm">
+            <Loader2 v-if="exportingPdf" :size="16" class="animate-spin" />
+            <Download v-else :size="16" /> {{ exportingPdf ? 'Đang xuất...' : 'Xuất báo cáo PDF' }}
          </button>
       </div>
     </template>

@@ -611,7 +611,7 @@ public class BghFacadeController : ControllerBase
             .Take(pageSize)
             .Select(x => new
             {
-                Id = x.MaKiemToan,
+                MaKiemToan = x.MaKiemToan,
                 x.LoaiDoiTuong,
                 x.MaDoiTuong,
                 x.HanhDong,
@@ -620,6 +620,9 @@ public class BghFacadeController : ControllerBase
                 x.ThoiDiemThayDoi,
                 x.DiaChiIp,
                 x.MoTa,
+                x.UserAgent,
+                x.TraceId,
+                TenDonVi = x.DonVi != null ? x.DonVi.TenDonVi : null,
                 TenNguoiThayDoi = x.NguoiThayDoiNavigation != null ? x.NguoiThayDoiNavigation.HoTen : null
             })
             .ToListAsync();
