@@ -131,6 +131,10 @@ public static class DatabaseSchemaPatcher
             @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[ThietBiPhong]') AND name = N'ghi_chu')
                 ALTER TABLE [dbo].[ThietBiPhong] ADD [ghi_chu] nvarchar(500) NULL;",
 
+            // TienDoBaiHoc missing columns
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[TienDoBaiHoc]') AND name = N'ghi_chu')
+                ALTER TABLE [dbo].[TienDoBaiHoc] ADD [ghi_chu] nvarchar(500) NULL;",
+
             // YeuCauXuatDuLieu table
             @"IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = N'YeuCauXuatDuLieu')
                 CREATE TABLE [dbo].[YeuCauXuatDuLieu] (
