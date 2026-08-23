@@ -354,11 +354,13 @@ const router = createRouter({
         { path: 'attendance-history', name: 'teacher-attendance-history', component: () => import('../views/GiangVien/AttendanceHistoryView.vue') },
         { path: 'grading-input', name: 'teacher-grading-input', component: () => import('../views/GiangVien/GradingCourseListView.vue') },
         { path: 'grading-input/:classId', name: 'teacher-grading-detail', component: () => import('../views/GiangVien/ClassGradesView.vue') },
-        { path: 'student-questions', name: 'teacher-student-questions', component: () => import('../views/GiangVien/StudentQuestionsView.vue') },
-        { path: 'lesson-comments', name: 'teacher-lesson-comments', component: () => import('../views/GiangVien/LessonCommentsView.vue') },
+        { path: 'discussions', name: 'teacher-discussions', component: () => import('../views/GiangVien/LessonCommentsView.vue'), meta: { title: 'Hỏi đáp & Thảo luận' } },
+        { path: 'student-questions', name: 'teacher-student-questions', component: () => import('../views/GiangVien/LessonCommentsView.vue'), meta: { title: 'Hỏi đáp & Thảo luận' } },
+        { path: 'lesson-comments', name: 'teacher-lesson-comments', component: () => import('../views/GiangVien/LessonCommentsView.vue'), meta: { title: 'Hỏi đáp & Thảo luận' } },
         { path: 'requests', name: 'teacher-requests', component: () => import('../views/GiangVien/PendingRequestsView.vue') , meta: { title: 'Đơn cần xử lý' } },
         { path: 'requests-history', name: 'teacher-requests-history', component: () => import('../views/GiangVien/RequestsHistoryView.vue') , meta: { title: 'Đơn đã xử lý' } },
         { path: 'profile', name: 'teacher-profile', component: () => import('../views/GiangVien/ProfileView.vue') },
+        { path: 'evaluations', name: 'teacher-evaluations', component: () => import('../views/GiangVien/TeacherEvaluationsView.vue'), meta: { title: 'Đánh giá từ sinh viên' } },
         { path: 'teaching-preferences', name: 'teacher-teaching-preferences', component: () => import('../views/GiangVien/TeachingPreferencesView.vue'), meta: { title: 'Đăng ký nguyện vọng giảng dạy' } },
 
         {
@@ -431,7 +433,7 @@ const router = createRouter({
     {
       path: '/bgh',
       component: () => import('../components/BGH/Layout_BGH.vue'),
-      meta: { requiresAuth: true, role: 'Principal' },
+      meta: { requiresAuth: true, role: ['Principal', 'Chairman', 'VicePrincipal', 'AcademicDirector', 'DepartmentHead', 'TruongKhoa', 'BanGiamHieu'] },
       children: [
         { path: '', redirect: '/bgh/dashboard' },
         {
@@ -789,7 +791,7 @@ const router = createRouter({
     {
       path: '/content-council',
       component: () => import('../layouts/content-council/ContentCouncilLayout.vue'),
-      meta: { requiresAuth: true, role: 'HoiDongQuanLyNoiDung' },
+      meta: { requiresAuth: true, role: ['HoiDongQuanLyNoiDung', 'ContentCouncil', 'AcademicCouncil'] },
       children: [
         { path: '', redirect: '/content-council/subjects' },
         {
@@ -814,19 +816,19 @@ const router = createRouter({
           path: 'quizzes/new',
           name: 'content-council-quiz-create',
           component: () => import('../pages/content-council/quizzes/QuizFormPage.vue'),
-          meta: { title: 'Tạo Quiz', requiresAuth: true, roles: ['HoiDongQuanLyNoiDung'] }
+          meta: { title: 'Tạo Quiz', requiresAuth: true, roles: ['HoiDongQuanLyNoiDung', 'ContentCouncil', 'AcademicCouncil'] }
         },
         {
           path: 'quizzes/:quizId/edit',
           name: 'content-council-quiz-edit',
           component: () => import('../pages/content-council/quizzes/QuizFormPage.vue'),
-          meta: { title: 'Chỉnh sửa Quiz', requiresAuth: true, roles: ['HoiDongQuanLyNoiDung'] }
+          meta: { title: 'Chỉnh sửa Quiz', requiresAuth: true, roles: ['HoiDongQuanLyNoiDung', 'ContentCouncil', 'AcademicCouncil'] }
         },
         {
           path: 'quizzes/:quizId/builder',
           name: 'content-council-quiz-builder',
           component: () => import('../pages/content-council/quizzes/QuizBuilderPage.vue'),
-          meta: { title: 'Xây dựng đề', requiresAuth: true, roles: ['HoiDongQuanLyNoiDung'] }
+          meta: { title: 'Xây dựng đề', requiresAuth: true, roles: ['HoiDongQuanLyNoiDung', 'ContentCouncil', 'AcademicCouncil'] }
         },
         {
           path: 'subjects/:subjectId',
@@ -858,7 +860,7 @@ const router = createRouter({
       path: '/content-council/subjects/:subjectId/preview',
       name: 'content-council-subject-preview',
       component: () => import('../pages/content-council/subjects/SubjectPreviewPage.vue'),
-      meta: { title: 'Xem như học sinh', requiresAuth: true, role: 'HoiDongQuanLyNoiDung', previewMode: true }
+      meta: { title: 'Xem như học sinh', requiresAuth: true, role: ['HoiDongQuanLyNoiDung', 'ContentCouncil', 'AcademicCouncil'], previewMode: true }
     },
 
     // ── 404 ───────────────────────────────────────────────

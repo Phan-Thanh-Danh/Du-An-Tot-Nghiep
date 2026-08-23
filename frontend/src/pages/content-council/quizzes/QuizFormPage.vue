@@ -204,6 +204,7 @@ const buildApiPayload = () => {
 
   return {
     MaMonHoc: d.subjectId,
+    MaHocKy: d.semesterId || null,
     TieuDe: d.title?.trim(),
     MoTa: d.description?.trim(),
     ThoiGianPhut: d.durationMinutes,
@@ -214,7 +215,7 @@ const buildApiPayload = () => {
     CauHinh: {
       MoTa: d.description?.trim(),
       TongDiem: d.totalScore,
-      DiemDat: d.passingScore ?? 0,
+      DiemDat: d.passMethod === 'score' ? (d.passingScore ?? 5) : 0,
       CachTinhDat: cachTinhDat,
       SoCauDungToiThieu: d.passMethod === 'correct_answer_count' ? (d.minimumCorrectAnswers ?? null) : null,
       KhongGioiHanSoLan: d.unlimitedAttempts,
@@ -226,6 +227,7 @@ const buildApiPayload = () => {
       XaoTronDapAn: d.shuffleAnswers,
       HienKetQuaSauKhiNop: d.showResultAfterSubmit,
       HienDapAnDungSauKhiNop: d.showCorrectAnswerAfterSubmit,
+      HienGiaiThichSauKhiNop: d.showExplanationAfterSubmit,
     }
   }
 }
@@ -243,6 +245,13 @@ const normalizeQuizFromResponse = (raw: any): any => {
     : loaiBe === 'ket_hop' ? 'mixed'
     : 'multiple_choice'
 
+  const rawStatus = raw.TrangThai ?? raw.trangThai ?? 'draft'
+  const status: 'draft' | 'published' | 'open' | 'closed' =
+    rawStatus === 'nhap' || rawStatus === 'draft' ? 'draft'
+    : rawStatus === 'dang_mo' || rawStatus === 'published' || rawStatus === 'da_xuat_ban' || rawStatus === 'hoat_dong' ? 'published'
+    : rawStatus === 'da_dong' || rawStatus === 'closed' ? 'closed'
+    : rawStatus
+
   return {
     id,
     code: `QZ-${id}`,
@@ -251,7 +260,8 @@ const normalizeQuizFromResponse = (raw: any): any => {
     subjectId: raw.MaMonHoc ?? raw.maMonHoc ?? raw.subjectId ?? 0,
     subjectCode: raw.MaCodeMonHoc ?? raw.maCodeMonHoc ?? '',
     subjectName: raw.TenMonHoc ?? raw.tenMonHoc ?? '',
-    status: raw.TrangThai ?? raw.trangThai ?? 'draft',
+    semesterId: raw.MaHocKy ?? raw.maHocKy ?? null,
+    status,
     examType: 'lesson_quiz',
     format,
     durationMinutes: raw.ThoiGianPhut ?? raw.thoiGianPhut ?? 15,
@@ -274,7 +284,7 @@ const normalizeQuizFromResponse = (raw: any): any => {
     shuffleAnswers: cfg.XaoTronDapAn ?? cfg.xaoTronDapAn ?? false,
     showResultAfterSubmit: cfg.HienKetQuaSauKhiNop ?? cfg.hienKetQuaSauKhiNop ?? true,
     showCorrectAnswerAfterSubmit: cfg.HienDapAnDungSauKhiNop ?? cfg.hienDapAnDungSauKhiNop ?? false,
-    showExplanationAfterSubmit: false,
+    showExplanationAfterSubmit: cfg.HienGiaiThichSauKhiNop ?? cfg.hienGiaiThichSauKhiNop ?? false,
     openAt: cfg.MoLuc ?? cfg.moLuc ?? null,
     closeAt: cfg.DongLuc ?? cfg.dongLuc ?? null,
     usageCount: 0,

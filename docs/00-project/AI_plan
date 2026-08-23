@@ -1,0 +1,121 @@
+# Kế hoạch Tích hợp AI Local (Ollama) vào AET LMS: Phân quyền Đa Role & Tính năng Tóm tắt Bài học / Video / Tài liệu
+
+Tài liệu này được cập nhật theo yêu cầu mới nhất:
+1. **Loại bỏ vai trò Phụ huynh** ra khỏi phạm vi tích hợp AI.
+2. **Thiết lập Phân quyền Toàn diện & Nghiêm ngặt** cho tất cả các Role chính trong hệ thống: **Sinh viên, Giảng viên, Hội đồng Nội dung (Content Council), Giáo vụ, Ban Giám Hiệu (BGH), Admin / Super Admin**.
+3. **Phát huy thế mạnh cốt lõi của AI:** Hỗ trợ sinh viên **tóm tắt video bài giảng, tài liệu khóa học, đề cương, bài đọc**, giải thích kiến thức và hỏi đáp tương tác trực tiếp dựa trên nội dung môn học đang học.
+4. **Hỗ trợ Chat tự do 100%:** Người dùng có thể gõ bất kỳ câu hỏi nào tùy ý.
+
+---
+
+## 1. Tính năng Trọng tâm: AI Tóm tắt Bài học, Video & Tài liệu Khóa học (AI Study Copilot)
+
+Entity [`BaiHoc`](file:///D:/A/Du-An-Tot-Nghiep/Backend/Models/BaiHoc.cs) trong database đã có sẵn cột `TomTatAi` và quan hệ với [`BaiHocNoiDung`](file:///D:/A/Du-An-Tot-Nghiep/Backend/Models/BaiHocNoiDung.cs) (chứa video, slide HTML, tài liệu, văn bản). AI sẽ tận dụng trực tiếp dữ liệu này:
+
+```
+                      LUỒNG TÓM TẮT & HỌC TẬP THÔNG MINH
+                                      │
+     ┌────────────────────────────────┼────────────────────────────────┐
+     ▼                                ▼                                ▼
+[Tóm tắt Bài học & Video]    [Tóm tắt Khóa học & Đề cương]     [Hỏi đáp Ngữ cảnh Môn học]
+(Summarize Lesson/Video)     (Course Syllabus Summary)        (In-Course Contextual Chat)
+- Đọc nội dung văn bản,      - Đọc đề cương, mục tiêu        - SV hỏi trực tiếp trong môn:
+  transcript video, slide      môn học, danh mục chương.       "Bài 3 giải thuật là gì?"
+- Sinh 3-5 ý chính,          - Tổng hợp kiến thức trọng tâm   - AI trả lời bám sát giáo trình
+  khái niệm cốt lõi,           của cả khóa học.                 chính khóa của giảng viên.
+  câu hỏi tự kiểm tra.
+```
+
+### 1.1. Các điểm chạm giao diện (UI) cho tính năng Tóm tắt & Học tập:
+1. **Nút "Tóm tắt bài học với AI" (AI Summarize Button):**
+   - Vị trí: Trong trang Chi tiết Khóa học / Xem bài học ([`views/Student/CourseDetailView.vue`](file:///D:/A/Du-An-Tot-Nghiep/frontend/src/views/Student/CourseDetailView.vue)).
+   - Thao tác: Sinh viên bấm nút "✨ Tóm tắt nhanh" -> AI sinh ngay bản tóm tắt nội dung bài/video (lưu cache vào `BaiHoc.TomTatAi` để tiết kiệm tài nguyên suy luận cho các lần sau).
+2. **Chat Ngữ cảnh theo Môn học (Context-Aware Chat):**
+   - Khi sinh viên đang ở trong môn học bất kỳ và mở Widget chat ở góc phải -> AI tự động nhận biết môn học hiện tại và ưu tiên giải đáp các câu hỏi liên quan đến tài liệu môn học đó.
+3. **Chat Tự do Mọi nơi (Floating Widget `AiAssistant.vue`):**
+   - Sinh viên có thể gõ bất kỳ câu hỏi nào: *"Tóm tắt giúp em bài 2 môn Lập trình Web"*, *"Giải thích khái niệm Dependency Injection"*...
+
+---
+
+## 2. Ma trận Phân quyền & Giới hạn Ngữ cảnh Chi tiết theo Từng Role
+
+Backend ASP.NET Core kiểm soát danh tính và quyền hạn nghiêm ngặt từ token JWT (`HttpContext.Items["CurrentUser"]`).
+
+| Role (Vai trò) | Quyền hạn & Khả năng của AI | Ranh giới Bảo mật (Guardrails CẤM TUYỆT ĐỐI) |
+|---|---|---|
+| 🎓 **Sinh viên** (`Student`) | - **Tóm tắt bài học, video bài giảng, slide, tài liệu** của các khóa học đang theo học.<br>- Giải thích thuật ngữ, hướng dẫn làm bài tập, giải bài mẫu.<br>- Hướng dẫn quy chế học vụ (đăng ký môn, quy định điểm danh, học lại/thi lại, nộp đơn hỗ trợ). | ❌ **Tuyệt đối CẤM:** Không được hỏi điểm số, kết quả bài thi, thông tin cá nhân của sinh viên khác.<br>❌ **Tuyệt đối CẤM:** Không được hỏi thông tin riêng tư, lương, đánh giá nội bộ của giảng viên.<br>❌ **Tuyệt đối CẤM:** Không được truy xuất đề thi trước giờ thi hoặc dữ liệu nội bộ nhà trường. |
+| 👨‍🏫 **Giảng viên** (`Teacher`) | - Hỗ trợ soạn đề cương bài giảng, tóm tắt giáo trình môn mình dạy.<br>- **Tự động sinh ngân hàng câu hỏi** (trắc nghiệm, tự luận ngắn) từ nội dung bài học.<br>- Gợi ý mẫu nhận xét phản hồi bài nộp của sinh viên.<br>- Hướng dẫn quy trình học vụ (nhập điểm, sửa điểm, xin mở khóa điểm danh). | ❌ **Tuyệt đối CẤM:** Không được yêu cầu AI cung cấp tình trạng giảng dạy, số giờ dạy, đánh giá, xếp hạng hoặc lịch riêng của các giảng viên khác.<br>❌ **Tuyệt đối CẤM:** Không được xem dữ liệu các lớp học phần mình không được phân công giảng dạy. |
+| 🏛️ **Hội đồng Nội dung** (`ContentCouncil` / `HoiDongQuanLyNoiDung`) | - Hỗ trợ rà soát đề cương chi tiết môn học ([`CourseSyllabus`](file:///D:/A/Du-An-Tot-Nghiep/Backend/Models/CourseSyllabus.cs)).<br>- Kiểm tra tính liên thông, sự trùng lặp hoặc thiếu hụt kiến thức giữa các môn trong Khung chương trình đào tạo.<br>- Đề xuất chuẩn đầu ra (CLO/PLO) cho môn học mới. | ❌ Tuân thủ phạm vi thẩm định nội dung học thuật, không can thiệp vào dữ liệu điểm cá nhân hay thông tin nhân sự. |
+| 📋 **Giáo vụ** (`AcademicStaff`) | - Tra cứu quy chế đào tạo, hướng dẫn xử lý các loại đơn từ học vụ (xin nghỉ, xin thi lại, chuyển lớp).<br>- Tư vấn quy chuẩn xếp thời khóa biểu, tiêu chuẩn phòng học, ca học trong phạm vi cơ sở (`MaDonVi`) phụ trách. | ❌ Không được truy xuất dữ liệu ngoài cơ sở (`MaDonVi`) được phân công quản lý. |
+| 👔 **Ban Giám Hiệu** (`Principal` / `CampusAdmin`) | - Tổng hợp báo cáo học thuật, phân tích xu hướng tỷ lệ đạt/rớt môn, cảnh báo sinh viên có nguy cơ bỏ học theo kỳ.<br>- Phân tích tổng quan chất lượng giảng dạy và khảo sát đánh giá giảng viên trong phạm vi cơ sở hoặc toàn trường. | ❌ Tuân thủ đúng phạm vi cơ sở (`MaDonVi`) hoặc toàn trường đã được phân quyền. |
+| ⚙️ **Admin / Super Admin** | - Toàn quyền cấu hình mô hình AI local (Ollama, Qwen3.5, Qwen-Embedding).<br>- Giám sát hàng đợi tải, kiểm tra kết nối (`GET /api/ai/health`), chạy thử nghiệm vector embedding (`POST /api/ai/embedding-test`). | - Đảm bảo an toàn hệ thống và bảo mật tài nguyên máy chủ. |
+
+---
+
+## 3. Kiến trúc Kỹ thuật Backend & Ollama
+
+### 3.1. Cấu hình Ollama & Resource Limiter
+- File: [`Backend/appsettings.json`](file:///D:/A/Du-An-Tot-Nghiep/Backend/appsettings.json) & [`docker-compose.yml`](file:///D:/A/Du-An-Tot-Nghiep/docker-compose.yml)
+```json
+"Ollama": {
+  "BaseUrl": "http://localhost:11434",
+  "ChatModel": "qwen3.5:9b-q4_K_M",
+  "EmbeddingModel": "qwen3-embedding:0.6b",
+  "ContextLength": 4096,
+  "MaxOutputTokens": 384,
+  "TimeoutSeconds": 180,
+  "MaxConcurrentChatRequests": 1,
+  "MaxQueueSize": 10
+}
+```
+- [`AiRequestGate.cs`](file:///D:/A/Du-An-Tot-Nghiep/Backend/Services/AI/AiRequestGate.cs): Giới hạn 1 yêu cầu suy luận song song tại một thời điểm (phù hợp RTX 3060 6GB / RAM 16GB), hàng đợi tối đa 10.
+
+### 3.2. Endpoints Backend Dự kiến trong `AiController.cs`
+1. `GET /api/ai/health`: Kiểm tra kết nối Ollama và trạng thái 2 model `qwen3.5:9b-q4_K_M` + `qwen3-embedding:0.6b`.
+2. `POST /api/ai/chat`: Chat tự do đa vai trò kèm tiêm System Prompt phân quyền theo Role người dùng. Hỗ trợ truyền thêm `MaKhoaHoc` hoặc `MaBaiHoc` để AI tự nạp nội dung bài giảng vào ngữ cảnh trả lời.
+3. `POST /api/ai/summarize-lesson/{lessonId}`: Tự động trích xuất nội dung văn bản, slide, tài liệu hoặc transcript của bài học `lessonId`, gọi Qwen3.5 tóm tắt và lưu cache vào `BaiHoc.TomTatAi`.
+4. `POST /api/ai/embedding-test` `[Authorize(Roles = "SuperAdmin,Admin")]`: Kiểm tra tạo vector embedding 1.024 chiều.
+
+---
+
+## 4. Kế hoạch Tích hợp Frontend
+
+1. **Tạo API Client [`frontend/src/services/aiApi.js`](file:///D:/A/Du-An-Tot-Nghiep/frontend/src/services/aiApi.js):**
+   - `sendMessage({ message, conversationId, courseId, lessonId })`
+   - `summarizeLesson(lessonId)`
+   - `checkHealth()`
+   - `testEmbedding(text)`
+2. **Nâng cấp Floating Widget [`frontend/src/components/ui/AiAssistant.vue`](file:///D:/A/Du-An-Tot-Nghiep/frontend/src/components/ui/AiAssistant.vue):**
+   - Chat tự do 100% với ô input.
+   - Nhận diện role người dùng từ `authStore` để hiển thị các câu hỏi gợi ý phù hợp (Sinh viên, Giảng viên, Hội đồng nội dung, Giáo vụ, BGH, Admin).
+   - Tự động nhận diện ngữ cảnh nếu đang đứng trong trang môn học.
+3. **Thêm Nút Tóm tắt Bài học trong [`CourseDetailView.vue`](file:///D:/A/Du-An-Tot-Nghiep/frontend/src/views/Student/CourseDetailView.vue):**
+   - Thêm nút "✨ Tóm tắt bài học bằng AI" bên cạnh video/tài liệu bài học để sinh viên xem nhanh ý chính.
+4. **Cập nhật Màn hình Quản trị [`AiAutomationView.vue`](file:///D:/A/Du-An-Tot-Nghiep/frontend/src/views/SuperAdmin/AiAutomationView.vue):**
+   - Đấu nối dữ liệu thật `GET /api/ai/health` và test vector embedding 1024 chiều.
+
+---
+
+## 5. Kế hoạch Kiểm thử & Xác minh
+
+### Automated Tests
+```powershell
+cd Backend
+dotnet restore
+dotnet build
+```
+```powershell
+cd frontend
+npm run lint
+npm run test:unit
+npm run build
+```
+
+### Manual Verification
+1. **Thử nghiệm Tóm tắt Bài học:** Đăng nhập Sinh viên -> Vào môn học -> Bấm "Tóm tắt bài học" -> Kiểm tra AI sinh tóm tắt tiếng Việt chính xác và lưu vào DB.
+2. **Thử nghiệm Chat Tự do:** Gõ câu hỏi bất kỳ ngoài prompt mẫu -> Kiểm tra AI phản hồi trôi chảy.
+3. **Thử nghiệm Phân quyền Bảo mật:**
+   - Sinh viên hỏi điểm sinh viên khác -> Bị từ chối.
+   - Giảng viên hỏi tình trạng dạy/đánh giá của giảng viên khác -> Bị từ chối.
+   - Hội đồng nội dung hỏi về thẩm định đề cương môn học -> Được hỗ trợ chuyên sâu.
+4. **Thử nghiệm Kiểm tra Model & Embedding:** Đăng nhập Admin -> Kiểm tra `GET /api/ai/health` và vector embedding 1024 chiều.

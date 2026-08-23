@@ -27,12 +27,6 @@ onMounted(() => {
   subjectStore.init()
 })
 
-const typeOptions = [
-  { value: 'all', label: 'Tất cả loại' },
-  { value: 'multiple_choice', label: 'Trắc nghiệm' },
-  { value: 'essay', label: 'Tự luận' }
-]
-
 const selectionOptions = [
   { value: 'all', label: 'Tất cả kiểu' },
   { value: 'single', label: 'Chọn một' },
@@ -54,21 +48,12 @@ const statusOptions = [
 
 const updateFilter = (key: string, value: any) => {
   const newFilters = { ...props.filters, [key]: value }
-  
-  // Logic: disable/reset selectionType if type is essay
-  if (key === 'questionType' && value === 'essay') {
-    newFilters.selectionType = 'all'
-  }
-  
   emit('update:filters', newFilters)
 }
-
-const isSelectionDisabled = computed(() => props.filters.questionType === 'essay')
 
 const hasActiveFilters = computed(() => {
   return props.filters.keyword !== '' ||
          props.filters.subjectId !== 'all' ||
-         props.filters.questionType !== 'all' ||
          props.filters.selectionType !== 'all' ||
          props.filters.difficulty !== 'all' ||
          props.filters.status !== 'all'
@@ -100,20 +85,13 @@ const hasActiveFilters = computed(() => {
       </button>
     </div>
 
-    <!-- Row 2: Dropdowns -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+    <!-- Row 2: Dropdowns (4 mục chuẩn: Môn học, Kiểu lựa chọn, Độ khó, Trạng thái) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
       <LmsSelect 
         :model-value="filters.subjectId"
         @update:model-value="updateFilter('subjectId', $event)"
         :options="subjectOptions"
         label="Môn học"
-      />
-      
-      <LmsSelect 
-        :model-value="filters.questionType"
-        @update:model-value="updateFilter('questionType', $event)"
-        :options="typeOptions"
-        label="Loại câu hỏi"
       />
 
       <LmsSelect 
@@ -121,7 +99,6 @@ const hasActiveFilters = computed(() => {
         @update:model-value="updateFilter('selectionType', $event)"
         :options="selectionOptions"
         label="Kiểu lựa chọn"
-        :disabled="isSelectionDisabled"
       />
 
       <LmsSelect 

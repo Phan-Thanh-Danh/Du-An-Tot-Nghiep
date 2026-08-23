@@ -176,9 +176,12 @@ const handleTicketFileChange = (e) => {
   }
 }
 
-const submitTicket = async () => {
-  if (!newTicket.value.title || !newTicket.value.content) return
+const isSubmittingTicket = ref(false)
 
+const submitTicket = async () => {
+  if (!newTicket.value.title || !newTicket.value.content || isSubmittingTicket.value) return
+
+  isSubmittingTicket.value = true
   try {
     let attachmentUrl = null
     if (newTicket.value.file) {
@@ -194,12 +197,25 @@ const submitTicket = async () => {
       attachmentUrl
     })
     const data = unwrapApiData(response) || {}
-    const created = mapTicket(data)
-    tickets.value.unshift(created)
+    const newId = data.id || data.Id || data.maPhieuHt
+
     createModalOpen.value = false
-    selectTicket(created)
+    popupStore.success('Đã gửi ticket', 'Phiếu hỗ trợ đã được tạo thành công.')
+
+    await fetchTickets()
+
+    if (newId) {
+      const found = tickets.value.find(t => String(t.id) === String(newId))
+      if (found) {
+        selectTicket(found)
+      } else if (tickets.value.length > 0) {
+        selectTicket(tickets.value[0])
+      }
+    }
   } catch (err) {
     popupStore.error('Lỗi', err?.message || 'Không thể tạo ticket.')
+  } finally {
+    isSubmittingTicket.value = false
   }
 }
 
@@ -482,8 +498,10 @@ const setRating = (val) => rating.value = val
             </div>
             
             <div class="modal-footer" v-if="createStep === 2">
-              <button class="btn-secondary" @click="createStep = 1">Quay lại</button>
-              <button class="btn-primary" @click="submitTicket" :disabled="!newTicket.title || !newTicket.content">Gửi Yêu Cầu</button>
+              <button class="btn-secondary" @click="createStep = 1" :disabled="isSubmittingTicket">Quay lại</button>
+              <button class="btn-primary" @click="submitTicket" :disabled="!newTicket.title || !newTicket.content || isSubmittingTicket">
+                {{ isSubmittingTicket ? 'Đang gửi...' : 'Gửi Yêu Cầu' }}
+              </button>
             </div>
           </div>
         </div>

@@ -14,7 +14,7 @@ public class QuestionDto
     public string? GiaiThichDapAn { get; set; }
     public string DoKho { get; set; } = string.Empty;
     public bool ConHoatDong { get; set; }
+    public int SoLanSuDung { get; set; }
     public DateTime NgayTao { get; set; }
     public DateTime? NgayCapNhat { get; set; }
 }
-

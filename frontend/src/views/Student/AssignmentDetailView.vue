@@ -56,12 +56,15 @@ const scoreText = computed(() => {
 // ── Methods ──────────────────────────────────────
 
 const cleanAllowedFormats = computed(() => {
-  if (!assignment.value.rules?.allowedFormats) return []
-  let raw = assignment.value.rules.allowedFormats
+  let raw = assignment.value.rules?.allowedFormats
+  if (!raw || (Array.isArray(raw) && raw.length === 0)) {
+    return ['.zip', '.rar', '.pdf', '.doc', '.docx']
+  }
   if (Array.isArray(raw)) raw = raw.join(',')
   const str = String(raw).replace(/[[\]"\s]/g, '')
-  if (!str) return []
-  return str.split(',').map(f => f.startsWith('.') ? f.toLowerCase() : '.' + f.toLowerCase()).filter(f => f.length > 1)
+  if (!str) return ['.zip', '.rar', '.pdf', '.doc', '.docx']
+  const parsed = str.split(',').map(f => f.startsWith('.') ? f.toLowerCase() : '.' + f.toLowerCase()).filter(f => f.length > 1)
+  return parsed.length ? parsed : ['.zip', '.rar', '.pdf', '.doc', '.docx']
 })
 
 async function fetchDetail() {
@@ -85,8 +88,8 @@ onMounted(() => {
 })
 
 const attemptsLeft = computed(() => {
-  if (!assignment.value.rules.maxAttempts) return 0
-  return assignment.value.rules.maxAttempts - assignment.value.rules.currentAttempt
+  if (!assignment.value.rules?.maxAttempts) return 0
+  return Math.max(0, assignment.value.rules.maxAttempts - (assignment.value.rules.currentAttempt || 0))
 })
 
 function validateFile(file) {
@@ -130,25 +133,23 @@ function doSubmit() {
   if (assignment.value.submissions && assignment.value.submissions.length > 0) {
     showConfirmSubmit.value = true
   } else {
-    executeSubmit(false)
+    executeSubmit()
   }
 }
 
-async function executeSubmit(overwrite = false) {
+async function executeSubmit() {
   showConfirmSubmit.value = false
   submitting.value = true
   
   const formData = new FormData()
-  // Currently, the backend accepts one file for simplicity in demo
   if (selectedFiles.value.length > 0) {
     formData.append('file', selectedFiles.value[0].file)
   }
-  formData.append('overwrite', overwrite === true ? 'true' : 'false')
 
   try {
     const res = await studentApi.submitAssignment(assignmentId, formData)
-    if (res.success) {
-      toastMessage.value = 'Nộp bài thành công!'
+    if (res.success || res.Success) {
+      toastMessage.value = res.message || res.Message || 'Nộp bài thành công!'
       showToast.value = true
       selectedFiles.value = []
       setTimeout(() => showToast.value = false, 3500)
@@ -309,7 +310,17 @@ const statusBadgeVariant = (s) => ({
                 <component :is="icon('UploadCloud')" :size="26" :class="isDragging ? 'text-link' : 'text-placeholder'" />
                 <div class="text-center">
                   <p class="text-xs font-semibold text-body">Kéo thả file vào đây hoặc bấm để chọn file</p>
-                  <p class="text-xs text-muted mt-1">Định dạng: {{ cleanAllowedFormats.join(', ') }} · Tối đa {{ assignment.rules.maxSizeMB }} MB</p>
+                  <div class="flex flex-wrap items-center justify-center gap-1.5 mt-2">
+                    <span class="text-xs font-medium text-muted">Định dạng cho phép:</span>
+                    <span
+                      v-for="fmt in cleanAllowedFormats"
+                      :key="fmt"
+                      class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
+                    >
+                      {{ fmt }}
+                    </span>
+                    <span class="text-xs text-muted ml-1">· Tối đa {{ assignment.rules.maxSizeMB || 50 }} MB</span>
+                  </div>
                 </div>
               </label>
 
@@ -400,9 +411,15 @@ const statusBadgeVariant = (s) => ({
             </template>
             <div class="space-y-3">
               <div>
-                <p class="text-xs font-semibold text-muted mb-1.5">Định dạng cho phép</p>
+                <p class="text-xs font-semibold text-muted mb-2">Định dạng tệp được phép</p>
                 <div class="flex flex-wrap gap-1.5">
-                  <span v-for="fmt in cleanAllowedFormats" :key="fmt" class="inline-block rounded px-2 py-0.5 text-xs font-bold" style="background:var(--accent-primary-soft);color:var(--accent-primary)">{{ fmt }}</span>
+                  <span
+                    v-for="fmt in cleanAllowedFormats"
+                    :key="fmt"
+                    class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
+                  >
+                    {{ fmt }}
+                  </span>
                 </div>
               </div>
               <div class="flex items-center justify-between text-sm" v-if="assignment.rules.minSizeKB > 0">
@@ -426,12 +443,12 @@ const statusBadgeVariant = (s) => ({
 
       <ConfirmActionDialog
         v-model="showConfirmSubmit"
-        title="Xác nhận nộp bài"
-        message="Bạn đã nộp bài rồi. Bạn có chắc chắn muốn nộp đè bài cũ không? (File cũ của lần nộp hiện tại sẽ bị xóa)."
-        confirmLabel="Có, nộp đè"
-        cancelLabel="Không đè"
+        :title="`Xác nhận nộp bài (Lần ${assignment.rules.currentAttempt + 1})`"
+        :message="`Bạn đã nộp ${assignment.rules.currentAttempt} lần trước đó. Lần nộp này sẽ được tính là lần thứ ${assignment.rules.currentAttempt + 1}/${assignment.rules.maxAttempts} và lưu vào lịch sử bài nộp. Bạn có chắc chắn muốn tiếp tục nộp?`"
+        confirmLabel="Xác nhận nộp bài"
+        cancelLabel="Hủy bỏ"
         variant="primary"
-        @confirm="() => executeSubmit(true)"
+        @confirm="executeSubmit"
       />
     </template>
   </div>

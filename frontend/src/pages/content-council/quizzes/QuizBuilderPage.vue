@@ -392,7 +392,7 @@ const handleBulkAddConfirm = (scorePerQuestion: number) => {
       :can-publish="validationResult.canPublish"
       :errors="validationResult.errors"
       :quiz-config="{
-        questionCount: quiz.questionCount,
+        questionCount: questions.length,
         totalScore: quiz.totalScore,
         durationMinutes: quiz.durationMinutes,
         passingScore: quiz.passingScore,

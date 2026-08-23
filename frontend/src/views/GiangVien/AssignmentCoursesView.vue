@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { BookOpen, AlertCircle, Search } from 'lucide-vue-next'
+import { BookOpen, AlertCircle, Search, FileText, ChevronRight } from 'lucide-vue-next'
 import TeacherClassCard from '@/components/GiangVien/TeacherClassCard.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
@@ -88,7 +88,7 @@ function goToAssignments(course) {
           <input 
             v-model="searchQuery" 
             type="text" 
-            placeholder="Tìm tên khóa học hoặc lớp..."
+            placeholder="Tìm tên khóa học hoặc lớp..." 
           />
         </label>
       </div>
@@ -117,7 +117,16 @@ function goToAssignments(course) {
           :studentsCount="course.studentCount ?? course.StudentCount ?? 0"
           @click="goToAssignments(course)"
           class="cursor-pointer"
-        />
+        >
+          <template #action>
+            <div class="flex items-center justify-between text-xs font-bold text-blue-600 dark:text-blue-400 group-hover:text-blue-700 transition-colors">
+              <span class="inline-flex items-center gap-1.5">
+                <FileText :size="14" /> Quản lý bài tập & bài nộp
+              </span>
+              <ChevronRight :size="15" />
+            </div>
+          </template>
+        </TeacherClassCard>
       </div>
     </div>
   </div>

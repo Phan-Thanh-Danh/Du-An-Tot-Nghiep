@@ -77,8 +77,7 @@ export const giangVienMenuGroups = [
     label: 'Thảo luận',
     icon: 'MessageSquare',
     children: [
-      { id: 'student-questions', label: 'Câu hỏi học sinh', icon: 'HelpCircle', route: '/teacher/student-questions' },
-      { id: 'lesson-comments', label: 'Bình luận bài học', icon: 'MessageCircle', route: '/teacher/lesson-comments' },
+      { id: 'lesson-discussions', label: 'Hỏi đáp & Thảo luận', icon: 'MessageSquare', route: '/teacher/discussions' },
     ],
   },
 
@@ -101,6 +100,7 @@ export const giangVienMenuGroups = [
     icon: 'User',
     children: [
       { id: 'profile', label: 'Hồ sơ & Bảo mật', icon: 'UserCircle', route: '/teacher/profile' },
+      { id: 'evaluations', label: 'Đánh giá từ sinh viên', icon: 'MessageSquareHeart', route: '/teacher/evaluations' },
       { id: 'teaching-preferences', label: 'Nguyện vọng giảng dạy', icon: 'CalendarClock', route: '/teacher/teaching-preferences' },
     ],
   },

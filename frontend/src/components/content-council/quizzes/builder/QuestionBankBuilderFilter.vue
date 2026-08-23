@@ -77,25 +77,13 @@ watch(questionType, (newVal) => {
     <!-- Filters -->
     <div class="flex flex-wrap items-center gap-2">
       <select 
-        v-model="questionType" 
-        @change="applyFilters"
-        class="text-sm border border-slate-300 rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-      >
-        <option value="">Tất cả loại</option>
-        <option value="multiple_choice">Trắc nghiệm</option>
-        <option value="essay">Tự luận</option>
-      </select>
-
-      <select 
         v-model="selectionType" 
         @change="applyFilters"
-        :disabled="questionType === 'essay'"
         class="text-sm border border-slate-300 rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-        :class="{'opacity-50 cursor-not-allowed': questionType === 'essay'}"
       >
-        <option value="">Kiểu lựa chọn</option>
-        <option value="single">Chọn một</option>
-        <option value="multiple">Chọn nhiều</option>
+        <option value="">Tất cả kiểu lựa chọn</option>
+        <option value="single">Chọn một đáp án</option>
+        <option value="multiple">Chọn nhiều đáp án</option>
       </select>
 
       <select 

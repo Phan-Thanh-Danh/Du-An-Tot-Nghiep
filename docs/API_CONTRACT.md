@@ -706,6 +706,8 @@ Luồng làm quiz bài học dành cho `Student`:
 
 `GET /api/student/courses/{courseId}/lessons/{lessonId}/quiz` chỉ trả metadata và câu hỏi để hiển thị, không trả `DapAnDung`. Việc chấm điểm có thẩm quyền luôn thực hiện tại endpoint submit của backend.
 
+`POST /api/student/courses/{courseId}/lessons/{lessonId}/complete?percent={0..100}` lưu tiến độ bài học. DB là nguồn dữ liệu chuẩn và backend chỉ nhận giá trị mới khi lớn hơn tiến độ hiện có; tiến độ video không được ghi giảm. Local Storage chỉ giữ bản ghi `pendingSync=true` khi mất mạng hoặc khi request đồng bộ thất bại.
+
 Luồng thi chính thức vẫn dùng `CaThi`:
 
 | Method | Endpoint | Auth | Ghi chú |

@@ -154,7 +154,7 @@ async function openDetail(sv) {
   showDetailModal.value = true
   detailLoading.value = true
   try {
-    const res = await teacherApi.getStudentGradeDetail(classId, sv.studentId)
+    const res = await teacherApi.getStudentGradeDetail(classId, sv.studentId, route.query.courseId)
     detailData.value = res?.data ?? res?.Data ?? res
   } catch (error) {
     console.error('Lỗi khi tải chi tiết điểm:', error)

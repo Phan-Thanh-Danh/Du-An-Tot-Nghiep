@@ -74,7 +74,7 @@ public class QuizAvailabilityService : IQuizAvailabilityService
         var completedAttempts = attempts.Where(x => x.TrangThaiLuong == "da_dung").ToList();
         var completedCount = completedAttempts.Count;
         var maxAttempts = config.KhongGioiHanSoLan ? null : config.SoLanLamToiDa;
-        var canAttempt = quiz.TrangThai == "dang_mo";
+        var canAttempt = quiz.TrangThai == "dang_mo" || quiz.TrangThai == "da_xuat_ban" || quiz.TrangThai == "published" || quiz.TrangThai == "active" || quiz.TrangThai == "hoat_dong";
         string? reason = null;
 
         if (!canAttempt)

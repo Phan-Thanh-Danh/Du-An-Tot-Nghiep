@@ -28,11 +28,12 @@ public class StudentGradesController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<ApiResponseDto<StudentGradesResponseDto>>> GetGrades(CancellationToken ct)
     {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
         var userId = GetCurrentUserId();
         var scores = await _db.DiemSos
             .Include(d => d.MonHoc)
             .Include(d => d.HocKy)
-            .Where(d => d.MaHocSinh == userId)
+            .Where(d => d.MaHocSinh == userId && (d.HocKy == null || d.HocKy.NgayBatDau <= today.AddMonths(4)))
             .ToListAsync(ct);
 
         var subjects = scores.Select(d => new SubjectGradeDto

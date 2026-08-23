@@ -3,15 +3,16 @@ import { ref, computed, onMounted } from 'vue'
 import { studentApi } from '@/services/studentApi.js'
 import StudentModulePage from '@/components/SinhVien/StudentModulePage.vue'
 
+import { unwrapApiData } from '@/services/apiClient.js'
+
 const assignmentList = ref([])
 const loading = ref(true)
 
 onMounted(async () => {
   try {
     const res = await studentApi.getAssignments()
-    if (res.success) {
-      assignmentList.value = res.data
-    }
+    const raw = unwrapApiData(res)
+    assignmentList.value = Array.isArray(raw) ? raw : (res?.data ?? res?.Data ?? [])
   } catch (err) {
     console.error('Error fetching assignments:', err)
   } finally {
