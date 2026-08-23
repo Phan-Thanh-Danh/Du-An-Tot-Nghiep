@@ -104,6 +104,18 @@ export const studentApi = {
       method: 'GET',
     })
   },
+  addLessonComment(courseId, lessonId, payload) {
+    return apiRequest(`/api/student/courses/${courseId}/lessons/${lessonId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+  toggleCommentLike(courseId, lessonId, commentId) {
+    const cleanId = String(commentId).replace(/^c/i, '')
+    return apiRequest(`/api/student/courses/${courseId}/lessons/${lessonId}/comments/${cleanId}/like`, {
+      method: 'POST',
+    })
+  },
   getLessonNote(courseId, lessonId) {
     return apiRequest(`/api/student/courses/${courseId}/lessons/${lessonId}/note`, {
       method: 'GET',

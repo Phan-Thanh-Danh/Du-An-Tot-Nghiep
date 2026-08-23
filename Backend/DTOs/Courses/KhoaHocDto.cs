@@ -35,4 +35,9 @@ public class KhoaHocDto
     public string? TenNganh { get; set; }
     public int? MaChuyenNganh { get; set; }
     public string? TenChuyenNganh { get; set; }
+
+    // Thông tin số bài học và tiến độ hoàn thành
+    public int SoBaiHoc { get; set; }
+    public decimal TienDo { get; set; }
+    public int SoSvHoanThanh { get; set; }
 }

@@ -19,7 +19,7 @@ const props = defineProps({
   studentsCount: { type: [Number, String], default: null },
   lessonsCount: { type: [Number, String], default: null },
   progress: { type: Number, default: null },
-  icon: { type: Object, default: () => BookOpen }
+  icon: { type: [Object, Function], default: () => BookOpen }
 })
 
 function getStatusText(status) {

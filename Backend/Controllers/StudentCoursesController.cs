@@ -518,36 +518,202 @@ public class StudentCoursesController : ControllerBase
     [Authorize(Roles = "Student")]
     public async Task<ActionResult<ApiResponseDto<object>>> GetLessonComments(
         string courseId, string lessonId,
-        [FromServices] Backend.Data.ApplicationDbContext context)
+        [FromServices] Backend.Data.ApplicationDbContext context,
+        [FromServices] Backend.Services.Comments.ICommentLikeService likeService)
     {
+        var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+        var currentUserId = currentUser?.UserId ?? 0;
+
         if (!TryParseLessonId(lessonId, out int parsedLessonId))
         {
             return BadRequest(ApiResponseDto.Fail("Mã bài học không hợp lệ."));
         }
 
-        var comments = await context.BinhLuans
-            .Where(b => b.MaBaiHoc == parsedLessonId)
+        var rootComments = await context.BinhLuans
+            .Include(b => b.NguoiDung)
+            .Where(b => b.MaBaiHoc == parsedLessonId && b.MaBinhLuanCha == null && !b.DaGhim)
             .OrderByDescending(b => b.NgayTao)
-            .Select(b => new
-            {
-                Id = "c" + b.MaBinhLuan,
-                Author = "Sinh viên " + b.MaNguoiDung,
-                Initials = "SV",
-                Role = "student",
-                Content = b.NoiDung,
-                TimeAgo = b.NgayTao != null ? b.NgayTao.ToString("dd/MM/yyyy HH:mm") : "Vừa xong",
-                Likes = 0,
-                IsLiked = false,
-                Replies = new List<object>()
-            })
             .ToListAsync();
 
-        if (!comments.Any())
+        var rootIds = rootComments.Select(b => b.MaBinhLuan).ToList();
+        var replies = await context.BinhLuans
+            .Include(b => b.NguoiDung)
+            .Where(b => b.MaBinhLuanCha != null && rootIds.Contains(b.MaBinhLuanCha.Value) && !b.DaGhim)
+            .OrderBy(b => b.NgayTao)
+            .ToListAsync();
+
+        var repliesByParent = replies.GroupBy(r => r.MaBinhLuanCha!.Value)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        var result = rootComments.Select(b =>
         {
-            return Ok(ApiResponseDto<object>.Ok(Array.Empty<object>()));
+            var authorName = b.NguoiDung?.HoTen ?? ("Sinh viên " + b.MaNguoiDung);
+            var isTeacher = b.NguoiDung?.VaiTroChinh == "giao_vien" || b.NguoiDung?.VaiTroChinh == "Teacher";
+            var initials = !string.IsNullOrWhiteSpace(b.NguoiDung?.HoTen)
+                ? string.Concat(b.NguoiDung.HoTen.Split(' ', StringSplitOptions.RemoveEmptyEntries).TakeLast(2).Select(s => s[0])).ToUpper()
+                : (isTeacher ? "GV" : "SV");
+
+            var childReplies = repliesByParent.GetValueOrDefault(b.MaBinhLuan, new List<BinhLuan>())
+                .Select(r =>
+                {
+                    var rAuthor = r.NguoiDung?.HoTen ?? ("Người dùng " + r.MaNguoiDung);
+                    var rIsTeacher = r.NguoiDung?.VaiTroChinh == "giao_vien" || r.NguoiDung?.VaiTroChinh == "Teacher";
+                    var rInitials = !string.IsNullOrWhiteSpace(r.NguoiDung?.HoTen)
+                        ? string.Concat(r.NguoiDung.HoTen.Split(' ', StringSplitOptions.RemoveEmptyEntries).TakeLast(2).Select(s => s[0])).ToUpper()
+                        : (rIsTeacher ? "GV" : "SV");
+
+                    return new
+                    {
+                        Id = "c" + r.MaBinhLuan,
+                        MaBinhLuan = r.MaBinhLuan,
+                        Author = rAuthor,
+                        Initials = rInitials,
+                        Role = rIsTeacher ? "teacher" : "student",
+                        Content = r.NoiDung,
+                        TimeAgo = r.NgayTao.ToString("dd/MM/yyyy HH:mm"),
+                        CreatedAt = r.NgayTao
+                    };
+                }).ToList();
+
+            return new
+            {
+                Id = "c" + b.MaBinhLuan,
+                MaBinhLuan = b.MaBinhLuan,
+                Author = authorName,
+                Initials = initials,
+                Role = isTeacher ? "teacher" : "student",
+                Content = b.NoiDung,
+                TimeAgo = b.NgayTao.ToString("dd/MM/yyyy HH:mm"),
+                CreatedAt = b.NgayTao,
+                Likes = likeService.GetLikesCount(b.MaBinhLuan),
+                IsLiked = likeService.HasUserLiked(b.MaBinhLuan, currentUserId),
+                Replies = childReplies
+            };
+        }).ToList();
+
+        return Ok(ApiResponseDto<object>.Ok(result));
+    }
+
+    [HttpPost("{courseId}/lessons/{lessonId}/comments/{commentId}/like")]
+    [Authorize(Roles = "Student,Teacher")]
+    public ActionResult<ApiResponseDto<object>> ToggleCommentLike(
+        string courseId, string lessonId, int commentId,
+        [FromServices] Backend.Services.Comments.ICommentLikeService likeService)
+    {
+        var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+        if (currentUser == null) return Unauthorized();
+
+        var (likesCount, isLiked) = likeService.ToggleLike(commentId, currentUser.UserId);
+        return Ok(ApiResponseDto<object>.Ok(new { Likes = likesCount, IsLiked = isLiked }));
+    }
+
+    [HttpPost("{courseId}/lessons/{lessonId}/comments")]
+    [Authorize(Roles = "Student")]
+    public async Task<ActionResult<ApiResponseDto<object>>> CreateLessonComment(
+        string courseId, string lessonId,
+        [FromBody] CreateLessonCommentRequestDto request,
+        [FromServices] Backend.Data.ApplicationDbContext context)
+    {
+        var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+        if (currentUser == null) return Unauthorized();
+
+        if (!TryParseLessonId(lessonId, out int parsedLessonId))
+        {
+            return BadRequest(ApiResponseDto.Fail("Mã bài học không hợp lệ."));
         }
 
-        return Ok(ApiResponseDto<object>.Ok(comments));
+        if (string.IsNullOrWhiteSpace(request.Content))
+        {
+            return BadRequest(ApiResponseDto.Fail("Nội dung thảo luận không được để trống."));
+        }
+
+        var baiHoc = await context.BaiHocs
+            .Include(b => b.Chuong)
+            .FirstOrDefaultAsync(b => b.MaBaiHoc == parsedLessonId);
+
+        if (baiHoc == null)
+        {
+            return NotFound(ApiResponseDto.Fail("Không tìm thấy bài học."));
+        }
+
+        var studentUser = await context.NguoiDungs
+            .FirstOrDefaultAsync(u => u.MaNguoiDung == currentUser.UserId);
+
+        var comment = new BinhLuan
+        {
+            MaBaiHoc = parsedLessonId,
+            MaNguoiDung = currentUser.UserId,
+            NoiDung = request.Content.Trim(),
+            MaBinhLuanCha = request.ParentId,
+            NgayTao = DateTime.UtcNow,
+            DaGhim = false
+        };
+
+        context.BinhLuans.Add(comment);
+        await context.SaveChangesAsync();
+
+        // Gửi thông báo cho Giảng viên phụ trách môn học
+        if (baiHoc.Chuong != null)
+        {
+            var monHocId = baiHoc.Chuong.MaMonHoc;
+            var course = await context.KhoaHocs
+                .FirstOrDefaultAsync(k => k.MaMonHoc == monHocId && (studentUser == null || k.MaLop == studentUser.MaLop));
+
+            var teacherId = course?.MaGiaoVien;
+            if (teacherId.HasValue && teacherId.Value != currentUser.UserId)
+            {
+                var studentName = studentUser?.HoTen ?? "Một sinh viên";
+                var thongBao = new ThongBao
+                {
+                    MaNhomThongBao = Guid.NewGuid(),
+                    MaNguoiNhan = teacherId.Value,
+                    MaDonVi = studentUser?.MaDonVi ?? 1,
+                    TieuDe = $"Sinh viên {studentName} vừa thảo luận trong bài học",
+                    TomTat = $"Sinh viên {studentName} vừa đăng thảo luận trong bài học \"{baiHoc.TieuDe}\"",
+                    NoiDung = $"Sinh viên {studentName} vừa đăng thảo luận trong bài học \"{baiHoc.TieuDe}\": \"{request.Content.Trim()}\"",
+                    NoiDungText = $"Sinh viên {studentName} vừa đăng thảo luận trong bài học \"{baiHoc.TieuDe}\": \"{request.Content.Trim()}\"",
+                    LoaiThongBao = "hoc_vu",
+                    PhamViGui = "nguoi_dung",
+                    NgayTao = DateTime.UtcNow,
+                    NguoiTao = currentUser.UserId
+                };
+                context.ThongBaos.Add(thongBao);
+                await context.SaveChangesAsync();
+
+                context.ThongBaoNguoiNhans.Add(new ThongBaoNguoiNhan
+                {
+                    MaThongBao = thongBao.MaThongBao,
+                    MaNguoiNhan = teacherId.Value,
+                    MaDonVi = studentUser?.MaDonVi ?? 1,
+                    DaDoc = false,
+                    NhanLuc = DateTime.UtcNow,
+                    NgayTao = DateTime.UtcNow
+                });
+                await context.SaveChangesAsync();
+            }
+        }
+
+        var authorName = studentUser?.HoTen ?? ("Sinh viên " + currentUser.UserId);
+        var initials = !string.IsNullOrWhiteSpace(studentUser?.HoTen)
+            ? string.Concat(studentUser.HoTen.Split(' ', StringSplitOptions.RemoveEmptyEntries).TakeLast(2).Select(s => s[0])).ToUpper()
+            : "SV";
+
+        var responseData = new
+        {
+            Id = "c" + comment.MaBinhLuan,
+            MaBinhLuan = comment.MaBinhLuan,
+            Author = authorName,
+            Initials = initials,
+            Role = "student",
+            Content = comment.NoiDung,
+            TimeAgo = "Vừa xong",
+            CreatedAt = comment.NgayTao,
+            Likes = 0,
+            IsLiked = false,
+            Replies = new List<object>()
+        };
+
+        return Ok(ApiResponseDto<object>.Ok(responseData));
     }
 
     [HttpPost("{courseId}/lessons/{lessonId}/complete")]
@@ -691,4 +857,10 @@ public class StudentCoursesController : ControllerBase
 public class SaveLessonNoteRequestDto
 {
     public string? Note { get; set; }
+}
+
+public class CreateLessonCommentRequestDto
+{
+    public string Content { get; set; } = string.Empty;
+    public int? ParentId { get; set; }
 }

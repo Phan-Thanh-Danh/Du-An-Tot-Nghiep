@@ -23,6 +23,15 @@ const expandedChapters = ref({})
 const quizAnswers = ref({})
 const newComment = ref('')
 const likedComments = ref({})
+const sendingComment = ref(false)
+const userInitials = computed(() => {
+  const name = authStore.user?.hoTen || authStore.user?.fullName || authStore.user?.name || authStore.user?.userName || 'SV'
+  const words = name.trim().split(' ').filter(Boolean)
+  if (words.length >= 2) {
+    return (words[words.length - 2][0] + words[words.length - 1][0]).toUpperCase()
+  }
+  return name.slice(0, 2).toUpperCase()
+})
 const accessNotice = ref(null)
 const pendingEarlyLesson = ref(null)
 const lessonProgressDrafts = ref({})
@@ -193,9 +202,30 @@ function handleStorageSync(e) {
   }
 }
 
+async function refreshCommentsNow() {
+  if (currentLesson.value?.id) {
+    try {
+      const res = await studentApi.getLessonComments(courseId.value, currentLesson.value.id)
+      const comments = res?.data || res?.Data
+      if (Array.isArray(comments)) {
+        apiComments.value = comments
+        comments.forEach(c => {
+          const key = c.id || c.Id || c.maBinhLuan
+          if (c.isLiked !== undefined) {
+            likedComments.value[key] = c.isLiked
+          } else if (c.IsLiked !== undefined) {
+            likedComments.value[key] = c.IsLiked
+          }
+        })
+      }
+    } catch (e) {}
+  }
+}
+
 function handleVisibilitySync() {
   if (document.visibilityState === 'visible') {
     fetchCourseDetail(true)
+    refreshCommentsNow()
   }
 }
 
@@ -215,6 +245,8 @@ onMounted(() => {
   syncPollInterval = setInterval(() => {
     fetchCourseDetail(true)
   }, 3500)
+
+  startCommentPolling()
 })
 
 onBeforeUnmount(() => {
@@ -225,6 +257,14 @@ onBeforeUnmount(() => {
   if (syncPollInterval) {
     clearInterval(syncPollInterval)
     syncPollInterval = null
+  }
+  if (commentPollTimer) {
+    clearInterval(commentPollTimer)
+    commentPollTimer = null
+  }
+  if (slideTimer) {
+    clearInterval(slideTimer)
+    slideTimer = null
   }
   window.removeEventListener('storage', handleStorageSync)
   document.removeEventListener('visibilitychange', handleVisibilitySync)
@@ -682,6 +722,18 @@ async function handleSlideCompleted(reason = 'scroll') {
   }
 }
 
+let commentPollTimer = null
+
+function startCommentPolling() {
+  if (commentPollTimer) clearInterval(commentPollTimer)
+  refreshCommentsNow()
+  commentPollTimer = setInterval(async () => {
+    if (activeTab.value === 'discussion' && currentLesson.value?.id) {
+      await refreshCommentsNow()
+    }
+  }, 2500)
+}
+
 watch(() => activeTab.value, (newTab) => {
   if (newTab === 'slide') {
     slideSeconds.value = 0
@@ -690,6 +742,15 @@ watch(() => activeTab.value, (newTab) => {
     if (slideTimer) {
       clearInterval(slideTimer)
       slideTimer = null
+    }
+  }
+
+  if (newTab === 'discussion') {
+    startCommentPolling()
+  } else {
+    if (commentPollTimer) {
+      clearInterval(commentPollTimer)
+      commentPollTimer = null
     }
   }
 })
@@ -1189,8 +1250,49 @@ function selectAnswer(q, idx) {
   }
 }
 
-function toggleLike(cId) {
-  likedComments.value[cId] = !likedComments.value[cId]
+async function sendComment() {
+  if (!newComment.value.trim() || !currentLesson.value) return
+  sendingComment.value = true
+  try {
+    await studentApi.addLessonComment(courseId.value, currentLesson.value.id, {
+      content: newComment.value.trim()
+    })
+    newComment.value = ''
+    const res = await studentApi.getLessonComments(courseId.value, currentLesson.value.id)
+    apiComments.value = res.data || res.Data || []
+  } catch (err) {
+    console.error('Lỗi khi gửi bình luận:', err)
+  } finally {
+    sendingComment.value = false
+  }
+}
+
+async function toggleLike(cId) {
+  if (!currentLesson.value) return
+  const cleanId = String(cId).replace(/^c/i, '')
+  const currentStatus = !!likedComments.value[cId]
+  likedComments.value[cId] = !currentStatus
+
+  const target = apiComments.value.find(c => (c.id === cId || c.Id === cId || c.maBinhLuan == cleanId))
+  if (target) {
+    const curLikes = target.likes !== undefined ? target.likes : (target.Likes || 0)
+    target.likes = Math.max(0, curLikes + (likedComments.value[cId] ? 1 : -1))
+    target.isLiked = likedComments.value[cId]
+  }
+
+  try {
+    const res = await studentApi.toggleCommentLike(courseId.value, currentLesson.value.id, cleanId)
+    const data = res?.data || res?.Data
+    if (data) {
+      if (target) {
+        target.likes = data.likes !== undefined ? data.likes : data.Likes
+        target.isLiked = data.isLiked !== undefined ? data.isLiked : data.IsLiked
+      }
+      likedComments.value[cId] = data.isLiked !== undefined ? data.isLiked : data.IsLiked
+    }
+  } catch (err) {
+    console.error('Lỗi khi thích bình luận:', err)
+  }
 }
 
 function navigateRelative(target) {
@@ -1899,32 +2001,64 @@ async function handleResetCourseProgress() {
 
             <div v-else class="discussion-view">
               <div class="comment-composer">
-                <div class="avatar">SV</div>
+                <div class="avatar">{{ userInitials }}</div>
                 <div>
                   <textarea
                     v-model="newComment"
                     rows="2"
-                    placeholder="Nhập câu hỏi hoặc thảo luận về bài học..."
+                    placeholder="Nhập câu hỏi hoặc thảo luận về bài học... (Nhấn Enter để gửi, Shift+Enter để xuống dòng)"
+                    @keydown.enter.exact.prevent="sendComment"
                   />
-                  <button type="button" class="primary-action compact">
-                    <component :is="resolveIcon('Send')" :size="12" />
-                    Gửi
+                  <button 
+                    type="button" 
+                    class="primary-action compact"
+                    :disabled="sendingComment || !newComment.trim()"
+                    @click="sendComment"
+                  >
+                    <component :is="resolveIcon(sendingComment ? 'Loader2' : 'Send')" :class="{ 'animate-spin': sendingComment }" :size="12" />
+                    {{ sendingComment ? 'Đang gửi...' : 'Gửi' }}
                   </button>
                 </div>
               </div>
 
-              <article v-for="comment in currentComments" :key="comment.id || comment.Id" class="comment-card">
+              <div v-if="currentComments.length === 0" class="py-8 text-center surface-card border border-card rounded-xl text-muted text-xs">
+                <component :is="resolveIcon('MessageSquare')" :size="32" class="mx-auto mb-2 opacity-40 text-blue-500" />
+                <p class="font-semibold text-heading text-sm">Chưa có thảo luận nào cho bài học này</p>
+                <p class="mt-1">Hãy là người đầu tiên đặt câu hỏi hoặc chia sẻ ý kiến của bạn!</p>
+              </div>
+
+              <article v-for="comment in currentComments" :key="comment.id || comment.Id || comment.maBinhLuan" class="comment-card">
                 <div class="avatar comment-avatar">{{ comment.initials || comment.Initials }}</div>
                 <div class="comment-body">
                   <div class="comment-author">
                     <strong>{{ comment.author || comment.Author }}</strong>
+                    <span v-if="comment.role === 'teacher'" class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">Giảng viên</span>
                     <span>{{ comment.time || comment.TimeAgo }}</span>
                   </div>
                   <p>{{ comment.content || comment.Content }}</p>
-                  <button type="button" :class="{ liked: likedComments[comment.id || comment.Id] }" @click="toggleLike(comment.id || comment.Id)">
+                  <button 
+                    type="button" 
+                    :class="{ liked: likedComments[comment.id || comment.Id || comment.maBinhLuan] ?? (comment.isLiked || comment.IsLiked) }" 
+                    @click="toggleLike(comment.id || comment.Id || comment.maBinhLuan)"
+                  >
                     <component :is="resolveIcon('ThumbsUp')" :size="12" />
-                    {{ (comment.likes !== undefined ? comment.likes : comment.Likes) + (likedComments[comment.id || comment.Id] ? 1 : 0) }}
+                    {{ comment.likes !== undefined ? comment.likes : (comment.Likes || 0) }}
                   </button>
+
+                  <!-- Danh sách câu trả lời con (Replies) -->
+                  <div v-if="comment.replies && comment.replies.length > 0" class="mt-3 pl-4 border-l-2 border-card space-y-2">
+                    <div v-for="reply in comment.replies" :key="reply.id || reply.Id || reply.maBinhLuan" class="p-2.5 rounded-xl surface-card border border-card text-xs">
+                      <div class="flex items-center gap-2 mb-1">
+                        <div class="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[9px] font-bold">
+                          {{ reply.initials || reply.Initials || 'GV' }}
+                        </div>
+                        <strong class="text-heading font-semibold">{{ reply.author || reply.Author }}</strong>
+                        <span v-if="reply.role === 'teacher'" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">Giảng viên</span>
+                        <span class="text-muted text-[11px]">{{ reply.time || reply.TimeAgo }}</span>
+                      </div>
+                      <p class="text-body pl-7">{{ reply.content || reply.Content }}</p>
+                    </div>
+                  </div>
                 </div>
               </article>
             </div>
