@@ -190,8 +190,59 @@ public class TeacherClassesController : ControllerBase
                 query = query.Where(k => k.TieuDe.Contains(keyword) || (k.Lop != null && k.Lop.TenLop.Contains(keyword)) || (k.MonHoc != null && k.MonHoc.TenMonHoc.Contains(keyword)));
             }
 
-            var courses = await query
-                .Select(k => new
+            var courseList = await query.ToListAsync();
+            var classIds = courseList.Select(k => k.MaLop).Distinct().ToList();
+            var monHocIds = courseList.Select(k => k.MaMonHoc).Distinct().ToList();
+
+            var lessonsByMonHoc = await _context.BaiHocs
+                .AsNoTracking()
+                .Where(b => b.Chuong != null && monHocIds.Contains(b.Chuong.MaMonHoc))
+                .Select(b => new { MaMonHoc = b.Chuong!.MaMonHoc, b.MaBaiHoc })
+                .ToListAsync();
+
+            var lessonDict = lessonsByMonHoc
+                .GroupBy(b => b.MaMonHoc)
+                .ToDictionary(g => g.Key, g => g.Select(b => b.MaBaiHoc).ToList());
+
+            var studentsByClass = await _context.NguoiDungs
+                .AsNoTracking()
+                .Where(u => u.MaLop != null && classIds.Contains(u.MaLop.Value) && (u.VaiTroChinh == "hoc_sinh" || u.VaiTroChinh == "Student"))
+                .Select(u => new { MaLop = u.MaLop!.Value, u.MaNguoiDung })
+                .ToListAsync();
+
+            var allStudentIds = studentsByClass.Select(s => s.MaNguoiDung).Distinct().ToList();
+            var allLessonIds = lessonsByMonHoc.Select(b => b.MaBaiHoc).Distinct().ToList();
+
+            var completedLessons = await _context.TienDoBaiHocs
+                .AsNoTracking()
+                .Where(t => allStudentIds.Contains(t.MaHocSinh) && allLessonIds.Contains(t.MaBaiHoc) && (t.HoanThanhLuc != null || t.PhanTramTienDo >= 100))
+                .Select(t => new { t.MaHocSinh, t.MaBaiHoc })
+                .ToListAsync();
+
+            var completedSet = new HashSet<(int StudentId, int LessonId)>(completedLessons.Select(x => (x.MaHocSinh, x.MaBaiHoc)));
+
+            var result = courseList.Select(k =>
+            {
+                var courseLessonIds = lessonDict.TryGetValue(k.MaMonHoc, out var lids) ? lids : [];
+                int totalLessons = courseLessonIds.Count;
+                var classStudentIds = studentsByClass.Where(s => s.MaLop == k.MaLop).Select(s => s.MaNguoiDung).ToList();
+                int studentCount = classStudentIds.Count;
+
+                decimal progress = 0m;
+                int completedStudents = 0;
+                if (totalLessons > 0 && studentCount > 0)
+                {
+                    var studentProgs = classStudentIds.Select(sid =>
+                    {
+                        int comp = courseLessonIds.Count(lid => completedSet.Contains((sid, lid)));
+                        return (decimal)comp / totalLessons * 100m;
+                    }).ToList();
+
+                    progress = Math.Round(studentProgs.Average(), 1);
+                    completedStudents = studentProgs.Count(p => p >= 100m);
+                }
+
+                return new
                 {
                     CourseId = k.MaKhoaHoc,
                     SubjectId = k.MaMonHoc,
@@ -200,12 +251,18 @@ public class TeacherClassesController : ControllerBase
                     SubjectName = k.MonHoc != null ? k.MonHoc.TenMonHoc : k.TieuDe,
                     ClassName = k.Lop != null ? k.Lop.TenLop : "",
                     ClassId = k.MaLop,
-                    StudentCount = _context.NguoiDungs.Count(n => n.MaLop == k.MaLop),
-                    Semester = k.HocKy != null ? k.HocKy.TenHocKy : "Học kỳ 1 năm 2026"
-                })
-                .ToListAsync();
+                    StudentCount = studentCount,
+                    Semester = k.HocKy != null ? k.HocKy.TenHocKy : "Học kỳ 1 năm 2026",
+                    Status = k.TrangThai,
+                    Lessons = totalLessons,
+                    SoBaiHoc = totalLessons,
+                    Progress = progress,
+                    TienDo = progress,
+                    SoSvHoanThanh = completedStudents
+                };
+            }).ToList();
 
-            return Ok(ApiResponseDto<object>.Ok(courses));
+            return Ok(ApiResponseDto<object>.Ok(result));
         }
         catch (Exception ex)
         {
@@ -246,9 +303,11 @@ public class TeacherClassesController : ControllerBase
                         SubjectName = monHoc?.TenMonHoc ?? first.TieuDe,
                         CourseName = monHoc?.TenMonHoc ?? first.TieuDe,
                         ClassName = classNames.Count > 0 ? string.Join(", ", classNames) : "Chưa có lớp",
+                        Classes = classNames,
                         ClassCount = classNames.Count,
                         StudentCount = studentCount,
                         LessonCount = lessonCount,
+                        LessonsCount = lessonCount,
                         Semester = first.HocKy?.TenHocKy ?? "Học kỳ 1 năm 2026"
                     };
                 })
@@ -1163,7 +1222,7 @@ public class TeacherClassesController : ControllerBase
                     StudentName = n.HoTen,
                     Email = n.Email,
                     CoursesCompleted = lessonIds.Count > 0
-                        ? _context.TienDoBaiHocs.Count(t => t.MaHocSinh == n.MaNguoiDung && lessonIds.Contains(t.MaBaiHoc) && t.HoanThanhLuc != null)
+                        ? _context.TienDoBaiHocs.Count(t => t.MaHocSinh == n.MaNguoiDung && lessonIds.Contains(t.MaBaiHoc) && (t.HoanThanhLuc != null || t.PhanTramTienDo >= 100))
                         : 0,
                     Absent = _context.DiemDanhs.Count(d => d.MaHocSinh == n.MaNguoiDung && d.TrangThai == "vang"),
                     Diem = _context.DiemSos.FirstOrDefault(d => d.MaHocSinh == n.MaNguoiDung && monHocIds.Contains(d.MaMonHoc))
@@ -1248,14 +1307,14 @@ public class TeacherClassesController : ControllerBase
             var totalLessons = lessonIds.Count;
 
             var students = await _context.NguoiDungs
-                .Where(n => n.MaLop == lopId && n.VaiTroChinh == "hoc_sinh")
+                .Where(n => n.MaLop == lopId && (n.VaiTroChinh == "hoc_sinh" || n.VaiTroChinh == "Student"))
                 .Select(n => new
                 {
                     StudentId = n.MaNguoiDung,
                     StudentName = n.HoTen,
                     Email = n.Email,
                     CoursesCompleted = lessonIds.Count > 0
-                        ? _context.TienDoBaiHocs.Count(t => t.MaHocSinh == n.MaNguoiDung && lessonIds.Contains(t.MaBaiHoc) && t.HoanThanhLuc != null)
+                        ? _context.TienDoBaiHocs.Count(t => t.MaHocSinh == n.MaNguoiDung && lessonIds.Contains(t.MaBaiHoc) && (t.HoanThanhLuc != null || t.PhanTramTienDo >= 100))
                         : 0,
                     Absent = _context.DiemDanhs.Count(d => d.MaHocSinh == n.MaNguoiDung && d.TrangThai == "vang" && d.BuoiHoc != null && d.BuoiHoc.MaKhoaHoc == id),
                     Diem = _context.DiemSos.FirstOrDefault(d => d.MaHocSinh == n.MaNguoiDung && d.MaMonHoc == monHocId)

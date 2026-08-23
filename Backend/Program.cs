@@ -128,6 +128,7 @@ builder.Services.AddScoped<Backend.Services.SuperAdmin.ISuperAdminService, Backe
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
+builder.Services.AddSingleton<Backend.Services.Comments.ICommentLikeService, Backend.Services.Comments.CommentLikeService>();
 builder.Services.AddScoped<IOrganizationService, OrganizationService>();
 builder.Services.AddScoped<IApplicationStateMachine, ApplicationStateMachine>();
 builder.Services.AddScoped<IApplicationTemplateValidator, ApplicationTemplateValidator>();

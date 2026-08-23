@@ -45,12 +45,21 @@ function mapCourse(c) {
   const cName = c.tieuDe ?? c.TieuDe ?? c.courseName ?? c.CourseName ?? c.className ?? c.ClassName ?? c.name ?? 'Khóa học'
   const cSubj = c.subjectName ?? c.SubjectName ?? c.tenMonHoc ?? c.TenMonHoc ?? c.subject ?? ''
 
+  const rawStatus = c.trangThai ?? c.TrangThai ?? c.status ?? ''
+  const normalizedStatus = (rawStatus === 'published' || rawStatus === 'da_xuat_ban' || rawStatus === 'Published')
+    ? 'Published'
+    : (rawStatus === 'draft' || rawStatus === 'nhap' || rawStatus === 'Draft')
+      ? 'Draft'
+      : (rawStatus === 'archived' || rawStatus === 'luu_tru' || rawStatus === 'Archived')
+        ? 'Archived'
+        : 'Published'
+
   return {
     id: c.maKhoaHoc ?? c.MaKhoaHoc ?? c.courseId ?? c.CourseId ?? c.classId ?? c.ClassId ?? c.id,
     name: cName,
     subject: cSubj,
-    lessons: c.soBaiHoc ?? c.SoBaiHoc ?? c.lessons ?? 10,
-    status: c.trangThai === 'published' ? 'Published' : c.trangThai === 'draft' ? 'Draft' : 'Published',
+    lessons: c.soBaiHoc ?? c.SoBaiHoc ?? c.lessons ?? c.Lessons ?? 0,
+    status: normalizedStatus,
     semester: c.tenHocKy ?? c.TenHocKy ?? c.semester ?? c.Semester ?? 'Học kỳ 1 năm 2026',
     progress: calculatedProgress,
     studentsCount: sCount,
@@ -117,7 +126,7 @@ function getCourseProgress(course) {
   if (course.progress !== undefined && course.progress !== null) {
     return Number(course.progress);
   }
-  return 83.3;
+  return 0;
 }
 
 onMounted(() => { loadCourses() })

@@ -400,15 +400,17 @@ export const teacherApi = {
     return apiRequest(`/api/teacher/courses${qs ? '?' + qs : ''}`)
   },
 
-  getTeacherSubjects(params = {}) {
+  async getTeacherSubjects(params = {}) {
     const query = new URLSearchParams()
     if (params.keyword) query.append('keyword', params.keyword)
     const qs = query.toString()
-    return apiRequest(`/api/teacher/subjects${qs ? '?' + qs : ''}`)
+    const res = await apiRequest(`/api/teacher/subjects${qs ? '?' + qs : ''}`)
+    return unwrapApiData(res)
   },
 
-  getTeacherSubjectDetail(subjectId) {
-    return apiRequest(`/api/teacher/subjects/${subjectId}`)
+  async getTeacherSubjectDetail(subjectId) {
+    const res = await apiRequest(`/api/teacher/subjects/${subjectId}`)
+    return unwrapApiData(res)
   },
 
   getTeacherClassDetail(classId) {
@@ -511,13 +513,16 @@ export const teacherApi = {
     })
   },
 
-  getLessonComments(params = {}) {
+  async getLessonComments(params = {}) {
     const query = new URLSearchParams()
+    if (params.subjectId) query.append('subjectId', params.subjectId)
+    if (params.lesson) query.append('lesson', params.lesson)
     if (params.keyword) query.append('keyword', params.keyword)
     if (params.pageIndex) query.append('pageIndex', params.pageIndex)
     if (params.pageSize) query.append('pageSize', params.pageSize)
     const qs = query.toString()
-    return apiRequest(`/api/teacher/lesson-comments${qs ? '?' + qs : ''}`)
+    const res = await apiRequest(`/api/teacher/lesson-comments${qs ? '?' + qs : ''}`)
+    return unwrapApiData(res)
   },
 
   replyLessonComment(commentId, payload) {
