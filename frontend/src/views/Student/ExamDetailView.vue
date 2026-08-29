@@ -28,12 +28,7 @@ const riskScore = computed(() => preflightResult.value?.riskScore || 0)
 const riskLevel = computed(() => preflightResult.value?.riskLevel || 'safe')
 const realExamStatus = ref(null)
 
-function confirmExamGuardRunning() {
-  if (typeof window !== 'undefined') {
-    window.sessionStorage.setItem('examguard_manual_confirmed', 'true')
-    runPreflight()
-  }
-}
+
 
 onMounted(async () => {
   try {
@@ -363,16 +358,8 @@ function formatDate(iso) {
             <div v-if="checkStatuses[check.id] && checkStatuses[check.id] !== 'checking'" class="check-detail">
               {{ check.reason || check.detail }}
             </div>
-            <div v-if="check.id === 'env_agent' && checkStatuses['env_agent'] !== 'pass'" class="mt-2">
-              <button
-                type="button"
-                @click.stop="confirmExamGuardRunning"
-                class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
-              >
-                <ShieldCheck :size="14" />
-                <span>Tôi đã mở ExamGuard Agent (Xác nhận & Bỏ qua)</span>
-              </button>
-            </div>
+
+
           </div>
           <div class="check-status-icon">
             <Loader2 v-if="checkStatuses[check.id] === 'checking'" :size="18" class="spin text-blue" />

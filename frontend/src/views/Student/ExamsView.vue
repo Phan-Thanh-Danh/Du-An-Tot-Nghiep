@@ -17,6 +17,8 @@ import {
   Search,
   ShieldAlert,
   Timer,
+  Download,
+  ShieldCheck,
 } from 'lucide-vue-next'
 import { getStudentExams } from '@/services/studentExamService.js'
 import {
@@ -324,6 +326,23 @@ function accessStateLabel(exam) {
 
 <template>
   <div class="exams-page">
+    <!-- Banner ExamGuard -->
+    <div class="mb-6 bg-blue-50/50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div class="flex gap-3">
+        <div class="p-2 bg-blue-100 dark:bg-blue-800 text-blue-600 dark:text-blue-300 rounded-lg shrink-0">
+          <ShieldCheck class="w-5 h-5" />
+        </div>
+        <div>
+          <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-200">Phần mềm thi an toàn (ExamGuard)</h3>
+          <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">Bắt buộc phải mở phần mềm ExamGuard Agent trong suốt quá trình làm bài thi để chống gian lận.</p>
+        </div>
+      </div>
+      <a href="/ExamGuard.Agent.exe" download="ExamGuard.Agent.exe" class="shrink-0 inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+        <Download class="w-4 h-4" />
+        Tải ExamGuard Agent
+      </a>
+    </div>
+
     <section class="exam-toolbar">
       <div class="title-block">
         <span class="eyebrow">

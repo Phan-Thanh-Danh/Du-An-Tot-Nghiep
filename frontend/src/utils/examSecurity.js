@@ -226,24 +226,12 @@ export async function detectExamGuardAgent() {
     })
   }
 
-  // Allow manual confirmation when user already opened ExamGuard.Agent.exe
-  if (typeof window !== 'undefined' && window.sessionStorage?.getItem('examguard_manual_confirmed') === 'true') {
-    return makeCheck({
-      id: 'env_agent',
-      label: 'ExamGuard Agent',
-      description: 'Kiểm tra Agent hệ điều hành',
-      status: 'pass',
-      risk: 0,
-      reason: 'Đã xác nhận ExamGuard Agent đang hoạt động.',
-      icon: 'ShieldCheck',
-    })
-  }
 
   try {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 2000)
 
-    const response = await fetch('https://127.0.0.1:17892/check', {
+    const response = await fetch('http://localhost:17892/check', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sessionId: 'preflight', apiBaseUrl: window.location.origin }),
