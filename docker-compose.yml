@@ -35,10 +35,13 @@ services:
       - PayOS__CancelUrl=https://192.168.137.157/payment/cancel
       - PayOS__BaseUrl=https://api-merchant.payos.vn
       # Ollama AI
-      - Ollama__BaseUrl=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - Ollama__BaseUrl=http://100.93.200.42:11434
       - Ollama__ChatModel=qwen2.5:3b
+      - Ollama__ReasoningModel=qwen3.5:9b-q4_K_M
       - Ollama__EmbeddingModel=qwen3-embedding:0.6b
+      - Ollama__ContextLength=4096
       - Ollama__MaxOutputTokens=2048
+      - Ollama__TimeoutSeconds=180
     ports:
       - "5097:5097"
     depends_on:
