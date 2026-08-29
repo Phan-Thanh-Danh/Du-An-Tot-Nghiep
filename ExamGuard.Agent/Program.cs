@@ -23,7 +23,6 @@ var app = builder.Build();
 
 app.Urls.Clear();
 app.Urls.Add("http://localhost:17892");
-app.Urls.Add("http://127.0.0.1:17892");
 app.UseCors("ViteCors");
 
 app.MapGet("/health", () => Results.Json(new
