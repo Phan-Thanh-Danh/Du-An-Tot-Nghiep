@@ -231,7 +231,7 @@ export async function detectExamGuardAgent() {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 2000)
 
-    const response = await fetch('http://127.0.0.1:17892/check', {
+    const response = await fetch('http://localhost:17892/check', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sessionId: 'preflight', apiBaseUrl: window.location.origin }),

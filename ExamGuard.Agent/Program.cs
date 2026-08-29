@@ -22,6 +22,7 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 app.Urls.Clear();
+app.Urls.Add("http://localhost:17892");
 app.Urls.Add("http://127.0.0.1:17892");
 app.UseCors("ViteCors");
 
