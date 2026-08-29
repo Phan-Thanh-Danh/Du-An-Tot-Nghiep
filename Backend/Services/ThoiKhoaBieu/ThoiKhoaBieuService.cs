@@ -157,8 +157,41 @@ public class ThoiKhoaBieuService : IThoiKhoaBieuService
         EnsureCanManageSchedules(currentUser);
 
         var schedule = await GetManagedScheduleAsync(scheduleId, currentUser, cancellationToken);
-        var oldSnapshot = await GetAuditSnapshotAsync(scheduleId, cancellationToken);
+        if (schedule.TrangThai == PublishedStatus)
+        {
+            // 1. Ràng buộc bảo vệ Điểm danh
+            var hasAttendance = await _context.DiemDanhs
+                .AnyAsync(dd => dd.BuoiHoc != null && dd.BuoiHoc.MaTkb == scheduleId, cancellationToken);
+            if (hasAttendance)
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest,
+                    "Không thể xóa thời khóa biểu đã xuất bản vì đã có buổi học được điểm danh.");
+            }
 
+            // 2. Ràng buộc khóa 30 phút chống lách khóa
+            var publishTime = schedule.NgayCapNhat ?? schedule.NgayTao;
+            if (schedule.MaJobNguon.HasValue)
+            {
+                var sourceJob = await _context.ScheduleGenerationJobs
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(j => j.MaJob == schedule.MaJobNguon.Value, cancellationToken);
+                if (sourceJob?.NgayXuatBan != null)
+                    publishTime = sourceJob.NgayXuatBan.Value;
+            }
+
+            var timeSincePublish = DateTime.UtcNow - publishTime;
+            if (timeSincePublish > TimeSpan.FromMinutes(30))
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest,
+                    $"Thời khóa biểu đã xuất bản quá 30 phút (đã qua {Math.Round(timeSincePublish.TotalMinutes)} phút), bị khóa xóa.");
+            }
+        }
+
+        var oldSnapshot = await GetAuditSnapshotAsync(scheduleId, cancellationToken);
+        var buoiHocs = await _context.BuoiHocs
+            .Where(bh => bh.MaTkb == scheduleId)
+            .ToListAsync(cancellationToken);
+        _context.BuoiHocs.RemoveRange(buoiHocs);
         _context.ThoiKhoaBieus.Remove(schedule);
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -168,7 +201,7 @@ public class ThoiKhoaBieuService : IThoiKhoaBieuService
             oldSnapshot,
             null,
             currentUser,
-            "Xóa lịch học.",
+            "Xóa thời khóa biểu.",
             cancellationToken);
     }
 
@@ -251,6 +284,36 @@ public class ThoiKhoaBieuService : IThoiKhoaBieuService
         if (schedule.TrangThai == CanceledStatus)
         {
             throw new ApiException(StatusCodes.Status400BadRequest, "Không thể cập nhật thời khóa biểu đã hủy.");
+        }
+
+        if (schedule.TrangThai == PublishedStatus)
+        {
+            // 1. Ràng buộc bảo vệ Điểm danh
+            var hasAttendance = await _context.DiemDanhs
+                .AnyAsync(dd => dd.BuoiHoc != null && dd.BuoiHoc.MaTkb == scheduleId, cancellationToken);
+            if (hasAttendance)
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest,
+                    "Không thể chỉnh sửa thời khóa biểu đã xuất bản vì đã có buổi học được điểm danh.");
+            }
+
+            // 2. Ràng buộc khóa 30 phút chống lách khóa
+            var publishTime = schedule.NgayCapNhat ?? schedule.NgayTao;
+            if (schedule.MaJobNguon.HasValue)
+            {
+                var sourceJob = await _context.ScheduleGenerationJobs
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(j => j.MaJob == schedule.MaJobNguon.Value, cancellationToken);
+                if (sourceJob?.NgayXuatBan != null)
+                    publishTime = sourceJob.NgayXuatBan.Value;
+            }
+
+            var timeSincePublish = DateTime.UtcNow - publishTime;
+            if (timeSincePublish > TimeSpan.FromMinutes(30))
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest,
+                    $"Thời khóa biểu đã xuất bản quá 30 phút (đã qua {Math.Round(timeSincePublish.TotalMinutes)} phút), bị khóa chỉnh sửa.");
+            }
         }
 
         var oldSnapshot = await GetAuditSnapshotAsync(scheduleId, cancellationToken);
@@ -348,6 +411,36 @@ public class ThoiKhoaBieuService : IThoiKhoaBieuService
         EnsureCanManageSchedules(currentUser);
 
         var schedule = await GetManagedScheduleAsync(scheduleId, currentUser, cancellationToken);
+        if (schedule.TrangThai == PublishedStatus)
+        {
+            // 1. Ràng buộc bảo vệ Điểm danh
+            var hasAttendance = await _context.DiemDanhs
+                .AnyAsync(dd => dd.BuoiHoc != null && dd.BuoiHoc.MaTkb == scheduleId, cancellationToken);
+            if (hasAttendance)
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest,
+                    "Không thể hủy thời khóa biểu đã xuất bản vì đã có buổi học được điểm danh.");
+            }
+
+            // 2. Ràng buộc khóa 30 phút chống lách khóa
+            var publishTime = schedule.NgayCapNhat ?? schedule.NgayTao;
+            if (schedule.MaJobNguon.HasValue)
+            {
+                var sourceJob = await _context.ScheduleGenerationJobs
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(j => j.MaJob == schedule.MaJobNguon.Value, cancellationToken);
+                if (sourceJob?.NgayXuatBan != null)
+                    publishTime = sourceJob.NgayXuatBan.Value;
+            }
+
+            var timeSincePublish = DateTime.UtcNow - publishTime;
+            if (timeSincePublish > TimeSpan.FromMinutes(30))
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest,
+                    $"Thời khóa biểu đã xuất bản quá 30 phút (đã qua {Math.Round(timeSincePublish.TotalMinutes)} phút), bị khóa hủy.");
+            }
+        }
+
         var oldSnapshot = await GetAuditSnapshotAsync(scheduleId, cancellationToken);
 
         schedule.TrangThai = CanceledStatus;

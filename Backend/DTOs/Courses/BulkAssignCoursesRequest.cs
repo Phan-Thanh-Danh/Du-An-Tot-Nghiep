@@ -5,6 +5,8 @@ public class BulkAssignCoursesRequest
     public int MaMonHoc { get; set; }
     public int MaGiaoVien { get; set; }
     public int? MaHocKy { get; set; }
+    public int? MaBlockBatDau { get; set; }
+    public int? SoBlockHoc { get; set; }
     public List<int> MaLopIds { get; set; } = [];
     public string? TieuDe { get; set; }
     public string? MoTa { get; set; }

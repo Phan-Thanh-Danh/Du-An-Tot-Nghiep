@@ -8,7 +8,7 @@
       "applicationUrl": "http://0.0.0.0:5097",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "ConnectionStrings__DefaultConnection": "Server=CUONGCODER\\SQLEXPRESS;Database=LMS;Trusted_Connection=True;TrustServerCertificate=True;Encrypt=False"
+        "ConnectionStrings__DefaultConnection": "Server=DESKTOP-NC3AP33;Database=LMS;Trusted_Connection=True;TrustServerCertificate=True;Encrypt=False"
       }
     },
     "https": {
@@ -18,7 +18,7 @@
       "applicationUrl": "https://0.0.0.0:7150;http://0.0.0.0:5097",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "ConnectionStrings__DefaultConnection": "Server=CUONGCODER\\SQLEXPRESS;Database=LMS;Trusted_Connection=True;TrustServerCertificate=True;Encrypt=False"
+        "ConnectionStrings__DefaultConnection": "Server=DESKTOP-NC3AP33;Database=LMS;Trusted_Connection=True;TrustServerCertificate=True;Encrypt=False"
       }
     }
   }

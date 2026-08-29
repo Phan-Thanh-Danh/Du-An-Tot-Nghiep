@@ -35,7 +35,7 @@ services:
       - PayOS__CancelUrl=https://192.168.137.157/payment/cancel
       - PayOS__BaseUrl=https://api-merchant.payos.vn
       # Ollama AI
-      - Ollama__BaseUrl=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - Ollama__BaseUrl=${OLLAMA_BASE_URL:-https://recall-takes-cnet-hockey.trycloudflare.com}
       - Ollama__ChatModel=qwen2.5:3b
       - Ollama__EmbeddingModel=qwen3-embedding:0.6b
       - Ollama__MaxOutputTokens=2048

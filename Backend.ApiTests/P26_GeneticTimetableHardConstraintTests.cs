@@ -21,44 +21,19 @@ public class P26_GeneticTimetableHardConstraintTests
     }
 
     [Test]
-    public void Solve_WhenNoTeacherMeetsMinimumSkill_LeavesCourseUnassigned()
+    public void Solve_WhenTeacherFixed_AssignsExactlyFixedTeacher()
     {
         var result = CreateSolver().Solve(
             new[] { Course(1, 101, 1001, 501) },
             Shifts(), Rooms(), new Dictionary<int, int> { [1] = 1 },
-            new Dictionary<int, IReadOnlyList<TeacherSkillCandidate>>
-            {
-                [101] = new[] { new TeacherSkillCandidate { MaGiaoVien = 99, MucDoPhuHop = 69 } }
-            },
             new Dictionary<int, int> { [501] = 30 },
             new Dictionary<int, IReadOnlySet<(int Day, int Shift)>>(), 30, 10, 0.5, 5);
 
         Assert.Multiple(() =>
         {
-            Assert.That(result.XepDuoc, Is.EqualTo(0));
-            Assert.That(result.KhongXepDuoc, Is.EqualTo(1));
-            Assert.That(result.Assignments, Is.Empty);
-        });
-    }
-
-    [Test]
-    public void Solve_WhenTeacherWouldExceedWeeklyCap_LeavesExcessCourseUnassigned()
-    {
-        var courses = Enumerable.Range(1, 7).Select(i => Course(i, 101, 1001, 500 + i)).ToList();
-        var required = courses.ToDictionary(x => x.MaKhoaHoc, _ => 1);
-        var result = CreateSolver(6).Solve(
-            courses, Shifts(), Rooms(), required,
-            new Dictionary<int, IReadOnlyList<TeacherSkillCandidate>>
-            {
-                [101] = new[] { new TeacherSkillCandidate { MaGiaoVien = 1001, MucDoPhuHop = 100 } }
-            }, courses.ToDictionary(x => x.MaLop, _ => 30),
-            new Dictionary<int, IReadOnlySet<(int Day, int Shift)>>(), 50, 20, 0.5, 5);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(result.XepDuoc, Is.EqualTo(6));
-            Assert.That(result.KhongXepDuoc, Is.EqualTo(1));
-            Assert.That(result.Assignments.GroupBy(x => x.MaGiaoVien).Single().Count(), Is.EqualTo(6));
+            Assert.That(result.XepDuoc, Is.EqualTo(1));
+            Assert.That(result.KhongXepDuoc, Is.EqualTo(0));
+            Assert.That(result.Assignments.Single().MaGiaoVien, Is.EqualTo(1001));
         });
     }
 
@@ -68,10 +43,7 @@ public class P26_GeneticTimetableHardConstraintTests
         var result = CreateSolver().Solve(
             new[] { Course(1, 101, 1001, 501) },
             Shifts(), Rooms(), new Dictionary<int, int> { [1] = 1 },
-            new Dictionary<int, IReadOnlyList<TeacherSkillCandidate>>
-            {
-                [101] = new[] { new TeacherSkillCandidate { MaGiaoVien = 1001, MucDoPhuHop = 100 } }
-            }, new Dictionary<int, int> { [501] = 30 },
+            new Dictionary<int, int> { [501] = 30 },
             new Dictionary<int, IReadOnlySet<(int Day, int Shift)>>
             {
                 [1001] = new HashSet<(int Day, int Shift)> { (3, 1) }
@@ -79,31 +51,7 @@ public class P26_GeneticTimetableHardConstraintTests
 
         Assert.That(result.Assignments, Has.Count.EqualTo(1));
         Assert.That(result.Assignments.Single().ThuTrongTuan, Is.EqualTo(3));
-    }
-
-    [Test]
-    public void Solve_WhenPreferredTeacherReachesCap_ReassignsCourseToAnotherQualifiedTeacher()
-    {
-        var courses = Enumerable.Range(1, 3).Select(i => Course(i, 101, 1001, 500 + i)).ToList();
-        var result = CreateSolver(6).Solve(
-            courses, Shifts(), Rooms(2), courses.ToDictionary(x => x.MaKhoaHoc, _ => 3),
-            new Dictionary<int, IReadOnlyList<TeacherSkillCandidate>>
-            {
-                [101] = new[]
-                {
-                    new TeacherSkillCandidate { MaGiaoVien = 1001, MucDoPhuHop = 100 },
-                    new TeacherSkillCandidate { MaGiaoVien = 1002, MucDoPhuHop = 90 }
-                }
-            }, courses.ToDictionary(x => x.MaLop, _ => 30),
-            new Dictionary<int, IReadOnlySet<(int Day, int Shift)>>(), 50, 20, 0.5, 5);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(result.XepDuoc, Is.EqualTo(3));
-            Assert.That(result.KhongXepDuoc, Is.EqualTo(0));
-            Assert.That(result.Assignments.GroupBy(x => x.MaGiaoVien).Select(x => x.Count()), Is.All.LessThanOrEqualTo(6));
-            Assert.That(result.Assignments.Select(x => x.MaGiaoVien), Does.Contain(1002));
-        });
+        Assert.That(result.Assignments.Single().MaGiaoVien, Is.EqualTo(1001));
     }
 
     [Test]
@@ -112,10 +60,7 @@ public class P26_GeneticTimetableHardConstraintTests
         var result = CreateSolver().Solve(
             new[] { Course(1, 101, 1001, 501) },
             Shifts(), Rooms(), new Dictionary<int, int> { [1] = 1 },
-            new Dictionary<int, IReadOnlyList<TeacherSkillCandidate>>
-            {
-                [101] = new[] { new TeacherSkillCandidate { MaGiaoVien = 1001, MucDoPhuHop = 100 } }
-            }, new Dictionary<int, int> { [501] = 41 },
+            new Dictionary<int, int> { [501] = 41 },
             new Dictionary<int, IReadOnlySet<(int Day, int Shift)>>(), 30, 10, 0.5, 5);
 
         Assert.That(result.XepDuoc, Is.EqualTo(0));

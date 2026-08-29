@@ -1,4 +1,4 @@
-﻿using Backend.Configuration;
+using Backend.Configuration;
 using Backend.DTOs.SmartTimetable.Suggestions;
 using Backend.Models;
 using Backend.Services.ThoiKhoaBieu.Scoring;
@@ -16,20 +16,12 @@ public sealed class GenerationProgress
     public double? ThoiGianChayMs { get; set; }
 }
 
-public sealed class TeacherSkillCandidate
-{
-    public int MaGiaoVien { get; set; }
-    public string? TenGiaoVien { get; set; }
-    public int MucDoPhuHop { get; set; }
-    public bool LaMonChinh { get; set; }
-}
-
 public sealed class TimetableAssignment
 {
     public int MaKhoaHoc { get; set; }
     public int MaGiaoVien { get; set; }
     public string? TenGiaoVien { get; set; }
-    public int MucDoPhuHop { get; set; }
+    public int? MucDoPhuHop { get; set; }
     public int ThuTrongTuan { get; set; }
     public int MaCaHoc { get; set; }
     public int MaPhong { get; set; }
@@ -56,7 +48,6 @@ public interface IGeneticTimetableSolver
         IReadOnlyList<Backend.Models.CaHoc> shifts,
         IReadOnlyList<PhongHoc> rooms,
         IReadOnlyDictionary<int, int> requiredSlotsPerCourse,
-        IReadOnlyDictionary<int, IReadOnlyList<TeacherSkillCandidate>> skillsByMonHoc,
         IReadOnlyDictionary<int, int> studentCounts,
         IReadOnlyDictionary<int, IReadOnlySet<(int Day, int Shift)>> confirmedAvailabilityByTeacher,
         int tongTheHe,
@@ -71,7 +62,6 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
     private readonly IScheduleCandidateScoringService _scoringService;
     private readonly SmartTimetableScoringOptions _options;
     private readonly Random _random = new(20260701);
-    private readonly double _teacherMutationRate = 0.15;
 
     private static readonly int[] WeekDays = { 2, 3, 4, 5, 6, 7 };
 
@@ -88,7 +78,6 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
         IReadOnlyList<Backend.Models.CaHoc> shifts,
         IReadOnlyList<PhongHoc> rooms,
         IReadOnlyDictionary<int, int> requiredSlotsPerCourse,
-        IReadOnlyDictionary<int, IReadOnlyList<TeacherSkillCandidate>> skillsByMonHoc,
         IReadOnlyDictionary<int, int> studentCounts,
         IReadOnlyDictionary<int, IReadOnlySet<(int Day, int Shift)>> confirmedAvailabilityByTeacher,
         int tongTheHe,
@@ -104,7 +93,7 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
         tyLeCheo = Math.Clamp(tyLeCheo, 0.0, 1.0);
         doTuoiThoToiDa = Math.Clamp(doTuoiThoToiDa, 1, 100);
 
-        var problem = BuildProblem(courses, shifts, rooms, requiredSlotsPerCourse, skillsByMonHoc, studentCounts, confirmedAvailabilityByTeacher);
+        var problem = BuildProblem(courses, shifts, rooms, requiredSlotsPerCourse, studentCounts, confirmedAvailabilityByTeacher);
         if (problem.Courses.Count == 0)
             return new GeneticTimetableResult
             {
@@ -202,7 +191,6 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
         public int RoomIdx;
         public int ShiftIdx;
         public double StaticScore;
-        public HashSet<int> AvailableTeacherIndices { get; } = new();
     }
 
     private sealed class CourseDef
@@ -210,23 +198,17 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
         public int MaKhoaHoc { get; set; }
         public int MaMonHoc { get; set; }
         public int MaGiaoVien { get; set; }
+        public string? TenGiaoVien { get; set; }
+        public int TeacherIdx { get; set; }
         public int ClassIdx { get; set; }
         public int MaLop { get; set; }
         public int ExpectedStudentCount { get; set; }
         public int RequiredSlots { get; set; }
-        public List<int> CandidateTeacherIds { get; set; } = new();
-        public List<int> CandidateTeacherIdx { get; set; } = new();
-        public List<int> CandidateSkills { get; set; } = new();
-        public List<string?> CandidateTeacherNames { get; set; } = new();
         public List<CandidateSlot> Feasible { get; set; } = new();
         public List<int> FeasibleByScore { get; set; } = new(); // indices into Feasible, desc static score
 
-        public bool IsTeacherAvailable(int teacherIdx, CandidateSlot slot)
-            => slot.AvailableTeacherIndices.Contains(teacherIdx);
-
-        public bool CanTeacherCoverRequiredSlots(int teacherIdx)
+        public bool CanCoverRequiredSlots()
             => Feasible
-                .Where(slot => IsTeacherAvailable(teacherIdx, slot))
                 .Select(slot => slot.DayShift)
                 .Distinct()
                 .Count() >= RequiredSlots;
@@ -247,7 +229,6 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
     private sealed class Chromosome
     {
         public int[][] Genes { get; set; } = Array.Empty<int[]>();
-        public int[] TeacherGene { get; set; } = Array.Empty<int>();
         public double Fitness { get; set; }
 
         public Chromosome Clone()
@@ -255,7 +236,6 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
             return new Chromosome
             {
                 Genes = Genes.Select(g => g.ToArray()).ToArray(),
-                TeacherGene = TeacherGene.ToArray(),
                 Fitness = Fitness
             };
         }
@@ -266,7 +246,6 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
         IReadOnlyList<Backend.Models.CaHoc> shifts,
         IReadOnlyList<PhongHoc> rooms,
         IReadOnlyDictionary<int, int> requiredSlots,
-        IReadOnlyDictionary<int, IReadOnlyList<TeacherSkillCandidate>> skillsByMonHoc,
         IReadOnlyDictionary<int, int> studentCounts,
         IReadOnlyDictionary<int, IReadOnlySet<(int Day, int Shift)>> confirmedAvailabilityByTeacher)
     {
@@ -278,47 +257,29 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
             RoomCount = rooms.Count
         };
 
-        // Pre-pass: xác định danh sách giảng viên có thể dạy từng khóa (theo ma trận kỹ năng)
-        var candidateIdsByCourse = new Dictionary<int, List<int>>();
-        var teacherIdSet = new SortedSet<int>();
-        foreach (var course in courses)
+        var validCourses = courses.Where(c => c.MaGiaoVien > 0).ToList();
+        var invalidCourses = courses.Where(c => c.MaGiaoVien <= 0).ToList();
+        foreach (var inv in invalidCourses)
         {
-            var candidates = new List<int>();
-            if (skillsByMonHoc.TryGetValue(course.MaMonHoc, out var skillList))
-            {
-                foreach (var entry in skillList)
-                {
-                    if (entry.MucDoPhuHop < _options.MinTeacherSkill) continue;
-                    if (!candidates.Contains(entry.MaGiaoVien))
-                        candidates.Add(entry.MaGiaoVien);
-                }
-            }
-            candidateIdsByCourse[course.MaKhoaHoc] = candidates;
-            foreach (var id in candidates)
-                teacherIdSet.Add(id);
+            problem.UnassignableCourseIds.Add(inv.MaKhoaHoc);
         }
 
-        var teacherIds = teacherIdSet.ToList();
+        var teacherIds = validCourses.Select(x => x.MaGiaoVien).Distinct().OrderBy(x => x).ToList();
         var teacherIndex = teacherIds.Select((id, i) => (id, i)).ToDictionary(x => x.id, x => x.i);
-        var classIds = courses.Select(x => x.MaLop).Distinct().OrderBy(x => x).ToList();
+        var classIds = validCourses.Select(x => x.MaLop).Distinct().OrderBy(x => x).ToList();
         var classIndex = classIds.Select((id, i) => (id, i)).ToDictionary(x => x.id, x => x.i);
         problem.MaxTeachers = teacherIds.Count;
         problem.MaxClasses = classIds.Count;
 
-        foreach (var course in courses)
+        foreach (var course in validCourses)
         {
-            if (candidateIdsByCourse[course.MaKhoaHoc].Count == 0)
-            {
-                // Không có giảng viên đạt chuẩn chuyên môn là ràng buộc cứng, không fallback GV gốc.
-                problem.UnassignableCourseIds.Add(course.MaKhoaHoc);
-                continue;
-            }
-
             var def = new CourseDef
             {
                 MaKhoaHoc = course.MaKhoaHoc,
                 MaMonHoc = course.MaMonHoc,
                 MaGiaoVien = course.MaGiaoVien,
+                TenGiaoVien = course.GiaoVien?.HoTen,
+                TeacherIdx = teacherIndex[course.MaGiaoVien],
                 MaLop = course.MaLop,
                 ClassIdx = classIndex[course.MaLop],
                 ExpectedStudentCount = studentCounts.GetValueOrDefault(course.MaLop, 0),
@@ -326,22 +287,9 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
             };
             if (def.RequiredSlots <= 0) continue;
 
-            var skillLookup = new Dictionary<int, TeacherSkillCandidate>();
-            if (skillsByMonHoc.TryGetValue(course.MaMonHoc, out var skillList))
-            {
-                foreach (var entry in skillList)
-                    skillLookup[entry.MaGiaoVien] = entry;
-            }
-
-            foreach (var id in candidateIdsByCourse[course.MaKhoaHoc])
-            {
-                def.CandidateTeacherIds.Add(id);
-                def.CandidateTeacherIdx.Add(teacherIndex[id]);
-                def.CandidateSkills.Add(skillLookup.TryGetValue(id, out var entry) ? entry.MucDoPhuHop : 0);
-                def.CandidateTeacherNames.Add(skillLookup.TryGetValue(id, out var entry2) ? entry2.TenGiaoVien : null);
-            }
-
             var classSize = def.ExpectedStudentCount;
+            var teacherId = course.MaGiaoVien;
+            var hasConfirmedAvailability = confirmedAvailabilityByTeacher.TryGetValue(teacherId, out var availableSlots);
 
             for (var d = 0; d < WeekDays.Length; d++)
             {
@@ -349,6 +297,9 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
                 for (var s = 0; s < shifts.Count; s++)
                 {
                     var shift = shifts[s];
+                    if (hasConfirmedAvailability && !availableSlots!.Contains((day, shift.MaCaHoc)))
+                        continue;
+
                     for (var r = 0; r < rooms.Count; r++)
                     {
                         var room = rooms[r];
@@ -363,13 +314,6 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
                             ShiftIdx = s,
                             RoomIdx = r
                         };
-                        foreach (var teacherId in candidateIdsByCourse[course.MaKhoaHoc])
-                        {
-                            var hasConfirmedAvailability = confirmedAvailabilityByTeacher.TryGetValue(teacherId, out var availableSlots);
-                            if (!hasConfirmedAvailability || availableSlots!.Contains((day, shift.MaCaHoc)))
-                                slot.AvailableTeacherIndices.Add(teacherIndex[teacherId]);
-                        }
-                        if (slot.AvailableTeacherIndices.Count == 0) continue;
                         slot.StaticScore = ComputeStaticScore(slot, shift, room, classSize);
                         def.Feasible.Add(slot);
                     }
@@ -382,11 +326,9 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
                 .Select(x => x.i)
                 .ToList();
 
-            if (def.Feasible.Count > 0)
+            if (def.Feasible.Count > 0 && def.CanCoverRequiredSlots())
                 problem.Courses.Add(def);
             else
-                // Không có slot hợp lệ (ví dụ mọi phòng đều thiếu sức chứa) cũng phải
-                // được phản ánh là một khóa không xếp được trong kết quả cuối cùng.
                 problem.UnassignableCourseIds.Add(course.MaKhoaHoc);
         }
 
@@ -419,24 +361,13 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
     {
         var chromo = new Chromosome
         {
-            Genes = new int[problem.Courses.Count][],
-            TeacherGene = new int[problem.Courses.Count]
+            Genes = new int[problem.Courses.Count][]
         };
         for (var i = 0; i < problem.Courses.Count; i++)
         {
             chromo.Genes[i] = new int[problem.Courses[i].RequiredSlots];
-            chromo.TeacherGene[i] = -1;
         }
         return chromo;
-    }
-
-    private int ResolveTeacherIdx(TimetableProblem problem, Chromosome chromo, int courseIdx)
-    {
-        var course = problem.Courses[courseIdx];
-        var gene = chromo.TeacherGene[courseIdx];
-        if (gene < 0 || gene >= course.CandidateTeacherIdx.Count)
-            gene = 0;
-        return course.CandidateTeacherIdx[gene];
     }
 
     private List<Chromosome> Initialize(TimetableProblem problem, int size)
@@ -453,35 +384,50 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
         foreach (var idx in order)
         {
             var course = problem.Courses[idx];
-            var bestT = -1;
-            for (var t = 0; t < course.CandidateTeacherIdx.Count; t++)
-            {
-                if (course.CanTeacherCoverRequiredSlots(course.CandidateTeacherIdx[t]) &&
-                    (bestT < 0 || course.CandidateSkills[t] > course.CandidateSkills[bestT]))
-                    bestT = t;
-            }
-            if (bestT < 0)
+            if (!course.CanCoverRequiredSlots())
             {
                 for (var slotIdx = 0; slotIdx < course.RequiredSlots; slotIdx++)
                     greedy.Genes[idx][slotIdx] = -1;
                 continue;
             }
-            greedy.TeacherGene[idx] = bestT;
-            var teacherIdx = course.CandidateTeacherIdx[bestT];
 
+            var teacherIdx = course.TeacherIdx;
             var placed = 0;
+            var usedDays = new HashSet<int>();
+            var usedShifts = new HashSet<int>();
+
+            // Pass 1: distinct days
             foreach (var candIdx in course.FeasibleByScore)
             {
                 if (placed >= course.RequiredSlots) break;
                 var cand = course.Feasible[candIdx];
-                if (course.IsTeacherAvailable(teacherIdx, cand) &&
-                    occupied.IsFree(teacherIdx, course.ClassIdx, cand, _options.WeeklyCapCa))
+                if (!usedDays.Contains(cand.ThuTrongTuan) && occupied.IsFree(teacherIdx, course.ClassIdx, cand))
                 {
                     greedy.Genes[idx][placed] = candIdx;
+                    usedDays.Add(cand.ThuTrongTuan);
+                    usedShifts.Add(cand.DayShift);
                     occupied.Occupy(teacherIdx, course.ClassIdx, cand);
                     placed++;
                 }
             }
+
+            // Pass 2: fallback if not enough distinct days
+            if (placed < course.RequiredSlots)
+            {
+                foreach (var candIdx in course.FeasibleByScore)
+                {
+                    if (placed >= course.RequiredSlots) break;
+                    var cand = course.Feasible[candIdx];
+                    if (!usedShifts.Contains(cand.DayShift) && occupied.IsFree(teacherIdx, course.ClassIdx, cand))
+                    {
+                        greedy.Genes[idx][placed] = candIdx;
+                        usedShifts.Add(cand.DayShift);
+                        occupied.Occupy(teacherIdx, course.ClassIdx, cand);
+                        placed++;
+                    }
+                }
+            }
+
             for (; placed < course.RequiredSlots; placed++)
                 greedy.Genes[idx][placed] = -1;
         }
@@ -494,7 +440,6 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
             for (var i = 0; i < problem.Courses.Count; i++)
             {
                 var course = problem.Courses[i];
-                chromo.TeacherGene[i] = _random.Next(course.CandidateTeacherIdx.Count);
                 for (var slotIdx = 0; slotIdx < course.RequiredSlots; slotIdx++)
                     chromo.Genes[i][slotIdx] = _random.Next(course.Feasible.Count);
             }
@@ -516,29 +461,11 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
 
         double fitness = 0;
         var conflicts = 0;
-        var weeklyCa = new int[problem.MaxTeachers];
 
         for (var i = 0; i < problem.Courses.Count; i++)
         {
             var course = problem.Courses[i];
-            var teacherIdx = ResolveTeacherIdx(problem, chromo, i);
-            if (!course.CanTeacherCoverRequiredSlots(teacherIdx))
-            {
-                var replacement = Enumerable.Range(0, course.CandidateTeacherIdx.Count)
-                    .Where(index => course.CanTeacherCoverRequiredSlots(course.CandidateTeacherIdx[index]))
-                    .OrderByDescending(index => course.CandidateSkills[index])
-                    .FirstOrDefault(-1);
-                if (replacement >= 0)
-                {
-                    chromo.TeacherGene[i] = replacement;
-                    teacherIdx = course.CandidateTeacherIdx[replacement];
-                }
-            }
-            var assigned = 0;
-
-            // Điểm kỹ năng của giảng viên được chọn cho khóa (chuẩn hóa về 0-20 mặc định)
-            var skill = course.CandidateSkills[Math.Clamp(chromo.TeacherGene[i], 0, course.CandidateSkills.Count - 1)];
-            fitness += _options.SkillScoreWeight * (skill / 100.0);
+            var teacherIdx = course.TeacherIdx;
 
             for (var slotIdx = 0; slotIdx < course.RequiredSlots; slotIdx++)
             {
@@ -550,32 +477,23 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
                 }
 
                 var cand = course.Feasible[gene];
-                if (!course.IsTeacherAvailable(teacherIdx, cand))
-                {
-                    fitness -= _options.HardConflictPenalty;
-                    continue;
-                }
                 teacherOcc[teacherIdx][cand.DayShift]++;
                 classOcc[course.ClassIdx][cand.DayShift]++;
                 roomOcc[cand.RoomIdx][cand.DayShift]++;
                 fitness += cand.StaticScore;
-                assigned++;
             }
-
-            weeklyCa[teacherIdx] += assigned;
         }
 
         // conflicts
         for (var i = 0; i < problem.Courses.Count; i++)
         {
             var course = problem.Courses[i];
-            var teacherIdx = ResolveTeacherIdx(problem, chromo, i);
+            var teacherIdx = course.TeacherIdx;
             for (var slotIdx = 0; slotIdx < course.RequiredSlots; slotIdx++)
             {
                 var gene = chromo.Genes[i][slotIdx];
                 if (gene < 0 || gene >= course.Feasible.Count) continue;
                 var cand = course.Feasible[gene];
-                if (!course.IsTeacherAvailable(teacherIdx, cand)) continue;
                 if (teacherOcc[teacherIdx][cand.DayShift] > 1) conflicts++;
                 if (classOcc[course.ClassIdx][cand.DayShift] > 1) conflicts++;
                 if (roomOcc[cand.RoomIdx][cand.DayShift] > 1) conflicts++;
@@ -587,14 +505,12 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
         for (var i = 0; i < problem.Courses.Count; i++)
         {
             var course = problem.Courses[i];
-            var teacherIdx = ResolveTeacherIdx(problem, chromo, i);
             var daySlots = new Dictionary<int, List<int>>();
             for (var slotIdx = 0; slotIdx < course.RequiredSlots; slotIdx++)
             {
                 var gene = chromo.Genes[i][slotIdx];
                 if (gene < 0 || gene >= course.Feasible.Count) continue;
                 var cand = course.Feasible[gene];
-                if (!course.IsTeacherAvailable(teacherIdx, cand)) continue;
                 if (!daySlots.TryGetValue(cand.ThuTrongTuan, out var list))
                     daySlots[cand.ThuTrongTuan] = list = new List<int>();
                 list.Add(cand.ShiftIdx);
@@ -618,7 +534,7 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
         for (var i = 0; i < problem.Courses.Count; i++)
         {
             var course = problem.Courses[i];
-            var teacherIdx = ResolveTeacherIdx(problem, chromo, i);
+            var teacherIdx = course.TeacherIdx;
             for (var slotIdx = 0; slotIdx < course.RequiredSlots; slotIdx++)
             {
                 var gene = chromo.Genes[i][slotIdx];
@@ -637,16 +553,6 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
                 if (classLoad >= _options.ClassDailyLoadThreshold)
                     fitness -= _options.ClassDailyLoadPenalty;
             }
-        }
-
-        // Cân bằng định mức giảng dạy tuần (mục tiêu ~5 ca/tuần/GV, phạt lệch + vượt cap).
-        // Chỉ tính cho giảng viên đã được gán (rảnh hoàn toàn => không phạt, để GA ưu tiên skill cao).
-        for (var t = 0; t < problem.MaxTeachers; t++)
-        {
-            if (weeklyCa[t] == 0) continue;
-
-            var diff = weeklyCa[t] - _options.WeeklyTargetCa;
-            fitness -= Math.Abs(diff) * _options.WeeklyLoadPenalty;
         }
 
         chromo.Fitness = fitness;
@@ -672,8 +578,6 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
             var takeA = _random.NextDouble() < probability;
             childA.Genes[i] = takeA ? a.Genes[i].ToArray() : b.Genes[i].ToArray();
             childB.Genes[i] = takeA ? b.Genes[i].ToArray() : a.Genes[i].ToArray();
-            childA.TeacherGene[i] = takeA ? a.TeacherGene[i] : b.TeacherGene[i];
-            childB.TeacherGene[i] = takeA ? b.TeacherGene[i] : a.TeacherGene[i];
         }
         return (childA, childB);
     }
@@ -684,9 +588,6 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
         {
             var course = problem.Courses[i];
             if (course.Feasible.Count == 0) continue;
-
-            if (_random.NextDouble() < _teacherMutationRate && course.CandidateTeacherIdx.Count > 0)
-                chromo.TeacherGene[i] = _random.Next(course.CandidateTeacherIdx.Count);
 
             for (var slotIdx = 0; slotIdx < course.RequiredSlots; slotIdx++)
             {
@@ -718,11 +619,33 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
     private void RepairGreedy(TimetableProblem problem, Chromosome chromo)
     {
         var occupied = new OccupancyState(problem.MaxTeachers, problem.MaxClasses, problem.RoomCount, problem.ShiftCount);
-        foreach (var genes in chromo.Genes)
-            Array.Fill(genes, -1);
+        var preserved = new List<int>[problem.Courses.Count];
 
+        // Step 1: Retain valid, conflict-free genes from the GA solution that have distinct days
+        for (var i = 0; i < problem.Courses.Count; i++)
+        {
+            preserved[i] = new List<int>();
+            var course = problem.Courses[i];
+            var teacherIdx = course.TeacherIdx;
+            var usedDays = new HashSet<int>();
+
+            for (var slotIdx = 0; slotIdx < course.RequiredSlots; slotIdx++)
+            {
+                var gene = chromo.Genes[i][slotIdx];
+                if (gene < 0 || gene >= course.Feasible.Count) continue;
+                var cand = course.Feasible[gene];
+                if (!usedDays.Contains(cand.ThuTrongTuan) && occupied.IsFree(teacherIdx, course.ClassIdx, cand))
+                {
+                    preserved[i].Add(gene);
+                    usedDays.Add(cand.ThuTrongTuan);
+                    occupied.Occupy(teacherIdx, course.ClassIdx, cand);
+                }
+            }
+        }
+
+        // Step 2: Complete any missing slots for each course, preferring distinct days first
         var order = Enumerable.Range(0, problem.Courses.Count)
-            .OrderBy(i => problem.Courses[i].CandidateTeacherIdx.Count * problem.Courses[i].Feasible.Count)
+            .OrderBy(i => problem.Courses[i].Feasible.Count)
             .ThenByDescending(i => problem.Courses[i].RequiredSlots)
             .ThenBy(i => problem.Courses[i].MaKhoaHoc)
             .ToList();
@@ -730,45 +653,55 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
         foreach (var courseIdx in order)
         {
             var course = problem.Courses[courseIdx];
-            var selectedTeacherGene = -1;
-            List<int>? selectedSlots = null;
+            var teacherIdx = course.TeacherIdx;
+            var currentGenes = preserved[courseIdx];
+            var usedDays = new HashSet<int>(currentGenes.Select(g => course.Feasible[g].ThuTrongTuan));
+            var usedShifts = new HashSet<int>(currentGenes.Select(g => course.Feasible[g].DayShift));
 
-            foreach (var teacherGene in Enumerable.Range(0, course.CandidateTeacherIdx.Count)
-                         .OrderByDescending(index => course.CandidateSkills[index]))
+            // Pass 1: Find free slots on unused days
+            if (currentGenes.Count < course.RequiredSlots)
             {
-                var teacherIdx = course.CandidateTeacherIdx[teacherGene];
-                if (!course.CanTeacherCoverRequiredSlots(teacherIdx)) continue;
-
-                var candidateSlots = new List<int>();
-                var usedDayShifts = new HashSet<int>();
                 foreach (var candidateIndex in course.FeasibleByScore)
                 {
+                    if (currentGenes.Count == course.RequiredSlots) break;
                     var candidate = course.Feasible[candidateIndex];
-                    if (usedDayShifts.Contains(candidate.DayShift) ||
-                        !course.IsTeacherAvailable(teacherIdx, candidate) ||
-                        !occupied.IsFree(teacherIdx, course.ClassIdx, candidate, _options.WeeklyCapCa))
-                        continue;
+                    if (usedDays.Contains(candidate.ThuTrongTuan)) continue;
+                    if (!occupied.IsFree(teacherIdx, course.ClassIdx, candidate)) continue;
 
-                    usedDayShifts.Add(candidate.DayShift);
-                    candidateSlots.Add(candidateIndex);
-                    if (candidateSlots.Count == course.RequiredSlots) break;
+                    currentGenes.Add(candidateIndex);
+                    usedDays.Add(candidate.ThuTrongTuan);
+                    usedShifts.Add(candidate.DayShift);
+                    occupied.Occupy(teacherIdx, course.ClassIdx, candidate);
                 }
-
-                if (candidateSlots.Count != course.RequiredSlots) continue;
-                selectedTeacherGene = teacherGene;
-                selectedSlots = candidateSlots;
-                break;
             }
 
-            if (selectedTeacherGene < 0 || selectedSlots is null) continue;
-
-            chromo.TeacherGene[courseIdx] = selectedTeacherGene;
-            var selectedTeacherIdx = course.CandidateTeacherIdx[selectedTeacherGene];
-            for (var slotIdx = 0; slotIdx < selectedSlots.Count; slotIdx++)
+            // Pass 2: Fallback to sharing days if necessary
+            if (currentGenes.Count < course.RequiredSlots)
             {
-                var candidateIndex = selectedSlots[slotIdx];
-                chromo.Genes[courseIdx][slotIdx] = candidateIndex;
-                occupied.Occupy(selectedTeacherIdx, course.ClassIdx, course.Feasible[candidateIndex]);
+                foreach (var candidateIndex in course.FeasibleByScore)
+                {
+                    if (currentGenes.Count == course.RequiredSlots) break;
+                    var candidate = course.Feasible[candidateIndex];
+                    if (usedShifts.Contains(candidate.DayShift)) continue;
+                    if (!occupied.IsFree(teacherIdx, course.ClassIdx, candidate)) continue;
+
+                    currentGenes.Add(candidateIndex);
+                    usedShifts.Add(candidate.DayShift);
+                    occupied.Occupy(teacherIdx, course.ClassIdx, candidate);
+                }
+            }
+
+            if (currentGenes.Count == course.RequiredSlots)
+            {
+                for (var s = 0; s < course.RequiredSlots; s++)
+                    chromo.Genes[courseIdx][s] = currentGenes[s];
+            }
+            else
+            {
+                foreach (var g in currentGenes)
+                    occupied.Release(teacherIdx, course.ClassIdx, course.Feasible[g]);
+                for (var s = 0; s < course.RequiredSlots; s++)
+                    chromo.Genes[courseIdx][s] = -1;
             }
         }
     }
@@ -789,10 +722,9 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
             var dayShifts = new HashSet<int>();
             var conflicts = 0;
 
-            var teacherGene = Math.Clamp(chromo.TeacherGene[i], 0, course.CandidateTeacherIds.Count - 1);
-            var maGiaoVien = course.CandidateTeacherIds[teacherGene];
-            var tenGiaoVien = course.CandidateTeacherNames[teacherGene];
-            var mucDoPhuHop = course.CandidateSkills[teacherGene];
+            var maGiaoVien = course.MaGiaoVien;
+            var tenGiaoVien = course.TenGiaoVien;
+            var mucDoPhuHop = (int?)null; // Không còn tính toán độ phù hợp GV trong GA vì GV đã cố định theo phân công khóa học
 
             var teacherDayLoads = new Dictionary<int, int>();
             var classDayLoads = new Dictionary<int, int>();
@@ -803,7 +735,6 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
                 var gene = chromo.Genes[i][slotIdx];
                 if (gene < 0 || gene >= course.Feasible.Count) { full = false; continue; }
                 var cand = course.Feasible[gene];
-                if (!course.IsTeacherAvailable(course.CandidateTeacherIdx[teacherGene], cand)) { full = false; continue; }
                 var dayOffset = cand.DayShift - cand.ShiftIdx;
                 teacherDayLoads.TryGetValue(dayOffset, out var tl);
                 classDayLoads.TryGetValue(dayOffset, out var cl);
@@ -812,8 +743,8 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
             }
 
             var teacherReason = tenGiaoVien != null
-                ? $"Giảng viên {tenGiaoVien} được chọn với mức độ phù hợp {mucDoPhuHop}% cho môn học."
-                : $"Giảng viên mã {maGiaoVien} được chọn (không có dữ liệu kỹ năng cho môn học).";
+                ? $"Giảng viên {tenGiaoVien} phụ trách khóa học."
+                : $"Giảng viên mã {maGiaoVien} phụ trách khóa học.";
 
             for (var slotIdx = 0; slotIdx < course.RequiredSlots; slotIdx++)
             {
@@ -875,7 +806,6 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
         private readonly int[][] _teacher;
         private readonly int[][] _class;
         private readonly int[][] _room;
-        private readonly int[] _teacherWeeklyLoad;
         private readonly int _shiftCount;
 
         public OccupancyState(int teachers, int classes, int rooms, int shiftCount)
@@ -885,7 +815,6 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
             _teacher = Create(teachers, slots);
             _class = Create(classes, slots);
             _room = Create(rooms, slots);
-            _teacherWeeklyLoad = new int[teachers];
         }
 
         private static int[][] Create(int n, int slots)
@@ -895,18 +824,23 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
             return arr;
         }
 
-        public bool IsFree(int teacherIdx, int classIdx, CandidateSlot cand, int weeklyCap)
+        public bool IsFree(int teacherIdx, int classIdx, CandidateSlot cand)
             => _teacher[teacherIdx][cand.DayShift] == 0 &&
                _class[classIdx][cand.DayShift] == 0 &&
-               _room[cand.RoomIdx][cand.DayShift] == 0 &&
-               _teacherWeeklyLoad[teacherIdx] < weeklyCap;
+               _room[cand.RoomIdx][cand.DayShift] == 0;
 
         public void Occupy(int teacherIdx, int classIdx, CandidateSlot cand)
         {
             _teacher[teacherIdx][cand.DayShift]++;
             _class[classIdx][cand.DayShift]++;
             _room[cand.RoomIdx][cand.DayShift]++;
-            _teacherWeeklyLoad[teacherIdx]++;
+        }
+
+        public void Release(int teacherIdx, int classIdx, CandidateSlot cand)
+        {
+            if (_teacher[teacherIdx][cand.DayShift] > 0) _teacher[teacherIdx][cand.DayShift]--;
+            if (_class[classIdx][cand.DayShift] > 0) _class[classIdx][cand.DayShift]--;
+            if (_room[cand.RoomIdx][cand.DayShift] > 0) _room[cand.RoomIdx][cand.DayShift]--;
         }
     }
 }

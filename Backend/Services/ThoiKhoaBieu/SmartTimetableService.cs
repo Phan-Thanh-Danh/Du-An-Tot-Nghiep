@@ -74,6 +74,87 @@ public class SmartTimetableService : ISmartTimetableService
             .Where(x => x.TrangThaiPhong == "hoat_dong" && x.MaDonVi == request.MaDonVi)
             .ToListAsync(cancellationToken);
 
+        var quyDoi = await _context.QuyDoiTinChis.AsNoTracking()
+            .ToDictionaryAsync(x => x.SoTinChi, x => x.SoBuoiMoiTuan, cancellationToken);
+
+        var requiredSlots = new Dictionary<int, int>();
+        foreach (var course in courses)
+        {
+            var soTinChi = course.MonHoc?.SoTinChi ?? 0;
+            requiredSlots[course.MaKhoaHoc] = quyDoi.GetValueOrDefault(soTinChi, 1);
+        }
+
+        var studentCounts = await GetClassStudentCountsAsync(courses.Select(x => x.MaLop), cancellationToken);
+
+        // =========================================================================
+        // FEASIBILITY CHECK TIỀN KỲ (Kiểm tra khả thi trước khi khởi tạo GA)
+        // =========================================================================
+        var totalRequiredSlots = courses.Sum(c => requiredSlots.GetValueOrDefault(c.MaKhoaHoc, 1));
+
+        // 1. Kiểm tra phòng học & ca học khả dụng
+        if (rooms.Count == 0)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Không có phòng học hoạt động nào thuộc cơ sở để xếp lịch.");
+        }
+        if (shifts.Count == 0)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Không có ca học nào đang hoạt động.");
+        }
+
+        var totalAvailableRoomSlots = rooms.Count * shifts.Count * 6; // 6 ngày học (Thứ 2 -> Thứ 7)
+        if (totalRequiredSlots > totalAvailableRoomSlots)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest,
+                $"Không đủ tài nguyên phòng học: Cần {totalRequiredSlots} slot/tuần nhưng cơ sở chỉ có tối đa {totalAvailableRoomSlots} slot/tuần ({rooms.Count} phòng x {shifts.Count} ca x 6 ngày). Thiếu ít nhất {totalRequiredSlots - totalAvailableRoomSlots} slot.");
+        }
+
+        // 2. Kiểm tra phân công giảng viên
+        var unassignedCourses = courses.Where(c => c.MaGiaoVien <= 0).Select(c => c.MaKhoaHoc).ToList();
+        if (unassignedCourses.Count > 0)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest,
+                $"Có {unassignedCourses.Count} khóa học chưa được phân công giảng viên: {string.Join(", ", unassignedCourses)}. Vui lòng gán giảng viên trước khi xếp thời khóa biểu.");
+        }
+
+        // 3. Kiểm tra trần tải giảng viên (tối đa 6 ca/tuần)
+        var weeklyTeacherCap = _scoringOptions.WeeklyCapCa;
+        var teacherWorkload = new Dictionary<int, (string Name, int Slots)>();
+        foreach (var course in courses)
+        {
+            var slots = requiredSlots.GetValueOrDefault(course.MaKhoaHoc, 1);
+            var gvId = course.MaGiaoVien;
+            var gvName = course.GiaoVien?.HoTen ?? $"GV #{gvId}";
+            if (!teacherWorkload.ContainsKey(gvId))
+            {
+                teacherWorkload[gvId] = (gvName, 0);
+            }
+            var current = teacherWorkload[gvId];
+            teacherWorkload[gvId] = (current.Name, current.Slots + slots);
+        }
+
+        var overloadedTeachers = teacherWorkload
+            .Where(kv => kv.Value.Slots > weeklyTeacherCap)
+            .Select(kv => $"{kv.Value.Name} (được gán {kv.Value.Slots} ca/tuần, vượt trần {weeklyTeacherCap} ca/tuần)")
+            .ToList();
+
+        if (overloadedTeachers.Count > 0)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest,
+                $"Không khả thi do vượt trần tải giảng viên: {string.Join("; ", overloadedTeachers)}.");
+        }
+
+        // 4. Kiểm tra sức chứa phòng vs sĩ số lớp
+        var maxRoomCapacity = rooms.Max(r => r.SucChua);
+        var oversizedCourses = courses
+            .Where(c => studentCounts.GetValueOrDefault(c.MaLop, 0) > maxRoomCapacity)
+            .Select(c => $"Khóa học #{c.MaKhoaHoc} (Lớp có {studentCounts.GetValueOrDefault(c.MaLop, 0)} SV > Phòng lớn nhất {maxRoomCapacity} chỗ)")
+            .ToList();
+        if (oversizedCourses.Count > 0)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest,
+                $"Không khả thi do sĩ số lớp vượt sức chứa phòng học: {string.Join("; ", oversizedCourses)}.");
+        }
+
         var draftId = request.ClientDraftId ?? Guid.NewGuid();
 
         var job = new ScheduleGenerationJob
@@ -90,23 +171,12 @@ public class SmartTimetableService : ISmartTimetableService
         _context.ScheduleGenerationJobs.Add(job);
         await _context.SaveChangesAsync(cancellationToken);
 
-        var skillsByMonHoc = await LoadSkillMatrixAsync(request.MaDonVi, courses.Select(x => x.MaMonHoc).Distinct(), cancellationToken);
-        var studentCounts = await GetClassStudentCountsAsync(courses.Select(x => x.MaLop), cancellationToken);
+        var teacherIds = courses.Select(x => x.MaGiaoVien).Where(id => id > 0).Distinct();
         var confirmedAvailability = await LoadConfirmedTeachingAvailabilityAsync(
             request.MaHocKy,
             request.MaDonVi,
-            skillsByMonHoc.Values.SelectMany(x => x).Select(x => x.MaGiaoVien),
+            teacherIds,
             cancellationToken);
-
-        var quyDoi = await _context.QuyDoiTinChis.AsNoTracking()
-            .ToDictionaryAsync(x => x.SoTinChi, x => x.SoBuoiMoiTuan, cancellationToken);
-
-        var requiredSlots = new Dictionary<int, int>();
-        foreach (var course in courses)
-        {
-            var soTinChi = course.MonHoc?.SoTinChi ?? 0;
-            requiredSlots[course.MaKhoaHoc] = quyDoi.GetValueOrDefault(soTinChi, 1);
-        }
 
         var progress = new GenerationProgress
         {
@@ -123,7 +193,6 @@ public class SmartTimetableService : ISmartTimetableService
             shifts,
             rooms,
             requiredSlots,
-            skillsByMonHoc,
             studentCounts,
             confirmedAvailability,
             request.TongTheHe ?? 100,
@@ -171,6 +240,24 @@ public class SmartTimetableService : ISmartTimetableService
         job.TrangThai = "draft";
         job.SoXepDuoc = result.XepDuoc;
         job.SoKhongXepDuoc = result.KhongXepDuoc;
+
+        // Đếm xung đột cứng độc lập (không dựa vào fitness)
+        var hardConflicts = 0;
+        var teacherOcc = new HashSet<(int teacherId, int day, int shift)>();
+        var roomOcc = new HashSet<(int roomId, int day, int shift)>();
+        var classCourseMap = courses.ToDictionary(c => c.MaKhoaHoc, c => c.MaLop);
+        var classOcc = new HashSet<(int classId, int day, int shift)>();
+
+        foreach (var item in result.Assignments)
+        {
+            if (item.MaGiaoVien > 0 && !teacherOcc.Add((item.MaGiaoVien, item.ThuTrongTuan, item.MaCaHoc)))
+                hardConflicts++;
+            if (item.MaPhong > 0 && !roomOcc.Add((item.MaPhong, item.ThuTrongTuan, item.MaCaHoc)))
+                hardConflicts++;
+            if (classCourseMap.TryGetValue(item.MaKhoaHoc, out var classId) && classId > 0 && !classOcc.Add((classId, item.ThuTrongTuan, item.MaCaHoc)))
+                hardConflicts++;
+        }
+        job.SoXungDotCung = hardConflicts;
 
         var assignedItems = items.Where(x => x.TrangThai == "xep_duoc").ToList();
         job.Score = assignedItems.Count > 0 ? assignedItems.Average(x => x.Score ?? 0) : 0;
@@ -309,7 +396,6 @@ public class SmartTimetableService : ISmartTimetableService
             throw new ApiException(StatusCodes.Status400BadRequest, "Bản nháp không có ca học hợp lệ để xuất bản.");
 
         var result = new TimetablePublishResultDto();
-        var giaoVienChanges = new List<object>();
         var strategy = _context.Database.CreateExecutionStrategy();
         await strategy.ExecuteAsync(async () =>
         {
@@ -317,17 +403,60 @@ public class SmartTimetableService : ISmartTimetableService
                 System.Data.IsolationLevel.Serializable, cancellationToken);
             try
             {
-                var hasPublishedSchedule = await _context.ThoiKhoaBieus
-                    .AnyAsync(x =>
+                var existingPublishedTkbs = await _context.ThoiKhoaBieus
+                    .Include(x => x.JobNguon)
+                    .Where(x =>
                         x.KhoaHoc != null &&
                         x.KhoaHoc.MaHocKy == job.MaHocKy &&
                         x.KhoaHoc.MaDonVi == job.MaDonVi &&
-                        x.TrangThai == PublishedScheduleStatus,
-                        cancellationToken);
+                        x.TrangThai == PublishedScheduleStatus)
+                    .ToListAsync(cancellationToken);
 
-                if (hasPublishedSchedule)
-                    throw new ApiException(StatusCodes.Status409Conflict,
-                        "Học kỳ này đã có thời khóa biểu được xuất bản. Hãy dùng luồng điều chỉnh thời khóa biểu, không thể ghi đè bằng bản nháp mới.");
+                if (existingPublishedTkbs.Count > 0)
+                {
+                    var existingCourseIds = existingPublishedTkbs.Select(x => x.MaKhoaHoc).Distinct().ToList();
+
+                    // 1. Ràng buộc bảo vệ Điểm danh (Tuyệt đối, ưu tiên cao nhất)
+                    var hasAttendance = await _context.DiemDanhs
+                        .AnyAsync(dd => dd.BuoiHoc != null &&
+                                        existingCourseIds.Contains(dd.BuoiHoc.MaKhoaHoc) &&
+                                        dd.BuoiHoc.KhoaHoc != null &&
+                                        dd.BuoiHoc.KhoaHoc.MaHocKy == job.MaHocKy,
+                                  cancellationToken);
+
+                    if (hasAttendance)
+                    {
+                        throw new ApiException(StatusCodes.Status400BadRequest,
+                            "Không thể xuất bản đè thời khóa biểu vì đã có buổi học được điểm danh thực tế trong học kỳ này.");
+                    }
+
+                    // 2. Ràng buộc khóa 30 phút chống lách khóa
+                    var oldestPublishTime = existingPublishedTkbs
+                        .Select(x => x.JobNguon?.NgayXuatBan ?? x.NgayCapNhat ?? x.NgayTao)
+                        .Min();
+
+                    var timeSincePublish = DateTime.UtcNow - oldestPublishTime;
+                    if (timeSincePublish > TimeSpan.FromMinutes(30))
+                    {
+                        throw new ApiException(StatusCodes.Status400BadRequest,
+                            $"Thời khóa biểu đã xuất bản quá 30 phút (đã qua {Math.Round(timeSincePublish.TotalMinutes)} phút), bị khóa chỉnh sửa/ghi đè. Danh sách khóa học bị khóa: {string.Join(", ", existingCourseIds)}.");
+                    }
+
+                    // Đang trong 30 phút và chưa có điểm danh: Xóa BuoiHoc cũ và hủy TKB cũ để ghi đè sạch sẽ
+                    var oldTkbIds = existingPublishedTkbs.Select(x => x.MaTkb).ToList();
+                    var oldBuoiHocs = await _context.BuoiHocs
+                        .Where(bh => oldTkbIds.Contains(bh.MaTkb))
+                        .ToListAsync(cancellationToken);
+
+                    _context.BuoiHocs.RemoveRange(oldBuoiHocs);
+
+                    foreach (var oldTkb in existingPublishedTkbs)
+                    {
+                        oldTkb.TrangThai = "da_huy";
+                        oldTkb.NgayCapNhat = DateTime.UtcNow;
+                    }
+                    await _context.SaveChangesAsync(cancellationToken);
+                }
 
                 // Lần xuất bản đầu chỉ thay thế lịch nháp cũ, không bao giờ thay lịch đã công bố.
                 await _context.ThoiKhoaBieus
@@ -340,7 +469,7 @@ public class SmartTimetableService : ISmartTimetableService
 
                 var map = await BuildOccupationMapAsync(job.MaHocKy, job.MaDonVi, cancellationToken);
                 var courses = await _context.KhoaHocs.AsNoTracking()
-                    .Where(x => x.MaHocKy == job.MaHocKy && x.MaDonVi == job.MaDonVi)
+                    .Where(x => x.MaHocKy == job.MaHocKy && x.MaDonVi == job.MaDonVi && x.TrangThai != "luu_tru")
                     .ToDictionaryAsync(x => x.MaKhoaHoc, cancellationToken);
 
                 var soTinChiByMonHoc = await _context.DanhMucMonHocs.AsNoTracking()
@@ -381,23 +510,6 @@ public class SmartTimetableService : ISmartTimetableService
                     if (group.Count() != soBuoiYeuCau)
                         throw new ApiException(StatusCodes.Status400BadRequest,
                             $"MaKhoaHoc {group.Key}: bản nháp phải có đúng {soBuoiYeuCau} ca/tuần (hiện có {group.Count()}).");
-                }
-
-                // GA chọn giảng viên cho từng khóa: ghi đè MaGiaoVien của khóa trước khi check conflict
-                var attachedCourses = new HashSet<int>();
-                foreach (var item in items)
-                {
-                    if (!item.MaGiaoVien.HasValue) continue;
-                    if (courses.TryGetValue(item.MaKhoaHoc, out var c) && c.MaGiaoVien != item.MaGiaoVien.Value)
-                    {
-                        giaoVienChanges.Add(new { maKhoaHoc = item.MaKhoaHoc, tuGiaoVien = c.MaGiaoVien, denGiaoVien = item.MaGiaoVien.Value });
-                        c.MaGiaoVien = item.MaGiaoVien.Value;
-                        if (attachedCourses.Add(c.MaKhoaHoc))
-                        {
-                            _context.KhoaHocs.Attach(c);
-                            _context.Entry(c).Property(x => x.MaGiaoVien).IsModified = true;
-                        }
-                    }
                 }
 
                 foreach (var item in items)
@@ -451,6 +563,7 @@ public class SmartTimetableService : ISmartTimetableService
                         MaCaHoc = item.MaCaHoc.Value,
                         MaPhong = item.MaPhong.Value,
                         TrangThai = PublishedScheduleStatus,
+                        MaJobNguon = job.MaJob,
                         NgayTao = DateTime.UtcNow,
                         NgayCapNhat = DateTime.UtcNow
                     };
@@ -518,7 +631,7 @@ public class SmartTimetableService : ISmartTimetableService
 
         await _auditLogService.LogAsync(
             "SmartTimetable", request.DraftId.ToString(), "PUBLISH",
-            null, new { publishResult = result, giaoVienChanges }, currentUser.UserId, job.MaDonVi,
+            null, new { publishResult = result }, currentUser.UserId, job.MaDonVi,
             "Xuất bản thời khóa biểu thông minh.", cancellationToken);
 
         return result;
@@ -839,42 +952,6 @@ public class SmartTimetableService : ISmartTimetableService
         return await query.ToListAsync(cancellationToken);
     }
 
-    private async Task<Dictionary<int, IReadOnlyList<TeacherSkillCandidate>>> LoadSkillMatrixAsync(
-        int maDonVi,
-        IEnumerable<int> monHocIds,
-        CancellationToken cancellationToken)
-    {
-        var ids = monHocIds.Distinct().ToList();
-        if (ids.Count == 0)
-            return new Dictionary<int, IReadOnlyList<TeacherSkillCandidate>>();
-
-        var skillRows = await _context.GiaoVienMonHocs.AsNoTracking()
-            .Where(x => ids.Contains(x.MaMonHoc) && x.ConHoatDong)
-            .ToListAsync(cancellationToken);
-
-        var teacherIds = skillRows.Select(x => x.MaGiaoVien).Distinct().ToList();
-        var teachers = teacherIds.Count > 0
-            ? await _context.NguoiDungs.AsNoTracking()
-                .Where(x => teacherIds.Contains(x.MaNguoiDung) && x.MaDonVi == maDonVi && x.VaiTroChinh == "giao_vien" && x.TrangThai == "hoat_dong")
-                .ToDictionaryAsync(x => x.MaNguoiDung, cancellationToken)
-            : new Dictionary<int, NguoiDung>();
-
-        return skillRows
-            .Where(x => teachers.ContainsKey(x.MaGiaoVien))
-            .GroupBy(x => x.MaMonHoc)
-            .ToDictionary(
-                g => g.Key,
-                g => (IReadOnlyList<TeacherSkillCandidate>)g
-                    .OrderByDescending(x => x.MucDoPhuHop)
-                    .Select(x => new TeacherSkillCandidate
-                    {
-                        MaGiaoVien = x.MaGiaoVien,
-                        TenGiaoVien = teachers[x.MaGiaoVien].HoTen,
-                        MucDoPhuHop = x.MucDoPhuHop,
-                        LaMonChinh = x.LaMonChinh
-                    })
-                    .ToList());
-    }
 
     private async Task<Dictionary<int, IReadOnlySet<(int Day, int Shift)>>> LoadConfirmedTeachingAvailabilityAsync(
         int maHocKy,
@@ -1005,6 +1082,7 @@ public class SmartTimetableService : ISmartTimetableService
             TongCourse = job.TongCourse,
             SoXepDuoc = job.SoXepDuoc,
             SoKhongXepDuoc = job.SoKhongXepDuoc,
+            SoXungDotCung = job.SoXungDotCung,
             Score = job.Score,
             NgayTao = job.NgayTao,
             NgayXuatBan = job.NgayXuatBan,

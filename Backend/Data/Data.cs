@@ -46,7 +46,6 @@ public static class Data
         await SeedProgramTermsAsync(context, programs.Values, terms);
         var programSubjects = await SeedProgramSubjectsAsync(context, programs, subjects);
         var users = await SeedDemoUsersAsync(context, rootCampus, hcmCampus);
-        await SeedBaseTeacherMajorsAsync(context, users, specializations);
         var administrativeClasses = await SeedAdministrativeClassesAsync(
             context,
             hcmCampus,
@@ -108,8 +107,8 @@ public static class Data
         // Seed GEN101 data for SD1904
         await SeedGEN101DataAsync(context, terms, administrativeClasses);
 
-        // Seed P7 registration workflow (course sections, periods, enrollments)
-        await SeedRegistrationWorkflowAsync(context, hcmCampus, subjects, terms);
+        // Seed MonHocChuyenNganh & GiaoVienChuyenNganh
+        await SeedMonHocChuyenNganhAndTeachersAsync(context, subjects, specializations);
 
         await context.SaveChangesAsync();
     }
@@ -2911,41 +2910,110 @@ public static class Data
         }
     }
 
-    private static async Task SeedBaseTeacherMajorsAsync(
+    private static async Task SeedMonHocChuyenNganhAndTeachersAsync(
         ApplicationDbContext context,
-        Dictionary<string, NguoiDung> users,
-        Dictionary<string, ChuyenNganh> specializations
+        IReadOnlyDictionary<string, DanhMucMonHoc> subjects,
+        IReadOnlyDictionary<string, ChuyenNganh> specializations
     )
     {
-        var cntt = specializations.Values.FirstOrDefault(x => x.TenChuyenNganh.Contains("Phần mềm") || x.TenChuyenNganh.Contains("CNTT")) ?? specializations.Values.FirstOrDefault();
-        var mkt = specializations.Values.FirstOrDefault(x => x.TenChuyenNganh.Contains("Marketing")) ?? specializations.Values.FirstOrDefault();
-        var tkdh = specializations.Values.FirstOrDefault(x => x.TenChuyenNganh.Contains("Đồ họa")) ?? specializations.Values.FirstOrDefault();
+        var allSpecs = await context.ChuyenNganhs.ToListAsync();
+        var cnttSpecs = allSpecs.Where(x => x.TenChuyenNganh.Contains("Phần mềm") || x.TenChuyenNganh.Contains("CNTT") || x.TenChuyenNganh.Contains("Web") || x.TenChuyenNganh.Contains("Dữ liệu") || x.TenChuyenNganh.Contains("AI") || x.TenChuyenNganh.Contains("Hệ thống") || x.TenChuyenNganh.Contains("An toàn")).ToList();
+        var mktSpecs = allSpecs.Where(x => x.TenChuyenNganh.Contains("Marketing") || x.TenChuyenNganh.Contains("Kinh doanh") || x.TenChuyenNganh.Contains("Thương mại") || x.TenChuyenNganh.Contains("Tài chính")).ToList();
+        var tkdhSpecs = allSpecs.Where(x => x.TenChuyenNganh.Contains("Đồ họa") || x.TenChuyenNganh.Contains("UI/UX") || x.TenChuyenNganh.Contains("3D") || x.TenChuyenNganh.Contains("Graphic")).ToList();
+        var defaultSpec = allSpecs.FirstOrDefault() ?? cnttSpecs.FirstOrDefault();
 
-        foreach (var kvp in users)
+        // 1. Seed MonHocChuyenNganh cho tất cả DanhMucMonHoc
+        var allSubjects = await context.DanhMucMonHocs.ToListAsync();
+        var existingLinks = await context.MonHocChuyenNganhs.ToListAsync();
+        var existingSet = new HashSet<(int, int)>(existingLinks.Select(x => (x.MaMonHoc, x.MaChuyenNganh)));
+
+        var newLinks = new List<MonHocChuyenNganh>();
+        foreach (var sub in allSubjects)
         {
-            if (kvp.Value.VaiTroChinh != AuthRoles.ToDatabaseCode(AuthRoles.Teacher)) continue;
+            var code = sub.MaCodeMonHoc.ToUpperInvariant();
+            List<ChuyenNganh> targetSpecs;
 
-            var existing = await context.GiaoVienChuyenNganhs.AnyAsync(x => x.MaGiaoVien == kvp.Value.MaNguoiDung);
-            if (existing) continue;
-
-            var spec = cntt;
-            if (kvp.Key.Contains("mkt") || kvp.Key.Contains("marketing")) spec = mkt;
-            else if (kvp.Key.Contains("tkdh")) spec = tkdh;
-
-            if (spec != null)
+            // Môn cơ bản / nền tảng dùng chung -> gán cho tất cả chuyên ngành
+            if (code.StartsWith("GEN") || code.StartsWith("COM1") || code.StartsWith("ENG") || code.StartsWith("MAT"))
             {
-                context.GiaoVienChuyenNganhs.Add(new GiaoVienChuyenNganh
+                targetSpecs = allSpecs;
+            }
+            else if (code.StartsWith("MKT") || code.StartsWith("BUS") || code.StartsWith("FIN") || code.StartsWith("ACC") || code.StartsWith("ECO"))
+            {
+                targetSpecs = mktSpecs.Count > 0 ? mktSpecs : allSpecs;
+            }
+            else if (code.StartsWith("GRA") || code.StartsWith("PHO") || code.StartsWith("ILL") || code.StartsWith("VID") || code.StartsWith("DES"))
+            {
+                targetSpecs = tkdhSpecs.Count > 0 ? tkdhSpecs : allSpecs;
+            }
+            else
+            {
+                // Môn CNTT / Lập trình / Cơ sở dữ liệu...
+                targetSpecs = cnttSpecs.Count > 0 ? cnttSpecs : allSpecs;
+            }
+
+            foreach (var sp in targetSpecs)
+            {
+                if (existingSet.Add((sub.MaMonHoc, sp.MaChuyenNganh)))
                 {
-                    MaGiaoVien = kvp.Value.MaNguoiDung,
-                    MaChuyenNganh = spec.MaChuyenNganh,
-                    LaChuyenMonChinh = true,
-                    MucDoPhuHop = 100,
-                    SoNamKinhNghiem = 5,
-                    NgayTao = DateTime.UtcNow
-                });
+                    newLinks.Add(new MonHocChuyenNganh
+                    {
+                        MaMonHoc = sub.MaMonHoc,
+                        MaChuyenNganh = sp.MaChuyenNganh
+                    });
+                }
             }
         }
-        await context.SaveChangesAsync();
+
+        if (newLinks.Count > 0)
+        {
+            context.MonHocChuyenNganhs.AddRange(newLinks);
+            await context.SaveChangesAsync();
+        }
+
+        // 2. Đảm bảo tất cả Giảng viên thật trong hệ thống đều có ít nhất 1 Chuyên ngành trong GiaoVienChuyenNganh
+        var allTeachers = await context.NguoiDungs
+            .Where(u => u.VaiTroChinh == "giao_vien" || u.VaiTroChinh == "Teacher")
+            .ToListAsync();
+
+        var teacherWithMajors = (await context.GiaoVienChuyenNganhs.Select(x => x.MaGiaoVien).Distinct().ToListAsync()).ToHashSet();
+        var newTeacherMajors = new List<GiaoVienChuyenNganh>();
+
+        foreach (var teacher in allTeachers)
+        {
+            if (!teacherWithMajors.Contains(teacher.MaNguoiDung))
+            {
+                var spec = defaultSpec;
+                var email = (teacher.Email ?? "").ToLowerInvariant();
+                if (email.Contains("mkt") || email.Contains("marketing") || email.Contains("kinhte"))
+                    spec = mktSpecs.FirstOrDefault() ?? defaultSpec;
+                else if (email.Contains("tkdh") || email.Contains("dohoa") || email.Contains("design"))
+                    spec = tkdhSpecs.FirstOrDefault() ?? defaultSpec;
+                else
+                    spec = cnttSpecs.FirstOrDefault() ?? defaultSpec;
+
+                if (spec != null)
+                {
+                    newTeacherMajors.Add(new GiaoVienChuyenNganh
+                    {
+                        MaGiaoVien = teacher.MaNguoiDung,
+                        MaChuyenNganh = spec.MaChuyenNganh,
+                        LaChuyenMonChinh = true,
+                        MucDoPhuHop = 100,
+                        SoNamKinhNghiem = 5,
+                        ConHoatDong = true,
+                        NgayTao = DateTime.UtcNow
+                    });
+                    teacherWithMajors.Add(teacher.MaNguoiDung);
+                }
+            }
+        }
+
+        if (newTeacherMajors.Count > 0)
+        {
+            context.GiaoVienChuyenNganhs.AddRange(newTeacherMajors);
+            await context.SaveChangesAsync();
+        }
     }
     private static async Task SeedGEN101DataAsync(
         ApplicationDbContext context,
@@ -3350,4 +3418,110 @@ public static class Data
 
         await context.SaveChangesAsync();
     }
+
+    /// <summary>
+    /// Tạo đề thi cho tất cả môn học của tất cả ngành đang hoạt động (nếu môn chưa có đề cho học kỳ).
+    /// Môn nào chưa có đề thi, hệ thống sẽ tự sinh đề kèm câu hỏi để nghiệp vụ tự gắn đề hoạt động.
+    /// </summary>
+    public static async Task SeedDeKiemTraForAllSubjectsAsync(ApplicationDbContext context)
+    {
+        var term = await context.HocKys.FirstOrDefaultAsync(t => t.MaCodeHocKy == "HK3_2026");
+        if (term == null)
+        {
+            return;
+        }
+
+        var subjects = await context.DanhMucMonHocs
+            .Where(x => x.ConHoatDong)
+            .OrderBy(x => x.TenMonHoc)
+            .ToListAsync();
+
+        foreach (var subject in subjects)
+        {
+            var deKiemTra = await context.DeKiemTras
+                .Where(x => x.MaMonHoc == subject.MaMonHoc && x.MaHocKy == term.MaHocKy)
+                .OrderByDescending(x => x.TrangThaiDuyet == "da_duyet")
+                .ThenByDescending(x => x.NgayTao)
+                .FirstOrDefaultAsync();
+
+            if (deKiemTra == null)
+            {
+                var tracNghiem = subject.MaMonHoc % 2 == 0;
+                deKiemTra = new DeKiemTra
+                {
+                    MaMonHoc = subject.MaMonHoc,
+                    MaHocKy = term.MaHocKy,
+                    TieuDe = $"Đề thi {subject.TenMonHoc}",
+                    ThoiGianPhut = 45,
+                    CauHinhDeThi = "{\"questions\":[]}",
+                    TrangThai = "dang_mo",
+                    TrangThaiDuyet = "da_duyet",
+                    LoaiDeThi = tracNghiem ? "trac_nghiem" : "ket_hop",
+                    HinhThucThi = "online_tap_trung",
+                    TyLeTracNghiem = tracNghiem ? 100m : 70m,
+                    TyLeTuLuan = tracNghiem ? 0m : 30m,
+                    NgayTao = DateTime.UtcNow,
+                    NgayCapNhat = DateTime.UtcNow,
+                };
+
+                context.DeKiemTras.Add(deKiemTra);
+                await context.SaveChangesAsync();
+            }
+
+            await EnsureExamQuestionsAsync(context, deKiemTra, subject, ct: default);
+        }
+
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task EnsureExamQuestionsAsync(
+        ApplicationDbContext context,
+        DeKiemTra deKiemTra,
+        DanhMucMonHoc subject,
+        CancellationToken ct)
+    {
+        var hasQuestions = await context.CauHoiDeKiemTras.AnyAsync(x => x.MaDeKiemTra == deKiemTra.MaDeKiemTra, ct);
+        if (hasQuestions || deKiemTra.MaDeKiemTra == 0)
+        {
+            return;
+        }
+
+        var questions = new List<CauHoi>();
+        var links = new List<CauHoiDeKiemTra>();
+        for (var i = 1; i <= 5; i++)
+        {
+            var question = new CauHoi
+            {
+                MaMonHoc = deKiemTra.MaMonHoc,
+                LoaiCauHoi = "trac_nghiem",
+                NoiDung = $"Câu hỏi trắc nghiệm {i} về {subject.TenMonHoc}",
+                KieuLuaChon = "chon_mot",
+                LuaChon = "[{\"id\":\"A\",\"text\":\"Đáp án A\"},{\"id\":\"B\",\"text\":\"Đáp án B\"},{\"id\":\"C\",\"text\":\"Đáp án C\"},{\"id\":\"D\",\"text\":\"Đáp án D\"}]",
+                DapAnDung = "[\"A\"]",
+                GiaiThichDapAn = $"Giải thích câu {i}: đáp án đúng là A.",
+                DoKho = "de",
+                ConHoatDong = true,
+                NgayTao = DateTime.UtcNow,
+            };
+            questions.Add(question);
+        }
+
+        context.CauHois.AddRange(questions);
+        await context.SaveChangesAsync(ct);
+
+        foreach (var question in questions)
+        {
+            links.Add(new CauHoiDeKiemTra
+            {
+                MaDeKiemTra = deKiemTra.MaDeKiemTra,
+                MaCauHoi = question.MaCauHoi,
+                DiemSo = 2m,
+                ThuTu = links.Count + 1
+            });
+        }
+
+        context.CauHoiDeKiemTras.AddRange(links);
+        await context.SaveChangesAsync(ct);
+    }
 }
+

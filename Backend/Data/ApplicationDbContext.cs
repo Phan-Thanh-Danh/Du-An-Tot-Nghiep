@@ -73,6 +73,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<NganhDaoTao> NganhDaoTaos => Set<NganhDaoTao>();
     public DbSet<NguoiDung> NguoiDungs => Set<NguoiDung>();
     public DbSet<GiaoVienChuyenNganh> GiaoVienChuyenNganhs => Set<GiaoVienChuyenNganh>();
+    public DbSet<MonHocChuyenNganh> MonHocChuyenNganhs => Set<MonHocChuyenNganh>();
     public DbSet<GiaoVienMonHoc> GiaoVienMonHocs => Set<GiaoVienMonHoc>();
     public DbSet<PasswordResetOtp> PasswordResetOtps => Set<PasswordResetOtp>();
     public DbSet<NhatKyDuyetDon> NhatKyDuyetDons => Set<NhatKyDuyetDon>();
@@ -4392,6 +4393,8 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.NgayCapNhat)
                 .HasColumnName("ngay_cap_nhat")
                 .HasColumnType("datetime2");
+            entity.Property(e => e.MaJobNguon)
+                .HasColumnName("ma_job_nguon");
             entity.HasIndex(e => new { e.MaKhoaHoc, e.ThuTrongTuan, e.MaCaHoc })
                 .IsUnique()
                 .HasFilter("[trang_thai] <> N'da_huy'")
@@ -4420,6 +4423,11 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(e => e.MaCaHoc)
                 .OnDelete(DeleteBehavior.NoAction)
                 .HasConstraintName("FK_ThoiKhoaBieu_ma_ca_hoc__CaHoc");
+            entity.HasOne(e => e.JobNguon)
+                .WithMany()
+                .HasForeignKey(e => e.MaJobNguon)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_ThoiKhoaBieu_ma_job_nguon__ScheduleGenerationJob");
         });
 
         modelBuilder.Entity<ThongBao>(entity =>
@@ -5925,6 +5933,7 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.TongCourse).HasColumnName("tong_course");
             entity.Property(e => e.SoXepDuoc).HasColumnName("so_xep_duoc");
             entity.Property(e => e.SoKhongXepDuoc).HasColumnName("so_khong_xep_duoc");
+            entity.Property(e => e.SoXungDotCung).HasColumnName("so_xung_dot_cung");
             entity.Property(e => e.Score).HasColumnName("score").HasColumnType("float");
             entity.Property(e => e.TomTatJson).HasColumnName("tom_tat_json").HasColumnType("nvarchar(max)");
             entity.Property(e => e.NgayTao).HasColumnName("ngay_tao").HasColumnType("datetime2").HasDefaultValueSql("SYSUTCDATETIME()");
@@ -6039,6 +6048,29 @@ public class ApplicationDbContext : DbContext
                 new QuyDoiTinChi { MaQuyDoi = 3, SoTinChi = 4, SoBlockHoc = 2, SoBuoiMoiTuan = 2, SoCaMoiBuoi = 1 },
                 new QuyDoiTinChi { MaQuyDoi = 4, SoTinChi = 5, SoBlockHoc = 2, SoBuoiMoiTuan = 3, SoCaMoiBuoi = 1 }
             );
+        });
+
+        modelBuilder.Entity<MonHocChuyenNganh>(entity =>
+        {
+            entity.ToTable("MonHocChuyenNganh", "dbo");
+            entity.HasKey(e => new { e.MaMonHoc, e.MaChuyenNganh }).HasName("PK_MonHocChuyenNganh");
+            entity.HasIndex(e => e.MaMonHoc).HasDatabaseName("IX_MonHocChuyenNganh_MaMonHoc");
+            entity.HasIndex(e => e.MaChuyenNganh).HasDatabaseName("IX_MonHocChuyenNganh_MaChuyenNganh");
+
+            entity.Property(e => e.MaMonHoc).HasColumnName("ma_mon_hoc");
+            entity.Property(e => e.MaChuyenNganh).HasColumnName("ma_chuyen_nganh");
+
+            entity.HasOne(e => e.MonHoc)
+                .WithMany()
+                .HasForeignKey(e => e.MaMonHoc)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_MonHocChuyenNganh_ma_mon_hoc__DanhMucMonHoc");
+
+            entity.HasOne(e => e.ChuyenNganh)
+                .WithMany()
+                .HasForeignKey(e => e.MaChuyenNganh)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_MonHocChuyenNganh_ma_chuyen_nganh__ChuyenNganh");
         });
 
         modelBuilder.Entity<QuyDinhChuyenCan>(entity =>

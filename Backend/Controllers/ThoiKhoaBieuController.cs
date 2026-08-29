@@ -105,6 +105,15 @@ public class ThoiKhoaBieuController : ControllerBase
         return Ok(ApiResponseDto<ThoiKhoaBieuDetailDto>.Ok(schedule, "Hủy thời khóa biểu thành công"));
     }
 
+    [HttpDelete("{id:int}")]
+    public async Task<ActionResult<ApiResponseDto<object>>> Delete(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        await _thoiKhoaBieuService.DeleteAsync(id, cancellationToken);
+        return Ok(ApiResponseDto<object>.Ok(null, "Xóa thời khóa biểu thành công"));
+    }
+
     [HttpPost("{id:int}/generate-sessions")]
     public async Task<ActionResult<ApiResponseDto<GenerateSessionsResultDto>>> GenerateSessions(
         int id,

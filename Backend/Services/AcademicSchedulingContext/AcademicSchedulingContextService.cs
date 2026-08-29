@@ -139,14 +139,34 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
             cancellationToken
         );
 
-        var hasPublishedSchedule = await _db.ThoiKhoaBieus.AnyAsync(
-            x =>
+        var publishedSchedules = await _db.ThoiKhoaBieus
+            .Include(x => x.JobNguon)
+            .Where(x =>
                 x.KhoaHoc != null
                 && x.KhoaHoc.MaHocKy == schedulableTermId
                 && x.KhoaHoc.MaDonVi == campusId
-                && x.TrangThai == "da_xuat_ban",
-            cancellationToken
-        );
+                && x.TrangThai == "da_xuat_ban")
+            .ToListAsync(cancellationToken);
+
+        var hasPublishedSchedule = publishedSchedules.Count > 0;
+        var isLockedPermanently = false;
+
+        if (hasPublishedSchedule)
+        {
+            var courseIds = publishedSchedules.Select(x => x.MaKhoaHoc).Distinct().ToList();
+            var hasAttendance = await _db.DiemDanhs.AnyAsync(
+                dd => dd.BuoiHoc != null && courseIds.Contains(dd.BuoiHoc.MaKhoaHoc) && dd.BuoiHoc.KhoaHoc != null && dd.BuoiHoc.KhoaHoc.MaHocKy == schedulableTermId,
+                cancellationToken
+            );
+
+            var oldestPublishTime = publishedSchedules
+                .Select(x => x.JobNguon?.NgayXuatBan ?? x.NgayCapNhat ?? x.NgayTao)
+                .Min();
+
+            var timeSincePublish = DateTime.UtcNow - oldestPublishTime;
+            isLockedPermanently = hasAttendance || timeSincePublish > TimeSpan.FromMinutes(30);
+        }
+
         var hasDraftSchedule = await _db.ScheduleGenerationJobs.AnyAsync(
             x => x.MaHocKy == schedulableTermId && x.MaDonVi == campusId,
             cancellationToken
@@ -190,17 +210,17 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
             );
         }
 
-        if (hasPublishedSchedule)
+        if (isLockedPermanently)
         {
-            // Business rule: Do not allow generating new draft if there is already a published schedule.
+            // Business rule: Do not allow generating new draft if schedule is locked permanently (>30m or attended).
             result.CanPrepareSchedule = false;
             result.ReasonCode = "SCHEDULE_ALREADY_PUBLISHED";
-            result.ReasonMessage = "Thời khóa biểu cho học kỳ này đã được công bố chính thức.";
+            result.ReasonMessage = "Thời khóa biểu cho học kỳ này đã được công bố chính thức và đã bị khóa (quá 30 phút hoặc đã điểm danh).";
             result.Readiness.BlockingIssues.Add(
                 new SchedulingBlockingIssueDto
                 {
                     Code = "SCHEDULE_ALREADY_PUBLISHED",
-                    Message = "Không thể chuẩn bị lịch mới vì đã có lịch công bố.",
+                    Message = "Không thể chuẩn bị lịch mới vì lịch công bố đã bị khóa.",
                     ActionRoute = "/staff/schedule/published",
                 }
             );

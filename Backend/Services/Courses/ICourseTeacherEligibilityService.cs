@@ -9,5 +9,8 @@ public interface ICourseTeacherEligibilityService
         int termId,
         int subjectId,
         int teacherId,
+        int? excludeCourseId = null,
+        int? targetStartBlockId = null,
+        int? targetSoBlockHoc = null,
         CancellationToken cancellationToken = default);
 }

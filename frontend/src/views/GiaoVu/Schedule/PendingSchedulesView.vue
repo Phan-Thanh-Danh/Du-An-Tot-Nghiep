@@ -417,6 +417,7 @@ watch(
                     <div v-if="cItem.tenGiaoVien ?? cItem.TenGiaoVien" class="font-medium text-(--text-body) flex items-center gap-1.5 flex-wrap">
                       Giảng viên: {{ cItem.tenGiaoVien ?? cItem.TenGiaoVien }}
                       <span
+                        v-if="cItem.mucDoPhuHop != null || cItem.MucDoPhuHop != null"
                         class="rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold"
                         :class="Number(cItem.mucDoPhuHop ?? cItem.MucDoPhuHop ?? 0) >= 80 ? 'bg-(--color-success-bg) text-(--color-success-text)' : 'bg-(--color-warning-bg) text-(--color-warning-text)'"
                       >Phù hợp {{ Number(cItem.mucDoPhuHop ?? cItem.MucDoPhuHop ?? 0) }}%</span>

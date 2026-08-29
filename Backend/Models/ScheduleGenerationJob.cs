@@ -11,6 +11,7 @@ public class ScheduleGenerationJob
     public int? TongCourse { get; set; }
     public int? SoXepDuoc { get; set; }
     public int? SoKhongXepDuoc { get; set; }
+    public int? SoXungDotCung { get; set; }
     public double? Score { get; set; }
     public string? TomTatJson { get; set; }
     public DateTime NgayTao { get; set; } = DateTime.UtcNow;

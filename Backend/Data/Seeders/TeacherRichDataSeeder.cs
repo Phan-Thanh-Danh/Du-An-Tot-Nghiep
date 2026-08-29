@@ -394,7 +394,20 @@ public static class TeacherRichDataSeeder
         }
 
         var defaultKyThi = await db.KyThis.FirstOrDefaultAsync();
-        int kyThiId = defaultKyThi?.MaKyThi ?? 1;
+        if (defaultKyThi == null)
+        {
+            defaultKyThi = new KyThi
+            {
+                TenKyThi = "Kỳ thi Đánh giá Học kỳ Chính",
+                MaHocKy = semesterId,
+                LoaiKyThi = "cuoi_ky",
+                TrangThai = "dang_dien_ra",
+                NgayTao = DateTime.UtcNow.AddDays(-30)
+            };
+            db.KyThis.Add(defaultKyThi);
+            await db.SaveChangesAsync();
+        }
+        int kyThiId = defaultKyThi.MaKyThi;
 
         var examDefs = new[]
         {

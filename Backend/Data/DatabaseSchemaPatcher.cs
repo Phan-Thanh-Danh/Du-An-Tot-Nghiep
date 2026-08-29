@@ -9,6 +9,13 @@ public static class DatabaseSchemaPatcher
     {
         var sqlCommands = new[]
         {
+            // DanhMucMonHoc missing columns
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[DanhMucMonHoc]') AND name = N'ma_chuyen_nganh')
+                ALTER TABLE [dbo].[DanhMucMonHoc] ADD [ma_chuyen_nganh] int NULL;",
+
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[DanhMucMonHoc]') AND name = N'ma_nganh')
+                ALTER TABLE [dbo].[DanhMucMonHoc] ADD [ma_nganh] int NULL;",
+
             // PhienThiHocSinh missing columns
             @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[PhienThiHocSinh]') AND name = N'lan_thu')
                 ALTER TABLE [dbo].[PhienThiHocSinh] ADD [lan_thu] int NOT NULL CONSTRAINT DF_PhienThiHocSinh_lan_thu DEFAULT 1;",
@@ -157,7 +164,21 @@ public static class DatabaseSchemaPatcher
                     [thong_bao_loi] nvarchar(max) NULL,
                     [lan_thu_lai] int NOT NULL DEFAULT 0,
                     CONSTRAINT [PK_YeuCauXuatDuLieu] PRIMARY KEY CLUSTERED ([ma_yeu_cau_xuat] ASC)
-                );"
+                );",
+
+            // MonHocChuyenNganh table
+            @"IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = N'MonHocChuyenNganh')
+            BEGIN
+                CREATE TABLE [dbo].[MonHocChuyenNganh] (
+                    [ma_mon_hoc] int NOT NULL,
+                    [ma_chuyen_nganh] int NOT NULL,
+                    CONSTRAINT [PK_MonHocChuyenNganh] PRIMARY KEY CLUSTERED ([ma_mon_hoc], [ma_chuyen_nganh]),
+                    CONSTRAINT [FK_MonHocChuyenNganh_ma_mon_hoc__DanhMucMonHoc] FOREIGN KEY ([ma_mon_hoc]) REFERENCES [dbo].[DanhMucMonHoc] ([ma_mon_hoc]) ON DELETE CASCADE,
+                    CONSTRAINT [FK_MonHocChuyenNganh_ma_chuyen_nganh__ChuyenNganh] FOREIGN KEY ([ma_chuyen_nganh]) REFERENCES [dbo].[ChuyenNganh] ([ma_chuyen_nganh]) ON DELETE CASCADE
+                );
+                CREATE NONCLUSTERED INDEX [IX_MonHocChuyenNganh_MaMonHoc] ON [dbo].[MonHocChuyenNganh] ([ma_mon_hoc]);
+                CREATE NONCLUSTERED INDEX [IX_MonHocChuyenNganh_MaChuyenNganh] ON [dbo].[MonHocChuyenNganh] ([ma_chuyen_nganh]);
+            END;"
         };
 
         foreach (var sql in sqlCommands)

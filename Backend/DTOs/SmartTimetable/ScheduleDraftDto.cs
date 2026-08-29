@@ -10,6 +10,7 @@ public class ScheduleDraftDto
     public int? TongCourse { get; set; }
     public int? SoXepDuoc { get; set; }
     public int? SoKhongXepDuoc { get; set; }
+    public int? SoXungDotCung { get; set; }
     public double? Score { get; set; }
     public DateTime NgayTao { get; set; }
     public DateTime? NgayXuatBan { get; set; }

@@ -17,8 +17,10 @@ public class ThoiKhoaBieu
     public string TrangThai { get; set; } = string.Empty;
     public DateTime NgayTao { get; set; }
     public DateTime? NgayCapNhat { get; set; }
+    public int? MaJobNguon { get; set; }
 
     public KhoaHoc? KhoaHoc { get; set; }
     public PhongHoc? Phong { get; set; }
     public CaHoc? CaHoc { get; set; }
+    public ScheduleGenerationJob? JobNguon { get; set; }
 }
