@@ -22,7 +22,7 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 app.Urls.Clear();
-app.Urls.Add("https://127.0.0.1:17892");
+app.Urls.Add("http://127.0.0.1:17892");
 app.UseCors("ViteCors");
 
 app.MapGet("/health", () => Results.Json(new
@@ -105,5 +105,5 @@ app.MapPost("/check", async (HttpContext context) =>
     }
 });
 
-Console.WriteLine("[agent] starting ExamGuard.Agent on https://127.0.0.1:17892");
+Console.WriteLine("[agent] starting ExamGuard.Agent on http://127.0.0.1:17892");
 app.Run();
