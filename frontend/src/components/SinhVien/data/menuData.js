@@ -89,22 +89,6 @@ export const sinhVienMenuGroups = [
     ],
   },
 
-  // ── ĐĂNG KÝ ───────────────────────────────────────────────
-  {
-    id: 'dang-ky',
-    label: 'Đăng ký',
-    icon: 'FormInput',
-    permission: 'training.read',
-    children: [
-      {
-        id: 'registrations',
-        label: 'Đăng ký môn',
-        icon: 'ListPlus',
-        route: '/student/registrations',
-        permission: 'training.read',
-      },
-    ],
-  },
 
   // ── TÀI CHÍNH ─────────────────────────────────────────────
   {
