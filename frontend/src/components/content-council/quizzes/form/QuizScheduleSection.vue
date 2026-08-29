@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { QuizFormData } from '@/types/content-council/quizForm'
 import { X, Calendar } from 'lucide-vue-next'
+import QuizDateTimePicker from './QuizDateTimePicker.vue'
 
 const props = defineProps<{
   modelValue: QuizFormData
@@ -26,27 +27,16 @@ const clearSchedule = () => {
   emit('update:modelValue', { ...formData.value, openAt: null, closeAt: null })
 }
 
-// Convert ISO string to format YYYY-MM-DDThh:mm for datetime-local input
-const formatForInput = (isoString: string | null) => {
-  if (!isoString) return ''
-  const d = new Date(isoString)
-  if (isNaN(d.getTime())) return ''
-  // Format keeping local timezone
-  const year = d.getFullYear()
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  const hours = String(d.getHours()).padStart(2, '0')
-  const minutes = String(d.getMinutes()).padStart(2, '0')
-  return `${year}-${month}-${day}T${hours}:${minutes}`
-}
+// TC-009: Min Dates for Open and Close
+const minOpenDate = computed(() => {
+  const now = new Date()
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate())
+})
 
-// Convert input format back to ISO string
-const formatToISO = (value: string) => {
-  if (!value) return null
-  const d = new Date(value)
-  if (isNaN(d.getTime())) return null
-  return d.toISOString()
-}
+const minCloseDate = computed(() => {
+  const base = formData.value.openAt ? new Date(formData.value.openAt) : new Date()
+  return new Date(base.getTime() + 3 * 24 * 60 * 60 * 1000)
+})
 
 const scheduleStatus = computed(() => {
   const open = formData.value.openAt ? new Date(formData.value.openAt) : null
@@ -73,19 +63,18 @@ const scheduleStatus = computed(() => {
 
   return ''
 })
-
 </script>
 
 <template>
-  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6" :class="{'ring-1 ring-red-500': errors['closeAt']}">
+  <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative z-30 mb-6" :class="{'ring-1 ring-red-500': errors['openAt'] || errors['closeAt']}">
     <div class="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
       <div>
         <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
           5. Thời gian mở và đóng
         </h2>
-        <p class="text-xs text-slate-500 mt-1">Lên lịch tự động trạng thái Quiz.</p>
+        <p class="text-xs text-slate-500 mt-1">Lên lịch tự động trạng thái Quiz (Bấm chọn ngày trên lịch, ngày kết thúc cách tối thiểu 3 ngày).</p>
       </div>
-      <div v-if="errors['closeAt']" class="text-xs font-medium bg-red-100 text-red-700 px-2.5 py-1 rounded-full flex items-center gap-1" role="alert">
+      <div v-if="errors['openAt'] || errors['closeAt']" class="text-xs font-medium bg-red-100 text-red-700 px-2.5 py-1 rounded-full flex items-center gap-1" role="alert">
         <span class="w-1.5 h-1.5 rounded-full bg-red-600"></span>
         Có lỗi
       </div>
@@ -94,37 +83,32 @@ const scheduleStatus = computed(() => {
     <div class="p-6 space-y-6">
       
       <div class="flex flex-col sm:flex-row gap-6">
-        <!-- Mở lúc -->
-        <div class="flex-1">
-          <label class="block text-sm font-medium text-slate-700 mb-1.5">Mở lúc</label>
-          <input 
-            type="datetime-local" 
-            :value="formatForInput(formData.openAt)"
-            @change="updateField('openAt', formatToISO(($event.target as HTMLInputElement).value))"
-            :disabled="isReadOnly"
-            class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:outline-none transition-colors"
-            :class="[
-              isReadOnly ? 'bg-slate-50 text-slate-500 cursor-not-allowed border-slate-200' : 'bg-white text-slate-700 border-slate-300 focus:border-blue-500 focus:ring-blue-500/20'
-            ]"
-          />
-        </div>
+        <!-- Mở lúc: Interactive Calendar Picker -->
+        <QuizDateTimePicker 
+          :model-value="formData.openAt"
+          @update:model-value="updateField('openAt', $event)"
+          label="Mở lúc"
+          :min-date="minOpenDate"
+          :disabled="isReadOnly"
+          placeholder="Chọn ngày & giờ mở Quiz..."
+          :error="errors['openAt']"
+          helper-text="* Không thể chọn thời gian mở trong quá khứ."
+          preset-type="open"
+        />
 
-        <!-- Đóng lúc -->
-        <div class="flex-1">
-          <label class="block text-sm font-medium text-slate-700 mb-1.5">Đóng lúc</label>
-          <input 
-            type="datetime-local" 
-            :value="formatForInput(formData.closeAt)"
-            @change="updateField('closeAt', formatToISO(($event.target as HTMLInputElement).value))"
-            :disabled="isReadOnly"
-            class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:outline-none transition-colors"
-            :class="[
-              errors['closeAt'] ? 'border-red-300 focus:ring-red-500' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500/20',
-              isReadOnly ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : 'bg-white text-slate-700'
-            ]"
-          />
-          <p v-if="errors['closeAt']" class="mt-1.5 text-sm text-red-600">{{ errors['closeAt'] }}</p>
-        </div>
+        <!-- Đóng lúc: Interactive Calendar Picker -->
+        <QuizDateTimePicker 
+          :model-value="formData.closeAt"
+          @update:model-value="updateField('closeAt', $event)"
+          label="Đóng lúc"
+          :min-date="minCloseDate"
+          :base-date="formData.openAt"
+          :disabled="isReadOnly"
+          placeholder="Chọn ngày & giờ đóng Quiz..."
+          :error="errors['closeAt']"
+          helper-text="* Thời gian đóng cách thời gian mở tối thiểu 3 ngày."
+          preset-type="close"
+        />
       </div>
 
       <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-50 p-4 rounded-lg border border-slate-200">

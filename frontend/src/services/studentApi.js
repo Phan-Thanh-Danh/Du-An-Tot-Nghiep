@@ -104,8 +104,32 @@ export const studentApi = {
       method: 'GET',
     })
   },
+  addLessonComment(courseId, lessonId, payload) {
+    return apiRequest(`/api/student/courses/${courseId}/lessons/${lessonId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  },
+  toggleCommentLike(courseId, lessonId, commentId) {
+    const cleanId = String(commentId).replace(/^c/i, '')
+    return apiRequest(`/api/student/courses/${courseId}/lessons/${lessonId}/comments/${cleanId}/like`, {
+      method: 'POST',
+    })
+  },
+  getLessonNote(courseId, lessonId) {
+    return apiRequest(`/api/student/courses/${courseId}/lessons/${lessonId}/note`, {
+      method: 'GET',
+    })
+  },
+  saveLessonNote(courseId, lessonId, note) {
+    return apiRequest(`/api/student/courses/${courseId}/lessons/${lessonId}/note`, {
+      method: 'POST',
+      body: JSON.stringify({ note }),
+    })
+  },
   completeLesson(courseId, lessonId, percent = 100) {
-    return apiRequest(`/api/student/courses/${courseId}/lessons/${lessonId}/complete?percent=${percent}`, {
+    const query = new URLSearchParams({ percent: String(percent) })
+    return apiRequest(`/api/student/courses/${courseId}/lessons/${lessonId}/complete?${query}`, {
       method: 'POST',
     })
   },
@@ -295,6 +319,14 @@ export const studentApi = {
     return apiRequest(`/api/student/rewards/${rewardId}`)
   },
 
+  getDisciplines(params = {}) {
+    return apiRequest(`/api/student/discipline-records${buildQuery(params)}`)
+  },
+
+  getDisciplineDetail(disciplineId) {
+    return apiRequest(`/api/student/discipline-records/${disciplineId}`)
+  },
+
   async downloadRewardCertificate(rewardId) {
     const token = localStorage.getItem('lms_access_token') || sessionStorage.getItem('lms_access_token') || ''
     const baseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
@@ -355,6 +387,10 @@ export const studentApi = {
         confirmPassword: payload.confirmPassword,
       }),
     })
+  },
+
+  getParentLinks() {
+    return apiRequest('/api/student/parent-links', { method: 'GET' })
   },
 
   inviteParent(payload) {

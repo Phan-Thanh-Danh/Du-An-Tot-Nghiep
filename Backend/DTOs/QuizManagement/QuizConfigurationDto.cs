@@ -51,7 +51,7 @@ public class QuizConfigurationDto
 
     public void Validate()
     {
-        if (TongDiem <= 0) throw new ArgumentException("Tổng điểm phải lớn hơn 0");
+        if (TongDiem <= 0 || TongDiem > 10) throw new ArgumentException("Tổng điểm phải từ 0 đến 10");
         if (DiemDat < 0 || DiemDat > TongDiem) throw new ArgumentException("Điểm đạt phải từ 0 đến Tổng điểm");
         
         if (CachTinhDat != "theo_diem" && CachTinhDat != "theo_so_cau_dung")

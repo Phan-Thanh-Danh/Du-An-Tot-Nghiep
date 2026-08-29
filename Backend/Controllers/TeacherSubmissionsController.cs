@@ -35,6 +35,14 @@ public class TeacherSubmissionsController : ControllerBase
         if (course == null)
             return NotFound(ApiResponseDto.Fail("Không tìm thấy khóa học hoặc bạn không dạy khóa này."));
 
+        // Lấy danh sách ID sinh viên thực tế thuộc LỚP NÀY
+        var studentIds = await _context.NguoiDungs
+            .Where(n => n.MaLop == course.MaLop && (n.VaiTroChinh == "hoc_sinh" || n.VaiTroChinh == "Student"))
+            .Select(n => n.MaNguoiDung)
+            .ToListAsync();
+
+        var totalStudents = studentIds.Count;
+
         var assignments = await _context.BaiTaps
             .Include(b => b.MonHoc)
             .Where(b => b.MaMonHoc == course.MaMonHoc)
@@ -42,19 +50,41 @@ public class TeacherSubmissionsController : ControllerBase
             .ToListAsync();
 
         var assignmentIds = assignments.Select(a => a.MaBaiTap).ToList();
+
+        // CHỈ đếm các bài nộp của SINH VIÊN THUỘC LỚP NÀY
         var submissionStats = await _context.BaiNops
-            .Where(b => assignmentIds.Contains(b.MaBaiTap))
+            .Where(b => assignmentIds.Contains(b.MaBaiTap) && studentIds.Contains(b.MaHocSinh))
             .GroupBy(b => b.MaBaiTap)
             .Select(g => new
             {
                 AssignmentId = g.Key,
-                Submitted = g.Count(),
-                Pending = g.Count(s => s.DiemSo == null)
+                Submitted = g.Select(b => b.MaHocSinh).Distinct().Count(),
+                Pending = g.Where(b => b.DiemSo == null).Select(b => b.MaHocSinh).Distinct().Count()
             })
             .ToDictionaryAsync(g => g.AssignmentId);
 
         var items = assignments
-            .Select(a => MapAssignment(a, new List<KhoaHoc> { course }, submissionStats.GetValueOrDefault(a.MaBaiTap)))
+            .Select(a => {
+                var stat = submissionStats.GetValueOrDefault(a.MaBaiTap);
+                return new TeacherAssignmentDto
+                {
+                    Id = a.MaBaiTap,
+                    CourseId = course.MaKhoaHoc,
+                    CourseName = a.MonHoc?.TenMonHoc ?? course.MonHoc?.TenMonHoc ?? "",
+                    ClassName = course.LopHocPhan?.MaCodeLopHocPhan ?? course.Lop?.MaCodeLop ?? "",
+                    Title = a.TieuDe,
+                    Description = a.MoTa ?? "",
+                    Deadline = a.HanNop,
+                    Status = a.TrangThai,
+                    MaxScore = 10,
+                    MaxAttempts = a.SoLanNopToiDa,
+                    AllowedFormats = ParseAllowedFormats(a.DinhDangChoPhep),
+                    GradingGuide = a.HuongDanChamDiem,
+                    SubmissionsCount = stat?.Submitted ?? 0,
+                    PendingGrades = stat?.Pending ?? 0,
+                    TotalStudents = totalStudents
+                };
+            })
             .ToList();
 
         return Ok(ApiResponseDto<IEnumerable<TeacherAssignmentDto>>.Ok(items));
@@ -77,9 +107,9 @@ public class TeacherSubmissionsController : ControllerBase
 
         // Lấy danh sách toàn bộ học sinh trong lớp
         var students = await _context.NguoiDungs
-            .Where(n => n.MaLop == course.MaLop && n.VaiTroChinh == "hoc_sinh")
+            .Where(n => n.MaLop == course.MaLop && (n.VaiTroChinh == "hoc_sinh" || n.VaiTroChinh == "Student"))
             .OrderBy(n => n.HoTen)
-            .Select(n => new { n.MaNguoiDung, n.HoTen })
+            .Select(n => new { n.MaNguoiDung, n.HoTen, n.Email })
             .ToListAsync();
 
         var studentIds = students.Select(s => s.MaNguoiDung).ToList();
@@ -87,28 +117,118 @@ public class TeacherSubmissionsController : ControllerBase
         // Lấy bài nộp của assignment này cho các học sinh
         var submissionsList = await _context.BaiNops
             .Where(b => b.MaBaiTap == assignmentId && studentIds.Contains(b.MaHocSinh))
+            .OrderByDescending(b => b.SoLanNop)
             .ToListAsync();
 
-        var submissions = submissionsList
-            .GroupBy(b => b.MaHocSinh)
-            .ToDictionary(
-                g => g.Key, 
-                g => g.OrderByDescending(b => b.SoLanNop).FirstOrDefault()
-            );
-
         var result = students.Select(s => {
-            var sub = submissions.GetValueOrDefault(s.MaNguoiDung);
+            var studentSubs = submissionsList
+                .Where(b => b.MaHocSinh == s.MaNguoiDung)
+                .OrderByDescending(b => b.SoLanNop)
+                .ToList();
+
+            var latestSub = studentSubs.FirstOrDefault();
+            var gradedSub = studentSubs.FirstOrDefault(b => b.DiemSo != null);
+            var activeSub = latestSub ?? gradedSub;
+
+            var studentCode = $"SV{s.MaNguoiDung:D4}";
             return new {
                 StudentId = s.MaNguoiDung,
+                StudentCode = studentCode,
                 StudentName = s.HoTen,
-                SubmissionId = sub?.MaBaiNop,
-                SubmittedAt = sub?.ThoiDiemNop,
-                FileUrl = sub?.UrlTapTin,
-                AttemptNumber = sub?.SoLanNop ?? 0,
-                IsLate = sub?.NopTre ?? false,
-                Score = sub?.DiemSo,
-                Feedback = sub?.NhanXet,
-                Status = sub == null ? "Chưa nộp bài" : (sub.DiemSo != null ? "Đã chấm" : "Đã nộp")
+                SubmissionId = activeSub?.MaBaiNop,
+                SubmittedAt = latestSub?.ThoiDiemNop ?? activeSub?.ThoiDiemNop,
+                FileUrl = activeSub?.UrlTapTin,
+                FileName = ExtractDisplayFileName(activeSub?.UrlTapTin),
+                AttemptNumber = latestSub?.SoLanNop ?? activeSub?.SoLanNop ?? 0,
+                TotalAttempts = studentSubs.Count,
+                IsLate = activeSub?.NopTre ?? false,
+                Score = latestSub?.DiemSo ?? gradedSub?.DiemSo,
+                Feedback = latestSub?.NhanXet ?? gradedSub?.NhanXet,
+                Status = studentSubs.Count == 0 
+                    ? "Chưa nộp bài" 
+                    : ((latestSub?.DiemSo != null || gradedSub != null) ? "Đã chấm" : "Đã nộp"),
+                Submissions = studentSubs.Select(b => new {
+                    SubmissionId = b.MaBaiNop,
+                    AttemptNumber = b.SoLanNop,
+                    SubmittedAt = b.ThoiDiemNop,
+                    FileUrl = b.UrlTapTin,
+                    FileName = ExtractDisplayFileName(b.UrlTapTin),
+                    IsLate = b.NopTre,
+                    Score = b.DiemSo,
+                    Feedback = b.NhanXet,
+                    IsPublished = b.DaCongBo,
+                    Status = b.DiemSo != null ? "da_cham" : (b.NopTre ? "nop_tre" : "cho_cham")
+                }).ToList()
+            };
+        });
+
+        return Ok(ApiResponseDto<IEnumerable<object>>.Ok(result));
+    }
+
+    [HttpGet("courses/{courseId:int}/students/{studentId:int}/assignments-status")]
+    public async Task<ActionResult<ApiResponseDto<IEnumerable<object>>>> GetStudentCourseAssignmentsStatus(int courseId, int studentId)
+    {
+        var userId = GetCurrentUserId();
+        
+        var course = await GetTeacherCoursesQuery(userId)
+            .Include(k => k.MonHoc)
+            .FirstOrDefaultAsync(k => k.MaKhoaHoc == courseId);
+
+        if (course == null)
+            return NotFound(ApiResponseDto.Fail("Không tìm thấy khóa học hoặc bạn không phụ trách khóa này."));
+
+        var assignments = await _context.BaiTaps
+            .Where(b => b.MaMonHoc == course.MaMonHoc)
+            .OrderBy(b => b.HanNop)
+            .ToListAsync();
+
+        var assignmentIds = assignments.Select(a => a.MaBaiTap).ToList();
+
+        var submissionsList = await _context.BaiNops
+            .Where(b => assignmentIds.Contains(b.MaBaiTap) && b.MaHocSinh == studentId)
+            .OrderByDescending(b => b.SoLanNop)
+            .ToListAsync();
+
+        var result = assignments.Select(a => {
+            var asmSubs = submissionsList
+                .Where(b => b.MaBaiTap == a.MaBaiTap)
+                .OrderByDescending(b => b.SoLanNop)
+                .ToList();
+
+            var latestSub = asmSubs.FirstOrDefault();
+            var gradedSub = asmSubs.FirstOrDefault(b => b.DiemSo != null);
+            var activeSub = latestSub ?? gradedSub;
+
+            return new {
+                AssignmentId = a.MaBaiTap,
+                Title = a.TieuDe,
+                Description = a.MoTa ?? "",
+                DueAt = a.HanNop,
+                MaxAttempts = a.SoLanNopToiDa,
+                SubmissionId = activeSub?.MaBaiNop,
+                SubmittedAt = latestSub?.ThoiDiemNop ?? activeSub?.ThoiDiemNop,
+                FileUrl = activeSub?.UrlTapTin,
+                FileName = ExtractDisplayFileName(activeSub?.UrlTapTin),
+                AttemptNumber = latestSub?.SoLanNop ?? activeSub?.SoLanNop ?? 0,
+                TotalAttempts = asmSubs.Count,
+                IsLate = activeSub?.NopTre ?? false,
+                Score = latestSub?.DiemSo ?? gradedSub?.DiemSo,
+                Feedback = latestSub?.NhanXet ?? gradedSub?.NhanXet,
+                Status = asmSubs.Count == 0 
+                    ? "chua_nop" 
+                    : ((latestSub?.DiemSo != null || gradedSub != null) ? "da_cham" : "cho_cham"),
+                Submissions = asmSubs.Select(b => new {
+                    SubmissionId = b.MaBaiNop,
+                    AttemptNumber = b.SoLanNop,
+                    SubmittedAt = b.ThoiDiemNop,
+                    FileUrl = b.UrlTapTin,
+                    FileName = ExtractDisplayFileName(b.UrlTapTin),
+                    IsLate = b.NopTre,
+                    Score = b.DiemSo,
+                    Feedback = b.NhanXet,
+                    IsPublished = b.DaCongBo,
+                    Status = b.DiemSo != null ? "da_cham" : (b.NopTre ? "nop_tre" : "cho_cham")
+                }).ToList()
             };
         });
 
@@ -242,6 +362,19 @@ public class TeacherSubmissionsController : ControllerBase
             .ToListAsync();
 
         var teacherMonHocIds = teacherCourses.Select(k => k.MaMonHoc).Distinct().ToList();
+        var teacherClassIds = teacherCourses.Select(k => k.MaLop).Distinct().ToList();
+
+        // Lấy danh sách học sinh thuộc các lớp mà giáo viên đang dạy
+        var teacherStudents = await _context.NguoiDungs
+            .Where(n => n.MaLop.HasValue && teacherClassIds.Contains(n.MaLop.Value) && (n.VaiTroChinh == "hoc_sinh" || n.VaiTroChinh == "Student"))
+            .Select(n => new { n.MaNguoiDung, MaLop = n.MaLop!.Value })
+            .ToListAsync();
+
+        var teacherStudentIds = teacherStudents.Select(s => s.MaNguoiDung).ToList();
+        var studentsCountByClass = teacherStudents
+            .GroupBy(s => s.MaLop)
+            .ToDictionary(g => g.Key, g => g.Count());
+
         var query = _context.BaiTaps
             .Include(b => b.MonHoc)
             .Where(b => teacherMonHocIds.Contains(b.MaMonHoc));
@@ -255,18 +388,41 @@ public class TeacherSubmissionsController : ControllerBase
 
         var assignmentIds = assignments.Select(a => a.MaBaiTap).ToList();
         var submissionStats = await _context.BaiNops
-            .Where(b => assignmentIds.Contains(b.MaBaiTap))
+            .Where(b => assignmentIds.Contains(b.MaBaiTap) && teacherStudentIds.Contains(b.MaHocSinh))
             .GroupBy(b => b.MaBaiTap)
             .Select(g => new
             {
                 AssignmentId = g.Key,
-                Submitted = g.Count(),
-                Pending = g.Count(s => s.DiemSo == null)
+                Submitted = g.Select(b => b.MaHocSinh).Distinct().Count(),
+                Pending = g.Where(b => b.DiemSo == null).Select(b => b.MaHocSinh).Distinct().Count()
             })
             .ToDictionaryAsync(g => g.AssignmentId);
 
         var items = assignments
-            .Select(a => MapAssignment(a, teacherCourses, submissionStats.GetValueOrDefault(a.MaBaiTap)))
+            .Select(a => {
+                var course = teacherCourses.FirstOrDefault(k => k.MaMonHoc == a.MaMonHoc);
+                var stat = submissionStats.GetValueOrDefault(a.MaBaiTap);
+                var totalStudents = course != null && studentsCountByClass.TryGetValue(course.MaLop, out var cnt) ? cnt : 0;
+
+                return new TeacherAssignmentDto
+                {
+                    Id = a.MaBaiTap,
+                    CourseId = course?.MaKhoaHoc,
+                    CourseName = a.MonHoc?.TenMonHoc ?? course?.MonHoc?.TenMonHoc ?? "",
+                    ClassName = course?.LopHocPhan?.MaCodeLopHocPhan ?? course?.Lop?.MaCodeLop ?? "",
+                    Title = a.TieuDe,
+                    Description = a.MoTa ?? "",
+                    Deadline = a.HanNop,
+                    Status = a.TrangThai,
+                    MaxScore = 10,
+                    MaxAttempts = a.SoLanNopToiDa,
+                    AllowedFormats = ParseAllowedFormats(a.DinhDangChoPhep),
+                    GradingGuide = a.HuongDanChamDiem,
+                    SubmissionsCount = stat?.Submitted ?? 0,
+                    PendingGrades = stat?.Pending ?? 0,
+                    TotalStudents = totalStudents
+                };
+            })
             .ToList();
 
         return Ok(ApiResponseDto<PagedResultDto<TeacherAssignmentDto>>.Ok(new PagedResultDto<TeacherAssignmentDto>
@@ -789,6 +945,28 @@ public class TeacherSubmissionsController : ControllerBase
             .Select(item => item.StartsWith('.') ? item : $".{item}")
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+    private static string ExtractDisplayFileName(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return "file";
+        var rawName = Path.GetFileName(url);
+        if (string.IsNullOrEmpty(rawName)) return "file";
+
+        // Format: {userId}_ASM{assignmentId}_L{attempt}_{originalFileName}
+        var match = System.Text.RegularExpressions.Regex.Match(rawName, @"^\d+_ASM\d+_L\d+_(.+)$");
+        if (match.Success)
+        {
+            return Uri.UnescapeDataString(match.Groups[1].Value);
+        }
+
+        // Legacy format: {userId}_{studentName}_{fileName}
+        var legacyMatch = System.Text.RegularExpressions.Regex.Match(rawName, @"^\d+_[^_]+_(.+)$");
+        if (legacyMatch.Success)
+        {
+            return Uri.UnescapeDataString(legacyMatch.Groups[1].Value);
+        }
+
+        return Uri.UnescapeDataString(rawName);
     }
 }
 

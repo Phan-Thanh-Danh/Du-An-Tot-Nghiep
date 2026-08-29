@@ -49,6 +49,8 @@ public class CourseProgressDto
     public string Name { get; set; } = string.Empty;
     public string Code { get; set; } = string.Empty;
     public string Lecturer { get; set; } = string.Empty;
+    public int Credits { get; set; } = 3;
+    public string Semester { get; set; } = string.Empty;
     public int Progress { get; set; }
     public int Completed { get; set; }
     public int Total { get; set; }
@@ -71,6 +73,8 @@ public class ScheduleDto
 {
     public string Id { get; set; } = string.Empty;
     public string Course { get; set; } = string.Empty;
+    public string Subject { get; set; } = string.Empty;
+    public string Lecturer { get; set; } = string.Empty;
     public string Code { get; set; } = string.Empty;
     public string Time { get; set; } = string.Empty;
     public string Room { get; set; } = string.Empty;
@@ -78,7 +82,8 @@ public class ScheduleDto
     public string TypeVariant { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string StatusVariant { get; set; } = string.Empty;
-    public string Lecturer { get; set; } = string.Empty;
+    public string Variant { get; set; } = string.Empty;
+    public bool Current { get; set; }
 }
 
 public class GradeDto
@@ -96,6 +101,10 @@ public class TuitionDto
 {
     public string TotalDue { get; set; } = string.Empty;
     public string Deadline { get; set; } = string.Empty;
+    public string Remaining { get; set; } = string.Empty;
+    public string Total { get; set; } = string.Empty;
+    public string Paid { get; set; } = string.Empty;
+    public string DueDate { get; set; } = string.Empty;
     public int Progress { get; set; }
     public string Status { get; set; } = string.Empty;
     public string StatusVariant { get; set; } = string.Empty;
@@ -103,6 +112,9 @@ public class TuitionDto
 
 public class RegistrationDto
 {
+    public string Title { get; set; } = string.Empty;
+    public string Registered { get; set; } = string.Empty;
+    public string ClosesIn { get; set; } = string.Empty;
     public string Semester { get; set; } = string.Empty;
     public string StartDate { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
@@ -111,12 +123,11 @@ public class RegistrationDto
 
 public class AttendanceHealthDto
 {
+    public int Score { get; set; }
     public int Rate { get; set; }
     public int Absent { get; set; }
     public int Late { get; set; }
     public string Warning { get; set; } = string.Empty;
-    
-    public int Score { get; set; }
     public string Status { get; set; } = string.Empty;
     public string Tone { get; set; } = string.Empty;
     public string Advice { get; set; } = string.Empty;

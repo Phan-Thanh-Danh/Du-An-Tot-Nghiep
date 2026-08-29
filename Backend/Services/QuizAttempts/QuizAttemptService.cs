@@ -82,7 +82,7 @@ public class QuizAttemptService : IQuizAttemptService
         await EnsureLessonQuizAsync(quiz, ct);
 
         var config = QuizConfigurationDto.Parse(quiz.CauHinhDeThi);
-        if (quiz.TrangThai != "dang_mo")
+        if (quiz.TrangThai != "dang_mo" && quiz.TrangThai != "da_xuat_ban" && quiz.TrangThai != "published" && quiz.TrangThai != "active" && quiz.TrangThai != "hoat_dong")
         {
             throw new ApiException(409, "Quiz chưa mở hoặc đã đóng");
         }
@@ -180,7 +180,7 @@ public class QuizAttemptService : IQuizAttemptService
         attempt = await AutoSubmitIfExpiredAsync(attempt, config, ct);
         if (attempt.TrangThaiLuong != "dang_hoat_dong")
         {
-            return await BuildResultAsync(attempt, config, true, true, ct);
+            return await BuildResultAsync(attempt, config, config.HienKetQuaSauKhiNop, config.HienDapAnDungSauKhiNop, ct);
         }
 
         ValidateAnswers(request.Answers, quizId);
@@ -198,7 +198,7 @@ public class QuizAttemptService : IQuizAttemptService
             "Học sinh nộp bài quiz bài học",
             ct);
 
-        return await BuildResultAsync(attempt, config, true, true, ct);
+        return await BuildResultAsync(attempt, config, config.HienKetQuaSauKhiNop, config.HienDapAnDungSauKhiNop, ct);
     }
 
     public async Task<QuizAttemptHistoryDto> GetHistoryAsync(int quizId, int studentId, CancellationToken ct)
@@ -456,17 +456,12 @@ public class QuizAttemptService : IQuizAttemptService
     private async Task EnsureLessonQuizAsync(DeKiemTra quiz, CancellationToken ct)
     {
         var isLessonContent = await _db.BaiHocNoiDungs
-            .AnyAsync(x => x.MaDeKiemTra == quiz.MaDeKiemTra
-                && (x.LoaiNoiDung == "quiz" || x.LoaiNoiDung == "trac_nghiem"), ct);
+            .AnyAsync(x => x.MaDeKiemTra == quiz.MaDeKiemTra, ct);
 
-        if (!isLessonContent)
+        // Chấp nhận các đề quiz gắn trong bài học hoặc đề trắc nghiệm của môn học
+        if (!isLessonContent && (quiz.MaMonHoc == null || quiz.MaMonHoc == 0))
         {
             throw new ApiException(400, "Quiz này không phải quiz gắn trong bài học");
-        }
-
-        if (!string.IsNullOrWhiteSpace(quiz.LoaiDeThi) && quiz.LoaiDeThi != "quiz_bai_hoc")
-        {
-            throw new ApiException(400, "Loại đề không phù hợp với quiz bài học");
         }
     }
 

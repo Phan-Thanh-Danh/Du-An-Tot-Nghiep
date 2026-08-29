@@ -202,12 +202,22 @@ const summaryCards = computed(() => [
 
 const wizardSteps = ['Chọn loại đơn', 'Điền thông tin', 'Minh chứng', 'Xem lại']
 
+function isFieldVisible(field) {
+  if (!field) return false
+  if (!field.dependsOn) return true
+  const parentVal = draft.value.dynamicFields[field.dependsOn]
+  if (field.dependsOnValue !== undefined && field.dependsOnValue !== null) {
+    return parentVal === field.dependsOnValue
+  }
+  return parentVal !== undefined && parentVal !== null && parentVal !== ''
+}
+
 const draftErrors = computed(() => {
   const errors = []
   if (!draft.value.type) errors.push('Vui lòng chọn loại đơn.')
   if (wizardStep.value >= 1 && currentTemplate.value?.fields) {
     currentTemplate.value.fields.forEach(field => {
-      if (field.required && !draft.value.dynamicFields[field.key]) {
+      if (isFieldVisible(field) && field.required && (!draft.value.dynamicFields[field.key] || (Array.isArray(draft.value.dynamicFields[field.key]) && !draft.value.dynamicFields[field.key].length))) {
         errors.push(`Vui lòng nhập ${field.label.toLowerCase()}.`)
       }
     })
@@ -875,7 +885,7 @@ onMounted(loadApplications)
                 <div><span>Cơ sở hiện tại</span><strong>{{ authStore.user?.campusName || authStore.user?.CampusName || authStore.user?.DonVi?.TenDonVi || authStore.user?.donVi?.tenDonVi || 'Chưa có' }}</strong></div>
                 <div><span>Email</span><strong>{{ authStore.user?.email || authStore.user?.Email || 'Chưa có' }}</strong></div>
               </div>
-              <div v-else-if="!field.dependsOn || (field.dependsOn && draft.dynamicFields[field.dependsOn] === field.dependsOnValue)" class="form-field">
+              <div v-else-if="isFieldVisible(field)" class="form-field">
                 <span>{{ field.label }} <span v-if="field.required" class="text-red-500">*</span></span>
                 <textarea v-if="field.type === 'textarea'" v-model="draft.dynamicFields[field.key]" rows="5" :placeholder="'Nhập ' + (field.label?.toLowerCase() || '')" />
                 <select v-else-if="field.type === 'select' || field.type === 'related_entity'" v-model="draft.dynamicFields[field.key]" class="lg-control">
@@ -928,7 +938,7 @@ onMounted(loadApplications)
         <div v-else class="review-box">
           <div><span>Loại đơn</span><strong>{{ getApplicationTypeLabel(draft.type) }}</strong></div>
           <template v-for="field in currentTemplate?.fields" :key="field.key">
-            <div v-if="field.type !== 'studentInfo' && (!field.dependsOn || draft.dynamicFields[field.dependsOn] === field.dependsOnValue)">
+            <div v-if="field.type !== 'studentInfo' && isFieldVisible(field)">
                <span>{{ field.label }}</span>
                <strong>
                  <template v-if="Array.isArray(draft.dynamicFields[field.key])">

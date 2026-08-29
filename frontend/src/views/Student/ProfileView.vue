@@ -26,7 +26,6 @@ const emptyProfile = {
 const profile = ref({ ...emptyProfile })
 const awards = ref([])
 const disciplines = ref([])
-const parents = ref([])
 const loading = ref(false)
 
 // State
@@ -34,8 +33,7 @@ const activeTab = ref('profile')
 const tabs = [
   { id: 'profile', label: 'Thông tin cá nhân', icon: User },
   { id: 'security', label: 'Bảo mật tài khoản', icon: ShieldCheck },
-  { id: 'awards', label: 'Khen thưởng & Kỷ luật', icon: Award },
-  { id: 'parents', label: 'Liên kết phụ huynh', icon: LinkIcon }
+  { id: 'awards', label: 'Khen thưởng & Kỷ luật', icon: Award }
 ]
 
 // Forms
@@ -46,9 +44,6 @@ const oldPassword = ref('')
 const newPassword = ref('')
 const confirmPassword = ref('')
 
-const inviteEmail = ref('')
-const inviteName = ref('')
-
 // Computed
 const isFirstLogin = computed(() => profile.value.status === 'First login')
 
@@ -56,11 +51,45 @@ const isFirstLogin = computed(() => profile.value.status === 'First login')
 const loadProfile = async () => {
   loading.value = true
   try {
-    const response = await studentApi.getProfile()
-    const data = unwrapApiData(response) || {}
-    profile.value = { ...profile.value, ...data }
-    editPhone.value = profile.value.phone || ''
-    editAddress.value = profile.value.address || ''
+    const savedLocalAddress = localStorage.getItem('student_profile_address') || ''
+
+    const [profileRes, rewardsRes, disciplinesRes] = await Promise.allSettled([
+      studentApi.getProfile(),
+      studentApi.getRewards({ pageIndex: 1, pageSize: 50 }),
+      studentApi.getDisciplines({ pageIndex: 1, pageSize: 50 })
+    ])
+
+    if (profileRes.status === 'fulfilled') {
+      const data = unwrapApiData(profileRes.value) || {}
+      profile.value = { ...profile.value, ...data }
+      editPhone.value = profile.value.phone || ''
+      editAddress.value = profile.value.address || savedLocalAddress
+      profile.value.address = editAddress.value
+    }
+
+    if (rewardsRes.status === 'fulfilled') {
+      const rwData = unwrapApiData(rewardsRes.value)
+      const items = rwData?.items ?? rwData?.Items ?? []
+      awards.value = items.map(r => ({
+        id: r.maKhenThuong ?? r.MaKhenThuong,
+        title: r.danhHieuSnapshot ?? r.DanhHieuSnapshot ?? r.tenLoaiKhenThuong ?? 'Khen thưởng',
+        type: r.tenLoaiKhenThuong ?? r.TenLoaiKhenThuong ?? 'Học tập',
+        gpa: r.diemXet ?? r.DiemXet ?? 'N/A',
+        date: r.ngayDuyet ?? r.NgayDuyet ?? r.capLuc ?? 'Đã ghi nhận'
+      }))
+    }
+
+    if (disciplinesRes.status === 'fulfilled') {
+      const dcData = unwrapApiData(disciplinesRes.value)
+      const items = dcData?.items ?? dcData?.Items ?? []
+      disciplines.value = items.map(d => ({
+        id: d.maHoSoKyLuat ?? d.MaHoSoKyLuat,
+        title: d.tieuDe ?? d.TieuDe ?? 'Kỷ luật',
+        level: d.mucDoKyLuat ?? d.MucDoKyLuat ?? 'Nhắc nhở',
+        status: d.trangThai ?? d.TrangThai ?? 'Hiệu lực',
+        date: d.ngayViPham ?? d.NgayViPham ?? ''
+      }))
+    }
   } catch (error) {
     popupStore.error('Không thể tải hồ sơ', error?.message || 'Không thể tải hồ sơ cá nhân.')
   } finally {
@@ -70,13 +99,14 @@ const loadProfile = async () => {
 
 const updateProfile = async () => {
   try {
+    localStorage.setItem('student_profile_address', editAddress.value)
     const response = await studentApi.updateProfile({
       fullName: profile.value.fullName,
       email: profile.value.email,
       phone: editPhone.value,
     })
     const data = unwrapApiData(response) || {}
-    profile.value = { ...profile.value, ...data, address: editAddress.value }
+    profile.value = { ...profile.value, ...data, phone: editPhone.value, address: editAddress.value }
     popupStore.success('Đã cập nhật', 'Thông tin liên lạc đã được cập nhật thành công.')
   } catch (error) {
     popupStore.error('Không thể cập nhật', error?.message || 'Không thể cập nhật thông tin liên lạc.')
@@ -112,53 +142,6 @@ const changePassword = async () => {
 
 const downloadCertificate = (award) => {
   popupStore.info('Tải bằng khen', `Đang tải file PDF Bằng khen: ${award.title}`)
-}
-
-const inviteParent = async () => {
-  if (parents.value.length >= 3) {
-    popupStore.warning('Giới hạn liên kết', 'Chỉ được phép liên kết tối đa 3 phụ huynh/người giám hộ.')
-    return
-  }
-  if (!inviteEmail.value || !inviteName.value) return
-  try {
-    await studentApi.inviteParent({ name: inviteName.value, email: inviteEmail.value })
-  } catch (error) {
-    popupStore.warning('Chức năng đang phát triển', error?.message || 'Liên kết phụ huynh chưa có backend.')
-    return
-  }
-  
-  parents.value.push({
-    id: `PR-0${parents.value.length + 1}`,
-    name: inviteName.value,
-    email: inviteEmail.value,
-    status: 'Pending',
-    permissions: { grades: false, attendance: false, finance: false, schedule: false }
-  })
-  
-  inviteEmail.value = ''
-  inviteName.value = ''
-  popupStore.success('Đã gửi lời mời', 'Email mời liên kết phụ huynh đã được gửi.')
-}
-
-const togglePermission = async (parent, key) => {
-  try {
-    await studentApi.updateParentPermission(parent.id, key, !parent.permissions[key])
-    parent.permissions[key] = !parent.permissions[key]
-  } catch (error) {
-    popupStore.warning('Chức năng đang phát triển', error?.message || 'Phân quyền phụ huynh chưa có backend.')
-  }
-}
-
-const removeParent = async (idx) => {
-  if(confirm('Bạn có chắc chắn muốn thu hồi quyền truy cập và hủy liên kết với tài khoản phụ huynh này?')) {
-    try {
-      await studentApi.removeParentLink(parents.value[idx]?.id)
-    } catch (error) {
-      popupStore.warning('Chức năng đang phát triển', error?.message || 'Hủy liên kết phụ huynh chưa có backend.')
-      return
-    }
-    parents.value.splice(idx, 1)
-  }
 }
 
 // Logic: If First login, force security tab
@@ -347,82 +330,6 @@ onMounted(loadProfile)
           </div>
         </div>
 
-        <!-- Tab 4: Parents -->
-        <div v-show="activeTab === 'parents'" class="tab-pane">
-          <h2 class="pane-title">Quản lý Liên kết Phụ huynh</h2>
-          <p class="text-sm text-(--text-muted) mb-4">Bạn có thể cấp quyền truy cập để gia đình/người giám hộ theo dõi tiến độ học tập. Tối đa 3 tài khoản liên kết.</p>
-
-          <div class="parents-list mb-8">
-            <div v-for="(parent, idx) in parents" :key="parent.id" class="parent-card">
-              <div class="pc-header">
-                <div class="flex items-center gap-3">
-                  <div class="avatar-sm">{{ parent.name.charAt(0) }}</div>
-                  <div>
-                    <h4>{{ parent.name }}</h4>
-                    <p>{{ parent.email }}</p>
-                  </div>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="status-badge-sm" :class="parent.status === 'Connected' ? 'badge-sm-success' : 'badge-sm-inactive'">
-                    {{ parent.status === 'Connected' ? 'Đã liên kết' : 'Chờ xác nhận' }}
-                  </span>
-                  <button class="btn-icon text-(--color-danger-text) hover:bg-(--color-danger-bg)" title="Thu hồi & Hủy liên kết" @click="removeParent(idx)">
-                    <Trash2 :size="16"/>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Permission Toggles -->
-              <div class="pc-permissions" v-if="parent.status === 'Connected'">
-                <div class="perm-title">Cấu hình quyền chia sẻ dữ liệu:</div>
-                <div class="perm-grid">
-                  <div class="perm-item">
-                    <span>Điểm thi & Học tập</span>
-                    <button class="toggle-btn" :class="{'active': parent.permissions.grades}" @click="togglePermission(parent, 'grades')">
-                      <component :is="parent.permissions.grades ? ToggleRight : ToggleLeft" :size="24" :class="parent.permissions.grades ? 'text-(--text-link)' : 'text-(--text-placeholder)'"/>
-                    </button>
-                  </div>
-                  <div class="perm-item">
-                    <span>Điểm danh & Chuyên cần</span>
-                    <button class="toggle-btn" :class="{'active': parent.permissions.attendance}" @click="togglePermission(parent, 'attendance')">
-                      <component :is="parent.permissions.attendance ? ToggleRight : ToggleLeft" :size="24" :class="parent.permissions.attendance ? 'text-(--text-link)' : 'text-(--text-placeholder)'"/>
-                    </button>
-                  </div>
-                  <div class="perm-item">
-                    <span>Công nợ & Học phí</span>
-                    <button class="toggle-btn" :class="{'active': parent.permissions.finance}" @click="togglePermission(parent, 'finance')">
-                      <component :is="parent.permissions.finance ? ToggleRight : ToggleLeft" :size="24" :class="parent.permissions.finance ? 'text-(--text-link)' : 'text-(--text-placeholder)'"/>
-                    </button>
-                  </div>
-                  <div class="perm-item">
-                    <span>Thời khóa biểu</span>
-                    <button class="toggle-btn" :class="{'active': parent.permissions.schedule}" @click="togglePermission(parent, 'schedule')">
-                      <component :is="parent.permissions.schedule ? ToggleRight : ToggleLeft" :size="24" :class="parent.permissions.schedule ? 'text-(--text-link)' : 'text-(--text-placeholder)'"/>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div v-if="parents.length === 0" class="empty-state">Chưa có liên kết phụ huynh nào.</div>
-          </div>
-
-          <!-- Invite Form -->
-          <div class="invite-panel" v-if="parents.length < 3">
-            <h3 class="pane-subtitle flex items-center gap-2 mb-3"><Plus :size="18"/> Mời liên kết mới</h3>
-            <div class="invite-form">
-              <div class="form-group flex-1">
-                <input v-model="inviteName" type="text" class="input-glass" placeholder="Tên phụ huynh/Người giám hộ" />
-              </div>
-              <div class="form-group flex-1">
-                <input v-model="inviteEmail" type="email" class="input-glass" placeholder="Email nhận lời mời" />
-              </div>
-              <button class="btn-primary" @click="inviteParent" :disabled="!inviteEmail || !inviteName">Gửi lời mời</button>
-            </div>
-          </div>
-
-        </div>
-
       </div>
     </div>
   </div>
@@ -524,23 +431,7 @@ onMounted(loadProfile)
 
 .empty-state { text-align: center; padding: 2rem; color: var(--text-muted); font-size: .9rem; font-style: italic; background: var(--surface-solid); border-radius: 12px; border: 1px dashed var(--border-default); }
 
-/* Parents List */
-.parent-card { background: var(--surface-card-strong); border: 1px solid var(--border-default); border-radius: 16px; overflow: hidden; margin-bottom: 1rem; }
-.pc-header { padding: 1.25rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--border-default); }
-.avatar-sm { width: 40px; height: 40px; border-radius: 50%; background: var(--surface-input); color: var(--text-label); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; }
-.pc-header h4 { font-size: 1rem; font-weight: 700; margin: 0; color: var(--text-heading); }
-.pc-header p { font-size: .8125rem; color: var(--text-muted); margin: 0; }
-.status-badge-sm { font-size: .7rem; font-weight: 700; padding: .2rem .5rem; border-radius: 6px; }
 
-.pc-permissions { padding: 1rem 1.25rem; background: var(--surface-solid); }
-.perm-title { font-size: .8125rem; font-weight: 700; color: var(--text-label); margin-bottom: .75rem; }
-.perm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
-.perm-item { display: flex; justify-content: space-between; align-items: center; padding: .6rem 1rem; background: var(--surface-card-strong); border: 1px solid var(--border-default); border-radius: 8px; font-size: .875rem; font-weight: 500; color: var(--text-body); }
-.toggle-btn { background: transparent; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; transition: transform .1s; }
-.toggle-btn:active { transform: scale(0.9); }
-
-.invite-panel { background: color-mix(in srgb, var(--accent-primary-soft) 30%, transparent); border: 1px dashed var(--accent-primary-soft); padding: 1.5rem; border-radius: 16px; }
-.invite-form { display: flex; gap: 1rem; align-items: flex-end; }
 
 /* Buttons */
 .btn-primary { display: inline-flex; align-items: center; gap: .4rem; padding: .75rem 1.25rem; border-radius: 10px; font-size: .875rem; font-weight: 700; cursor: pointer; border: none; background: var(--text-link); color: var(--text-inverse); box-shadow: 0 4px 14px color-mix(in srgb, var(--text-link) 25%, transparent); transition: all .15s; }

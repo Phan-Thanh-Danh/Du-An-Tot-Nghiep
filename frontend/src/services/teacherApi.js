@@ -37,11 +37,6 @@ export const teacherApi = {
     return apiRequest(`/api/teacher/classes/${classId}/attendance`)
   },
 
-  // √ GET /api/teacher/attendance/unlock-requests — AttendanceUnlockController
-  getUnlockRequests() {
-    return apiRequest('/api/teacher/attendance/unlock-requests')
-  },
-
   // √ GET /api/courses — CoursesController, Teacher scoped to own courses
   // Returns PagedResult<KhoaHocDto> with fields: maKhoaHoc, tenLop, tenMonHoc, tieuDe, tenHocKy, tenGiaoVien
   getClasses(params = {}) {
@@ -337,6 +332,10 @@ export const teacherApi = {
     return apiRequest(`/api/teacher/courses/${courseId}/assignments/${assignmentId}/students-status`)
   },
 
+  getStudentCourseAssignmentsStatus(courseId, studentId) {
+    return apiRequest(`/api/teacher/courses/${courseId}/students/${studentId}/assignments-status`)
+  },
+
   async downloadAllSubmissions(courseId, assignmentId) {
     const token = localStorage.getItem('lms_access_token') || sessionStorage.getItem('lms_access_token') || ''
     const url = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '') + `/api/teacher/courses/${courseId}/assignments/${assignmentId}/download-all`
@@ -401,15 +400,17 @@ export const teacherApi = {
     return apiRequest(`/api/teacher/courses${qs ? '?' + qs : ''}`)
   },
 
-  getTeacherSubjects(params = {}) {
+  async getTeacherSubjects(params = {}) {
     const query = new URLSearchParams()
     if (params.keyword) query.append('keyword', params.keyword)
     const qs = query.toString()
-    return apiRequest(`/api/teacher/subjects${qs ? '?' + qs : ''}`)
+    const res = await apiRequest(`/api/teacher/subjects${qs ? '?' + qs : ''}`)
+    return unwrapApiData(res)
   },
 
-  getTeacherSubjectDetail(subjectId) {
-    return apiRequest(`/api/teacher/subjects/${subjectId}`)
+  async getTeacherSubjectDetail(subjectId) {
+    const res = await apiRequest(`/api/teacher/subjects/${subjectId}`)
+    return unwrapApiData(res)
   },
 
   getTeacherClassDetail(classId) {
@@ -512,13 +513,16 @@ export const teacherApi = {
     })
   },
 
-  getLessonComments(params = {}) {
+  async getLessonComments(params = {}) {
     const query = new URLSearchParams()
+    if (params.subjectId) query.append('subjectId', params.subjectId)
+    if (params.lesson) query.append('lesson', params.lesson)
     if (params.keyword) query.append('keyword', params.keyword)
     if (params.pageIndex) query.append('pageIndex', params.pageIndex)
     if (params.pageSize) query.append('pageSize', params.pageSize)
     const qs = query.toString()
-    return apiRequest(`/api/teacher/lesson-comments${qs ? '?' + qs : ''}`)
+    const res = await apiRequest(`/api/teacher/lesson-comments${qs ? '?' + qs : ''}`)
+    return unwrapApiData(res)
   },
 
   replyLessonComment(commentId, payload) {
@@ -640,15 +644,6 @@ export const teacherApi = {
   },
 
   // ── Teacher Subjects & Lessons Detail ──
-  async getTeacherSubjects(keyword = '') {
-    const qs = keyword ? `?keyword=${encodeURIComponent(keyword)}` : ''
-    return unwrapApiData(await apiRequest(`/api/teacher/subjects${qs}`))
-  },
-
-  async getTeacherSubjectDetail(subjectId) {
-    return unwrapApiData(await apiRequest(`/api/teacher/subjects/${subjectId}`))
-  },
-
   async getSubjectLessonsDetail(subjectId) {
     return unwrapApiData(await apiRequest(`/api/teacher/subjects/${subjectId}`))
   },
@@ -675,5 +670,32 @@ export const teacherApi = {
       method: 'POST',
       body: JSON.stringify({ questionId })
     }))
+  },
+
+  async getSubjectQuizzes(subjectId) {
+    return unwrapApiData(await apiRequest(`/api/teacher/subjects/${subjectId}/quizzes`))
+  },
+
+  async attachQuizToLesson(lessonId, quizId) {
+    return unwrapApiData(await apiRequest(`/api/teacher/lessons/${lessonId}/attach-quiz`, {
+      method: 'POST',
+      body: JSON.stringify({ quizId })
+    }))
+  },
+
+  async removeQuizFromLesson(lessonId) {
+    return unwrapApiData(await apiRequest(`/api/teacher/lessons/${lessonId}/quiz`, {
+      method: 'DELETE'
+    }))
+  },
+
+  async removeQuizQuestionFromLesson(lessonId, questionId) {
+    return unwrapApiData(await apiRequest(`/api/teacher/lessons/${lessonId}/quiz-questions/${questionId}`, {
+      method: 'DELETE'
+    }))
+  },
+
+  async getEvaluations() {
+    return unwrapApiData(await apiRequest('/api/teacher/evaluations'))
   }
 }

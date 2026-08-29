@@ -58,14 +58,14 @@ export function useQuizFormValidation(formData: Ref<QuizFormData>) {
     }
 
     // 3. Passing Rules
-    if (data.totalScore <= 0) {
-      fErrors['totalScore'] = 'Tổng điểm phải lớn hơn 0.'
+    if (data.totalScore <= 0 || data.totalScore > 10) {
+      fErrors['totalScore'] = 'Tổng điểm phải nằm trong khoảng từ 0 đến 10.'
       sErrors.passing.push(fErrors['totalScore'])
     }
 
     if (data.passMethod === 'score') {
-      if (data.passingScore === null || data.passingScore < 0) {
-        fErrors['passingScore'] = 'Vui lòng nhập điểm đạt hợp lệ.'
+      if (data.passingScore === null || data.passingScore < 0 || data.passingScore > 10) {
+        fErrors['passingScore'] = 'Điểm đạt phải từ 0 đến 10.'
         sErrors.passing.push(fErrors['passingScore'])
       } else if (data.passingScore > data.totalScore) {
         fErrors['passingScore'] = 'Điểm đạt không được lớn hơn tổng điểm.'
@@ -86,12 +86,26 @@ export function useQuizFormValidation(formData: Ref<QuizFormData>) {
       }
     }
 
-    // 5. Schedule
-    if (data.openAt && data.closeAt) {
+    // 5. Schedule (TC-009: openAt not in past, closeAt at least 3 days after openAt / creation)
+    const now = new Date()
+    // Allow 5 minutes buffer for clock differences
+    const minPastTime = new Date(now.getTime() - 5 * 60 * 1000)
+
+    if (data.openAt) {
       const openDate = new Date(data.openAt)
+      if (openDate < minPastTime) {
+        fErrors['openAt'] = 'Thời gian mở không được chọn thời điểm trong quá khứ.'
+        sErrors.schedule.push(fErrors['openAt'])
+      }
+    }
+
+    if (data.closeAt) {
       const closeDate = new Date(data.closeAt)
-      if (closeDate <= openDate) {
-        fErrors['closeAt'] = 'Thời gian đóng phải sau thời gian mở.'
+      const baseDate = data.openAt ? new Date(data.openAt) : now
+      const minCloseDate = new Date(baseDate.getTime() + 3 * 24 * 60 * 60 * 1000 - 60 * 1000) // 3 days
+
+      if (closeDate < minCloseDate) {
+        fErrors['closeAt'] = 'Thời gian kết thúc phải cách thời gian mở/tạo ít nhất 3 ngày.'
         sErrors.schedule.push(fErrors['closeAt'])
       }
     }

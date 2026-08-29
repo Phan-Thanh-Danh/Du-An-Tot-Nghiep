@@ -106,7 +106,11 @@ public class TeacherCommunicationsController : ControllerBase
     }
 
     [HttpGet("lesson-comments")]
-    public async Task<ActionResult<ApiResponseDto<object>>> GetLessonComments()
+    public async Task<ActionResult<ApiResponseDto<object>>> GetLessonComments(
+        [FromQuery] int? subjectId = null,
+        [FromQuery] string? lesson = null,
+        [FromQuery] string? keyword = null,
+        [FromServices] Backend.Services.Comments.ICommentLikeService likeService = null!)
     {
         try
         {
@@ -122,21 +126,87 @@ public class TeacherCommunicationsController : ControllerBase
             if (monHocIds.Count == 0)
                 return Ok(ApiResponseDto<object>.Ok(new List<object>()));
 
-            var comments = await _context.BinhLuans
-                .Where(c => c.BaiHoc != null && c.BaiHoc.Chuong != null
-                    && monHocIds.Contains(c.BaiHoc.Chuong.MaMonHoc))
+            var query = _context.BinhLuans
+                .Include(c => c.NguoiDung)
+                .Include(c => c.BaiHoc)
+                    .ThenInclude(b => b!.Chuong)
+                        .ThenInclude(ch => ch!.MonHoc)
+                .Where(c => c.MaBinhLuanCha == null
+                    && c.BaiHoc != null && c.BaiHoc.Chuong != null
+                    && monHocIds.Contains(c.BaiHoc.Chuong.MaMonHoc));
+
+            if (subjectId.HasValue && subjectId.Value > 0)
+            {
+                query = query.Where(c => c.BaiHoc!.Chuong!.MaMonHoc == subjectId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(lesson))
+            {
+                query = query.Where(c => c.BaiHoc!.TieuDe.ToLower() == lesson.Trim().ToLower());
+            }
+
+            var rootComments = await query
                 .OrderByDescending(c => c.NgayTao)
-                .Select(c => new
-                {
-                    CommentId = c.MaBinhLuan,
-                    StudentName = c.NguoiDung != null ? c.NguoiDung.HoTen : "",
-                    LessonTitle = c.BaiHoc != null ? c.BaiHoc.TieuDe : "",
-                    Content = c.NoiDung,
-                    CreatedAt = c.NgayTao,
-                    Replied = _context.BinhLuans.Any(r => r.MaBinhLuanCha == c.MaBinhLuan && r.MaNguoiDung == userId),
-                    Pinned = c.DaGhim
-                })
                 .ToListAsync();
+
+            var rootIds = rootComments.Select(c => c.MaBinhLuan).ToList();
+            var allReplies = await _context.BinhLuans
+                .Include(r => r.NguoiDung)
+                .Where(r => r.MaBinhLuanCha != null && rootIds.Contains(r.MaBinhLuanCha.Value))
+                .OrderBy(r => r.NgayTao)
+                .ToListAsync();
+
+            var repliesGrouped = allReplies
+                .GroupBy(r => r.MaBinhLuanCha!.Value)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            var comments = rootComments.Select(c =>
+            {
+                var repliesList = repliesGrouped.GetValueOrDefault(c.MaBinhLuan, new List<BinhLuan>())
+                    .Select(r => new
+                    {
+                        id = r.MaBinhLuan,
+                        maBinhLuan = r.MaBinhLuan,
+                        author = r.NguoiDung?.HoTen ?? ("Người dùng " + r.MaNguoiDung),
+                        hoTen = r.NguoiDung?.HoTen ?? ("Người dùng " + r.MaNguoiDung),
+                        role = r.NguoiDung?.VaiTroChinh ?? "user",
+                        content = r.NoiDung,
+                        noiDung = r.NoiDung,
+                        time = r.NgayTao.ToString("dd/MM/yyyy HH:mm"),
+                        ngayTao = r.NgayTao
+                    }).ToList();
+
+                var hasTeacherReplied = repliesList.Any(r => r.role == "giao_vien" || r.role == "Teacher")
+                    || repliesGrouped.GetValueOrDefault(c.MaBinhLuan, new List<BinhLuan>()).Any(r => r.MaNguoiDung == userId);
+
+                return new
+                {
+                    id = c.MaBinhLuan,
+                    maBinhLuan = c.MaBinhLuan,
+                    commentId = c.MaBinhLuan,
+                    studentName = c.NguoiDung?.HoTen ?? ("Sinh viên " + c.MaNguoiDung),
+                    hoTen = c.NguoiDung?.HoTen ?? ("Sinh viên " + c.MaNguoiDung),
+                    author = c.NguoiDung?.HoTen ?? ("Sinh viên " + c.MaNguoiDung),
+                    lessonTitle = c.BaiHoc?.TieuDe ?? "Bài học",
+                    baiHoc = c.BaiHoc?.TieuDe ?? "Bài học",
+                    lesson = c.BaiHoc?.TieuDe ?? "Bài học",
+                    tenBaiHoc = c.BaiHoc?.TieuDe ?? "Bài học",
+                    subjectId = c.BaiHoc?.Chuong?.MaMonHoc ?? 0,
+                    subjectName = c.BaiHoc?.Chuong?.MonHoc?.TenMonHoc ?? "",
+                    monHoc = c.BaiHoc?.Chuong?.MonHoc?.TenMonHoc ?? "",
+                    subjectCode = c.BaiHoc?.Chuong?.MonHoc?.MaCodeMonHoc ?? "",
+                    content = c.NoiDung,
+                    noiDung = c.NoiDung,
+                    createdAt = c.NgayTao,
+                    ngayTao = c.NgayTao,
+                    time = c.NgayTao.ToString("dd/MM/yyyy HH:mm"),
+                    replied = hasTeacherReplied,
+                    pinned = c.DaGhim,
+                    likes = likeService != null ? likeService.GetLikesCount(c.MaBinhLuan) : 0,
+                    isLiked = likeService != null && likeService.HasUserLiked(c.MaBinhLuan, userId),
+                    replies = repliesList
+                };
+            }).ToList();
 
             return Ok(ApiResponseDto<object>.Ok(comments));
         }
@@ -173,13 +243,49 @@ public class TeacherCommunicationsController : ControllerBase
             {
                 MaBaiHoc = comment.MaBaiHoc,
                 MaNguoiDung = userId,
-                NoiDung = request.Content,
+                NoiDung = request.Content.Trim(),
                 MaBinhLuanCha = commentId,
                 NgayTao = DateTime.UtcNow
             };
 
             _context.BinhLuans.Add(reply);
             await _context.SaveChangesAsync();
+
+            // Gửi thông báo cho sinh viên tác giả câu hỏi
+            if (comment.MaNguoiDung != userId)
+            {
+                var teacherUser = await _context.NguoiDungs.FirstOrDefaultAsync(u => u.MaNguoiDung == userId);
+                var teacherName = teacherUser?.HoTen ?? "Giảng viên";
+                var lessonTitle = comment.BaiHoc?.TieuDe ?? "Bài học";
+
+                var thongBao = new ThongBao
+                {
+                    MaNhomThongBao = Guid.NewGuid(),
+                    MaNguoiNhan = comment.MaNguoiDung,
+                    MaDonVi = teacherUser?.MaDonVi ?? 1,
+                    TieuDe = "Giảng viên đã phản hồi câu hỏi của bạn",
+                    TomTat = $"Thầy/Cô {teacherName} vừa phản hồi thảo luận của bạn",
+                    NoiDung = $"Thầy/Cô {teacherName} vừa phản hồi thảo luận của bạn trong bài học \"{lessonTitle}\": \"{request.Content.Trim()}\"",
+                    NoiDungText = $"Thầy/Cô {teacherName} vừa phản hồi thảo luận của bạn trong bài học \"{lessonTitle}\": \"{request.Content.Trim()}\"",
+                    LoaiThongBao = "hoc_vu",
+                    PhamViGui = "nguoi_dung",
+                    NgayTao = DateTime.UtcNow,
+                    NguoiTao = userId
+                };
+                _context.ThongBaos.Add(thongBao);
+                await _context.SaveChangesAsync();
+
+                _context.ThongBaoNguoiNhans.Add(new ThongBaoNguoiNhan
+                {
+                    MaThongBao = thongBao.MaThongBao,
+                    MaNguoiNhan = comment.MaNguoiDung,
+                    MaDonVi = teacherUser?.MaDonVi ?? 1,
+                    DaDoc = false,
+                    NhanLuc = DateTime.UtcNow,
+                    NgayTao = DateTime.UtcNow
+                });
+                await _context.SaveChangesAsync();
+            }
 
             return Ok(ApiResponseDto<object>.Ok(new { Success = true }));
         }

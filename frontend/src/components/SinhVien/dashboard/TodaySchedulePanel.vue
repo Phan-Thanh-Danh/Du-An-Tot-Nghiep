@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from 'vue'
 import { CalendarDays, MapPin } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
@@ -10,27 +11,33 @@ defineProps({
   },
 })
 
-const todayStr = new Intl.DateTimeFormat('vi-VN', {
-  weekday: 'long',
-  day: '2-digit',
-  month: '2-digit',
-  year: 'numeric'
-}).format(new Date());
-// Capitalize the first letter of weekday
-const formattedDate = todayStr.charAt(0).toUpperCase() + todayStr.slice(1);
+const todayLabel = computed(() => {
+  try {
+    const now = new Date()
+    return new Intl.DateTimeFormat('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }).format(now)
+  } catch (e) {
+    return 'Lịch học'
+  }
+})
 </script>
 
 <template>
-  <GlassPanel variant="strong" density="none" class="rounded-2xl">
+  <GlassPanel variant="strong" density="none" class="rounded-2xl h-full flex flex-col">
     <div class="flex items-center justify-between gap-3 border-b border-card px-4 py-3.5">
       <div>
         <h2 class="text-base font-semibold text-heading">Lịch hôm nay</h2>
-        <p class="text-xs font-medium text-body">{{ formattedDate }}</p>
+        <p class="text-xs font-medium text-body capitalize">{{ todayLabel }}</p>
       </div>
       <CalendarDays :size="18" class="text-(--lg-cyan)" />
     </div>
 
-    <div class="space-y-2 p-4">
+    <div class="space-y-2 p-4 flex-1">
+      <div v-if="!schedule || schedule.length === 0" class="flex flex-col items-center justify-center py-8 text-center text-muted space-y-2">
+        <CalendarDays :size="28" class="text-placeholder opacity-60" />
+        <p class="text-xs font-medium text-body">Hôm nay bạn không có lịch học</p>
+        <p class="text-[11px] text-placeholder max-w-[200px]">Hãy tận dụng thời gian để ôn luyện hoặc chuẩn bị bài tập sắp tới.</p>
+      </div>
+
       <article
         v-for="item in schedule"
         :key="item.id"
@@ -41,7 +48,7 @@ const formattedDate = todayStr.charAt(0).toUpperCase() + todayStr.slice(1);
             : 'border-card bg-(--surface-card) hover:bg-(--surface-card)',
         ]"
       >
-          <div class="flex flex-col items-center">
+        <div class="flex flex-col items-center">
           <span
             :class="[
               'mt-1 h-3.5 w-3.5 rounded-full border-2 border-white shadow-sm transition-colors',
@@ -58,13 +65,13 @@ const formattedDate = todayStr.charAt(0).toUpperCase() + todayStr.slice(1);
               </p>
               <span v-if="item.current" class="flex h-1.5 w-1.5 rounded-full bg-(--text-link)" />
             </div>
-            <h3 class="mt-1.5 truncate text-[13px] font-semibold text-heading leading-tight">{{ item.subject }}</h3>
+            <h3 class="mt-1.5 truncate text-[13px] font-semibold text-heading leading-tight">{{ item.subject || item.course }}</h3>
             <p class="mt-1 flex items-center gap-1.5 truncate text-xs font-medium text-body">
               <MapPin :size="11" />
               {{ item.room }} · {{ item.lecturer }}
             </p>
           </div>
-          <GlassBadge :variant="item.variant" size="sm">{{ item.status }}</GlassBadge>
+          <GlassBadge :variant="item.variant || item.statusVariant || 'info'" size="sm">{{ item.status || 'Sắp tới' }}</GlassBadge>
         </div>
       </article>
     </div>

@@ -19,15 +19,22 @@ function normalizeQuiz(raw: any): ContentCouncilQuiz {
   const cachTinhDat = cfg.cachTinhDat ?? cfg.CachTinhDat ?? 'theo_diem'
   const cachTinhDiemCuoi = cfg.cachTinhDiemCuoi ?? cfg.CachTinhDiemCuoi ?? 'lay_diem_cao_nhat'
 
+  const rawStatus = raw.trangThai ?? raw.TrangThai ?? raw.status ?? 'draft'
+  const status: 'draft' | 'published' | 'open' | 'closed' =
+    rawStatus === 'nhap' || rawStatus === 'draft' ? 'draft'
+    : rawStatus === 'dang_mo' || rawStatus === 'published' || rawStatus === 'da_xuat_ban' || rawStatus === 'hoat_dong' ? 'published'
+    : rawStatus === 'da_dong' || rawStatus === 'closed' ? 'closed'
+    : (rawStatus as any)
+
   return {
     id,
     code: raw.code ?? `QZ-${id}`,
     title: raw.tieuDe ?? raw.TieuDe ?? raw.title ?? '',
-    description: raw.moTa ?? raw.MoTa ?? '',
+    description: raw.moTa ?? raw.MoTa ?? cfg.moTa ?? cfg.MoTa ?? '',
     subjectId: raw.maMonHoc ?? raw.MaMonHoc ?? raw.subjectId ?? 0,
     subjectCode: raw.maCodeMonHoc ?? raw.MaCodeMonHoc ?? raw.subjectCode ?? '',
     subjectName: raw.tenMonHoc ?? raw.TenMonHoc ?? raw.subjectName ?? '',
-    status: raw.trangThai ?? raw.TrangThai ?? raw.status ?? 'draft',
+    status,
     examType: 'lesson_quiz',
     format,
     durationMinutes: raw.thoiGianPhut ?? raw.ThoiGianPhut ?? 15,
@@ -47,7 +54,7 @@ function normalizeQuiz(raw: any): ContentCouncilQuiz {
     shuffleAnswers: cfg.xaoTronDapAn ?? cfg.XaoTronDapAn ?? false,
     showResultAfterSubmit: cfg.hienKetQuaSauKhiNop ?? cfg.HienKetQuaSauKhiNop ?? true,
     showCorrectAnswerAfterSubmit: cfg.hienDapAnDungSauKhiNop ?? cfg.HienDapAnDungSauKhiNop ?? false,
-    showExplanationAfterSubmit: false,
+    showExplanationAfterSubmit: cfg.hienGiaiThichSauKhiNop ?? cfg.HienGiaiThichSauKhiNop ?? false,
     openAt: cfg.moLuc ?? cfg.MoLuc ?? null,
     closeAt: cfg.dongLuc ?? cfg.DongLuc ?? null,
     usageCount: 0,
@@ -71,7 +78,7 @@ export const useQuizStore = defineStore('contentCouncilQuiz', () => {
     loading.value = true
     error.value = null
     try {
-      const res = await contentCouncilApi.getQuizzes()
+      const res = await contentCouncilApi.getQuizzes({ pageSize: 200 })
       const rawData = res?.data?.items ?? res?.data?.Items ?? res?.items ?? res?.Items ?? (Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []))
       if (Array.isArray(rawData)) {
         quizzes.value = rawData.map(normalizeQuiz)
@@ -104,17 +111,46 @@ export const useQuizStore = defineStore('contentCouncilQuiz', () => {
 
   async function addQuiz(q: ContentCouncilQuiz) {
     try {
-      await contentCouncilApi.createQuiz({
-        title: q.title,
-        subjectId: q.subjectId,
-        examType: q.examType,
-        totalScore: q.totalScore,
-        duration: q.duration,
-      })
-      quizzes.value.unshift(q)
-      quizQuestions.value[q.id] = []
+      const loaiDeThi =
+        q.format === 'multiple_choice' ? 'trac_nghiem'
+        : q.format === 'essay' ? 'tu_luan'
+        : 'ket_hop'
+
+      const payload = {
+        MaMonHoc: q.subjectId,
+        TieuDe: q.title,
+        MoTa: q.description,
+        ThoiGianPhut: q.durationMinutes,
+        LoaiDeThi: loaiDeThi,
+        HinhThucThi: 'online_tu_do',
+        TyLeTracNghiem: q.format === 'mixed' ? q.multipleChoicePercentage : (q.format === 'multiple_choice' ? 100 : 0),
+        TyLeTuLuan: q.format === 'mixed' ? q.essayPercentage : (q.format === 'essay' ? 100 : 0),
+        CauHinh: {
+          MoTa: q.description,
+          TongDiem: q.totalScore,
+          DiemDat: q.passingScore ?? 5,
+          CachTinhDat: q.passMethod === 'correct_answer_count' ? 'theo_so_cau_dung' : 'theo_diem',
+          SoCauDungToiThieu: q.minimumCorrectAnswers,
+          KhongGioiHanSoLan: q.unlimitedAttempts,
+          SoLanLamToiDa: q.unlimitedAttempts ? null : q.maximumAttempts,
+          CachTinhDiemCuoi: q.finalScoreMethod === 'last' ? 'lay_lan_cuoi' : (q.finalScoreMethod === 'average' ? 'lay_trung_binh' : 'lay_diem_cao_nhat'),
+          MoLuc: q.openAt,
+          DongLuc: q.closeAt,
+          XaoTronCauHoi: q.shuffleQuestions,
+          XaoTronDapAn: q.shuffleAnswers,
+          HienKetQuaSauKhiNop: q.showResultAfterSubmit,
+          HienDapAnDungSauKhiNop: q.showCorrectAnswerAfterSubmit,
+        }
+      }
+
+      const res = await contentCouncilApi.createQuiz(payload)
+      const created = normalizeQuiz(res?.data ?? res)
+      quizzes.value.unshift(created)
+      quizQuestions.value[created.id] = []
+      return created
     } catch (e: any) {
       error.value = e?.message || 'Không thể thêm bài kiểm tra'
+      throw e
     }
   }
 
@@ -128,6 +164,7 @@ export const useQuizStore = defineStore('contentCouncilQuiz', () => {
       }
     } catch (e: any) {
       error.value = e?.message || 'Không thể cập nhật bài kiểm tra'
+      throw e
     }
   }
 
@@ -142,6 +179,7 @@ export const useQuizStore = defineStore('contentCouncilQuiz', () => {
       delete quizQuestions.value[id]
     } catch (e: any) {
       error.value = e?.message || 'Không thể xóa bài kiểm tra'
+      throw e
     }
   }
 
@@ -158,19 +196,32 @@ export const useQuizStore = defineStore('contentCouncilQuiz', () => {
     })
 
     try {
-      await contentCouncilApi.assignQuestions(quizId, {
-        questionIds: questions.map(q => q.questionId),
-      })
+      const items = questions.map((q, idx) => ({
+        MaCauHoi: q.questionId,
+        maCauHoi: q.questionId,
+        DiemSo: q.score || 1,
+        diemSo: q.score || 1,
+        ThuTu: q.order || idx + 1,
+        thuTu: q.order || idx + 1,
+      }))
+
+      const payload = {
+        Questions: items,
+        questions: items,
+      }
+
+      await contentCouncilApi.replaceQuestions(quizId, payload)
       quizQuestions.value[quizId] = questions
       const quiz = getQuizById(quizId)
       if (quiz) {
         quiz.questionCount = questions.length
-        quiz.totalScore = questions.reduce((sum, q) => sum + q.score, 0)
+        quiz.totalScore = questions.reduce((sum, q) => sum + (q.score || 0), 0)
         quiz.multipleChoiceQuestionCount = questions.filter(q => q.questionType === 'multiple_choice').length
         quiz.essayQuestionCount = questions.filter(q => q.questionType === 'essay').length
       }
     } catch (e: any) {
       error.value = e?.message || 'Không thể cập nhật câu hỏi cho bài kiểm tra'
+      throw e
     }
   }
 

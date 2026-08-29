@@ -140,7 +140,7 @@ const stripHtml = (html?: string) => {
             <th class="p-4 w-32">Mã CH</th>
             <th class="p-4 min-w-[250px]">Nội dung</th>
             <th class="p-4">Môn học</th>
-            <th class="p-4">Loại</th>
+            <th class="p-4 w-36 whitespace-nowrap">Kiểu lựa chọn</th>
             <th class="p-4">Độ khó</th>
             <th class="p-4">Trạng thái</th>
             <th class="p-4 whitespace-nowrap">Sử dụng</th>
@@ -169,15 +169,10 @@ const stripHtml = (html?: string) => {
             <td class="p-4" :title="q.subjectName">
               <span class="font-medium text-slate-700">{{ q.subjectCode }}</span>
             </td>
-            <td class="p-4">
-              <div class="flex flex-col gap-1 items-start">
-                <span class="px-2 py-0.5 rounded text-[11px] font-medium tracking-wide bg-slate-100 text-slate-700 border border-slate-200">
-                  {{ q.type === 'essay' ? 'Tự luận' : 'Trắc nghiệm' }}
-                </span>
-                <span v-if="q.type === 'multiple_choice'" class="text-[10px] text-slate-500 uppercase tracking-wider">
-                  {{ getSelectionTypeLabel(q.selectionType) }}
-                </span>
-              </div>
+            <td class="p-4 whitespace-nowrap">
+              <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800">
+                {{ q.selectionType === 'multiple' ? 'Chọn nhiều' : 'Chọn 1' }}
+              </span>
             </td>
             <td class="p-4">
               <span class="px-2 py-0.5 rounded text-[11px] font-medium border border-transparent" :class="getDifficultyColor(q.difficulty)">
@@ -227,9 +222,7 @@ const stripHtml = (html?: string) => {
                     <button 
                       @click="emit('delete', q)" 
                       class="px-3 py-2 text-sm text-left hover:bg-red-50 text-red-600 flex items-center gap-2"
-                      :class="{'opacity-50 cursor-not-allowed hover:bg-transparent': q.usageCount > 0}"
-                      :title="q.usageCount > 0 ? 'Câu hỏi đang được sử dụng, không thể xóa' : ''"
-                      :disabled="q.usageCount > 0"
+                      title="Xóa câu hỏi"
                     >
                       <Trash2 class="w-4 h-4" /> Xóa
                     </button>

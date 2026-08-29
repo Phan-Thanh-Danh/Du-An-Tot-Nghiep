@@ -70,10 +70,24 @@ const filterOptions = [
   { key: 'early_completed', label: 'Đã học trước' },
 ]
 
+const selectedSemester = ref('all')
+
+const semesterOptions = computed(() => {
+  if (!studentCurriculum.value?.semesters) return [{ value: 'all', label: 'Tất cả học kỳ' }]
+  return [
+    { value: 'all', label: 'Tất cả học kỳ' },
+    ...studentCurriculum.value.semesters.map((s) => ({
+      value: String(s.semesterIndex),
+      label: s.semesterName || `Học kỳ ${s.semesterIndex}`
+    }))
+  ]
+})
+
 const filteredSemesters = computed(() => {
   if (!studentCurriculum.value) return []
 
   return studentCurriculum.value.semesters
+    .filter((semester) => selectedSemester.value === 'all' || String(semester.semesterIndex) === String(selectedSemester.value))
     .map((semester) => ({
       ...semester,
       blocks: semester.blocks
@@ -170,6 +184,23 @@ const isOldVersion = computed(() => false)
     </section>
 
     <section class="filter-strip" aria-label="Bộ lọc trạng thái">
+      <!-- Combobox chọn học kỳ -->
+      <div class="semester-selector-wrapper">
+        <label for="semester-select" class="semester-select-label">
+          <Layers3 :size="15" />
+          <span>Học kỳ:</span>
+        </label>
+        <select
+          id="semester-select"
+          v-model="selectedSemester"
+          class="semester-combobox"
+        >
+          <option v-for="opt in semesterOptions" :key="opt.value" :value="opt.value">
+            {{ opt.label }}
+          </option>
+        </select>
+      </div>
+
       <div class="filter-chips">
         <button
           v-for="filter in filterOptions"
@@ -855,9 +886,47 @@ const isOldVersion = computed(() => false)
 .filter-strip {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.45rem;
   border-radius: 18px;
   padding: 0.65rem;
+}
+
+.semester-selector-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--surface-card);
+  border: 1px solid var(--border-card);
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  min-height: 2rem;
+}
+
+.semester-select-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.74rem;
+  font-weight: 800;
+  color: var(--text-label);
+  white-space: nowrap;
+}
+
+.semester-combobox {
+  background: transparent;
+  border: none;
+  font-size: 0.75rem;
+  font-weight: 850;
+  color: var(--accent-primary);
+  outline: none;
+  cursor: pointer;
+  padding: 0 0.25rem;
+}
+
+.semester-combobox option {
+  background: var(--surface-card);
+  color: var(--text-heading);
 }
 
 .filter-chip {

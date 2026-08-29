@@ -70,10 +70,18 @@ async function loadCourses() {
       const code = item.subjectCode || item.SubjectCode || item.code || item.Code || ''
       const name = item.subjectName || item.SubjectName || item.courseName || item.CourseName || item.name || ''
       const id = item.subjectId || item.SubjectId || item.courseId || item.CourseId || item.id || item.Id
-      const className = item.className || item.ClassName || ''
+
+      let classList = []
+      if (Array.isArray(item.classes || item.Classes)) {
+        classList = item.classes || item.Classes
+      } else if (item.className || item.ClassName) {
+        classList = (item.className || item.ClassName).split(',').map(s => s.trim()).filter(Boolean)
+      }
+
+      const classCount = item.classCount ?? item.ClassCount ?? classList.length
       const students = item.studentCount ?? item.StudentCount ?? item.siSo ?? 0
       const semester = item.semester || item.Semester || item.tenHocKy || 'Học kỳ 1 năm 2026'
-      const lessonCount = item.lessonCount ?? item.LessonCount ?? 0
+      const lessonCount = item.lessonCount ?? item.LessonCount ?? item.lessonsCount ?? item.LessonsCount ?? 0
 
       const key = `${code}_${semester}`
       if (!subjectMap.has(key)) {
@@ -81,25 +89,33 @@ async function loadCourses() {
           id: id,
           code: code,
           name: name,
-          classes: className ? [className] : [],
+          classes: [...classList],
+          classCount: classCount || classList.length || 1,
           students: students,
           lessonsCount: lessonCount,
           semester: semester,
         })
       } else {
         const existing = subjectMap.get(key)
-        if (className && !existing.classes.includes(className)) {
-          existing.classes.push(className)
-        }
+        classList.forEach(cn => {
+          if (cn && !existing.classes.includes(cn)) {
+            existing.classes.push(cn)
+          }
+        })
+        existing.classCount = existing.classes.length
         existing.students += students
         if (lessonCount > 0) existing.lessonsCount = lessonCount
       }
     })
 
-    courses.value = Array.from(subjectMap.values()).map(s => ({
-      ...s,
-      displaySubtitle: s.classes.length ? `Lớp: ${s.classes.join(', ')}` : 'Chưa có lớp',
-    }))
+    courses.value = Array.from(subjectMap.values()).map(s => {
+      const actualClassCount = s.classCount || s.classes.length || 1
+      return {
+        ...s,
+        displaySubtitle: s.classes.length ? `Lớp: ${s.classes.join(', ')}` : 'Chưa có lớp',
+        displayStudentCount: `${s.students} (${actualClassCount} lớp)`,
+      }
+    })
   } catch (err) {
     console.error('Error loading teacher subjects:', err)
     error.value = err?.message || 'Không thể tải danh sách môn học.'
@@ -202,8 +218,8 @@ onMounted(() => {
         :title="`${cls.code} - ${cls.name}`"
         :subtitle="cls.displaySubtitle"
         :semester="cls.semester"
-        :studentsCount="`${cls.students} (${cls.classes.length} lớp)`"
-        :lessonsCount="cls.lessonsCount > 0 ? cls.lessonsCount : null"
+        :studentsCount="cls.displayStudentCount"
+        :lessonsCount="cls.lessonsCount ?? 0"
       >
         <template #action>
           <GlassButton
