@@ -12,6 +12,28 @@ PRINT N'--- BẮT ĐẦU PHASE 2: TẠO HÀNG VẠN TÀI KHOẢN (MẬT KHẨU: 
 BEGIN TRY
     BEGIN TRANSACTION;
 
+    -- ==========================================
+    -- 0. SEED BẢNG VAI TRÒ (VaiTro) - chạy 1 lần
+    -- ==========================================
+    IF NOT EXISTS (SELECT 1 FROM VaiTro WHERE ma_code_vai_tro = 'sieu_quan_tri')
+    BEGIN
+        INSERT INTO VaiTro (ma_vai_tro, ma_code_vai_tro, ten_vai_tro) VALUES
+            (1,  'sieu_quan_tri',           N'Siêu quản trị'),
+            (2,  'quan_tri',                N'Quản trị'),
+            (3,  'quan_tri_co_so',          N'Quản trị cơ sở'),
+            (4,  'quan_tri_co_so_con',      N'Quản trị cơ sở con'),
+            (5,  'hieu_truong',             N'Hiệu trưởng'),
+            (6,  'chu_tich',               N'Chủ tịch hội đồng'),
+            (7,  'giao_vien',              N'Giảng viên'),
+            (8,  'nhan_vien',              N'Nhân viên giáo vụ'),
+            (9,  'hoc_sinh',               N'Sinh viên'),
+            (10, 'phu_huynh',              N'Phụ huynh'),
+            (11, 'hoidong_quanly_noidung', N'Hội đồng quản lý nội dung'),
+            (12, 'admin_tai_chinh',        N'Admin tài chính'),
+            (13, 'ke_toan_co_so',          N'Kế toán cơ sở'),
+            (14, 'ke_toan_truong_co_so',   N'Kế toán trưởng cơ sở');
+    END
+
     DECLARE @i INT = 1;
     WHILE @i <= @N
     BEGIN
@@ -166,6 +188,21 @@ BEGIN TRY
 
             DELETE FROM @Students;
             DELETE FROM @Parents;
+
+            -- ==========================================
+            -- 6. GÁN VAI TRÒ VÀO BẢNG PhanQuyenNguoiDung
+            -- ==========================================
+            PRINT N'  - Gán vai trò vào PhanQuyenNguoiDung...';
+            -- Gán theo vai_tro_chinh hiện có trong NguoiDung, map sang ma_vai_tro trong VaiTro
+            INSERT INTO PhanQuyenNguoiDung (ma_nguoi_dung, ma_vai_tro)
+            SELECT nd.ma_nguoi_dung, vt.ma_vai_tro
+            FROM NguoiDung nd
+            JOIN VaiTro vt ON vt.ma_code_vai_tro = nd.vai_tro_chinh
+            WHERE nd.ma_don_vi = @CampusId
+              AND NOT EXISTS (
+                  SELECT 1 FROM PhanQuyenNguoiDung pq
+                  WHERE pq.ma_nguoi_dung = nd.ma_nguoi_dung AND pq.ma_vai_tro = vt.ma_vai_tro
+              );
 
         END
 
