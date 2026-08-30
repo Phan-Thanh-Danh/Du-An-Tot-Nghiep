@@ -198,13 +198,13 @@ BEGIN TRY
     -- 3.2. Môn học
     IF NOT EXISTS (SELECT 1 FROM DanhMucMonHoc WHERE ma_code_mon_hoc = 'COM101')
     BEGIN
-        INSERT INTO DanhMucMonHoc (ma_code_mon_hoc, ten_mon_hoc, so_tin_chi, loai_mon_hoc, con_hoat_dong)
+        INSERT INTO DanhMucMonHoc (ma_code_mon_hoc, ten_mon_hoc, so_tin_chi, con_hoat_dong)
         VALUES 
-            ('COM101', N'Nhập môn lập trình', 3, 'chuyen_nganh', 1),
-            ('DBI202', N'Hệ quản trị CSDL', 3, 'chuyen_nganh', 1),
-            ('WEB104', N'Thiết kế trang web', 3, 'chuyen_nganh', 1),
-            ('UIX101', N'Thiết kế UI/UX', 3, 'chuyen_nganh', 1),
-            ('MKT101', N'Marketing căn bản', 3, 'chuyen_nganh', 1);
+            ('COM101', N'Nhập môn lập trình', 3, 1),
+            ('DBI202', N'Hệ quản trị CSDL', 3, 1),
+            ('WEB104', N'Thiết kế trang web', 3, 1),
+            ('UIX101', N'Thiết kế UI/UX', 3, 1),
+            ('MKT101', N'Marketing căn bản', 3, 1);
     END
 
     -- 3.3. Khóa tuyển sinh & Quy đổi tín chỉ
