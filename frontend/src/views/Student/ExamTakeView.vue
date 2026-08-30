@@ -354,23 +354,29 @@ function addViolation(type, severity, message, details = {}, options = {}) {
 
   violations.value = [violation, ...violations.value]
   saveViolationLog(examId, STUDENT_ID.value, violations.value)
-  
+
   // Gửi qua Hub
   try {
     examProctoringHub.sendViolationLog(caThiId, STUDENT_ID.value, type, message + (details ? ' - ' + JSON.stringify(details) : ''))
   } catch(e) { console.warn(e) }
-  
+
   // Gửi trực tiếp qua HTTP API (đảm bảo real-time)
   try {
+    let dbType = 'khac'
+    if (type === 'WINDOW_BLUR') dbType = 'mat_focus'
+    else if (type === 'TAB_OR_APP_SWITCH' || type === 'FULLSCREEN_EXIT' || type === 'PAGE_HIDE') dbType = 'chuyen_tab'
+    else if (type === 'NO_CAMERA' || type === 'mat_camera') dbType = 'mat_camera'
+    else if (type === 'tieng_on') dbType = 'tieng_on'
+
     examApi.logViolation({
       maCaThi: caThiId,
       maHocSinh: STUDENT_ID.value,
-      loaiViPham: type,
+      loaiViPham: dbType,
       mucDo: severity,
-      chiTietJson: message + (details ? ' - ' + JSON.stringify(details) : '')
+      chiTietJson: JSON.stringify({ message, originalType: type, details: details || null })
     }).catch(() => {})
   } catch(e) {}
-  
+
   return violation
 }
 
@@ -458,7 +464,7 @@ async function startExamEnvironment() {
 
     const fingerprint = btoa(navigator.userAgent + screen.width + screen.height + screen.colorDepth).substring(0, 50)
 
-    const session = await examApi.startExam({ 
+    const session = await examApi.startExam({
       maCaThi: caThiId,
       envCheckScore: envScore,
       browserFingerprint: fingerprint,
@@ -477,7 +483,7 @@ async function startExamEnvironment() {
       }
       let parsedChoices = typeof q.luaChon === 'string' ? JSON.parse(q.luaChon) : (q.luaChon || [])
       parsedChoices = parsedChoices.map(c => ({...c, label: c.id}))
-      
+
       return {
         id: q.maCauHoi,
         content: q.noiDung,
@@ -492,7 +498,7 @@ async function startExamEnvironment() {
     examStarted.value = true
     monitoringStatus.value = 'active'
     timeLeftSeconds.value = Number(exam.value.durationMinutes) * 60
-    
+
     startTimer()
     startRuntimeMonitoring()
     saveDraft()
@@ -605,10 +611,10 @@ async function initProctoringHubBackground(stream) {
         const offerDesc = { type: dto.offer.type, sdp: dto.offer.sdp }
         await pc.setRemoteDescription(new window.RTCSessionDescription(offerDesc))
         await flushStudentIceQueue(proctorConnectionId)
-        
+
         const answer = await pc.createAnswer()
         await pc.setLocalDescription(answer)
-        
+
         await examProctoringHub.sendAnswer({
           maCaThi: caThiId,
           maHocSinh: STUDENT_ID.value,
@@ -863,7 +869,7 @@ async function restartScreenShare() {
     monitoringStatus.value = 'starting'
     const newStream = await requestExamScreenShare()
     attachScreenStream(newStream)
-    
+
     const videoTrack = newStream.getVideoTracks()[0]
     for (const pc of studentPeerConnections.values()) {
       const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video')
@@ -871,7 +877,7 @@ async function restartScreenShare() {
         await sender.replaceTrack(videoTrack)
       }
     }
-    
+
     if (examProctoringHub.isConnected) {
       await examProctoringHub.screenShareStarted(caThiId, STUDENT_ID.value)
     }
@@ -1377,11 +1383,11 @@ async function submitExam(reason = 'manual') {
   clearInterval(runtimeScanInterval)
   clearInterval(watermarkInterval)
   stopDevtoolsDetection()
-  
+
   if (reason === 'timeout') {
     pushWarning('Đã hết thời gian làm bài. Hệ thống đang tự động nộp bài.', 'critical')
   }
-  
+
   try {
     const answersArray = Object.entries(answers.value).map(([maCauHoi, ans]) => ({
       maCauHoi: parseInt(maCauHoi),
@@ -1394,7 +1400,7 @@ async function submitExam(reason = 'manual') {
     }
     const submitRes = await examApi.submitExam(payload)
     const finalScore = submitRes?.diemCuoiCung ?? submitRes?.diemTuDong ?? null
-    
+
     // Notify Proctor Hub via SignalR in real-time with score
     try {
       if (examProctoringHub.isConnected) {
@@ -1428,7 +1434,7 @@ onMounted(() => {
     router.replace(`/student/exams/detail/${examId}`)
     return
   }
-  
+
   const previousStudentKey = `exam_last_student_${examId}`
   const lastStudent = localStorage.getItem(previousStudentKey)
   if (lastStudent && lastStudent !== String(STUDENT_ID.value)) {
@@ -1784,12 +1790,12 @@ onUnmounted(() => {
           <ShieldAlert :size="30" />
         </div>
         <h2>Sẵn sàng bắt đầu bài thi</h2>
-        
+
         <div v-if="startError" class="warning-banner critical" style="margin-bottom: 20px;">
           <XCircle :size="16" />
           <span>{{ startError }}</span>
         </div>
-        
+
         <div v-if="startError && startError.includes('ExamGuard Agent')" class="agent-download-section">
           <p class="agent-download-desc">Vui lòng tải và chạy ứng dụng ExamGuard Agent (không cần cài đặt):</p>
           <div class="agent-download-links">
