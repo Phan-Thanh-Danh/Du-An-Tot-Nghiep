@@ -17,7 +17,7 @@ BEGIN TRY
     BEGIN
         DECLARE @CampusCode NVARCHAR(50) = 'CAMPUS_AET_' + CAST(@i AS NVARCHAR);
         DECLARE @CampusId INT;
-        SELECT @CampusId = ma_don_vi FROM DonVi WHERE ma_code = @CampusCode;
+        SELECT @CampusId = ma_don_vi FROM DonVi WHERE ten_don_vi = N'Trường AET Cơ sở ' \+ CAST\(@i AS NVARCHAR\) AND cap_don_vi = 'co_so';
 
         IF @CampusId IS NOT NULL
         BEGIN

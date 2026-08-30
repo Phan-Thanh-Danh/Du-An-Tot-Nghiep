@@ -59,7 +59,7 @@ BEGIN TRY
 
     -- Để giới hạn lượng data, ta chỉ sinh tiến độ cho Khóa học COM101 tại Cơ sở 1
     DECLARE @Campus1 INT;
-    SELECT @Campus1 = ma_don_vi FROM DonVi WHERE ma_code = 'CAMPUS_AET_1';
+    SELECT @Campus1 = ma_don_vi FROM DonVi WHERE ten_don_vi = N'Trường AET Cơ sở 1' AND cap_don_vi = 'co_so';
 
     DECLARE @CourseCOM101 INT;
     SELECT TOP 1 @CourseCOM101 = ma_khoa_hoc FROM KhoaHoc 
