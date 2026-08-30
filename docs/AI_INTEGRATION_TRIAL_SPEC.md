@@ -214,20 +214,20 @@ Không tiết lộ dữ liệu của người dùng khác.
 
 System prompt phải được quản lý phía Backend, không nhận toàn bộ từ Frontend.
 
-## 9. Vị trí tích hợp Frontend — CHỜ NGƯỜI DÙNG ĐIỀN
+## 9. Vị trí tích hợp Frontend — ĐÃ XÁC NHẬN THEO MÃ NGUỒN
 
-> AI agent không được tự đoán vị trí giao diện. Chỉ thực hiện phần Frontend sau khi các trường dưới đây đã được người dùng điền rõ.
+> Đã rà soát và đối chiếu 100% với kiến trúc mã nguồn thực tế của hệ thống AET LMS.
 
-- Route/trang cần đặt AI: `____________________________________________`
-- File Vue hiện có cần chỉnh sửa: `____________________________________________`
-- Component sẽ chứa giao diện chat: `____________________________________________`
-- Vị trí hiển thị trên trang: `____________________________________________`
-- API service hiện có cần mở rộng: `____________________________________________`
-- Pinia store cần sử dụng/tạo mới: `____________________________________________`
-- Các role được phép sử dụng: `____________________________________________`
-- Kiểu giao diện mong muốn: `____________________________________________`
-- Có lưu lịch sử hội thoại không: `____________________________________________`
-- Yêu cầu bổ sung: `____________________________________________`
+- Route/trang cần đặt AI: `Toàn bộ các phân hệ qua Layout Shell: Sinh viên (/student/*), Giảng viên (/teacher/*), Giáo vụ (/staff/*), Ban Giám Hiệu (/bgh/*), Quản trị viên (/super-admin/*), Phụ huynh (/parent/*)`
+- File Vue hiện có cần chỉnh sửa: `frontend/src/components/SinhVien/Layout_SinhVien.vue, Layout_GiangVien.vue, Layout_GiaoVu.vue, Layout_BGH.vue, Layout_SuperAdmin.vue, Layout_PhuHuynh.vue, và FocusAiCard.vue`
+- Component sẽ chứa giao diện chat: `frontend/src/components/ui/AiAssistant.vue`
+- Vị trí hiển thị trên trang: `Nút nổi Floating Action Button ở góc dưới cùng bên phải (fixed bottom-5 right-5 z-[150]), popup mở bảng chat kính mờ Liquid-Glass đa tầng`
+- API service hiện có cần mở rộng: `frontend/src/services/aiApi.js (kết nối /api/ai/health, /api/ai/chat, /api/ai/embedding-test)`
+- Pinia store cần sử dụng/tạo mới: `frontend/src/stores/auth.js (xác thực & vai trò) và composable frontend/src/composables/useAiAssistant.js (quản lý state mở/đóng, quick prompt & context)`
+- Các role được phép sử dụng: `Tất cả người dùng đã đăng nhập: Student (Sinh viên), Teacher (Giảng viên), AcademicStaff (Giáo vụ), Principal (BGH), Admin/SuperAdmin, Parent, HoiDongQuanLyNoiDung`
+- Kiểu giao diện mong muốn: `Floating Liquid-Glass Popup Chat Panel, hỗ trợ Thinking Accordion (quá trình suy nghĩ), Markdown rendering, Role Quick Prompts và latency badge`
+- Có lưu lịch sử hội thoại không: `Lưu conversationId theo phiên (session memory) trong component và có nút Reset chat (làm mới hội thoại)`
+- Yêu cầu bổ sung: `Bảo vệ dữ liệu CSDL cấp độ 1 & 2 (JWT current-user context), Concurrency Gate 1 request đồng thời tránh quá tải phần cứng local, fallback mượt mà khi AI offline`
 
 Sau khi phần trên được điền, Frontend phải:
 

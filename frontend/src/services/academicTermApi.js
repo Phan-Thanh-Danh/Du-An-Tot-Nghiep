@@ -25,6 +25,10 @@ export const academicTermApi = {
     return unwrapList(await apiRequest(`/api/master-data/academic-terms${buildQuery(params)}`))
   },
 
+  getList(params = {}) {
+    return apiRequest(`/api/master-data/academic-terms${buildQuery(params)}`)
+  },
+
   get(id) {
     return apiRequest(`/api/master-data/academic-terms/${id}`)
   },

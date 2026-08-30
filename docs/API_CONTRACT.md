@@ -263,14 +263,14 @@ Ghi chú: cấu trúc phòng học hiện theo mô hình `DonVi -> ToaNha -> Tan
 
 | Method | Endpoint | Auth | Ghi chú |
 |---|---|---|---|
-| GET | `/api/ca-hoc` | Admin/SuperAdmin/AcademicStaff/CampusAdmin/Chairman/HoiDongQuanLyNoiDung | Danh sách ca học có phân trang, tìm kiếm theo tên ca/buổi và lọc trạng thái hoạt động. |
-| GET | `/api/ca-hoc/active` | Admin/SuperAdmin/AcademicStaff/CampusAdmin/Chairman/HoiDongQuanLyNoiDung | Danh sách ca học đang hoạt động để frontend dùng dropdown khi tạo/sửa thời khóa biểu. |
-| GET | `/api/ca-hoc/{id}` | Admin/SuperAdmin/AcademicStaff/CampusAdmin/Chairman/HoiDongQuanLyNoiDung | Chi tiết ca học. |
-| POST | `/api/ca-hoc` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Tạo ca học; validate tên ca không trùng, buổi chỉ nhận `sang`, `chieu`, `toi`, giờ hợp lệ và thứ tự lớn hơn 0. |
-| PUT | `/api/ca-hoc/{id}` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Cập nhật ca học; không cho sửa giờ bắt đầu/kết thúc nếu ca đã được dùng trong `ThoiKhoaBieu` hoặc `BuoiHoc`. |
-| PATCH | `/api/ca-hoc/{id}/toggle-active` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Đảo trạng thái `ConHoatDong`, không hard delete ca học. |
+| GET | `/api/ca-hoc` | Policy: AcademicOperations | Danh sách ca học có phân trang, tìm kiếm theo tên ca/buổi và lọc trạng thái hoạt động. |
+| GET | `/api/ca-hoc/active` | Policy: AcademicOperations | Danh sách ca học đang hoạt động để frontend dùng dropdown khi tạo/sửa thời khóa biểu. |
+| GET | `/api/ca-hoc/{id}` | Policy: AcademicOperations | Chi tiết ca học. |
+| POST | `/api/ca-hoc` | Policy: AcademicOperations | Tạo ca học; validate tên ca không trùng, buổi chỉ nhận `sang`, `chieu`, `toi`, giờ hợp lệ và thứ tự lớn hơn 0. |
+| PUT | `/api/ca-hoc/{id}` | Policy: AcademicOperations | Cập nhật ca học; không cho sửa giờ bắt đầu/kết thúc nếu ca đã được dùng trong `ThoiKhoaBieu` hoặc `BuoiHoc`. |
+| PATCH | `/api/ca-hoc/{id}/toggle-active` | Policy: AcademicOperations | Đảo trạng thái `ConHoatDong` (kích hoạt / ngừng kích hoạt); không có endpoint DELETE vật lý. |
 
-Ghi chú: `CaHoc` là danh mục ca học cố định dùng bởi `ThoiKhoaBieu` và `BuoiHoc`. Task P0-1 chưa triển khai CRUD thời khóa biểu, sinh buổi học hoặc điểm danh.
+Ghi chú: `CaHoc` là danh mục ca học cố định dùng bởi `ThoiKhoaBieu` và `BuoiHoc`. Không cho phép xóa vật lý ca học để bảo toàn toàn vẹn tham chiếu lịch học.
 
 ## ThoiKhoaBieu APIs
 
@@ -278,22 +278,29 @@ Ghi chú: `CaHoc` là danh mục ca học cố định dùng bởi `ThoiKhoaBieu
 
 | Method | Endpoint | Auth | Ghi chú |
 |---|---|---|---|
-| GET | `/api/thoi-khoa-bieu` | Admin/SuperAdmin/CampusAdmin/AcademicStaff | Danh sách thời khóa biểu có phân trang, lọc theo khóa học, học kỳ, lớp, giáo viên, phòng, ca học, thứ, trạng thái và khoảng ngày. Scope dữ liệu theo `KhoaHoc.MaDonVi`. |
-| GET | `/api/thoi-khoa-bieu/{id}` | Admin/SuperAdmin/CampusAdmin/AcademicStaff | Chi tiết thời khóa biểu gồm thông tin khóa học, học kỳ, lớp, môn, giáo viên, ca học và phòng học. |
-| POST | `/api/thoi-khoa-bieu/check-xung-dot` | Admin/SuperAdmin/CampusAdmin/AcademicStaff | Kiểm tra xung đột theo `MaHocKy + ThuTrongTuan + MaCaHoc`, gồm trùng giáo viên, lớp hành chính và phòng học. Request hợp lệ luôn trả `200`, kể cả khi có xung đột. |
-| POST | `/api/thoi-khoa-bieu` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Tạo thời khóa biểu từ `MaKhoaHoc + ThuTrongTuan + MaCaHoc + MaPhong`, mặc định `TrangThai = nhap` nếu bỏ trống. Không nhập trực tiếp lớp, môn hoặc giáo viên. |
-| PUT | `/api/thoi-khoa-bieu/{id}` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Cập nhật thời khóa biểu chưa bị hủy; không cho duplicate `MaKhoaHoc + ThuTrongTuan + MaCaHoc` với bản ghi chưa `da_huy`. |
-| PATCH | `/api/thoi-khoa-bieu/{id}/cancel` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Hủy thời khóa biểu bằng `TrangThai = da_huy`, không xóa vật lý. |
-| POST | `/api/thoi-khoa-bieu/{id}/generate-sessions` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Sinh `BuoiHoc` từ thời khóa biểu đã `da_xuat_ban`; chỉ tạo các ngày trùng `ThuTrongTuan`, bỏ qua buổi đã tồn tại theo `MaTkb + NgayHoc`. |
-| POST | `/api/thoi-khoa-bieu/generate` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | (P12) Sinh lịch thông minh batch bằng thuật toán di truyền: xếp tự động các khóa học trong `MaHocKy + MaDonVi` vào các slot trống. Trả về bản nháp (`ScheduleGenerationJob`) với danh sách `ScheduleDraftItem`. Hỗ trợ lọc theo `MaKhoaHocFilter` và tham số genetic (`TongTheHe`, `KichThuocQuanThe`, `TyLeCheo`, `DoTuoiThoToiDa`, `ClientDraftId`). |
-| GET | `/api/thoi-khoa-bieu/drafts` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | (P12) Lấy danh sách các bản nháp chưa publish. |
-| GET | `/api/thoi-khoa-bieu/drafts/{draftId}` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | (P12) Xem chi tiết bản nháp (danh sách `ScheduleDraftItem`). |
-| GET | `/api/thoi-khoa-bieu/drafts/{draftId}/progress` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | (P12) Xem tiến trình sinh lịch theo thế hệ (+ fitness tốt nhất) của bản nháp trong khi generate đang chạy hoặc sau khi hoàn tất. Frontend poll mỗi ~500ms để render modal progress. |
-| POST | `/api/thoi-khoa-bieu/publish` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | (P12) Xuất bản bản nháp: tạo `ThoiKhoaBieu` và `BuoiHoc` trong transaction; rollback nếu có xung đột. |
-| POST | `/api/thoi-khoa-bieu/check-xung-dot-batch` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | (P12) Kiểm tra xung đột batch cho danh sách đề xuất `MaKhoaHoc + ThuTrongTuan + MaCaHoc + MaPhong` trong `MaHocKy + MaDonVi`. |
-| DELETE | `/api/thoi-khoa-bieu/drafts/{draftId}` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | (P12) Xóa bản nháp xếp lịch thông minh. |
+| GET | `/api/thoi-khoa-bieu` | Policy: AcademicOperations | Danh sách thời khóa biểu có phân trang, lọc theo khóa học, học kỳ, lớp, giáo viên, phòng, ca học, thứ, trạng thái và khoảng ngày. Scope dữ liệu theo `KhoaHoc.MaDonVi`. |
+| GET | `/api/thoi-khoa-bieu/{id}` | Policy: AcademicOperations | Chi tiết thời khóa biểu gồm thông tin khóa học, học kỳ, lớp, môn, giáo viên, ca học và phòng học. |
+| POST | `/api/thoi-khoa-bieu/check-xung-dot` | Policy: AcademicOperations | Kiểm tra xung đột theo `MaHocKy + ThuTrongTuan + MaCaHoc`, gồm trùng giáo viên, lớp hành chính và phòng học. Request hợp lệ luôn trả `200`, kèm danh sách chi tiết xung đột nếu có. |
+| POST | `/api/thoi-khoa-bieu` | Policy: AcademicOperations | Tạo thời khóa biểu thủ công từ `MaKhoaHoc + ThuTrongTuan + MaCaHoc + MaPhong`, mặc định `TrangThai = nhap` nếu bỏ trống. |
+| PUT | `/api/thoi-khoa-bieu/{id}` | Policy: AcademicOperations | Cập nhật thời khóa biểu chưa bị hủy; không cho duplicate `MaKhoaHoc + ThuTrongTuan + MaCaHoc` với bản ghi chưa `da_huy`. |
+| PATCH | `/api/thoi-khoa-bieu/{id}/cancel` | Policy: AcademicOperations | Hủy thời khóa biểu bằng `TrangThai = da_huy`, không xóa vật lý. |
+| DELETE | `/api/thoi-khoa-bieu/{id}` | Policy: AcademicOperations | Xóa bản ghi thời khóa biểu khi chưa có buổi học phát sinh. |
+| POST | `/api/thoi-khoa-bieu/{id}/generate-sessions` | Policy: AcademicOperations | Sinh `BuoiHoc` từ thời khóa biểu đã `da_xuat_ban`; chỉ tạo các ngày trùng `ThuTrongTuan`, bỏ qua buổi đã tồn tại theo `MaTkb + NgayHoc`. |
+| POST | `/api/thoi-khoa-bieu/generate` | Policy: AcademicOperations | (P12 Smart Timetable) Sinh lịch thông minh batch bằng thuật toán di truyền (GA). Validate 3 điều kiện Feasibility: (1) Chỉ cho phép học kỳ tương lai gần nhất; (2) Phải có ít nhất 1 phòng học active tại cơ sở; (3) Tất cả khóa học phải được phân công giảng viên. Trả về bản nháp (`ScheduleGenerationJob`) với danh sách `ScheduleDraftItem`. Hỗ trợ tham số genetic (`TongTheHe`, `KichThuocQuanThe`, `TyLeCheo`, `DoTuoiThoToiDa`, `ClientDraftId`). |
+| GET | `/api/thoi-khoa-bieu/drafts` | Policy: AcademicOperations | Lấy danh sách các bản nháp xếp lịch theo cơ sở và học kỳ. |
+| GET | `/api/thoi-khoa-bieu/drafts/{draftId}` | Policy: AcademicOperations | Xem chi tiết bản nháp (danh sách `ScheduleDraftItem`). |
+| GET | `/api/thoi-khoa-bieu/drafts/{draftId}/progress` | Policy: AcademicOperations | Xem tiến trình sinh lịch theo thế hệ và fitness tốt nhất. Frontend poll định kỳ để render modal progress. |
+| POST | `/api/thoi-khoa-bieu/publish` | Policy: AcademicOperations | Xuất bản bản nháp thành chính thức: thực thi trong giao dịch cô lập `IsolationLevel.Serializable`. Áp dụng **Quy tắc bảo vệ 30 phút** (cho phép ghi đè trong vòng 30 phút kể từ lần publish đầu tiên nếu chưa điểm danh) và **Bảo vệ toàn vẹn điểm danh** (tuyệt đối chặn ghi đè/xóa nếu đã có bất kỳ buổi học nào được điểm danh). Bắt tranh chấp đồng thời bằng Concurrency Token và trả `HTTP 409 Conflict`. |
+| POST | `/api/thoi-khoa-bieu/check-xung-dot-batch` | Policy: AcademicOperations | Kiểm tra xung đột hàng loạt cho danh sách đề xuất slot xếp lịch. |
+| DELETE | `/api/thoi-khoa-bieu/drafts/{draftId}` | Policy: AcademicOperations | Xóa bản nháp xếp lịch thông minh. |
+| POST | `/api/thoi-khoa-bieu/suggest-slots` | Policy: AcademicOperations | Gợi ý các slot (Thứ, Ca, Phòng) tối ưu và không xung đột cho một khóa học. |
+| POST | `/api/thoi-khoa-bieu/suggest-slots-batch` | Policy: AcademicOperations | Gợi ý slot đồng thời cho danh sách nhiều khóa học. |
+| GET | `/api/thoi-khoa-bieu/khoa-hoc/{maKhoaHoc}/tien-do-buoi` | Policy: AcademicOperations | Xem tiến độ các buổi học đã diễn ra, số buổi đã điểm danh và số buổi còn lại của khóa học. |
 
-Ghi chú: P0-3 kiểm tra xung đột lịch ở mức `MaHocKy + ThuTrongTuan + MaCaHoc`, bỏ qua bản ghi `da_huy` và bỏ qua chính bản ghi hiện tại khi update bằng `excludeMaTkb`. P0-4 sinh `BuoiHoc` từ TKB đã xuất bản nhưng chưa làm điểm danh, đổi lịch, dạy thay, đổi phòng, đổi ca hoặc frontend. Unique index `UQ_ThoiKhoaBieu_KhoaHoc_Thu_Ca` chỉ áp dụng cho bản ghi có `TrangThai <> N'da_huy'`, nên có thể tạo lại lịch cùng khóa học/thứ/ca sau khi bản ghi cũ đã hủy. P12 (Smart Timetable Engine) thêm OccupationMap, draft persistence, atomic publish với re-validation.
+Ghi chú:
+- Chính sách phân quyền áp dụng: `Policy = "AcademicOperations"` (cho phép SuperAdmin, Admin, CampusAdmin, AcademicStaff).
+- Unique index `UQ_ThoiKhoaBieu_KhoaHoc_Thu_Ca` loại trừ các bản ghi có `TrangThai = 'da_huy'`.
+- Cơ chế Concurrency: Khi nhiều user gọi `publish` đồng thời, transaction Serializable đảm bảo chỉ có duy nhất 1 bản ghi publish được ghi nhận; các yêu cầu xung đột được ExceptionMiddleware chuyển đổi thành mã lỗi `HTTP 409 Conflict`.
 
 ## BuoiHoc APIs
 
@@ -301,14 +308,14 @@ Ghi chú: P0-3 kiểm tra xung đột lịch ở mức `MaHocKy + ThuTrongTuan +
 
 | Method | Endpoint | Auth | Ghi chú |
 |---|---|---|---|
-| GET | `/api/buoi-hoc` | Admin/SuperAdmin/CampusAdmin/AcademicStaff | Danh sách buổi học có phân trang, lọc theo thời khóa biểu, khóa học, giáo viên, phòng, ca học, trạng thái buổi và khoảng ngày. Scope dữ liệu theo `KhoaHoc.MaDonVi`. |
-| GET | `/api/buoi-hoc/{id}` | Admin/SuperAdmin/CampusAdmin/AcademicStaff | Chi tiết buổi học gồm thông tin khóa học, học kỳ, lớp, môn, ngày học, ca học, phòng, giáo viên, giáo viên dạy thay và trạng thái điểm danh. |
-| PUT | `/api/buoi-hoc/{id}/change-teacher` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Đổi giáo viên dạy thay cho buổi học chưa hủy, chưa diễn ra và chưa khóa điểm danh. Request gồm `maGiaoVienDayThay`, `lyDoThayDoi`. |
-| PUT | `/api/buoi-hoc/{id}/change-room` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Đổi phòng học cho buổi học chưa hủy, chưa diễn ra và chưa khóa điểm danh. Request gồm `maPhong`, `lyDoThayDoi`. |
-| PUT | `/api/buoi-hoc/{id}/change-shift` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Đổi ca học cho buổi học chưa hủy, chưa diễn ra và chưa khóa điểm danh. Request gồm `maCaHoc`, `lyDoThayDoi`. |
-| PATCH | `/api/buoi-hoc/{id}/cancel` | SuperAdmin/Admin/CampusAdmin/AcademicStaff | Hủy buổi học bằng `TrangThaiBuoi = da_huy`, không xóa vật lý. Request gồm `lyDoThayDoi`. |
+| GET | `/api/buoi-hoc` | Policy: AcademicOperations | Danh sách buổi học có phân trang, lọc theo thời khóa biểu, khóa học, giáo viên, phòng, ca học, trạng thái buổi và khoảng ngày. Scope dữ liệu theo `KhoaHoc.MaDonVi`. |
+| GET | `/api/buoi-hoc/{id}` | Policy: AcademicOperations | Chi tiết buổi học gồm thông tin khóa học, học kỳ, lớp, môn, ngày học, ca học, phòng, giáo viên, giáo viên dạy thay và trạng thái điểm danh. |
+| PUT | `/api/buoi-hoc/{id}/change-teacher` | Policy: AcademicOperations | Đổi giáo viên dạy thay cho buổi học chưa hủy, chưa diễn ra và chưa khóa điểm danh. Request gồm `maGiaoVienDayThay`, `lyDoThayDoi`. |
+| PUT | `/api/buoi-hoc/{id}/change-room` | Policy: AcademicOperations | Đổi phòng học cho buổi học chưa hủy, chưa diễn ra và chưa khóa điểm danh. Request gồm `maPhong`, `lyDoThayDoi`. |
+| PUT | `/api/buoi-hoc/{id}/change-shift` | Policy: AcademicOperations | Đổi ca học cho buổi học chưa hủy, chưa diễn ra và chưa khóa điểm danh. Request gồm `maCaHoc`, `lyDoThayDoi`. |
+| PATCH | `/api/buoi-hoc/{id}/cancel` | Policy: AcademicOperations | Hủy buổi học bằng `TrangThaiBuoi = da_huy`, không xóa vật lý. Request gồm `lyDoThayDoi`. |
 
-Ghi chú: `BuoiHoc` là buổi học thật theo ngày cụ thể, sinh từ `ThoiKhoaBieu + NgayHoc`. P0-5 hỗ trợ điều chỉnh phát sinh từng buổi học nhưng không sửa `ThoiKhoaBieu`, không generate lại lịch, không làm điểm danh và không xóa vật lý. Khi đổi giáo viên/phòng/ca, hệ thống kiểm tra xung đột theo `NgayHoc + MaCaHoc`: trùng giáo viên hiệu lực (`MaGiaoVienDayThay ?? MaGiaoVien`), trùng lớp hành chính hoặc trùng phòng tùy nghiệp vụ. Nếu có xung đột, API trả `409 Conflict` kèm `data.conflicts`.
+Ghi chú: `BuoiHoc` là buổi học thật theo ngày cụ thể, sinh từ `ThoiKhoaBieu + NgayHoc`. Khi đổi giáo viên/phòng/ca, hệ thống kiểm tra xung đột theo `NgayHoc + MaCaHoc`: trùng giáo viên hiệu lực (`MaGiaoVienDayThay ?? MaGiaoVien`), trùng lớp hành chính hoặc trùng phòng. Nếu có xung đột, API trả `409 Conflict` kèm danh sách chi tiết `conflicts`.
 
 ## Course Syllabuses APIs
 

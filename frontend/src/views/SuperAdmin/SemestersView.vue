@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
+import { useAuthStore } from '@/stores/auth'
 import { usePopupStore } from '@/stores/popup'
 import { academicTermApi } from '@/services/academicTermApi'
 import { organizationApi } from '@/services/organizationService'
@@ -21,6 +22,8 @@ import {
   RefreshCw
 } from 'lucide-vue-next'
 
+const authStore = useAuthStore()
+const isSuperAdmin = computed(() => authStore.hasRole(['SuperAdmin', 'sieu_quan_tri', 'Admin', 'quan_tri']))
 const popup = usePopupStore()
 
 // State & Filters
@@ -30,9 +33,10 @@ const selectedStatus = ref('Tất cả')
 
 // Pagination
 const pageIndex = ref(1)
-const pageSize = ref(10)
+const pageSize = ref(20)
 const totalItems = ref(0)
 const totalPages = ref(1)
+const pagination = ref(null)
 
 const availableOrganizations = ref([])
 
@@ -44,13 +48,14 @@ const campusFilterOptions = computed(() => [
 const statusFilterOptions = [
   { value: 'Tất cả', label: 'Tất cả trạng thái' },
   { value: 'dang_mo', label: 'Đang mở' },
+  { value: 'chua_bat_dau', label: 'Chưa bắt đầu' },
   { value: 'da_khoa', label: 'Đã khóa' },
   { value: 'da_ket_thuc', label: 'Đã kết thúc' }
 ]
 
 const pageSizeOptions = [
   { value: 10, label: '10 / trang' },
-  { value: 25, label: '25 / trang' },
+  { value: 20, label: '20 / trang' },
   { value: 50, label: '50 / trang' },
   { value: 100, label: '100 / trang' }
 ]
@@ -68,7 +73,7 @@ const formCampusOptions = computed(() =>
 const loading = ref(false)
 const error = ref('')
 const terms = ref([])
-const allTermsCache = ref([]) // For client side search if API doesn't support
+const allTermsCache = ref([])
 
 // Helper to flatten organization tree
 function flattenOrganizations(tree) {
@@ -114,30 +119,79 @@ async function loadOrganizations() {
   }
 }
 
-async function loadTerms() {
+async function loadSemesters({ pageIndex: pi = 1, pageSize: ps = 20 } = {}) {
   loading.value = true
   error.value = ''
   try {
-    const res = await academicTermApi.list({ pageSize: 1000 })
-    let list = Array.isArray(res) ? res : (res?.items ?? [])
-    allTermsCache.value = list
+    const res = await academicTermApi.getList({ pageIndex: pi, pageSize: ps })
+    const payload = res?.data ?? res
+    const items = payload?.items ?? payload?.Items ?? (Array.isArray(payload) ? payload : [])
+    terms.value = items
+    allTermsCache.value = items
     
-    applyFilters()
-  } catch (e) {
-    error.value = e?.response?.data?.message || e?.message || 'Không thể tải danh sách học kỳ.'
+    totalItems.value = payload?.totalItems ?? payload?.TotalItems ?? items.length
+    totalPages.value = payload?.totalPages ?? payload?.TotalPages ?? Math.max(1, Math.ceil(totalItems.value / ps))
+    pageIndex.value = payload?.pageIndex ?? payload?.PageIndex ?? pi
+    pageSize.value = payload?.pageSize ?? payload?.PageSize ?? ps
+    pagination.value = payload?.pagination ?? {
+      pageIndex: pageIndex.value,
+      pageSize: pageSize.value,
+      totalItems: totalItems.value,
+      totalPages: totalPages.value
+    }
+  } catch (err) {
+    error.value = err?.response?.data?.message || err?.message || 'Không thể tải danh sách học kỳ.'
     terms.value = []
   } finally {
     loading.value = false
   }
 }
 
-function applyFilters() {
-  let filtered = [...allTermsCache.value]
+const loadTerms = () => loadSemesters({ pageIndex: pageIndex.value, pageSize: pageSize.value })
+
+function getTrangThai(term) {
+  if (term.daKhoa || term.DaKhoa) {
+    return {
+      label: 'Đã khóa',
+      code: 'da_khoa',
+      class: 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-300 border',
+      icon: Lock
+    }
+  }
+  const now = new Date()
+  const end = new Date(term.ngayKetThuc || term.NgayKetThuc)
+  const start = new Date(term.ngayBatDau || term.NgayBatDau)
+  if (end < now) {
+    return {
+      label: 'Đã kết thúc',
+      code: 'da_ket_thuc',
+      class: 'bg-slate-500/15 text-slate-700 dark:text-slate-300 border-slate-300 border',
+      icon: AlertCircle
+    }
+  }
+  if (start > now) {
+    return {
+      label: 'Chưa bắt đầu',
+      code: 'chua_bat_dau',
+      class: 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-300 border',
+      icon: Calendar
+    }
+  }
+  return {
+    label: 'Đang mở',
+    code: 'dang_mo',
+    class: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-300 border',
+    icon: CheckCircle2
+  }
+}
+
+const displayedTerms = computed(() => {
+  let list = Array.isArray(terms.value) ? [...terms.value] : []
   
   // Search
   const kw = searchQuery.value.trim().toLowerCase()
   if (kw) {
-    filtered = filtered.filter(t => 
+    list = list.filter(t => 
       (t.tenHocKy || t.TenHocKy || '').toLowerCase().includes(kw) ||
       (t.maCodeHocKy || t.MaCodeHocKy || '').toLowerCase().includes(kw)
     )
@@ -146,38 +200,25 @@ function applyFilters() {
   // Campus
   if (selectedCampus.value !== 'Tất cả') {
     const orgId = Number(selectedCampus.value)
-    filtered = filtered.filter(t => (t.maDonVi || t.MaDonVi) === orgId)
+    list = list.filter(t => (t.maDonVi || t.MaDonVi) === orgId)
   }
   
   // Status
   if (selectedStatus.value !== 'Tất cả') {
-    filtered = filtered.filter(t => getStatusObj(t).code === selectedStatus.value)
+    list = list.filter(t => getTrangThai(t).code === selectedStatus.value)
   }
   
-  // Pagination
-  totalItems.value = filtered.length
-  totalPages.value = Math.max(1, Math.ceil(totalItems.value / pageSize.value))
-  if (pageIndex.value > totalPages.value) pageIndex.value = 1
-  
-  const start = (pageIndex.value - 1) * pageSize.value
-  terms.value = filtered.slice(start, start + pageSize.value)
-}
-
-watch([selectedCampus, selectedStatus, pageSize, searchQuery], () => {
-  pageIndex.value = 1
-  applyFilters()
+  return list
 })
 
-const getStatusObj = (term) => {
-   const now = new Date()
-   const isLocked = term.daKhoa || term.DaKhoa
-   const endDateStr = term.ngayKetThuc || term.NgayKetThuc
-   const endDate = endDateStr ? new Date(endDateStr) : null
-   
-   if (isLocked) return { code: 'da_khoa', class: 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-300 border', label: 'Đã khóa', icon: Lock }
-   if (endDate && now > endDate) return { code: 'da_ket_thuc', class: 'bg-slate-500/15 text-slate-700 dark:text-slate-300 border-slate-300 border', label: 'Đã kết thúc', icon: AlertCircle }
-   return { code: 'dang_mo', class: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-300 border', label: 'Đang mở', icon: CheckCircle2 }
+function changePage(newIndex) {
+  if (newIndex < 1 || newIndex > totalPages.value) return
+  loadSemesters({ pageIndex: newIndex, pageSize: pageSize.value })
 }
+
+watch(pageSize, (newSize) => {
+  loadSemesters({ pageIndex: 1, pageSize: newSize })
+})
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '--'
@@ -230,15 +271,15 @@ const openCreateDrawer = () => {
 
 const openEditDrawer = (term) => {
   drawerMode.value = 'edit'
-  let rawNamHoc = term.namHoc || term.NamHoc || String(new Date().getFullYear());
-  let yearVal = new Date().getFullYear();
+  let rawNamHoc = term.namHoc || term.NamHoc || String(new Date().getFullYear())
+  let yearVal = new Date().getFullYear()
   if (typeof rawNamHoc === 'string') {
-    const parts = rawNamHoc.split('-');
+    const parts = rawNamHoc.split('-')
     if (parts.length > 0) {
-      yearVal = parseInt(parts[0]) || yearVal;
+      yearVal = parseInt(parts[0]) || yearVal
     }
   } else if (typeof rawNamHoc === 'number') {
-    yearVal = rawNamHoc;
+    yearVal = rawNamHoc
   }
   termForm.value = {
     id: term.maHocKy || term.MaHocKy,
@@ -318,7 +359,7 @@ const executeConfirm = async () => {
 
 onMounted(async () => {
   await loadOrganizations()
-  await loadTerms()
+  await loadSemesters({ pageIndex: 1, pageSize: pageSize.value })
 })
 </script>
 
@@ -360,7 +401,7 @@ onMounted(async () => {
       </div>
       
       <div class="filters flex flex-wrap items-center gap-3 w-full lg:w-auto">
-        <div class="w-64">
+        <div v-if="isSuperAdmin" class="w-64">
           <LmsSelect v-model="selectedCampus" :options="campusFilterOptions" placeholder="Cơ sở" />
         </div>
         <div class="w-48">
@@ -389,34 +430,36 @@ onMounted(async () => {
           <tr>
             <th class="px-4 py-3">Mã học kỳ</th>
             <th class="px-4 py-3">Tên học kỳ & Năm</th>
-            <th class="px-4 py-3">Cơ sở</th>
+            <th v-if="isSuperAdmin" class="px-4 py-3">Cơ sở</th>
             <th class="px-4 py-3">Thời gian</th>
             <th class="px-4 py-3 text-center">Trạng thái</th>
             <th class="px-4 py-3 text-right">Thao tác</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-[var(--border-card)]">
-          <tr v-if="terms.length === 0">
-            <td colspan="6" class="text-center py-10 text-placeholder">Không có học kỳ nào.</td>
+          <tr v-if="displayedTerms.length === 0">
+            <td :colspan="isSuperAdmin ? 6 : 5" class="text-center py-10 text-placeholder">Không có học kỳ nào.</td>
           </tr>
-          <tr v-for="term in terms" :key="term.maHocKy || term.MaHocKy" class="hover:bg-slate-500/5 transition border-t border-slate-500/10">
+          <tr v-for="term in displayedTerms" :key="term.maHocKy || term.MaHocKy" class="hover:bg-slate-500/5 transition border-t border-slate-500/10">
             <td class="px-4 py-3 font-semibold text-heading">{{ term.maCodeHocKy || term.MaCodeHocKy }}</td>
             <td class="px-4 py-3">
               <div class="font-bold text-heading">{{ term.tenHocKy || term.TenHocKy }}</div>
               <div class="text-xs text-label">Năm học: {{ term.namHoc || term.NamHoc }}</div>
             </td>
-            <td class="px-4 py-3 text-sm text-body flex items-center gap-1">
-              <MapPin :size="14" class="text-placeholder"/>
-              {{ term.tenDonVi || term.TenDonVi || 'Hệ thống' }}
+            <td v-if="isSuperAdmin" class="px-4 py-3 text-sm text-body">
+              <div class="flex items-center gap-1">
+                <MapPin :size="14" class="text-placeholder"/>
+                {{ term.tenDonVi || term.TenDonVi || 'Hệ thống' }}
+              </div>
             </td>
             <td class="px-4 py-3 text-sm text-body">
               <div class="flex items-center gap-1"><Calendar :size="14" class="text-placeholder"/> {{ formatDate(term.ngayBatDau || term.NgayBatDau) }} - {{ formatDate(term.ngayKetThuc || term.NgayKetThuc) }}</div>
             </td>
             <td class="px-4 py-3 text-center">
-              <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold" :class="getStatusObj(term).class">
-                <component :is="getStatusObj(term).icon" :size="12" />
-                {{ getStatusObj(term).label }}
-              </div>
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold" :class="getTrangThai(term).class">
+                <component :is="getTrangThai(term).icon" :size="12" />
+                {{ getTrangThai(term).label }}
+              </span>
             </td>
             <td class="px-4 py-3 text-right">
               <div class="flex items-center justify-end gap-2">
@@ -452,7 +495,7 @@ onMounted(async () => {
           </div>
           <div class="flex gap-1">
             <button 
-              @click="pageIndex > 1 && (pageIndex--, applyFilters())" 
+              @click="changePage(pageIndex - 1)" 
               :disabled="pageIndex <= 1"
               class="glass-btn secondary py-1 px-2.5 text-xs" 
               :class="{ 'opacity-50 cursor-not-allowed': pageIndex <= 1 }"
@@ -460,7 +503,7 @@ onMounted(async () => {
               <ChevronLeft :size="14" /> Trước
             </button>
             <button 
-              @click="pageIndex < totalPages && (pageIndex++, applyFilters())" 
+              @click="changePage(pageIndex + 1)" 
               :disabled="pageIndex >= totalPages"
               class="glass-btn secondary py-1 px-2.5 text-xs" 
               :class="{ 'opacity-50 cursor-not-allowed': pageIndex >= totalPages }"
