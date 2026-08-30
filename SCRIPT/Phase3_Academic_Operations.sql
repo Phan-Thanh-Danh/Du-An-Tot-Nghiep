@@ -58,7 +58,7 @@ BEGIN TRY
     BEGIN
         DECLARE @CampusCode NVARCHAR(50) = 'CAMPUS_AET_' + CAST(@i AS NVARCHAR);
         DECLARE @CampusId INT;
-        SELECT @CampusId = ma_don_vi FROM DonVi WHERE ten_don_vi = N'Trường AET Cơ sở ' \+ CAST\(@i AS NVARCHAR\) AND cap_don_vi = 'co_so';
+        SELECT @CampusId = ma_don_vi FROM DonVi WHERE ten_don_vi = N'Trường AET Cơ sở ' + CAST(@i AS NVARCHAR) AND cap_don_vi = 'co_so';
         DECLARE @TermId INT;
         SELECT @TermId = ma_hoc_ky FROM HocKy WHERE ma_don_vi = @CampusId AND nam_hoc = '2026' AND thu_tu_trong_nam = 1;
 
@@ -129,4 +129,5 @@ BEGIN CATCH
     PRINT ERROR_MESSAGE();
 END CATCH
 GO
+
 
