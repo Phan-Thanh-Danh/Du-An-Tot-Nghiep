@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Backend.Exceptions;
+using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Middlewares;
 
@@ -28,6 +29,25 @@ public class ExceptionMiddleware
         catch (ApiException exception)
         {
             await WriteErrorAsync(context, exception.StatusCode, exception.Message);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            _logger.LogWarning(ex,
+                "Concurrent publish conflict detected. TraceId: {TraceId}",
+                context.TraceIdentifier);
+
+            context.Response.StatusCode = StatusCodes.Status409Conflict;
+            context.Response.ContentType = "application/json";
+
+            await context.Response.WriteAsJsonAsync(new
+            {
+                success = false,
+                message = "Thao tác publish bị xung đột do có yêu cầu khác đang " +
+                          "xử lý cùng lúc. Vui lòng tải lại trang và thử lại.",
+                errors = new[] { ex.Message },
+                traceId = context.TraceIdentifier,
+                statusCode = 409
+            });
         }
         catch (Exception exception)
         {

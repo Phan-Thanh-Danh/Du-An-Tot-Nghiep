@@ -448,7 +448,19 @@ public class SmartTimetableService : ISmartTimetableService
                         .Where(bh => oldTkbIds.Contains(bh.MaTkb))
                         .ToListAsync(cancellationToken);
 
-                    _context.BuoiHocs.RemoveRange(oldBuoiHocs);
+                    foreach (var buoiHoc in oldBuoiHocs)
+                    {
+                        var coDiemDanh = await _context.DiemDanhs
+                            .AnyAsync(d => d.MaBuoiHoc == buoiHoc.MaBuoiHoc, cancellationToken);
+
+                        if (coDiemDanh)
+                        {
+                            throw new ApiException(StatusCodes.Status400BadRequest,
+                                $"Không thể xóa BuoiHoc #{buoiHoc.MaBuoiHoc}: đã tồn tại dữ liệu điểm danh thực tế phát sinh. Hủy toàn bộ thao tác publish.");
+                        }
+
+                        _context.BuoiHocs.Remove(buoiHoc);
+                    }
 
                     foreach (var oldTkb in existingPublishedTkbs)
                     {

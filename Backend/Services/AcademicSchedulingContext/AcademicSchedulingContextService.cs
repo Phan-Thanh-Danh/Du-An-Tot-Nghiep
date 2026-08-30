@@ -187,6 +187,8 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
         if (!hasCourses)
         {
             result.CanPrepareSchedule = false;
+            result.ReasonCode = "NO_COURSES";
+            result.ReasonMessage = "Học kỳ chưa có lớp học phần hoặc khóa học để xếp lịch.";
             result.Readiness.BlockingIssues.Add(
                 new SchedulingBlockingIssueDto
                 {
@@ -200,6 +202,8 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
         if (!hasRooms)
         {
             result.CanPrepareSchedule = false;
+            result.ReasonCode = "NO_ACTIVE_ROOMS";
+            result.ReasonMessage = "Không có phòng học nào đang hoạt động tại cơ sở này.";
             result.Readiness.BlockingIssues.Add(
                 new SchedulingBlockingIssueDto
                 {
