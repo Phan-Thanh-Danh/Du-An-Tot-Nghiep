@@ -246,10 +246,12 @@ BEGIN TRY
         SELECT @MonWEB104 = ma_mon_hoc FROM DanhMucMonHoc WHERE ma_code_mon_hoc = 'WEB104';
 
         IF @MonCOM101 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM MonHocTrongChuongTrinh WHERE ma_chuong_trinh = @ChuongTrinhId AND ma_mon_hoc = @MonCOM101)
-            INSERT INTO MonHocTrongChuongTrinh (ma_chuong_trinh, ma_mon_hoc, hoc_ky_du_kien, bat_buoc, con_hoat_dong) VALUES (@ChuongTrinhId, @MonCOM101, 1, 1, 1);
+            INSERT INTO MonHocTrongChuongTrinh (ma_chuong_trinh, ma_mon_hoc, hoc_ky_du_kien, loai_mon_hoc, so_tin_chi, bat_buoc, con_hoat_dong)
+            VALUES (@ChuongTrinhId, @MonCOM101, 1, 'bat_buoc', 3, 1, 1);
             
         IF @MonDBI202 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM MonHocTrongChuongTrinh WHERE ma_chuong_trinh = @ChuongTrinhId AND ma_mon_hoc = @MonDBI202)
-            INSERT INTO MonHocTrongChuongTrinh (ma_chuong_trinh, ma_mon_hoc, hoc_ky_du_kien, bat_buoc, con_hoat_dong) VALUES (@ChuongTrinhId, @MonDBI202, 2, 1, 1);
+            INSERT INTO MonHocTrongChuongTrinh (ma_chuong_trinh, ma_mon_hoc, hoc_ky_du_kien, loai_mon_hoc, so_tin_chi, bat_buoc, con_hoat_dong)
+            VALUES (@ChuongTrinhId, @MonDBI202, 2, 'bat_buoc', 3, 1, 1);
 
         IF @MonCOM101 IS NOT NULL AND @MonDBI202 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM MonHocTienQuyet WHERE ma_mon_hoc = @MonDBI202 AND ma_mon_tien_quyet = @MonCOM101)
             INSERT INTO MonHocTienQuyet (ma_mon_hoc, ma_mon_tien_quyet) VALUES (@MonDBI202, @MonCOM101);
