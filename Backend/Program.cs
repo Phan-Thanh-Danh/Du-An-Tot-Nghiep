@@ -511,8 +511,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 var seedProfile = builder.Configuration["SeedProfile"];
-var shouldSeedBase = string.Equals(seedProfile, "Base", StringComparison.OrdinalIgnoreCase) ||
-                      string.Equals(seedProfile, "LargeDemo", StringComparison.OrdinalIgnoreCase);
+var shouldSeedBase = false; // Vô hiệu hóa tự động Seed dữ liệu để dùng SQL File
 var continueOnSeedFailure = builder.Configuration.GetValue(
     "SeedContinueOnError",
     app.Environment.IsDevelopment());
@@ -534,36 +533,36 @@ if (shouldSeedBase)
         if (!continueOnSeedFailure) throw;
     }
 }
-if (baseSeedSucceeded && string.Equals(seedProfile, "LargeDemo", StringComparison.OrdinalIgnoreCase))
-{
-    try
-    {
-        app.Logger.LogInformation("Running LargeDemoSeeder...");
-        using var scope = app.Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        context.Database.SetCommandTimeout(180);
-        await Backend.Data.Seeders.LargeDemoSeeder.SeedAsync(context);
-        app.Logger.LogInformation("LargeDemoSeeder completed.");
-    }
-    catch (Exception ex)
-    {
-        app.Logger.LogError(ex, "LargeDemoSeeder failed. Backend will {Behavior}.",
-            continueOnSeedFailure ? "continue without terminating" : "stop");
-        if (!continueOnSeedFailure) throw;
-    }
-}
+// if (baseSeedSucceeded && string.Equals(seedProfile, "LargeDemo", StringComparison.OrdinalIgnoreCase))
+// {
+//     try
+//     {
+//         app.Logger.LogInformation("Running LargeDemoSeeder...");
+//         using var scope = app.Services.CreateScope();
+//         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+//         context.Database.SetCommandTimeout(180);
+//         await Backend.Data.Seeders.LargeDemoSeeder.SeedAsync(context);
+//         app.Logger.LogInformation("LargeDemoSeeder completed.");
+//     }
+//     catch (Exception ex)
+//     {
+//         app.Logger.LogError(ex, "LargeDemoSeeder failed. Backend will {Behavior}.",
+//             continueOnSeedFailure ? "continue without terminating" : "stop");
+//         if (!continueOnSeedFailure) throw;
+//     }
+// }
 
-try
-{
-    using var scope = app.Services.CreateScope();
-    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    await Backend.Data.Seeders.TeacherRichDataSeeder.SeedAsync(context);
-    app.Logger.LogInformation("TeacherRichDataSeeder completed.");
-}
-catch (Exception ex)
-{
-    app.Logger.LogWarning(ex, "TeacherRichDataSeeder failed to execute.");
-}
+// try
+// {
+//     using var scope = app.Services.CreateScope();
+//     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+//     await Backend.Data.Seeders.TeacherRichDataSeeder.SeedAsync(context);
+//     app.Logger.LogInformation("TeacherRichDataSeeder completed.");
+// }
+// catch (Exception ex)
+// {
+//     app.Logger.LogWarning(ex, "TeacherRichDataSeeder failed to execute.");
+// }
 
 app.UseMiddleware<Backend.Middlewares.SecurityHeadersMiddleware>();
 app.UseCors("FrontendDev");
