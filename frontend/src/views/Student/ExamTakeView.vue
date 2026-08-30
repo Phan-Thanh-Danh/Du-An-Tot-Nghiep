@@ -367,7 +367,7 @@ function addViolation(type, severity, message, details = {}, options = {}) {
       maHocSinh: STUDENT_ID.value,
       loaiViPham: type,
       mucDo: severity,
-      moTa: message + (details ? ' - ' + JSON.stringify(details) : '')
+      chiTietJson: message + (details ? ' - ' + JSON.stringify(details) : '')
     }).catch(() => {})
   } catch(e) {}
   
