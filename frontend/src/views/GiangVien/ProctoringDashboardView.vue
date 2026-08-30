@@ -942,6 +942,14 @@ async function initializeHub(sessionId) {
 
     isMonitoring.value = true
 
+    const offerTimeouts = new Map()
+    const debouncedCreateAndSendOffer = (maHocSinh, targetConnectionId) => {
+      if (offerTimeouts.has(maHocSinh)) clearTimeout(offerTimeouts.get(maHocSinh))
+      offerTimeouts.set(maHocSinh, setTimeout(() => {
+        createAndSendOffer(maHocSinh, targetConnectionId)
+      }, 500))
+    }
+
     // Hàm tạo và gửi Offer cho thí sinh
     const createAndSendOffer = async (maHocSinh, targetConnectionId) => {
       let pc = peerConnections.get(maHocSinh)
@@ -968,7 +976,7 @@ async function initializeHub(sessionId) {
         },
         async () => {
           if (import.meta.env.DEV) console.warn(`[Proctor] WebRTC reconnecting for student ${maHocSinh}...`)
-          await createAndSendOffer(maHocSinh, targetConnectionId)
+          debouncedCreateAndSendOffer(maHocSinh, targetConnectionId)
         }
       )
       peerConnections.set(maHocSinh, pc)
@@ -1047,7 +1055,7 @@ async function initializeHub(sessionId) {
         await examProctoringHub.acknowledgeStudent(payload.connectionId)
         
         // Tạo offer ngay khi biết connectionId
-        await createAndSendOffer(payload.maHocSinh, payload.connectionId)
+        debouncedCreateAndSendOffer(payload.maHocSinh, payload.connectionId)
       }
     }
     
@@ -1063,7 +1071,7 @@ async function initializeHub(sessionId) {
 
       if ((payload.status === 'streaming' || payload.status === 'active') && student?.connectionId) {
         console.log('[Proctor] Student started sharing, sending new offer to connectionId:', student.connectionId)
-        await createAndSendOffer(payload.maHocSinh, student.connectionId)
+        debouncedCreateAndSendOffer(payload.maHocSinh, student.connectionId)
       } else if ((payload.status === 'streaming' || payload.status === 'active') && !student?.connectionId) {
         console.warn('[Proctor] Student streaming but no connectionId yet, will wait for StudentConnectionIdBroadcast')
       }

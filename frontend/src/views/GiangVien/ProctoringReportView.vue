@@ -239,15 +239,26 @@ const printReport = () => {
       background: #fff;
       padding: 20mm 15mm;
     }
-    .header { text-align: center; margin-bottom: 24px; border-bottom: 2px solid #000; padding-bottom: 16px; }
-    .header .subtitle { font-size: 10pt; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
-    .header h1 { font-size: 18pt; font-weight: 900; text-transform: uppercase; margin-bottom: 4px; }
+    .header { text-align: center; margin-bottom: 16px; border-bottom: 2px solid #000; padding-bottom: 12px; }
+    .header .subtitle { font-size: 9pt; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .header h1 { font-size: 16pt; font-weight: 900; text-transform: uppercase; margin-bottom: 4px; }
     .header .meta { font-size: 9pt; color: #444; font-style: italic; }
-    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 32px; margin-bottom: 20px; border: 1px solid #ccc; padding: 12px; border-radius: 4px; font-size: 11pt; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; margin-bottom: 16px; border: 1px solid #ccc; padding: 8px; border-radius: 4px; font-size: 10pt; }
     .info-grid .label { font-size: 9pt; color: #555; }
     .info-grid .value { font-weight: bold; }
-    .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 24px; text-align: center; }
+    .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 16px; text-align: center; }
     .stat-box { border: 1px solid #ccc; padding: 8px 4px; border-radius: 4px; }
+    .stat-box span { display: block; font-size: 8pt; color: #555; margin-bottom: 4px; }
+    .stat-box strong { font-size: 14pt; }
+    .table-container { margin-top: 16px; }
+    table { width: 100%; border-collapse: collapse; font-size: 9pt; page-break-inside: auto; }
+    tr { page-break-inside: avoid; page-break-after: auto; }
+    thead { display: table-header-group; }
+    tfoot { display: table-footer-group; }
+    th, td { border: 1px solid #aaa; padding: 4px; text-align: left; }
+    th { background-color: #f5f5f5; font-weight: bold; text-align: center; }
+    .footer { margin-top: 32px; display: grid; grid-template-columns: 1fr 1fr; text-align: center; font-size: 10pt; page-break-inside: avoid; }
+
     .stat-box .stat-label { font-size: 8pt; color: #555; }
     .stat-box .stat-value { font-size: 16pt; font-weight: 900; }
     h2 { font-size: 12pt; text-transform: uppercase; margin-bottom: 10px; font-weight: 900; border-bottom: 1px solid #000; padding-bottom: 4px; }
