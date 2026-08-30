@@ -59,7 +59,7 @@ BEGIN TRY
             IF NOT EXISTS (SELECT 1 FROM DonVi WHERE ten_don_vi = @FacName AND ma_don_vi_cha = @CampusId)
             BEGIN
                 INSERT INTO DonVi (ten_don_vi, cap_don_vi, ma_don_vi_cha, con_hoat_dong, ngay_tao)
-                VALUES (@FacName, 'khoa', @CampusId, 1, @CurrentDate);
+                VALUES (@FacName, 'co_so_con', @CampusId, 1, @CurrentDate);
             END
             FETCH NEXT FROM cur INTO @FacCode, @FacName;
         END
