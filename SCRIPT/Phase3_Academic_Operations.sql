@@ -3,7 +3,6 @@ GO
 
 SET NOCOUNT ON;
 
-DECLARE @N INT = 5; -- Số cơ sở
 DECLARE @CurrentDate DATETIME2 = SYSUTCDATETIME();
 
 PRINT N'--- BẮT ĐẦU PHASE 3: ACADEMIC OPERATIONS ---';
@@ -17,9 +16,9 @@ BEGIN TRY
 
     -- LẤY ID CÁC DANH MỤC CẦN THIẾT
     DECLARE @SE INT, @GD INT, @DM INT;
-    SELECT @SE = ma_chuyen_nganh FROM ChuyenNganh WHERE ma_code_chuyen_nganh = 'SE';
-    SELECT @GD = ma_chuyen_nganh FROM ChuyenNganh WHERE ma_code_chuyen_nganh = 'GD';
-    SELECT @DM = ma_chuyen_nganh FROM ChuyenNganh WHERE ma_code_chuyen_nganh = 'DM';
+    SELECT @SE = ma_chuyen_nganh FROM ChuyenNganh WHERE ten_chuyen_nganh = N'Kỹ thuật phần mềm';
+    SELECT @GD = ma_chuyen_nganh FROM ChuyenNganh WHERE ten_chuyen_nganh = N'Thiết kế đồ họa';
+    SELECT @DM = ma_chuyen_nganh FROM ChuyenNganh WHERE ten_chuyen_nganh = N'Digital Marketing';
 
     DECLARE @COM101 INT, @DBI202 INT, @WEB104 INT, @UIX101 INT, @MKT101 INT;
     SELECT @COM101 = ma_mon_hoc FROM DanhMucMonHoc WHERE ma_code_mon_hoc = 'COM101';
@@ -40,25 +39,30 @@ BEGIN TRY
 
     PRINT N'- Đang cấp quyền dạy môn học (GiaoVienMonHoc)...';
     INSERT INTO GiaoVienMonHoc (ma_giao_vien, ma_mon_hoc, muc_do_phu_hop, so_lan_da_day, so_nam_kinh_nghiem, ngay_tao)
-    SELECT ma_giao_vien, @COM101, 5, 10, 3, @CurrentDate FROM GiaoVienChuyenNganh WHERE ma_chuyen_nganh = @SE;
+    SELECT ma_giao_vien, @COM101, 5, 10, 3, @CurrentDate FROM GiaoVienChuyenNganh WHERE ma_chuyen_nganh = @SE
+      AND NOT EXISTS (SELECT 1 FROM GiaoVienMonHoc gm WHERE gm.ma_giao_vien = GiaoVienChuyenNganh.ma_giao_vien AND gm.ma_mon_hoc = @COM101);
     INSERT INTO GiaoVienMonHoc (ma_giao_vien, ma_mon_hoc, muc_do_phu_hop, so_lan_da_day, so_nam_kinh_nghiem, ngay_tao)
-    SELECT ma_giao_vien, @DBI202, 5, 8, 3, @CurrentDate FROM GiaoVienChuyenNganh WHERE ma_chuyen_nganh = @SE;
+    SELECT ma_giao_vien, @DBI202, 5, 8, 3, @CurrentDate FROM GiaoVienChuyenNganh WHERE ma_chuyen_nganh = @SE
+      AND NOT EXISTS (SELECT 1 FROM GiaoVienMonHoc gm WHERE gm.ma_giao_vien = GiaoVienChuyenNganh.ma_giao_vien AND gm.ma_mon_hoc = @DBI202);
     INSERT INTO GiaoVienMonHoc (ma_giao_vien, ma_mon_hoc, muc_do_phu_hop, so_lan_da_day, so_nam_kinh_nghiem, ngay_tao)
-    SELECT ma_giao_vien, @WEB104, 5, 5, 2, @CurrentDate FROM GiaoVienChuyenNganh WHERE ma_chuyen_nganh = @SE;
+    SELECT ma_giao_vien, @WEB104, 5, 5, 2, @CurrentDate FROM GiaoVienChuyenNganh WHERE ma_chuyen_nganh = @SE
+      AND NOT EXISTS (SELECT 1 FROM GiaoVienMonHoc gm WHERE gm.ma_giao_vien = GiaoVienChuyenNganh.ma_giao_vien AND gm.ma_mon_hoc = @WEB104);
     INSERT INTO GiaoVienMonHoc (ma_giao_vien, ma_mon_hoc, muc_do_phu_hop, so_lan_da_day, so_nam_kinh_nghiem, ngay_tao)
-    SELECT ma_giao_vien, @UIX101, 5, 12, 4, @CurrentDate FROM GiaoVienChuyenNganh WHERE ma_chuyen_nganh = @GD;
+    SELECT ma_giao_vien, @UIX101, 5, 12, 4, @CurrentDate FROM GiaoVienChuyenNganh WHERE ma_chuyen_nganh = @GD
+      AND NOT EXISTS (SELECT 1 FROM GiaoVienMonHoc gm WHERE gm.ma_giao_vien = GiaoVienChuyenNganh.ma_giao_vien AND gm.ma_mon_hoc = @UIX101);
     INSERT INTO GiaoVienMonHoc (ma_giao_vien, ma_mon_hoc, muc_do_phu_hop, so_lan_da_day, so_nam_kinh_nghiem, ngay_tao)
-    SELECT ma_giao_vien, @MKT101, 5, 15, 5, @CurrentDate FROM GiaoVienChuyenNganh WHERE ma_chuyen_nganh = @DM;
+    SELECT ma_giao_vien, @MKT101, 5, 15, 5, @CurrentDate FROM GiaoVienChuyenNganh WHERE ma_chuyen_nganh = @DM
+      AND NOT EXISTS (SELECT 1 FROM GiaoVienMonHoc gm WHERE gm.ma_giao_vien = GiaoVienChuyenNganh.ma_giao_vien AND gm.ma_mon_hoc = @MKT101);
 
     BEGIN TRY EXEC('UPDATE GiaoVienMonHoc SET con_hoat_dong = 1 WHERE con_hoat_dong IS NULL OR con_hoat_dong = 0;'); END TRY BEGIN CATCH END CATCH;
 
     PRINT N'- Đang mở Khóa học (LMS) cho tất cả Lớp Hành chính...';
-    DECLARE @i INT = 1;
-    WHILE @i <= @N
+    DECLARE @CampusId INT;
+    DECLARE curCS CURSOR FOR SELECT ma_don_vi FROM DonVi WHERE cap_don_vi = 'co_so';
+    OPEN curCS;
+    FETCH NEXT FROM curCS INTO @CampusId;
+    WHILE @@FETCH_STATUS = 0
     BEGIN
-        DECLARE @CampusCode NVARCHAR(50) = 'CAMPUS_AET_' + CAST(@i AS NVARCHAR);
-        DECLARE @CampusId INT;
-        SELECT @CampusId = ma_don_vi FROM DonVi WHERE ten_don_vi = N'Trường AET Cơ sở ' + CAST(@i AS NVARCHAR) AND cap_don_vi = 'co_so';
         DECLARE @TermId INT;
         SELECT @TermId = ma_hoc_ky FROM HocKy WHERE ma_don_vi = @CampusId AND nam_hoc = '2026' AND thu_tu_trong_nam = 1;
 
@@ -67,15 +71,19 @@ BEGIN TRY
             WITH Classes AS (SELECT ma_lop, ten_lop, ROW_NUMBER() OVER(ORDER BY ma_lop) AS rn FROM LopHanhChinh WHERE ma_don_vi = @CampusId),
             TeachersCOM AS (SELECT gm.ma_giao_vien, ROW_NUMBER() OVER(ORDER BY NEWID()) AS rn FROM GiaoVienMonHoc gm JOIN NguoiDung u ON gm.ma_giao_vien = u.ma_nguoi_dung WHERE gm.ma_mon_hoc = @COM101 AND u.ma_don_vi = @CampusId)
             INSERT INTO KhoaHoc (ma_don_vi, ma_giao_vien, ma_hoc_ky, ma_lop, ma_mon_hoc, tieu_de, trang_thai, SoBlockHoc, ngay_tao)
-            SELECT @CampusId, (SELECT TOP 1 ma_giao_vien FROM TeachersCOM t WHERE t.rn = (c.rn % (SELECT COUNT(*) FROM TeachersCOM)) + 1), @TermId, c.ma_lop, @COM101, N'Nhập môn lập trình - ' + c.ten_lop, 'dang_mo', 1, @CurrentDate FROM Classes c;
+            SELECT @CampusId, (SELECT TOP 1 ma_giao_vien FROM TeachersCOM t WHERE t.rn = (c.rn % (SELECT COUNT(*) FROM TeachersCOM)) + 1), @TermId, c.ma_lop, @COM101, N'Nhập môn lập trình - ' + c.ten_lop, 'dang_mo', 1, @CurrentDate FROM Classes c
+            WHERE NOT EXISTS (SELECT 1 FROM KhoaHoc k WHERE k.ma_lop = c.ma_lop AND k.ma_mon_hoc = @COM101);
 
             WITH Classes AS (SELECT ma_lop, ten_lop, ROW_NUMBER() OVER(ORDER BY ma_lop) AS rn FROM LopHanhChinh WHERE ma_don_vi = @CampusId),
             TeachersDBI AS (SELECT gm.ma_giao_vien, ROW_NUMBER() OVER(ORDER BY NEWID()) AS rn FROM GiaoVienMonHoc gm JOIN NguoiDung u ON gm.ma_giao_vien = u.ma_nguoi_dung WHERE gm.ma_mon_hoc = @DBI202 AND u.ma_don_vi = @CampusId)
             INSERT INTO KhoaHoc (ma_don_vi, ma_giao_vien, ma_hoc_ky, ma_lop, ma_mon_hoc, tieu_de, trang_thai, SoBlockHoc, ngay_tao)
-            SELECT @CampusId, (SELECT TOP 1 ma_giao_vien FROM TeachersDBI t WHERE t.rn = (c.rn % (SELECT COUNT(*) FROM TeachersDBI)) + 1), @TermId, c.ma_lop, @DBI202, N'Hệ quản trị CSDL - ' + c.ten_lop, 'dang_mo', 1, @CurrentDate FROM Classes c;
+            SELECT @CampusId, (SELECT TOP 1 ma_giao_vien FROM TeachersDBI t WHERE t.rn = (c.rn % (SELECT COUNT(*) FROM TeachersDBI)) + 1), @TermId, c.ma_lop, @DBI202, N'Hệ quản trị CSDL - ' + c.ten_lop, 'dang_mo', 1, @CurrentDate FROM Classes c
+            WHERE NOT EXISTS (SELECT 1 FROM KhoaHoc k WHERE k.ma_lop = c.ma_lop AND k.ma_mon_hoc = @DBI202);
         END
-        SET @i += 1;
+        FETCH NEXT FROM curCS INTO @CampusId;
     END
+    CLOSE curCS;
+    DEALLOCATE curCS;
 
     -- ==========================================
     -- PHẦN 2: LỊCH HỌC, ĐIỂM DANH, CHẤM ĐIỂM
@@ -96,20 +104,23 @@ BEGIN TRY
     INSERT INTO ThoiKhoaBieu (ma_khoa_hoc, ma_phong, ma_ca_hoc, thu_trong_tuan, ngay_bat_dau, ngay_ket_thuc, trang_thai, ngay_tao)
     SELECT k.ma_khoa_hoc, (SELECT TOP 1 ma_phong FROM PhongHoc p JOIN ToaNha t ON p.ma_toa_nha = t.ma_toa_nha WHERE t.ma_don_vi = k.ma_don_vi ORDER BY NEWID()),
         (SELECT TOP 1 ma_ca_hoc FROM CaHoc ORDER BY NEWID()), (k.ma_khoa_hoc % 6) + 2, h.ngay_bat_dau, h.ngay_ket_thuc, 'dang_hoat_dong', @CurrentDate
-    FROM KhoaHoc k JOIN HocKy h ON k.ma_hoc_ky = h.ma_hoc_ky;
+    FROM KhoaHoc k JOIN HocKy h ON k.ma_hoc_ky = h.ma_hoc_ky
+    WHERE NOT EXISTS (SELECT 1 FROM ThoiKhoaBieu tkb WHERE tkb.ma_khoa_hoc = k.ma_khoa_hoc);
 
     WITH Numbers AS (SELECT TOP 10 ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) AS N FROM master.dbo.spt_values)
     INSERT INTO BuoiHoc (ma_tkb, ma_khoa_hoc, ma_phong, ma_ca_hoc, ma_giao_vien, ngay_hoc, trang_thai_buoi, trang_thai_diem_danh, ngay_tao)
     SELECT tkb.ma_tkb, tkb.ma_khoa_hoc, tkb.ma_phong, tkb.ma_ca_hoc, k.ma_giao_vien, DATEADD(DAY, (n.N - 1) * 7, tkb.ngay_bat_dau), 'da_dien_ra', 'da_chot', @CurrentDate
-    FROM ThoiKhoaBieu tkb JOIN KhoaHoc k ON tkb.ma_khoa_hoc = k.ma_khoa_hoc CROSS JOIN Numbers n;
+    FROM ThoiKhoaBieu tkb JOIN KhoaHoc k ON tkb.ma_khoa_hoc = k.ma_khoa_hoc CROSS JOIN Numbers n
+    WHERE NOT EXISTS (SELECT 1 FROM BuoiHoc b WHERE b.ma_tkb = tkb.ma_tkb AND b.ngay_hoc = DATEADD(DAY, (n.N - 1) * 7, tkb.ngay_bat_dau));
 
-    PRINT N'- Đang quét Điểm danh Sinh viên (Dự kiến ~300.000 dòng)...';
+    PRINT N'- Đang quét Điểm danh Sinh viên...';
     INSERT INTO DiemDanh (ma_buoi_hoc, ma_don_vi, ma_hoc_sinh, trang_thai, nguoi_ghi_nhan)
     SELECT b.ma_buoi_hoc, k.ma_don_vi, s.ma_nguoi_dung,
         CASE WHEN (b.ma_buoi_hoc + s.ma_nguoi_dung) % 100 < 85 THEN 'co_mat' WHEN (b.ma_buoi_hoc + s.ma_nguoi_dung) % 100 < 95 THEN 'vang_mat' ELSE 'di_muon' END,
         b.ma_giao_vien
     FROM BuoiHoc b JOIN KhoaHoc k ON b.ma_khoa_hoc = k.ma_khoa_hoc
-    JOIN NguoiDung s ON s.ma_lop = k.ma_lop AND s.vai_tro_chinh = 'hoc_sinh';
+    JOIN NguoiDung s ON s.ma_lop = k.ma_lop AND s.vai_tro_chinh = 'hoc_sinh'
+    WHERE NOT EXISTS (SELECT 1 FROM DiemDanh dd WHERE dd.ma_buoi_hoc = b.ma_buoi_hoc AND dd.ma_hoc_sinh = s.ma_nguoi_dung);
 
     PRINT N'- Đang tính toán và sinh Điểm số tổng kết...';
     INSERT INTO DiemSo (ma_don_vi, ma_hoc_ky, ma_hoc_sinh, ma_mon_hoc, nam_nhap_hoc, diem_qua_trinh, diem_giua_ky, diem_cuoi_ky, gpa_mon_hoc, trang_thai, ly_do_rot)
@@ -118,7 +129,8 @@ BEGIN TRY
         ((s.ma_nguoi_dung % 6) + 4.0) * 0.4 + ((s.ma_nguoi_dung % 5) + 5.0) * 0.3 + ((s.ma_nguoi_dung % 7) + 3.0) * 0.3,
         CASE WHEN (((s.ma_nguoi_dung % 6) + 4.0) * 0.4 + ((s.ma_nguoi_dung % 5) + 5.0) * 0.3 + ((s.ma_nguoi_dung % 7) + 3.0) * 0.3) >= 5.0 THEN 'dat' ELSE 'rot' END,
         CASE WHEN (((s.ma_nguoi_dung % 6) + 4.0) * 0.4 + ((s.ma_nguoi_dung % 5) + 5.0) * 0.3 + ((s.ma_nguoi_dung % 7) + 3.0) * 0.3) < 5.0 THEN N'Điểm tổng kết dưới 5.0' ELSE NULL END
-    FROM KhoaHoc k JOIN NguoiDung s ON s.ma_lop = k.ma_lop AND s.vai_tro_chinh = 'hoc_sinh';
+    FROM KhoaHoc k JOIN NguoiDung s ON s.ma_lop = k.ma_lop AND s.vai_tro_chinh = 'hoc_sinh'
+    WHERE NOT EXISTS (SELECT 1 FROM DiemSo d WHERE d.ma_hoc_sinh = s.ma_nguoi_dung AND d.ma_mon_hoc = k.ma_mon_hoc AND d.ma_hoc_ky = k.ma_hoc_ky);
 
     COMMIT TRANSACTION;
     PRINT N'--- HOÀN THÀNH TOÀN BỘ PHASE 3 (GỘP) THÀNH CÔNG ---';
@@ -129,5 +141,3 @@ BEGIN CATCH
     PRINT ERROR_MESSAGE();
 END CATCH
 GO
-
-
