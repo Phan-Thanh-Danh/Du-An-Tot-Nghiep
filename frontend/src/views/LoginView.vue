@@ -99,6 +99,20 @@ async function submitLogin() {
   }
 }
 
+import QuickAccountSwitcherModal from '@/components/auth/QuickAccountSwitcherModal.vue'
+
+function onSelectAccount(acc) {
+  form.email = acc.email
+  form.password = acc.password
+  clearFieldError('email')
+  clearFieldError('password')
+}
+
+function onQuickLogin(acc) {
+  form.email = acc.email
+  form.password = acc.password
+  submitLogin()
+}
 </script>
 
 <template>
@@ -263,6 +277,12 @@ async function submitLogin() {
         </div>
       </div>
     </section>
+
+    <!-- Modal danh sách tài khoản Demo kéo thả bằng chuột (Ctrl + K) -->
+    <QuickAccountSwitcherModal
+      @select-account="onSelectAccount"
+      @quick-login="onQuickLogin"
+    />
   </main>
 </template>
 

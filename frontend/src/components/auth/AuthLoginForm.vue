@@ -9,7 +9,9 @@ import {
   LoaderCircle,
   Lock,
   User,
+  Sparkles,
 } from 'lucide-vue-next'
+import QuickAccountSwitcherModal from './QuickAccountSwitcherModal.vue'
 
 const props = defineProps({
   portal: { type: Object, default: null },
@@ -89,6 +91,19 @@ function submitFastLogin() {
     form.password = fastAccount.value.password
     nextTick(() => submitLogin())
   }
+}
+
+function onSelectAccount(acc) {
+  form.email = acc.email
+  form.password = acc.password
+  clearFieldError('email')
+  clearFieldError('password')
+}
+
+function onQuickLogin(acc) {
+  form.email = acc.email
+  form.password = acc.password
+  nextTick(() => submitLogin())
 }
 
 defineExpose({
@@ -242,6 +257,12 @@ defineExpose({
         {{ fastAccount.label }}
       </button>
     </div>
+
+    <!-- Modal danh sách tài khoản Demo kéo thả bằng chuột (Ctrl + K) -->
+    <QuickAccountSwitcherModal
+      @select-account="onSelectAccount"
+      @quick-login="onQuickLogin"
+    />
 
   </form>
 </template>
