@@ -71,13 +71,13 @@ BEGIN TRY
             WITH Classes AS (SELECT ma_lop, ten_lop, ROW_NUMBER() OVER(ORDER BY ma_lop) AS rn FROM LopHanhChinh WHERE ma_don_vi = @CampusId),
             TeachersCOM AS (SELECT gm.ma_giao_vien, ROW_NUMBER() OVER(ORDER BY NEWID()) AS rn FROM GiaoVienMonHoc gm JOIN NguoiDung u ON gm.ma_giao_vien = u.ma_nguoi_dung WHERE gm.ma_mon_hoc = @COM101 AND u.ma_don_vi = @CampusId)
             INSERT INTO KhoaHoc (ma_don_vi, ma_giao_vien, ma_hoc_ky, ma_lop, ma_mon_hoc, tieu_de, trang_thai, SoBlockHoc, ngay_tao)
-            SELECT @CampusId, (SELECT TOP 1 ma_giao_vien FROM TeachersCOM t WHERE t.rn = (c.rn % (SELECT COUNT(*) FROM TeachersCOM)) + 1), @TermId, c.ma_lop, @COM101, N'Nhập môn lập trình - ' + c.ten_lop, 'dang_mo', 1, @CurrentDate FROM Classes c
+            SELECT @CampusId, (SELECT TOP 1 ma_giao_vien FROM TeachersCOM t WHERE t.rn = (c.rn % (SELECT COUNT(*) FROM TeachersCOM)) + 1), @TermId, c.ma_lop, @COM101, N'Nhập môn lập trình - ' + c.ten_lop, 'da_xuat_ban', 1, @CurrentDate FROM Classes c
             WHERE NOT EXISTS (SELECT 1 FROM KhoaHoc k WHERE k.ma_lop = c.ma_lop AND k.ma_mon_hoc = @COM101);
 
             WITH Classes AS (SELECT ma_lop, ten_lop, ROW_NUMBER() OVER(ORDER BY ma_lop) AS rn FROM LopHanhChinh WHERE ma_don_vi = @CampusId),
             TeachersDBI AS (SELECT gm.ma_giao_vien, ROW_NUMBER() OVER(ORDER BY NEWID()) AS rn FROM GiaoVienMonHoc gm JOIN NguoiDung u ON gm.ma_giao_vien = u.ma_nguoi_dung WHERE gm.ma_mon_hoc = @DBI202 AND u.ma_don_vi = @CampusId)
             INSERT INTO KhoaHoc (ma_don_vi, ma_giao_vien, ma_hoc_ky, ma_lop, ma_mon_hoc, tieu_de, trang_thai, SoBlockHoc, ngay_tao)
-            SELECT @CampusId, (SELECT TOP 1 ma_giao_vien FROM TeachersDBI t WHERE t.rn = (c.rn % (SELECT COUNT(*) FROM TeachersDBI)) + 1), @TermId, c.ma_lop, @DBI202, N'Hệ quản trị CSDL - ' + c.ten_lop, 'dang_mo', 1, @CurrentDate FROM Classes c
+            SELECT @CampusId, (SELECT TOP 1 ma_giao_vien FROM TeachersDBI t WHERE t.rn = (c.rn % (SELECT COUNT(*) FROM TeachersDBI)) + 1), @TermId, c.ma_lop, @DBI202, N'Hệ quản trị CSDL - ' + c.ten_lop, 'da_xuat_ban', 1, @CurrentDate FROM Classes c
             WHERE NOT EXISTS (SELECT 1 FROM KhoaHoc k WHERE k.ma_lop = c.ma_lop AND k.ma_mon_hoc = @DBI202);
         END
         FETCH NEXT FROM curCS INTO @CampusId;
