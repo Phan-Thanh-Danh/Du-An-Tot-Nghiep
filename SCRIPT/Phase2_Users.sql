@@ -67,7 +67,7 @@ BEGIN TRY
     DECLARE @CampusTen NVARCHAR(255);
     DECLARE @CampusIdx INT = 0; -- dùng để tạo email unique
     
-    DECLARE curCS CURSOR FOR
+    DECLARE curCS CURSOR LOCAL FOR
         SELECT ma_don_vi, ten_don_vi FROM DonVi WHERE cap_don_vi = 'co_so' ORDER BY ma_don_vi;
     OPEN curCS;
     FETCH NEXT FROM curCS INTO @CampusId, @CampusTen;

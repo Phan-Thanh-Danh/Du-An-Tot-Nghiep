@@ -58,7 +58,7 @@ BEGIN TRY
 
     PRINT N'- Đang mở Khóa học (LMS) cho tất cả Lớp Hành chính...';
     DECLARE @CampusId INT;
-    DECLARE curCS CURSOR FOR SELECT ma_don_vi FROM DonVi WHERE cap_don_vi = 'co_so';
+    DECLARE curCS CURSOR LOCAL FOR SELECT ma_don_vi FROM DonVi WHERE cap_don_vi = 'co_so';
     OPEN curCS;
     FETCH NEXT FROM curCS INTO @CampusId;
     WHILE @@FETCH_STATUS = 0

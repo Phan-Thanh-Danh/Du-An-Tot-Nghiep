@@ -12,7 +12,7 @@ BEGIN TRY
 
     DECLARE @CampusId INT;
     DECLARE @CampusIdx INT = 0;
-    DECLARE curCS CURSOR FOR SELECT ma_don_vi FROM DonVi WHERE cap_don_vi = 'co_so' ORDER BY ma_don_vi;
+    DECLARE curCS CURSOR LOCAL FOR SELECT ma_don_vi FROM DonVi WHERE cap_don_vi = 'co_so' ORDER BY ma_don_vi;
     OPEN curCS;
     FETCH NEXT FROM curCS INTO @CampusId;
 

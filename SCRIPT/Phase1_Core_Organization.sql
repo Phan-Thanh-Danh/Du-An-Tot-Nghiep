@@ -34,7 +34,7 @@ BEGIN TRY
         (N'Trường AET Cơ sở Cần Thơ');
 
     DECLARE @CampusTen NVARCHAR(255);
-    DECLARE curCampus CURSOR FOR SELECT ten FROM @Campuses;
+    DECLARE curCampus CURSOR LOCAL FOR SELECT ten FROM @Campuses;
     OPEN curCampus;
     FETCH NEXT FROM curCampus INTO @CampusTen;
     WHILE @@FETCH_STATUS = 0
@@ -55,7 +55,7 @@ BEGIN TRY
     -- ==========================================
     DECLARE @CampusId INT;
     DECLARE @CampusTen2 NVARCHAR(255);
-    DECLARE curCS CURSOR FOR SELECT ma_don_vi, ten_don_vi FROM DonVi WHERE cap_don_vi = 'co_so';
+    DECLARE curCS CURSOR LOCAL FOR SELECT ma_don_vi, ten_don_vi FROM DonVi WHERE cap_don_vi = 'co_so';
     OPEN curCS;
     FETCH NEXT FROM curCS INTO @CampusId, @CampusTen2;
     WHILE @@FETCH_STATUS = 0
