@@ -20,10 +20,9 @@ BEGIN TRY
     SELECT ma_mon_hoc, ma_code_mon_hoc, ten_mon_hoc FROM DanhMucMonHoc
     WHERE ma_code_mon_hoc IN ('COM101', 'DBI202', 'WEB104', 'UIX101', 'MKT101');
 
-    -- a. CourseSyllabus (KHONG phai DeCuongMonHoc)
-    -- Model: ma_mon_hoc, ma_chuyen_nganh, ten_syllabus, version, trang_thai, bat_buoc, con_hoat_dong, ngay_tao
-    -- KHONG CO cot: mo_ta
-    INSERT INTO CourseSyllabus (ma_mon_hoc, ma_chuyen_nganh, ten_syllabus, version, trang_thai, bat_buoc, con_hoat_dong, ngay_tao)
+    -- a. DeCuongMonHoc (C# class: CourseSyllabus, SQL table: DeCuongMonHoc)
+    -- Cot: ma_mon_hoc, ma_chuyen_nganh, ten_syllabus, version, trang_thai, bat_buoc, con_hoat_dong, ngay_tao
+    INSERT INTO DeCuongMonHoc (ma_mon_hoc, ma_chuyen_nganh, ten_syllabus, version, trang_thai, bat_buoc, con_hoat_dong, ngay_tao)
     SELECT s.MaMon, c.ma_chuyen_nganh, N'De cuong ' + s.Ten, 'v1.0', 'active', 1, 1, @CurrentDate
     FROM @Subjects s
     JOIN ChuyenNganh c ON (
@@ -32,7 +31,7 @@ BEGIN TRY
         (s.Code = 'MKT101' AND c.ten_chuyen_nganh = N'Digital Marketing')
     )
     WHERE NOT EXISTS (
-        SELECT 1 FROM CourseSyllabus d WHERE d.ma_mon_hoc = s.MaMon AND d.ma_chuyen_nganh = c.ma_chuyen_nganh
+        SELECT 1 FROM DeCuongMonHoc d WHERE d.ma_mon_hoc = s.MaMon AND d.ma_chuyen_nganh = c.ma_chuyen_nganh
     );
 
     -- b. Chuong - 5 chuong moi mon
