@@ -74,12 +74,12 @@ BEGIN TRY
                 FROM LopHanhChinh WHERE ma_don_vi = @CampusId AND ma_code_lop LIKE 'SE%'
             ),
             TeachersCOM AS (
-                SELECT gm.ma_giao_vien, ROW_NUMBER() OVER(ORDER BY NEWID()) AS rn 
+                SELECT gm.ma_giao_vien, ROW_NUMBER() OVER(ORDER BY gm.ma_giao_vien ASC) AS rn 
                 FROM GiaoVienMonHoc gm JOIN NguoiDung u ON gm.ma_giao_vien = u.ma_nguoi_dung 
                 WHERE gm.ma_mon_hoc = @COM101 AND u.ma_don_vi = @CampusId
             )
             INSERT INTO KhoaHoc (ma_don_vi, ma_giao_vien, ma_hoc_ky, ma_lop, ma_mon_hoc, tieu_de, trang_thai, SoBlockHoc, ngay_tao)
-            SELECT @CampusId, (SELECT TOP 1 ma_giao_vien FROM TeachersCOM t WHERE t.rn = (c.rn % (SELECT COUNT(*) FROM TeachersCOM)) + 1), @TermId, c.ma_lop, @COM101, N'Nhập môn lập trình - ' + c.ten_lop, 'da_xuat_ban', 1, @CurrentDate 
+            SELECT @CampusId, (SELECT TOP 1 ma_giao_vien FROM TeachersCOM t WHERE t.rn = ((c.rn - 1) % (SELECT COUNT(*) FROM TeachersCOM)) + 1), @TermId, c.ma_lop, @COM101, N'Nhập môn lập trình - ' + c.ten_lop, 'da_xuat_ban', 1, @CurrentDate 
             FROM ClassesSE c
             WHERE NOT EXISTS (SELECT 1 FROM KhoaHoc k WHERE k.ma_lop = c.ma_lop AND k.ma_mon_hoc = @COM101);
 
@@ -88,12 +88,12 @@ BEGIN TRY
                 FROM LopHanhChinh WHERE ma_don_vi = @CampusId AND ma_code_lop LIKE 'SE%'
             ),
             TeachersDBI AS (
-                SELECT gm.ma_giao_vien, ROW_NUMBER() OVER(ORDER BY NEWID()) AS rn 
+                SELECT gm.ma_giao_vien, ROW_NUMBER() OVER(ORDER BY gm.ma_giao_vien ASC) AS rn 
                 FROM GiaoVienMonHoc gm JOIN NguoiDung u ON gm.ma_giao_vien = u.ma_nguoi_dung 
                 WHERE gm.ma_mon_hoc = @DBI202 AND u.ma_don_vi = @CampusId
             )
             INSERT INTO KhoaHoc (ma_don_vi, ma_giao_vien, ma_hoc_ky, ma_lop, ma_mon_hoc, tieu_de, trang_thai, SoBlockHoc, ngay_tao)
-            SELECT @CampusId, (SELECT TOP 1 ma_giao_vien FROM TeachersDBI t WHERE t.rn = (c.rn % (SELECT COUNT(*) FROM TeachersDBI)) + 1), @TermId, c.ma_lop, @DBI202, N'Hệ quản trị CSDL - ' + c.ten_lop, 'da_xuat_ban', 1, @CurrentDate 
+            SELECT @CampusId, (SELECT TOP 1 ma_giao_vien FROM TeachersDBI t WHERE t.rn = ((c.rn - 1) % (SELECT COUNT(*) FROM TeachersDBI)) + 1), @TermId, c.ma_lop, @DBI202, N'Hệ quản trị CSDL - ' + c.ten_lop, 'da_xuat_ban', 1, @CurrentDate 
             FROM ClassesSE c
             WHERE NOT EXISTS (SELECT 1 FROM KhoaHoc k WHERE k.ma_lop = c.ma_lop AND k.ma_mon_hoc = @DBI202);
 
@@ -103,12 +103,12 @@ BEGIN TRY
                 FROM LopHanhChinh WHERE ma_don_vi = @CampusId AND ma_code_lop LIKE 'GD%'
             ),
             TeachersGD AS (
-                SELECT gm.ma_giao_vien, ROW_NUMBER() OVER(ORDER BY NEWID()) AS rn 
+                SELECT gm.ma_giao_vien, ROW_NUMBER() OVER(ORDER BY gm.ma_giao_vien ASC) AS rn 
                 FROM GiaoVienMonHoc gm JOIN NguoiDung u ON gm.ma_giao_vien = u.ma_nguoi_dung 
                 WHERE gm.ma_mon_hoc = @UIX101 AND u.ma_don_vi = @CampusId
             )
             INSERT INTO KhoaHoc (ma_don_vi, ma_giao_vien, ma_hoc_ky, ma_lop, ma_mon_hoc, tieu_de, trang_thai, SoBlockHoc, ngay_tao)
-            SELECT @CampusId, (SELECT TOP 1 ma_giao_vien FROM TeachersGD t WHERE t.rn = (c.rn % (SELECT COUNT(*) FROM TeachersGD)) + 1), @TermId, c.ma_lop, @UIX101, N'Thiết kế UI/UX - ' + c.ten_lop, 'da_xuat_ban', 1, @CurrentDate 
+            SELECT @CampusId, (SELECT TOP 1 ma_giao_vien FROM TeachersGD t WHERE t.rn = ((c.rn - 1) % (SELECT COUNT(*) FROM TeachersGD)) + 1), @TermId, c.ma_lop, @UIX101, N'Thiết kế UI/UX - ' + c.ten_lop, 'da_xuat_ban', 1, @CurrentDate 
             FROM ClassesGD c
             WHERE NOT EXISTS (SELECT 1 FROM KhoaHoc k WHERE k.ma_lop = c.ma_lop AND k.ma_mon_hoc = @UIX101);
 
@@ -118,12 +118,12 @@ BEGIN TRY
                 FROM LopHanhChinh WHERE ma_don_vi = @CampusId AND ma_code_lop LIKE 'DM%'
             ),
             TeachersDM AS (
-                SELECT gm.ma_giao_vien, ROW_NUMBER() OVER(ORDER BY NEWID()) AS rn 
+                SELECT gm.ma_giao_vien, ROW_NUMBER() OVER(ORDER BY gm.ma_giao_vien ASC) AS rn 
                 FROM GiaoVienMonHoc gm JOIN NguoiDung u ON gm.ma_giao_vien = u.ma_nguoi_dung 
                 WHERE gm.ma_mon_hoc = @MKT101 AND u.ma_don_vi = @CampusId
             )
             INSERT INTO KhoaHoc (ma_don_vi, ma_giao_vien, ma_hoc_ky, ma_lop, ma_mon_hoc, tieu_de, trang_thai, SoBlockHoc, ngay_tao)
-            SELECT @CampusId, (SELECT TOP 1 ma_giao_vien FROM TeachersDM t WHERE t.rn = (c.rn % (SELECT COUNT(*) FROM TeachersDM)) + 1), @TermId, c.ma_lop, @MKT101, N'Marketing căn bản - ' + c.ten_lop, 'da_xuat_ban', 1, @CurrentDate 
+            SELECT @CampusId, (SELECT TOP 1 ma_giao_vien FROM TeachersDM t WHERE t.rn = ((c.rn - 1) % (SELECT COUNT(*) FROM TeachersDM)) + 1), @TermId, c.ma_lop, @MKT101, N'Marketing căn bản - ' + c.ten_lop, 'da_xuat_ban', 1, @CurrentDate 
             FROM ClassesDM c
             WHERE NOT EXISTS (SELECT 1 FROM KhoaHoc k WHERE k.ma_lop = c.ma_lop AND k.ma_mon_hoc = @MKT101);
         END
