@@ -132,7 +132,7 @@ BEGIN TRY
         k.ma_giao_vien,
         CAST(DATEADD(DAY, (n.N - 1) * 7, tkb.ngay_bat_dau) AS DATE),
         'da_dien_ra',
-        'da_chot',
+        'da_khoa',
         @CurrentDate
     FROM ThoiKhoaBieu tkb 
     JOIN KhoaHoc k ON tkb.ma_khoa_hoc = k.ma_khoa_hoc 
