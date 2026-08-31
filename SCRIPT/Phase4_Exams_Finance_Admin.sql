@@ -1,4 +1,4 @@
-﻿USE LMS;
+USE LMS;
 GO
 
 SET NOCOUNT ON;
@@ -32,11 +32,16 @@ BEGIN TRY
             WITH Students AS (
                 SELECT ma_nguoi_dung FROM NguoiDung WHERE vai_tro_chinh = 'hoc_sinh' AND ma_don_vi = @CampusId
             )
-            INSERT INTO HoaDon (ma_hoa_don_code, ma_don_vi, ma_hoc_ky, ma_hoc_sinh, loai_hoa_don, so_tien, trang_thai, ngay_tao)
+            -- HoaDon: han_thanh_toan NOT NULL (DateOnly/date), giam_tru NOT NULL (default 0), da_thanh_toan NOT NULL (default 0)
+            INSERT INTO HoaDon (ma_hoa_don_code, ma_don_vi, ma_hoc_ky, ma_hoc_sinh, loai_hoa_don, so_tien, giam_tru, da_thanh_toan, trang_thai, han_thanh_toan, ngay_tao)
             SELECT
                 'INV_' + @CampusCode + '_' + CAST(@TermId AS NVARCHAR) + '_' + CAST(ma_nguoi_dung AS NVARCHAR),
-                @CampusId, @TermId, ma_nguoi_dung, 'hoc_phi', 15000000,
+                @CampusId, @TermId, ma_nguoi_dung, 'hoc_phi',
+                15000000,   -- so_tien
+                0,          -- giam_tru
+                CASE WHEN (ma_nguoi_dung % 10) != 0 THEN 15000000 ELSE 0 END, -- da_thanh_toan
                 CASE WHEN (ma_nguoi_dung % 10) = 0 THEN 'chua_thanh_toan' ELSE 'da_thanh_toan' END,
+                CAST(DATEADD(MONTH, 2, @CurrentDate) AS DATE), -- han_thanh_toan: 2 tháng kể từ bây giờ
                 @CurrentDate
             FROM Students
             WHERE NOT EXISTS (
