@@ -190,38 +190,75 @@ BEGIN TRY
     IF NOT EXISTS (SELECT 1 FROM QuyDoiTinChi WHERE so_tin_chi = 3)
         INSERT INTO QuyDoiTinChi (so_tin_chi, so_block_hoc, so_buoi_moi_tuan, so_ca_moi_buoi) VALUES (3, 1, 2, 1);
 
-    -- 3.6 Chương trình đào tạo mẫu (CNTT - Kỹ thuật phần mềm - K20)
-    DECLARE @ChuyenNganhSE INT, @K20 INT, @ChuongTrinhId INT;
+    -- 3.6 Chương trình đào tạo (3 CTĐT cho 3 chuyên ngành chính - Khóa K20)
+    DECLARE @ChuyenNganhSE INT, @ChuyenNganhGD INT, @ChuyenNganhDM INT, @K20 INT;
     SELECT @ChuyenNganhSE = ma_chuyen_nganh FROM ChuyenNganh WHERE ten_chuyen_nganh = N'Kỹ thuật phần mềm';
+    SELECT @ChuyenNganhGD = ma_chuyen_nganh FROM ChuyenNganh WHERE ten_chuyen_nganh = N'Thiết kế đồ họa';
+    SELECT @ChuyenNganhDM = ma_chuyen_nganh FROM ChuyenNganh WHERE ten_chuyen_nganh = N'Digital Marketing';
     SELECT @K20 = ma_khoa_tuyen_sinh FROM KhoaTuyenSinh WHERE ma_code_khoa = 'K20';
 
-    IF @ChuyenNganhSE IS NOT NULL AND @K20 IS NOT NULL
+    DECLARE @MonCOM101 INT, @MonDBI202 INT, @MonWEB104 INT, @MonUIX101 INT, @MonMKT101 INT;
+    SELECT @MonCOM101 = ma_mon_hoc FROM DanhMucMonHoc WHERE ma_code_mon_hoc = 'COM101';
+    SELECT @MonDBI202 = ma_mon_hoc FROM DanhMucMonHoc WHERE ma_code_mon_hoc = 'DBI202';
+    SELECT @MonWEB104 = ma_mon_hoc FROM DanhMucMonHoc WHERE ma_code_mon_hoc = 'WEB104';
+    SELECT @MonUIX101 = ma_mon_hoc FROM DanhMucMonHoc WHERE ma_code_mon_hoc = 'UIX101';
+    SELECT @MonMKT101 = ma_mon_hoc FROM DanhMucMonHoc WHERE ma_code_mon_hoc = 'MKT101';
+
+    -- CTĐT 1: Kỹ thuật phần mềm
+    DECLARE @CtdtSE INT;
+    IF NOT EXISTS (SELECT 1 FROM ChuongTrinhDaoTao WHERE ma_code_chuong_trinh = 'CTDT_SE_K20')
     BEGIN
-        IF NOT EXISTS (SELECT 1 FROM ChuongTrinhDaoTao WHERE ma_code_chuong_trinh = 'CTDT_SE_K20')
-        BEGIN
-            INSERT INTO ChuongTrinhDaoTao (ma_code_chuong_trinh, ten_chuong_trinh, ma_chuyen_nganh, ma_khoa_tuyen_sinh, so_hoc_ky, thoi_gian_dao_tao_thang, tong_tin_chi_yeu_cau, version, trang_thai)
-            VALUES ('CTDT_SE_K20', N'Chương trình Kỹ thuật phần mềm K20', @ChuyenNganhSE, @K20, 7, 28, 120, '1.0', 'active');
-            SET @ChuongTrinhId = SCOPE_IDENTITY();
-        END
-        ELSE
-            SELECT @ChuongTrinhId = ma_chuong_trinh FROM ChuongTrinhDaoTao WHERE ma_code_chuong_trinh = 'CTDT_SE_K20';
-
-        DECLARE @MonCOM101 INT, @MonDBI202 INT;
-        SELECT @MonCOM101 = ma_mon_hoc FROM DanhMucMonHoc WHERE ma_code_mon_hoc = 'COM101';
-        SELECT @MonDBI202 = ma_mon_hoc FROM DanhMucMonHoc WHERE ma_code_mon_hoc = 'DBI202';
-
-        IF @MonCOM101 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM MonHocTrongChuongTrinh WHERE ma_chuong_trinh = @ChuongTrinhId AND ma_mon_hoc = @MonCOM101)
-            INSERT INTO MonHocTrongChuongTrinh (ma_chuong_trinh, ma_mon_hoc, hoc_ky_du_kien, loai_mon_hoc, so_tin_chi, bat_buoc, con_hoat_dong)
-            VALUES (@ChuongTrinhId, @MonCOM101, 1, 'bat_buoc', 3, 1, 1);
-
-        IF @MonDBI202 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM MonHocTrongChuongTrinh WHERE ma_chuong_trinh = @ChuongTrinhId AND ma_mon_hoc = @MonDBI202)
-            INSERT INTO MonHocTrongChuongTrinh (ma_chuong_trinh, ma_mon_hoc, hoc_ky_du_kien, loai_mon_hoc, so_tin_chi, bat_buoc, con_hoat_dong)
-            VALUES (@ChuongTrinhId, @MonDBI202, 2, 'bat_buoc', 3, 1, 1);
-
-        IF @MonCOM101 IS NOT NULL AND @MonDBI202 IS NOT NULL
-           AND NOT EXISTS (SELECT 1 FROM MonHocTienQuyet WHERE ma_mon_hoc = @MonDBI202 AND ma_mon_tien_quyet = @MonCOM101)
-            INSERT INTO MonHocTienQuyet (ma_mon_hoc, ma_mon_tien_quyet) VALUES (@MonDBI202, @MonCOM101);
+        INSERT INTO ChuongTrinhDaoTao (ma_code_chuong_trinh, ten_chuong_trinh, ma_chuyen_nganh, ma_khoa_tuyen_sinh, so_hoc_ky, thoi_gian_dao_tao_thang, tong_tin_chi_yeu_cau, version, trang_thai)
+        VALUES ('CTDT_SE_K20', N'Chương trình Kỹ thuật phần mềm K20', @ChuyenNganhSE, @K20, 7, 28, 120, '1.0', 'active');
+        SET @CtdtSE = SCOPE_IDENTITY();
     END
+    ELSE
+        SELECT @CtdtSE = ma_chuong_trinh FROM ChuongTrinhDaoTao WHERE ma_code_chuong_trinh = 'CTDT_SE_K20';
+
+    IF @MonCOM101 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM MonHocTrongChuongTrinh WHERE ma_chuong_trinh = @CtdtSE AND ma_mon_hoc = @MonCOM101)
+        INSERT INTO MonHocTrongChuongTrinh (ma_chuong_trinh, ma_mon_hoc, hoc_ky_du_kien, loai_mon_hoc, so_tin_chi, bat_buoc, con_hoat_dong)
+        VALUES (@CtdtSE, @MonCOM101, 1, 'bat_buoc', 3, 1, 1);
+    IF @MonDBI202 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM MonHocTrongChuongTrinh WHERE ma_chuong_trinh = @CtdtSE AND ma_mon_hoc = @MonDBI202)
+        INSERT INTO MonHocTrongChuongTrinh (ma_chuong_trinh, ma_mon_hoc, hoc_ky_du_kien, loai_mon_hoc, so_tin_chi, bat_buoc, con_hoat_dong)
+        VALUES (@CtdtSE, @MonDBI202, 2, 'bat_buoc', 3, 1, 1);
+    IF @MonWEB104 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM MonHocTrongChuongTrinh WHERE ma_chuong_trinh = @CtdtSE AND ma_mon_hoc = @MonWEB104)
+        INSERT INTO MonHocTrongChuongTrinh (ma_chuong_trinh, ma_mon_hoc, hoc_ky_du_kien, loai_mon_hoc, so_tin_chi, bat_buoc, con_hoat_dong)
+        VALUES (@CtdtSE, @MonWEB104, 2, 'bat_buoc', 3, 1, 1);
+
+    -- CTĐT 2: Thiết kế đồ họa
+    DECLARE @CtdtGD INT;
+    IF NOT EXISTS (SELECT 1 FROM ChuongTrinhDaoTao WHERE ma_code_chuong_trinh = 'CTDT_GD_K20')
+    BEGIN
+        INSERT INTO ChuongTrinhDaoTao (ma_code_chuong_trinh, ten_chuong_trinh, ma_chuyen_nganh, ma_khoa_tuyen_sinh, so_hoc_ky, thoi_gian_dao_tao_thang, tong_tin_chi_yeu_cau, version, trang_thai)
+        VALUES ('CTDT_GD_K20', N'Chương trình Thiết kế đồ họa K20', @ChuyenNganhGD, @K20, 7, 28, 120, '1.0', 'active');
+        SET @CtdtGD = SCOPE_IDENTITY();
+    END
+    ELSE
+        SELECT @CtdtGD = ma_chuong_trinh FROM ChuongTrinhDaoTao WHERE ma_code_chuong_trinh = 'CTDT_GD_K20';
+
+    IF @MonUIX101 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM MonHocTrongChuongTrinh WHERE ma_chuong_trinh = @CtdtGD AND ma_mon_hoc = @MonUIX101)
+        INSERT INTO MonHocTrongChuongTrinh (ma_chuong_trinh, ma_mon_hoc, hoc_ky_du_kien, loai_mon_hoc, so_tin_chi, bat_buoc, con_hoat_dong)
+        VALUES (@CtdtGD, @MonUIX101, 1, 'bat_buoc', 3, 1, 1);
+
+    -- CTĐT 3: Digital Marketing
+    DECLARE @CtdtDM INT;
+    IF NOT EXISTS (SELECT 1 FROM ChuongTrinhDaoTao WHERE ma_code_chuong_trinh = 'CTDT_DM_K20')
+    BEGIN
+        INSERT INTO ChuongTrinhDaoTao (ma_code_chuong_trinh, ten_chuong_trinh, ma_chuyen_nganh, ma_khoa_tuyen_sinh, so_hoc_ky, thoi_gian_dao_tao_thang, tong_tin_chi_yeu_cau, version, trang_thai)
+        VALUES ('CTDT_DM_K20', N'Chương trình Digital Marketing K20', @ChuyenNganhDM, @K20, 7, 28, 120, '1.0', 'active');
+        SET @CtdtDM = SCOPE_IDENTITY();
+    END
+    ELSE
+        SELECT @CtdtDM = ma_chuong_trinh FROM ChuongTrinhDaoTao WHERE ma_code_chuong_trinh = 'CTDT_DM_K20';
+
+    IF @MonMKT101 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM MonHocTrongChuongTrinh WHERE ma_chuong_trinh = @CtdtDM AND ma_mon_hoc = @MonMKT101)
+        INSERT INTO MonHocTrongChuongTrinh (ma_chuong_trinh, ma_mon_hoc, hoc_ky_du_kien, loai_mon_hoc, so_tin_chi, bat_buoc, con_hoat_dong)
+        VALUES (@CtdtDM, @MonMKT101, 1, 'bat_buoc', 3, 1, 1);
+
+    -- Môn tiên quyết
+    IF @MonCOM101 IS NOT NULL AND @MonDBI202 IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM MonHocTienQuyet WHERE ma_mon_hoc = @MonDBI202 AND ma_mon_tien_quyet = @MonCOM101)
+        INSERT INTO MonHocTienQuyet (ma_mon_hoc, ma_mon_tien_quyet) VALUES (@MonDBI202, @MonCOM101);
 
     PRINT N'  [OK] Nganh, ChuyenNganh, MonHoc, KhoaTuyenSinh, ChuongTrinhDaoTao da tao xong';
 

@@ -99,32 +99,51 @@ BEGIN TRY
         );
 
         -- ==========================================
-        -- 2. TẠO LỚP HÀNH CHÍNH (50 Lớp)
+        -- 2. TẠO LỚP HÀNH CHÍNH (50 Lớp chia cho 3 CTĐT)
         -- ==========================================
-        PRINT N'  - Tao 50 Lop Hanh chinh...';
+        PRINT N'  - Tao 50 Lop Hanh chinh (SE, GD, DM)...';
         DECLARE @GVCN TABLE (id INT, row_num INT);
         INSERT INTO @GVCN (id, row_num)
         SELECT TOP 50 ma_nguoi_dung, ROW_NUMBER() OVER(ORDER BY ma_nguoi_dung)
         FROM NguoiDung WHERE ma_don_vi = @CampusId AND vai_tro_chinh = 'giao_vien' ORDER BY NEWID();
 
-        DECLARE @ChuongTrinhId INT;
-        SELECT TOP 1 @ChuongTrinhId = ma_chuong_trinh FROM ChuongTrinhDaoTao;
+        DECLARE @CtdtSE_Id INT, @CtdtGD_Id INT, @CtdtDM_Id INT;
+        SELECT @CtdtSE_Id = ma_chuong_trinh FROM ChuongTrinhDaoTao WHERE ma_code_chuong_trinh = 'CTDT_SE_K20';
+        SELECT @CtdtGD_Id = ma_chuong_trinh FROM ChuongTrinhDaoTao WHERE ma_code_chuong_trinh = 'CTDT_GD_K20';
+        SELECT @CtdtDM_Id = ma_chuong_trinh FROM ChuongTrinhDaoTao WHERE ma_code_chuong_trinh = 'CTDT_DM_K20';
 
         INSERT INTO LopHanhChinh (ma_code_lop, ten_lop, ma_don_vi, ma_chuong_trinh, ma_giao_vien_chu_nhiem, nam_nhap_hoc, si_so_du_kien, con_hoat_dong)
         SELECT
-            'SE' + CAST(@CampusIdx AS NVARCHAR) + RIGHT('00' + CAST(N AS NVARCHAR), 2),
-            N'Lớp ' + CAST(N AS NVARCHAR) + N' - ' + @CampusTen,
+            CASE 
+                WHEN Nums.N <= 25 THEN 'SE' + CAST(@CampusIdx AS NVARCHAR) + RIGHT('00' + CAST(Nums.N AS NVARCHAR), 2)
+                WHEN Nums.N <= 40 THEN 'GD' + CAST(@CampusIdx AS NVARCHAR) + RIGHT('00' + CAST(Nums.N - 25 AS NVARCHAR), 2)
+                ELSE 'DM' + CAST(@CampusIdx AS NVARCHAR) + RIGHT('00' + CAST(Nums.N - 40 AS NVARCHAR), 2)
+            END,
+            CASE 
+                WHEN Nums.N <= 25 THEN N'Lớp SE' + RIGHT('00' + CAST(Nums.N AS NVARCHAR), 2) + N' - ' + @CampusTen
+                WHEN Nums.N <= 40 THEN N'Lớp GD' + RIGHT('00' + CAST(Nums.N - 25 AS NVARCHAR), 2) + N' - ' + @CampusTen
+                ELSE N'Lớp DM' + RIGHT('00' + CAST(Nums.N - 40 AS NVARCHAR), 2) + N' - ' + @CampusTen
+            END,
             @CampusId,
-            @ChuongTrinhId,
+            CASE 
+                WHEN Nums.N <= 25 THEN ISNULL(@CtdtSE_Id, (SELECT TOP 1 ma_chuong_trinh FROM ChuongTrinhDaoTao))
+                WHEN Nums.N <= 40 THEN ISNULL(@CtdtGD_Id, (SELECT TOP 1 ma_chuong_trinh FROM ChuongTrinhDaoTao))
+                ELSE ISNULL(@CtdtDM_Id, (SELECT TOP 1 ma_chuong_trinh FROM ChuongTrinhDaoTao))
+            END,
             g.id,
             2024,
-            35,
+            40,
             1
         FROM (SELECT TOP 50 ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) AS N FROM master.dbo.spt_values) AS Nums
         JOIN @GVCN g ON Nums.N = g.row_num
         WHERE NOT EXISTS (
             SELECT 1 FROM LopHanhChinh x 
-            WHERE x.ma_code_lop = 'SE' + CAST(@CampusIdx AS NVARCHAR) + RIGHT('00' + CAST(N AS NVARCHAR), 2)
+            WHERE x.ma_don_vi = @CampusId
+              AND x.ma_code_lop = CASE 
+                    WHEN Nums.N <= 25 THEN 'SE' + CAST(@CampusIdx AS NVARCHAR) + RIGHT('00' + CAST(Nums.N AS NVARCHAR), 2)
+                    WHEN Nums.N <= 40 THEN 'GD' + CAST(@CampusIdx AS NVARCHAR) + RIGHT('00' + CAST(Nums.N - 25 AS NVARCHAR), 2)
+                    ELSE 'DM' + CAST(@CampusIdx AS NVARCHAR) + RIGHT('00' + CAST(Nums.N - 40 AS NVARCHAR), 2)
+                END
         );
 
         DELETE FROM @GVCN;
