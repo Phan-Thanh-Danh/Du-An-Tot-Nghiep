@@ -285,7 +285,7 @@ public class RewardCampaignService : IRewardCampaignService
         CurrentUserContext currentUser,
         HashSet<int> allowedOrganizationIds)
     {
-        if (currentUser.Role == AuthRoles.SuperAdmin)
+        if (currentUser.Role is AuthRoles.SuperAdmin or AuthRoles.Chairman or "sieu_quan_tri" or "chu_tich")
         {
             return query;
         }
@@ -385,13 +385,18 @@ public class RewardCampaignService : IRewardCampaignService
                 x.MaHocKy == maHocKy &&
                 x.MaDonVi == maDonVi &&
                 x.LoaiDot == RewardDisciplineConstants.RewardCampaignTypes.Top100Semester &&
-                ActiveStatuses.Contains(x.TrangThai) &&
+                (x.TrangThai == RewardDisciplineConstants.RewardCampaignStatuses.Draft ||
+                 x.TrangThai == RewardDisciplineConstants.RewardCampaignStatuses.Evaluating ||
+                 x.TrangThai == RewardDisciplineConstants.RewardCampaignStatuses.PendingApproval ||
+                 x.TrangThai == "nhap" ||
+                 x.TrangThai == "dang_xet" ||
+                 x.TrangThai == "cho_duyet") &&
                 (!excludeId.HasValue || x.MaDotKhenThuong != excludeId.Value),
                 cancellationToken);
 
         if (duplicate)
         {
-            throw new ApiException(StatusCodes.Status409Conflict, "Đã có đợt Top 100 học kỳ đang hoạt động cho học kỳ và cơ sở này.");
+            throw new ApiException(StatusCodes.Status409Conflict, "Đã có đợt Top 100 học kỳ đang trong tiến trình xét duyệt cho học kỳ và cơ sở này.");
         }
     }
 
