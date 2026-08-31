@@ -38,20 +38,20 @@ BEGIN TRY
     WHERE NOT EXISTS (SELECT 1 FROM GiaoVienChuyenNganh gvcn WHERE gvcn.ma_giao_vien = TeacherRanked.ma_nguoi_dung);
 
     PRINT N'- Đang cấp quyền dạy môn học (GiaoVienMonHoc)...';
-    INSERT INTO GiaoVienMonHoc (ma_giao_vien, ma_mon_hoc, muc_do_phu_hop, so_lan_da_day, so_nam_kinh_nghiem, ngay_tao)
-    SELECT ma_giao_vien, @COM101, 5, 10, 3, @CurrentDate FROM GiaoVienChuyenNganh WHERE ma_chuyen_nganh = @SE
+    INSERT INTO GiaoVienMonHoc (ma_giao_vien, ma_mon_hoc, muc_do_phu_hop, so_lan_da_day, so_nam_kinh_nghiem, la_mon_chinh, ngay_tao)
+    SELECT ma_giao_vien, @COM101, 5, 10, 3, 1, @CurrentDate FROM GiaoVienChuyenNganh WHERE ma_chuyen_nganh = @SE
       AND NOT EXISTS (SELECT 1 FROM GiaoVienMonHoc gm WHERE gm.ma_giao_vien = GiaoVienChuyenNganh.ma_giao_vien AND gm.ma_mon_hoc = @COM101);
-    INSERT INTO GiaoVienMonHoc (ma_giao_vien, ma_mon_hoc, muc_do_phu_hop, so_lan_da_day, so_nam_kinh_nghiem, ngay_tao)
-    SELECT ma_giao_vien, @DBI202, 5, 8, 3, @CurrentDate FROM GiaoVienChuyenNganh WHERE ma_chuyen_nganh = @SE
+    INSERT INTO GiaoVienMonHoc (ma_giao_vien, ma_mon_hoc, muc_do_phu_hop, so_lan_da_day, so_nam_kinh_nghiem, la_mon_chinh, ngay_tao)
+    SELECT ma_giao_vien, @DBI202, 5, 8, 3, 1, @CurrentDate FROM GiaoVienChuyenNganh WHERE ma_chuyen_nganh = @SE
       AND NOT EXISTS (SELECT 1 FROM GiaoVienMonHoc gm WHERE gm.ma_giao_vien = GiaoVienChuyenNganh.ma_giao_vien AND gm.ma_mon_hoc = @DBI202);
-    INSERT INTO GiaoVienMonHoc (ma_giao_vien, ma_mon_hoc, muc_do_phu_hop, so_lan_da_day, so_nam_kinh_nghiem, ngay_tao)
-    SELECT ma_giao_vien, @WEB104, 5, 5, 2, @CurrentDate FROM GiaoVienChuyenNganh WHERE ma_chuyen_nganh = @SE
+    INSERT INTO GiaoVienMonHoc (ma_giao_vien, ma_mon_hoc, muc_do_phu_hop, so_lan_da_day, so_nam_kinh_nghiem, la_mon_chinh, ngay_tao)
+    SELECT ma_giao_vien, @WEB104, 5, 5, 2, 1, @CurrentDate FROM GiaoVienChuyenNganh WHERE ma_chuyen_nganh = @SE
       AND NOT EXISTS (SELECT 1 FROM GiaoVienMonHoc gm WHERE gm.ma_giao_vien = GiaoVienChuyenNganh.ma_giao_vien AND gm.ma_mon_hoc = @WEB104);
-    INSERT INTO GiaoVienMonHoc (ma_giao_vien, ma_mon_hoc, muc_do_phu_hop, so_lan_da_day, so_nam_kinh_nghiem, ngay_tao)
-    SELECT ma_giao_vien, @UIX101, 5, 12, 4, @CurrentDate FROM GiaoVienChuyenNganh WHERE ma_chuyen_nganh = @GD
+    INSERT INTO GiaoVienMonHoc (ma_giao_vien, ma_mon_hoc, muc_do_phu_hop, so_lan_da_day, so_nam_kinh_nghiem, la_mon_chinh, ngay_tao)
+    SELECT ma_giao_vien, @UIX101, 5, 12, 4, 1, @CurrentDate FROM GiaoVienChuyenNganh WHERE ma_chuyen_nganh = @GD
       AND NOT EXISTS (SELECT 1 FROM GiaoVienMonHoc gm WHERE gm.ma_giao_vien = GiaoVienChuyenNganh.ma_giao_vien AND gm.ma_mon_hoc = @UIX101);
-    INSERT INTO GiaoVienMonHoc (ma_giao_vien, ma_mon_hoc, muc_do_phu_hop, so_lan_da_day, so_nam_kinh_nghiem, ngay_tao)
-    SELECT ma_giao_vien, @MKT101, 5, 15, 5, @CurrentDate FROM GiaoVienChuyenNganh WHERE ma_chuyen_nganh = @DM
+    INSERT INTO GiaoVienMonHoc (ma_giao_vien, ma_mon_hoc, muc_do_phu_hop, so_lan_da_day, so_nam_kinh_nghiem, la_mon_chinh, ngay_tao)
+    SELECT ma_giao_vien, @MKT101, 5, 15, 5, 1, @CurrentDate FROM GiaoVienChuyenNganh WHERE ma_chuyen_nganh = @DM
       AND NOT EXISTS (SELECT 1 FROM GiaoVienMonHoc gm WHERE gm.ma_giao_vien = GiaoVienChuyenNganh.ma_giao_vien AND gm.ma_mon_hoc = @MKT101);
 
     BEGIN TRY EXEC('UPDATE GiaoVienMonHoc SET con_hoat_dong = 1 WHERE con_hoat_dong IS NULL OR con_hoat_dong = 0;'); END TRY BEGIN CATCH END CATCH;
