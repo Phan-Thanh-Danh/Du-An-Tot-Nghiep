@@ -541,7 +541,8 @@ public class RewardCampaignService : IRewardCampaignService
 
     private static void EnsureCanRead(CurrentUserContext currentUser)
     {
-        if (currentUser.Role is not (AuthRoles.SuperAdmin or AuthRoles.Admin or AuthRoles.CampusAdmin or AuthRoles.Principal or AuthRoles.Chairman))
+        if (currentUser.Role is not (AuthRoles.SuperAdmin or AuthRoles.Admin or AuthRoles.CampusAdmin or AuthRoles.Principal or AuthRoles.Chairman
+            or "sieu_quan_tri" or "quan_tri" or "quan_tri_co_so" or "hieu_truong" or "chu_tich"))
         {
             throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền xem đợt khen thưởng.");
         }
@@ -549,7 +550,8 @@ public class RewardCampaignService : IRewardCampaignService
 
     private static void EnsureSuperAdmin(CurrentUserContext currentUser)
     {
-        if (currentUser.Role is not (AuthRoles.SuperAdmin or AuthRoles.Admin or AuthRoles.CampusAdmin or AuthRoles.Principal or AuthRoles.Chairman))
+        if (currentUser.Role is not (AuthRoles.SuperAdmin or AuthRoles.Admin or AuthRoles.CampusAdmin or AuthRoles.Principal or AuthRoles.Chairman
+            or "sieu_quan_tri" or "quan_tri" or "quan_tri_co_so" or "hieu_truong" or "chu_tich"))
         {
             throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền quản lý đợt khen thưởng.");
         }
@@ -558,9 +560,9 @@ public class RewardCampaignService : IRewardCampaignService
     private static void EnsureOrganizationInReadScope(
         CurrentUserContext currentUser,
         HashSet<int> allowedOrganizationIds,
-        int maDonVi)
+        int? maDonVi)
     {
-        if (currentUser.Role != AuthRoles.SuperAdmin && currentUser.Role != AuthRoles.Chairman && !allowedOrganizationIds.Contains(maDonVi))
+        if (currentUser.Role != AuthRoles.SuperAdmin && currentUser.Role != AuthRoles.Chairman && currentUser.Role != "sieu_quan_tri" && currentUser.Role != "chu_tich" && maDonVi.HasValue && !allowedOrganizationIds.Contains(maDonVi.Value))
         {
             throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền thao tác trên đợt khen thưởng của đơn vị này.");
         }

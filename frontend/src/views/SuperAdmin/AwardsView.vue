@@ -54,9 +54,12 @@ const resetCreateForm = () => {
 }
 
 const filteredTerms = computed(() => {
-  if (!createForm.value.maDonVi) return []
-  return terms.value.filter(t => (t.maDonVi ?? t.MaDonVi) === createForm.value.maDonVi)
+  const targetCampusId = isGlobalAdmin.value ? createForm.value.maDonVi : (userCampusId.value || createForm.value.maDonVi)
+  if (!targetCampusId) return terms.value
+  const matched = terms.value.filter(t => (t.maDonVi ?? t.MaDonVi) === targetCampusId)
+  return matched.length > 0 ? matched : terms.value
 })
+
 const campaigns = ref([])
 const loading = ref(false)
 const confirmAction = ref(null)
@@ -103,9 +106,13 @@ const mapCandidate = (item) => ({
 const fetchCampaigns = async () => {
   loading.value = true
   try {
-    const res = await rewardDisciplineApi.getRewardCampaigns({ pageIndex: 1, pageSize: 50 })
+    const params = { pageIndex: 1, pageSize: 50 }
+    if (!isGlobalAdmin.value && userCampusId.value) {
+      params.maDonVi = userCampusId.value
+    }
+    const res = await rewardDisciplineApi.getRewardCampaigns(params)
     const data = unwrapApiData(res)
-    campaigns.value = (data?.items ?? data?.Items ?? []).map(mapCampaign)
+    campaigns.value = (data?.items ?? data?.Items ?? (Array.isArray(data) ? data : [])).map(mapCampaign)
   } catch (err) {
     console.error(err)
     campaigns.value = []
@@ -119,8 +126,8 @@ onMounted(async () => {
   fetchCampaigns()
   try {
     const [termsRes, templatesRes, orgRes] = await Promise.all([
-      academicTermApi.list({ pageIndex: 1, pageSize: 1000 }),
-      certificateTemplateApi.getTemplates({ pageIndex: 1, pageSize: 100 }),
+      academicTermApi.list({ pageIndex: 1, pageSize: 1000 }).catch(() => []),
+      certificateTemplateApi.getTemplates({ pageIndex: 1, pageSize: 100 }).catch(() => null),
       organizationApi.getAll().catch(() => null)
     ])
     terms.value = termsRes || []
@@ -128,29 +135,29 @@ onMounted(async () => {
     // Filter campuses
     const orgs = unwrapApiData(orgRes) || []
     const campusList = orgs.filter(o => o.loaiDonVi === 'Campus' || o.LoaiDonVi === 'Campus')
-    let allCampuses = campusList.length ? campusList : orgs
+    campuses.value = campusList.length ? campusList : orgs
+
     if (!isGlobalAdmin.value && userCampusId.value) {
-      allCampuses = allCampuses.filter(c => (c.id || c.Id || c.maDonVi || c.MaDonVi) === userCampusId.value)
       createForm.value.maDonVi = userCampusId.value
     }
-    campuses.value = allCampuses
 
-    const tplData = unwrapApiData(templatesRes)
-    templates.value = tplData?.items ?? tplData?.Items ?? []
+    const tplData = unwrapApiData(templatesRes) || templatesRes
+    templates.value = tplData?.items ?? tplData?.Items ?? (Array.isArray(tplData) ? tplData : [])
   } catch (err) {
     console.error('Lỗi tải danh mục:', err)
   }
 })
 
 const submitCreateForm = async () => {
-  if (!createForm.value.tenDot || !createForm.value.maHocKy || !createForm.value.maDonVi) {
-    popupStore.error('Thiếu thông tin', 'Vui lòng nhập tên đợt, chọn cơ sở và học kỳ.')
+  const targetCampusId = isGlobalAdmin.value ? createForm.value.maDonVi : (userCampusId.value || createForm.value.maDonVi)
+  if (!createForm.value.tenDot || !createForm.value.maHocKy || !targetCampusId) {
+    popupStore.error('Thiếu thông tin', 'Vui lòng nhập tên đợt và chọn học kỳ.')
     return
   }
   isSubmitting.value = true
   try {
     await rewardDisciplineApi.createTop100Campaign({
-      MaDonVi: createForm.value.maDonVi,
+      MaDonVi: targetCampusId,
       MaHocKy: createForm.value.maHocKy,
       TenDot: createForm.value.tenDot,
       SoLuongToiDa: createForm.value.soLuongToiDa,
@@ -519,10 +526,11 @@ const cancelCampaignAction = () => {
             <input v-model="createForm.tenDot" type="text" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg focus:ring-2 focus:ring-(--border-focus) outline-none transition-shadow text-sm" placeholder="VD: Khen thưởng Top 100 Học kỳ..." />
           </div>
 
-          <div class="grid grid-cols-2 gap-4">
+          <!-- Nếu là Global SuperAdmin: Hiển thị cả Cơ sở và Học kỳ -->
+          <div v-if="isGlobalAdmin" class="grid grid-cols-2 gap-4">
             <div class="flex flex-col gap-1.5">
               <label class="text-sm font-medium text-(--text-body)">Cơ sở <span class="text-red-500">*</span></label>
-              <select v-model="createForm.maDonVi" :disabled="!isGlobalAdmin && Boolean(userCampusId)" @change="createForm.maHocKy = null" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg focus:ring-2 focus:ring-(--border-focus) outline-none transition-shadow text-sm disabled:opacity-75 disabled:bg-gray-100 dark:disabled:bg-gray-800">
+              <select v-model="createForm.maDonVi" @change="createForm.maHocKy = null" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg focus:ring-2 focus:ring-(--border-focus) outline-none transition-shadow text-sm">
                 <option :value="null">-- Chọn cơ sở --</option>
                 <option v-for="c in campuses" :key="c.id || c.Id || c.maDonVi" :value="c.id || c.Id || c.maDonVi">
                   {{ c.tenDonVi || c.TenDonVi || c.name }}
@@ -539,10 +547,29 @@ const cancelCampaignAction = () => {
                 </option>
               </select>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-(--text-label) mb-1">Số lượng tối đa</label>
+          </div>
+
+          <!-- Nếu là BGH Cơ sở: Ẩn chọn cơ sở, tự động lấy theo BGH, chỉ hiện Học kỳ và Số lượng tối đa -->
+          <div v-else class="grid grid-cols-2 gap-4">
+            <div class="flex flex-col gap-1.5">
+              <label class="text-sm font-medium text-(--text-body)">Học kỳ <span class="text-red-500">*</span></label>
+              <select v-model="createForm.maHocKy" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg focus:ring-2 focus:ring-(--border-focus) outline-none transition-shadow text-sm">
+                <option :value="null">-- Chọn học kỳ --</option>
+                <option v-for="t in filteredTerms" :key="t.maHocKy || t.MaHocKy" :value="t.maHocKy || t.MaHocKy">
+                  {{ t.tenHocKy || t.TenHocKy }}
+                </option>
+              </select>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <label class="text-sm font-medium text-(--text-body)">Số lượng tối đa</label>
               <input v-model.number="createForm.soLuongToiDa" type="number" min="1" max="1000" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg focus:ring-2 focus:ring-(--border-focus) outline-none transition-shadow text-sm" />
             </div>
+          </div>
+
+          <div v-if="isGlobalAdmin" class="flex flex-col gap-1.5">
+            <label class="text-sm font-medium text-(--text-body)">Số lượng tối đa</label>
+            <input v-model.number="createForm.soLuongToiDa" type="number" min="1" max="1000" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg focus:ring-2 focus:ring-(--border-focus) outline-none transition-shadow text-sm" />
           </div>
 
           <div>

@@ -835,7 +835,8 @@ public partial class CertificateTemplateService : ICertificateTemplateService
 
     private static void EnsureSuperAdmin(CurrentUserContext currentUser)
     {
-        if (currentUser.Role is not (AuthRoles.SuperAdmin or AuthRoles.Admin or AuthRoles.CampusAdmin or AuthRoles.Principal or AuthRoles.Chairman))
+        if (currentUser.Role is not (AuthRoles.SuperAdmin or AuthRoles.Admin or AuthRoles.CampusAdmin or AuthRoles.Principal or AuthRoles.Chairman
+            or "sieu_quan_tri" or "quan_tri" or "quan_tri_co_so" or "hieu_truong" or "chu_tich"))
         {
             throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền quản lý mẫu bằng khen.");
         }
