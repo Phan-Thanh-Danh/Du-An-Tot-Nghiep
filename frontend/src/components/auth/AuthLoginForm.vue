@@ -69,13 +69,13 @@ function checkCapsLock(e) {
 }
 
 const fastLoginAccounts = {
-  teacher: { email: 'teacher.cntt@lms.local', password: '123456', label: 'Tài khoản Giảng viên (Demo)' },
-  student: { email: 'p12test_student011@lms.local', password: 'Test@123', label: 'Tài khoản Sinh viên (Demo)' },
-  parent: { email: 'p15test_parent01@lms.local', password: 'Test@123', label: 'Tài khoản Phụ huynh (Demo)' },
-  staff: { email: 'p12test_staff01@lms.local', password: 'Test@123', label: 'Tài khoản Giáo vụ (Demo)' },
-  bgh: { email: 'p15test_bgh01@lms.local', password: 'Test@123', label: 'Tài khoản BGH (Demo)' },
-  'content-council': { email: 'p15test_content01@lms.local', password: 'Test@123', label: 'Tài khoản HĐND (Demo)' },
-  'super-admin': { email: 'admin@lms.local', password: '123456', label: 'Tài khoản Quản trị (Demo)' }
+  teacher: { email: 'gv1.cs1@aet.local', password: '123456', label: 'Tài khoản Giảng viên (Demo)' },
+  student: { email: 'sv1.cs1@aet.local', password: '123456', label: 'Tài khoản Sinh viên (Demo)' },
+  parent: { email: 'ph1.cs1@aet.local', password: '123456', label: 'Tài khoản Phụ huynh (Demo)' },
+  staff: { email: 'giaovu1.cs1@aet.local', password: '123456', label: 'Tài khoản Giáo vụ (Demo)' },
+  bgh: { email: 'hieupho.cs1@aet.local', password: '123456', label: 'Tài khoản BGH (Demo)' },
+  'content-council': { email: 'hdqlnd@aet.local', password: '123456', label: 'Tài khoản HĐND (Demo)' },
+  'super-admin': { email: 'superadmin@aet.local', password: '123456', label: 'Tài khoản Quản trị (Demo)' },
 }
 
 const fastAccount = computed(() => {
