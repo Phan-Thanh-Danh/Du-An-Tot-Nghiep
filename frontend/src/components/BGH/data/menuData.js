@@ -55,8 +55,8 @@ export const bghMenuGroups = [
       { id: 'evaluations', label: 'Đánh giá Giảng viên', icon: 'Star', route: '/bgh/evaluations' },
       { id: 'evaluations-ranking', label: 'Xếp hạng giảng viên', icon: 'Trophy', route: '/bgh/evaluations/ranking' },
       { id: 'evaluations-overview', label: 'Tổng quan đánh giá', icon: 'PieChart', route: '/bgh/evaluations/overview' },
-      { id: 'evaluations-ai-analysis', label: 'Phân tích Feedback AI', icon: 'Brain', route: '/bgh/evaluations/ai-analysis', permission: 'reports.ai_analysis' },
       { id: 'awards', label: 'Quản lý Khen thưởng', icon: 'Award', route: '/bgh/awards' },
+      { id: 'bgh-certificate-templates', label: 'Cấu hình giấy khen', icon: 'FileCheck', route: '/bgh/awards/certificate-templates' },
     ],
   },
 

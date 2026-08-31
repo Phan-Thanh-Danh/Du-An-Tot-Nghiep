@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Code2, Plus, Power, Search } from 'lucide-vue-next'
+import { Code2, Eye, Plus, Power, Search } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
@@ -13,6 +13,8 @@ import { usePopupStore } from '@/stores/popup'
 const route = useRoute()
 const router = useRouter()
 const popupStore = usePopupStore()
+
+const isBgh = computed(() => route.path.startsWith('/bgh'))
 
 const loading = ref(true)
 const templates = ref([])
@@ -40,11 +42,19 @@ async function loadTemplates() {
 }
 
 function openCreate() {
-  router.push('/super-admin/awards/certificate-templates/new')
+  if (isBgh.value) {
+    router.push('/bgh/awards/certificate-templates/new')
+  } else {
+    router.push('/super-admin/awards/certificate-templates/new')
+  }
 }
 
 function openEdit(template) {
-  router.push(`/super-admin/awards/certificate-templates/${template.maMauBangKhen}/edit`)
+  if (isBgh.value) {
+    router.push(`/bgh/awards/certificate-templates/${template.maMauBangKhen}/edit`)
+  } else {
+    router.push(`/super-admin/awards/certificate-templates/${template.maMauBangKhen}/edit`)
+  }
 }
 
 async function toggleActive(template) {
@@ -52,7 +62,6 @@ async function toggleActive(template) {
     await certificateTemplateApi.disableTemplate(template.maMauBangKhen)
     popupStore.success('Thành công', 'Đã vô hiệu hóa mẫu giấy khen.')
     await loadTemplates()
-    // close confirm dialog
     confirmDisable.value = null
   } catch (err) {
     popupStore.error('Lỗi', err?.message || 'Vô hiệu hóa mẫu thất bại.')
@@ -64,7 +73,6 @@ async function deleteTemplate(template) {
     await certificateTemplateApi.deleteTemplate(template.maMauBangKhen)
     popupStore.success('Thành công', 'Đã xóa mẫu giấy khen.')
     await loadTemplates()
-    // close confirm dialog
     confirmDelete.value = null
   } catch (err) {
     popupStore.error('Lỗi', err?.message || 'Xóa mẫu thất bại.')
@@ -74,7 +82,7 @@ async function deleteTemplate(template) {
 onMounted(loadTemplates)
 
 watch(() => route.path, () => {
-  if (route.path === '/super-admin/awards/certificate-templates') {
+  if (route.path === '/super-admin/awards/certificate-templates' || route.path === '/bgh/awards/certificate-templates') {
     loadTemplates()
   }
 })
@@ -86,13 +94,15 @@ watch(() => route.path, () => {
       <div>
         <div class="flex flex-wrap items-center gap-2">
           <h2 class="text-heading text-lg font-bold">Cấu hình giấy khen</h2>
-          <GlassBadge variant="secondary">mẫu bằng khen</GlassBadge>
+          <GlassBadge variant="secondary">{{ isBgh ? 'BGH Cơ sở' : 'Super Admin' }}</GlassBadge>
         </div>
-        <p class="text-label mt-0.5 text-sm">Custom mẫu giấy khen bằng HTML/CSS, xem trước trực tiếp và cấp phát chứng nhận theo mẫu.</p>
+        <p class="text-label mt-0.5 text-sm">
+          {{ isBgh ? 'Xem mẫu chuẩn của Toàn trường hoặc tự thiết kế mẫu giấy khen riêng cho Cơ sở.' : 'Custom mẫu giấy khen bằng HTML/CSS, xem trước trực tiếp và cấp phát chứng nhận theo mẫu.' }}
+        </p>
       </div>
       <GlassButton variant="primary" @click="openCreate">
         <template #leading><Plus :size="16" /></template>
-        Tạo mẫu mới
+        {{ isBgh ? 'Tạo mẫu cho cơ sở' : 'Tạo mẫu mới' }}
       </GlassButton>
     </div>
 
@@ -112,7 +122,7 @@ watch(() => route.path, () => {
       >
         <GlassButton variant="primary" size="sm" @click="openCreate">
           <template #leading><Plus :size="14" /></template>
-          Tạo mẫu mới
+          {{ isBgh ? 'Tạo mẫu cho cơ sở' : 'Tạo mẫu mới' }}
         </GlassButton>
       </EmptyState>
     </div>
@@ -122,6 +132,7 @@ watch(() => route.path, () => {
         <thead class="bg-slate-50 text-xs font-bold uppercase text-(--text-muted) dark:bg-slate-800/50">
           <tr>
             <th scope="col" class="px-4 py-3 border-b border-(--border-card)">Tên mẫu</th>
+            <th scope="col" class="px-4 py-3 border-b border-(--border-card)">Phạm vi</th>
             <th scope="col" class="px-4 py-3 border-b border-(--border-card)">Loại mẫu</th>
             <th scope="col" class="px-4 py-3 border-b border-(--border-card)">Chế độ</th>
             <th scope="col" class="px-4 py-3 border-b border-(--border-card)">Kích thước</th>
@@ -135,6 +146,14 @@ watch(() => route.path, () => {
             <td class="px-4 py-3">
               <div class="font-bold text-(--text-heading)">{{ t.tenMau }}</div>
               <div v-if="t.tenNguoiTao" class="text-xs text-(--text-placeholder)">tạo bởi {{ t.tenNguoiTao }}</div>
+            </td>
+            <td class="px-4 py-3">
+              <GlassBadge v-if="t.isRootTemplate || t.maDonVi === 1 || !t.maDonVi" variant="info" size="sm">
+                🌐 Toàn trường
+              </GlassBadge>
+              <GlassBadge v-else variant="success" size="sm">
+                📍 {{ t.tenDonVi || 'Cơ sở' }}
+              </GlassBadge>
             </td>
             <td class="px-4 py-3 text-xs font-mono text-(--text-muted)">{{ t.loaiMau }}</td>
             <td class="px-4 py-3">
@@ -154,22 +173,32 @@ watch(() => route.path, () => {
             <td class="px-4 py-3 text-xs text-(--text-muted)">{{ t.ngayCapNhat || t.ngayTao ? (t.ngayCapNhat || t.ngayTao).slice(0, 10) : '—' }}</td>
             <td class="px-4 py-3">
               <div class="flex items-center justify-end gap-2">
-                <GlassButton variant="secondary" size="sm" @click="openEdit(t)">
-                  <template #leading><Code2 :size="13" /></template>
-                  Sửa
-                </GlassButton>
-                <GlassButton v-if="t.conHoatDong" variant="ghost" size="sm" @click="confirmDisable = t">
-                  <template #leading><Power :size="13" /></template>
-                  Tạm ẩn
-                </GlassButton>
-                <GlassButton v-else variant="secondary" size="sm" @click="confirmDisable = t">
-                  <template #leading><Power :size="13" /></template>
-                  Kích hoạt
-                </GlassButton>
-                <GlassButton variant="danger" size="sm" @click="confirmDelete = t">
-                  <template #leading>🗑️</template>
-                  Xóa
-                </GlassButton>
+                <!-- BGH xem mẫu Root -->
+                <template v-if="isBgh && (t.isRootTemplate || t.maDonVi === 1 || !t.maDonVi)">
+                  <GlassButton variant="secondary" size="sm" @click="openEdit(t)">
+                    <template #leading><Eye :size="13" /></template>
+                    Xem & Sao chép
+                  </GlassButton>
+                </template>
+                <!-- Mẫu của cơ sở hoặc SuperAdmin -->
+                <template v-else>
+                  <GlassButton variant="secondary" size="sm" @click="openEdit(t)">
+                    <template #leading><Code2 :size="13" /></template>
+                    Sửa
+                  </GlassButton>
+                  <GlassButton v-if="t.conHoatDong" variant="ghost" size="sm" @click="confirmDisable = t">
+                    <template #leading><Power :size="13" /></template>
+                    Tạm ẩn
+                  </GlassButton>
+                  <GlassButton v-else variant="secondary" size="sm" @click="confirmDisable = t">
+                    <template #leading><Power :size="13" /></template>
+                    Kích hoạt
+                  </GlassButton>
+                  <GlassButton variant="danger" size="sm" @click="confirmDelete = t">
+                    <template #leading>🗑️</template>
+                    Xóa
+                  </GlassButton>
+                </template>
               </div>
             </td>
           </tr>

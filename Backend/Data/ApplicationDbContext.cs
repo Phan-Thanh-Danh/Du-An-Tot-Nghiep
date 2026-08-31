@@ -3464,6 +3464,8 @@ public class ApplicationDbContext : DbContext
             entity.HasKey(e => e.MaMauBangKhen).HasName("PK_MauBangKhen");
             entity.Property(e => e.MaMauBangKhen)
                 .HasColumnName("ma_mau_bang_khen");
+            entity.Property(e => e.MaDonVi)
+                .HasColumnName("ma_don_vi");
             entity.Property(e => e.TenMau)
                 .HasColumnName("ten_mau")
                 .HasMaxLength(200)
@@ -3502,6 +3504,8 @@ public class ApplicationDbContext : DbContext
 
             entity.HasIndex(e => new { e.LoaiMau, e.ConHoatDong })
                 .HasDatabaseName("IX_MauBangKhen_loai_mau_con_hoat_dong");
+            entity.HasIndex(e => e.MaDonVi)
+                .HasDatabaseName("IX_MauBangKhen_ma_don_vi");
 
             entity.ToTable(t => t.HasCheckConstraint(
                 "CK_MauBangKhen_loai_mau",
@@ -3515,6 +3519,12 @@ public class ApplicationDbContext : DbContext
             entity.ToTable(t => t.HasCheckConstraint(
                 "CK_MauBangKhen_cau_hinh_json",
                 "[cau_hinh_json] IS NULL OR ISJSON([cau_hinh_json]) = 1"));
+
+            entity.HasOne(e => e.DonViNavigation)
+                .WithMany()
+                .HasForeignKey(e => e.MaDonVi)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_MauBangKhen_ma_don_vi__DonVi");
 
             entity.HasOne(e => e.NguoiTaoNavigation)
                 .WithMany()

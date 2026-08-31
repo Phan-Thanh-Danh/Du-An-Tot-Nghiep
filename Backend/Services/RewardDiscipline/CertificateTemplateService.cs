@@ -73,11 +73,20 @@ public partial class CertificateTemplateService : ICertificateTemplateService
         CertificateTemplateQueryParameters parameters,
         CancellationToken cancellationToken = default)
     {
-        EnsureSuperAdmin(GetCurrentUser());
+        var currentUser = GetCurrentUser();
+        EnsureSuperAdmin(currentUser);
 
         var pageIndex = Math.Max(1, parameters.PageIndex);
         var pageSize = Math.Clamp(parameters.PageSize, 1, 100);
         var query = _context.MauBangKhens.AsNoTracking();
+
+        // Multi-campus dynamic scoping:
+        // SuperAdmin/Chairman: xem tất cả mẫu.
+        // Principal/CampusAdmin: xem mẫu Root (null hoặc 1) + mẫu riêng của cơ sở trong token (currentUser.CampusId).
+        if (currentUser.Role is not (AuthRoles.SuperAdmin or AuthRoles.Chairman or "sieu_quan_tri" or "chu_tich"))
+        {
+            query = query.Where(x => x.MaDonVi == null || x.MaDonVi == 1 || x.MaDonVi == currentUser.CampusId);
+        }
 
         if (!string.IsNullOrWhiteSpace(parameters.LoaiMau))
         {
@@ -102,7 +111,7 @@ public partial class CertificateTemplateService : ICertificateTemplateService
             .ThenByDescending(x => x.Template.MaMauBangKhen)
             .Skip((pageIndex - 1) * pageSize)
             .Take(pageSize)
-            .Select(x => ToDto(x.Template, x.CreatorName))
+            .Select(x => ToDto(x.Template, x.CreatorName, x.DonViName))
             .ToListAsync(cancellationToken);
 
         return new PagedResultDto<CertificateTemplateDto>
@@ -118,7 +127,8 @@ public partial class CertificateTemplateService : ICertificateTemplateService
         int id,
         CancellationToken cancellationToken = default)
     {
-        EnsureSuperAdmin(GetCurrentUser());
+        var currentUser = GetCurrentUser();
+        EnsureSuperAdmin(currentUser);
         var row = await ProjectTemplate(_context.MauBangKhens.AsNoTracking().Where(x => x.MaMauBangKhen == id))
             .FirstOrDefaultAsync(cancellationToken);
         if (row is null)
@@ -126,7 +136,14 @@ public partial class CertificateTemplateService : ICertificateTemplateService
             throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy mẫu bằng khen.");
         }
 
-        return ToDto(row.Template, row.CreatorName);
+        // Kiểm tra quyền xem: nếu không phải SuperAdmin/Chairman, chỉ xem mẫu Root (null hoặc 1) hoặc mẫu của cơ sở mình
+        if (currentUser.Role is not (AuthRoles.SuperAdmin or AuthRoles.Chairman or "sieu_quan_tri" or "chu_tich") &&
+            row.Template.MaDonVi != null && row.Template.MaDonVi != 1 && row.Template.MaDonVi != currentUser.CampusId)
+        {
+            throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền xem mẫu bằng khen của cơ sở khác.");
+        }
+
+        return ToDto(row.Template, row.CreatorName, row.DonViName);
     }
 
     public async Task<CertificateTemplateDto> CreateAsync(
@@ -136,8 +153,20 @@ public partial class CertificateTemplateService : ICertificateTemplateService
         var currentUser = GetCurrentUser();
         EnsureSuperAdmin(currentUser);
 
+        // Động hóa gán MaDonVi từ token
+        int? targetCampusId;
+        if (currentUser.Role is AuthRoles.SuperAdmin or AuthRoles.Chairman or "sieu_quan_tri" or "chu_tich")
+        {
+            targetCampusId = request.MaDonVi.HasValue && request.MaDonVi.Value > 0 ? request.MaDonVi.Value : 1;
+        }
+        else
+        {
+            targetCampusId = currentUser.CampusId > 0 ? currentUser.CampusId : 1;
+        }
+
         var template = new MauBangKhen
         {
+            MaDonVi = targetCampusId,
             TenMau = NormalizeRequiredText(request.TenMau, "Tên mẫu", 200),
             LoaiMau = NormalizeTemplateType(request.LoaiMau),
             FileNenUrl = NormalizeFileUrl(request.FileNenUrl),
@@ -159,7 +188,7 @@ public partial class CertificateTemplateService : ICertificateTemplateService
             null,
             CreateAuditSnapshot(template),
             currentUser.UserId,
-            null,
+            template.MaDonVi,
             "Tạo mẫu bằng khen.",
             cancellationToken);
 
@@ -178,6 +207,20 @@ public partial class CertificateTemplateService : ICertificateTemplateService
         if (template is null)
         {
             throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy mẫu bằng khen.");
+        }
+
+        // BGH không được sửa mẫu của Root hoặc mẫu của cơ sở khác
+        if (currentUser.Role is not (AuthRoles.SuperAdmin or AuthRoles.Chairman or "sieu_quan_tri" or "chu_tich"))
+        {
+            if (template.MaDonVi == null || template.MaDonVi == 1)
+            {
+                throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền chỉnh sửa mẫu chung của toàn hệ thống.");
+            }
+
+            if (template.MaDonVi != currentUser.CampusId)
+            {
+                throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền chỉnh sửa mẫu bằng khen của cơ sở khác.");
+            }
         }
 
         if (!template.ConHoatDong)
@@ -203,7 +246,7 @@ public partial class CertificateTemplateService : ICertificateTemplateService
             oldSnapshot,
             CreateAuditSnapshot(template),
             currentUser.UserId,
-            null,
+            template.MaDonVi,
             "Cập nhật mẫu bằng khen.",
             cancellationToken);
 
@@ -223,6 +266,19 @@ public partial class CertificateTemplateService : ICertificateTemplateService
             throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy mẫu bằng khen.");
         }
 
+        if (currentUser.Role is not (AuthRoles.SuperAdmin or AuthRoles.Chairman or "sieu_quan_tri" or "chu_tich"))
+        {
+            if (template.MaDonVi == null || template.MaDonVi == 1)
+            {
+                throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền tạm ẩn mẫu chung của toàn hệ thống.");
+            }
+
+            if (template.MaDonVi != currentUser.CampusId)
+            {
+                throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền tạm ẩn mẫu bằng khen của cơ sở khác.");
+            }
+        }
+
         if (!template.ConHoatDong)
         {
             return await LoadDtoAsync(template.MaMauBangKhen, cancellationToken);
@@ -240,7 +296,7 @@ public partial class CertificateTemplateService : ICertificateTemplateService
             oldSnapshot,
             CreateAuditSnapshot(template),
             currentUser.UserId,
-            null,
+            template.MaDonVi,
             "Vô hiệu hóa mẫu bằng khen.",
             cancellationToken);
 
@@ -258,6 +314,19 @@ public partial class CertificateTemplateService : ICertificateTemplateService
         if (template is null)
         {
             throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy mẫu bằng khen.");
+        }
+
+        if (currentUser.Role is not (AuthRoles.SuperAdmin or AuthRoles.Chairman or "sieu_quan_tri" or "chu_tich"))
+        {
+            if (template.MaDonVi == null || template.MaDonVi == 1)
+            {
+                throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền xóa mẫu chung của toàn hệ thống.");
+            }
+
+            if (template.MaDonVi != currentUser.CampusId)
+            {
+                throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền xóa mẫu bằng khen của cơ sở khác.");
+            }
         }
 
         // check references: DotKhenThuong (campaigns) and KhenThuong (rewards)
@@ -278,7 +347,7 @@ public partial class CertificateTemplateService : ICertificateTemplateService
             CreateAuditSnapshot(template),
             null,
             currentUser.UserId,
-            null,
+            template.MaDonVi,
             "Xóa mẫu bằng khen.",
             cancellationToken);
     }
@@ -326,9 +395,12 @@ public partial class CertificateTemplateService : ICertificateTemplateService
                 .ToList();
         }
 
+        var isRoot = template.MaDonVi == null || template.MaDonVi == 1;
         return new CertificateTemplatePreviewDto
         {
             MaMauBangKhen = template.MaMauBangKhen,
+            MaDonVi = template.MaDonVi,
+            IsRootTemplate = isRoot,
             TenMau = template.TenMau,
             LoaiMau = template.LoaiMau,
             FileNenUrl = template.FileNenUrl,
@@ -351,7 +423,7 @@ public partial class CertificateTemplateService : ICertificateTemplateService
     {
         var row = await ProjectTemplate(_context.MauBangKhens.AsNoTracking().Where(x => x.MaMauBangKhen == id))
             .FirstAsync(cancellationToken);
-        return ToDto(row.Template, row.CreatorName);
+        return ToDto(row.Template, row.CreatorName, row.DonViName);
     }
 
     private IQueryable<TemplateQueryRow> ProjectTemplate(IQueryable<MauBangKhen> query)
@@ -361,10 +433,14 @@ public partial class CertificateTemplateService : ICertificateTemplateService
             join creator in _context.NguoiDungs.AsNoTracking()
                 on template.NguoiTao equals creator.MaNguoiDung into creatorGroup
             from creator in creatorGroup.DefaultIfEmpty()
+            join donVi in _context.DonVis.AsNoTracking()
+                on template.MaDonVi equals donVi.MaDonVi into donViGroup
+            from donVi in donViGroup.DefaultIfEmpty()
             select new TemplateQueryRow
             {
                 Template = template,
-                CreatorName = creator != null ? creator.HoTen : null
+                CreatorName = creator != null ? creator.HoTen : null,
+                DonViName = donVi != null ? donVi.TenDonVi : null
             };
     }
 
@@ -842,11 +918,15 @@ public partial class CertificateTemplateService : ICertificateTemplateService
         }
     }
 
-    private static CertificateTemplateDto ToDto(MauBangKhen template, string? creatorName)
+    private static CertificateTemplateDto ToDto(MauBangKhen template, string? creatorName, string? donViName = null)
     {
+        var isRoot = template.MaDonVi == null || template.MaDonVi == 1;
         return new CertificateTemplateDto
         {
             MaMauBangKhen = template.MaMauBangKhen,
+            MaDonVi = template.MaDonVi,
+            TenDonVi = isRoot ? "Toàn trường" : (donViName ?? template.DonViNavigation?.TenDonVi ?? "Cơ sở"),
+            IsRootTemplate = isRoot,
             TenMau = template.TenMau,
             LoaiMau = template.LoaiMau,
             FileNenUrl = template.FileNenUrl,
@@ -868,6 +948,7 @@ public partial class CertificateTemplateService : ICertificateTemplateService
         return new
         {
             template.MaMauBangKhen,
+            template.MaDonVi,
             template.TenMau,
             template.LoaiMau,
             template.FileNenUrl,
@@ -906,5 +987,6 @@ public partial class CertificateTemplateService : ICertificateTemplateService
     {
         public MauBangKhen Template { get; init; } = null!;
         public string? CreatorName { get; init; }
+        public string? DonViName { get; init; }
     }
 }

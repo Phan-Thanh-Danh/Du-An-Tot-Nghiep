@@ -577,7 +577,7 @@ const cancelCampaignAction = () => {
             <select v-model="createForm.maMauBangKhen" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg focus:ring-2 focus:ring-(--border-focus) outline-none transition-shadow text-sm">
               <option :value="null">-- Mặc định --</option>
               <option v-for="tpl in templates" :key="tpl.maMauBangKhen || tpl.MaMauBangKhen" :value="tpl.maMauBangKhen || tpl.MaMauBangKhen">
-                {{ tpl.tenMau || tpl.TenMau }}
+                {{ (tpl.isRootTemplate || tpl.maDonVi === 1 || !tpl.maDonVi) ? '🌐 [Toàn trường] ' : '📍 [Cơ sở] ' }}{{ tpl.tenMau || tpl.TenMau }}
               </option>
             </select>
           </div>

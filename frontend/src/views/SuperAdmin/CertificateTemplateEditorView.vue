@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Eye, FileCode2, Loader2, Palette, Save } from 'lucide-vue-next'
+import { ArrowLeft, Copy, Eye, FileCode2, Loader2, Palette, Save } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassInput from '@/components/ui/GlassInput.vue'
@@ -12,6 +12,8 @@ import { usePopupStore } from '@/stores/popup'
 const route = useRoute()
 const router = useRouter()
 const popupStore = usePopupStore()
+
+const isBgh = computed(() => route.path.startsWith('/bgh'))
 
 const TOKENS = [
   { key: 'hoTen', label: 'Họ tên sinh viên' },
@@ -86,6 +88,12 @@ const editingId = computed(() => {
 })
 
 const isEdit = computed(() => Boolean(editingId.value))
+const rawTemplate = ref(null)
+
+const isReadOnly = computed(() => {
+  if (!isBgh.value || !isEdit.value || !rawTemplate.value) return false
+  return Boolean(rawTemplate.value.isRootTemplate || rawTemplate.value.maDonVi === 1 || !rawTemplate.value.maDonVi)
+})
 
 const loading = ref(false)
 const saving = ref(false)
@@ -118,6 +126,7 @@ async function loadTemplate() {
   loading.value = true
   try {
     const template = await certificateTemplateApi.getTemplate(editingId.value)
+    rawTemplate.value = template
     const config = parseConfig(template?.cauHinhJson) || {}
     const isHtml = String(config.mode || '').toLowerCase() === 'html'
     form.value = {
@@ -134,14 +143,29 @@ async function loadTemplate() {
     }
   } catch (err) {
     popupStore.error('Lỗi', err?.message || 'Không tải được mẫu giấy khen.')
-    router.replace('/super-admin/awards/certificate-templates')
+    goBack()
   } finally {
     loading.value = false
   }
 }
 
 function goBack() {
-  router.push('/super-admin/awards/certificate-templates')
+  if (isBgh.value) {
+    router.push('/bgh/awards/certificate-templates')
+  } else {
+    router.push('/super-admin/awards/certificate-templates')
+  }
+}
+
+function cloneToCampus() {
+  rawTemplate.value = null
+  form.value.tenMau = `${form.value.tenMau} (Mẫu Cơ sở)`
+  if (isBgh.value) {
+    router.replace('/bgh/awards/certificate-templates/new')
+  } else {
+    router.replace('/super-admin/awards/certificate-templates/new')
+  }
+  popupStore.success('Đã nhân bản mẫu', 'Đã chuyển thành bản nháp mẫu mới của cơ sở. Bạn có thể thoải mái chỉnh sửa và bấm "Lưu mẫu".')
 }
 
 function buildConfigPayload() {
@@ -156,6 +180,7 @@ function buildConfigPayload() {
 }
 
 async function saveTemplate() {
+  if (isReadOnly.value) return
   formError.value = ''
   if (!form.value.tenMau.trim()) {
     formError.value = 'Tên mẫu không được rỗng.'
@@ -198,7 +223,6 @@ async function saveTemplate() {
 
 const previewDoc = computed(() => {
   const html = form.value.html.replace(/\{\{\s*([\w]+)\s*\}\}/g, (_, key) => SAMPLE_DATA[key] ?? `{{${key}}}`)
-  // Loại bỏ tất cả <link> tags để tránh load CSS từ URL không tồn tại
   const cleanHtml = html.replace(/<link[^>]*>/gi, '')
   return `<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><style>*{box-sizing:border-box;margin:0;padding:0}html,body{width:100%;height:100%}${form.value.css}</style></head><body>${cleanHtml}</body></html>`
 })
@@ -209,6 +233,7 @@ const previewScale = computed(() => {
 })
 
 function insertToken(token) {
+  if (isReadOnly.value) return
   form.value.html += `{{${token}}}`
 }
 
@@ -229,12 +254,38 @@ onMounted(loadTemplate)
         </GlassButton>
         <div>
           <div class="flex flex-wrap items-center gap-2">
-            <h2 class="text-heading text-lg font-bold">{{ isEdit ? 'Sửa mẫu giấy khen' : 'Tạo mẫu giấy khen mới' }}</h2>
-            <GlassBadge variant="secondary">mẫu bằng khen</GlassBadge>
+            <h2 class="text-heading text-lg font-bold">
+              {{ isReadOnly ? 'Chi tiết mẫu giấy khen (Toàn trường)' : isEdit ? 'Sửa mẫu giấy khen' : 'Tạo mẫu giấy khen mới' }}
+            </h2>
+            <GlassBadge v-if="isReadOnly" variant="info">🌐 Mẫu chuẩn Toàn trường</GlassBadge>
+            <GlassBadge v-else variant="secondary">{{ isBgh ? 'Mẫu Cơ sở' : 'Mẫu bằng khen' }}</GlassBadge>
           </div>
-          <p class="text-label mt-0.5 text-sm">Viết HTML/CSS tùy biến, dùng token {{ TOKEN_HINT }} để chèn dữ liệu sinh viên.</p>
+          <p class="text-label mt-0.5 text-sm">
+            {{ isReadOnly ? 'Mẫu dùng chung do Super Admin quản lý (Chế độ xem & sao chép).' : `Viết HTML/CSS tùy biến, dùng token ${TOKEN_HINT} để chèn dữ liệu sinh viên.` }}
+          </p>
         </div>
       </div>
+      <div v-if="isReadOnly">
+        <GlassButton variant="primary" @click="cloneToCampus">
+          <template #leading><Copy :size="16" /></template>
+          ✨ Sao chép thành mẫu cơ sở
+        </GlassButton>
+      </div>
+    </div>
+
+    <!-- Banner thông báo khi xem mẫu Root -->
+    <div v-if="isReadOnly" class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-blue-200 bg-blue-50/90 p-4 text-sm text-blue-900 shadow-sm dark:border-blue-800/50 dark:bg-blue-950/40 dark:text-blue-200">
+      <div class="flex items-center gap-2.5">
+        <span class="text-xl">ℹ️</span>
+        <div>
+          <div class="font-bold">Mẫu chuẩn của Toàn trường (Chế độ Chỉ xem)</div>
+          <div class="text-xs text-blue-700 dark:text-blue-300">Bạn không thể sửa trực tiếp mẫu này. Hãy bấm nút <strong>"Sao chép thành mẫu cơ sở"</strong> để tạo bản sao riêng và tùy chỉnh logo, chữ ký cho cơ sở mình.</div>
+        </div>
+      </div>
+      <GlassButton variant="primary" size="sm" @click="cloneToCampus">
+        <template #leading><Copy :size="14" /></template>
+        ✨ Sao chép thành mẫu cơ sở
+      </GlassButton>
     </div>
 
     <LoadingSkeleton v-if="loading" :lines="8" />
@@ -244,7 +295,7 @@ onMounted(loadTemplate)
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <label class="text-label mb-1 block text-sm font-medium">Tên mẫu *</label>
-            <GlassInput v-model="form.tenMau" placeholder="VD: Giấy khen Top 100 học kỳ" />
+            <GlassInput v-model="form.tenMau" :disabled="isReadOnly" placeholder="VD: Giấy khen Top 100 học kỳ" />
           </div>
           <div>
             <label class="text-label mb-1 block text-sm font-medium">Loại mẫu</label>
@@ -252,19 +303,19 @@ onMounted(loadTemplate)
           </div>
           <div>
             <label class="text-label mb-1 block text-sm font-medium">Ảnh nền (URL)</label>
-            <GlassInput v-model="form.fileNenUrl" placeholder="https://... (không bắt buộc)" />
+            <GlassInput v-model="form.fileNenUrl" :disabled="isReadOnly" placeholder="https://... (không bắt buộc)" />
           </div>
           <div>
             <label class="text-label mb-1 block text-sm font-medium">Chiều rộng (px)</label>
-            <GlassInput v-model.number="form.chieuRong" type="number" min="100" />
+            <GlassInput v-model.number="form.chieuRong" :disabled="isReadOnly" type="number" min="100" />
           </div>
           <div>
             <label class="text-label mb-1 block text-sm font-medium">Chiều cao (px)</label>
-            <GlassInput v-model.number="form.chieuCao" type="number" min="100" />
+            <GlassInput v-model.number="form.chieuCao" :disabled="isReadOnly" type="number" min="100" />
           </div>
           <div>
             <label class="text-label mb-1 block text-sm font-medium">Hướng giấy</label>
-            <select v-model="form.huongGiay" class="h-10 w-full rounded-lg border border-(--border-input) bg-(--surface-input) px-3 text-sm text-(--text-body) outline-none transition-shadow focus:ring-2 focus:ring-(--border-focus)">
+            <select v-model="form.huongGiay" :disabled="isReadOnly" class="h-10 w-full rounded-lg border border-(--border-input) bg-(--surface-input) px-3 text-sm text-(--text-body) outline-none transition-shadow focus:ring-2 focus:ring-(--border-focus)">
               <option value="A4_NGANG">A4 ngang (297×210mm)</option>
               <option value="A4_DOC">A4 dọc (210×297mm)</option>
             </select>
@@ -305,7 +356,8 @@ onMounted(loadTemplate)
               v-for="token in TOKENS"
               :key="token.key"
               type="button"
-              class="rounded-md border border-(--border-card) bg-(--surface-input) px-2 py-1 font-mono text-[11px] text-(--color-info-text) transition-colors hover:bg-(--color-info-bg)"
+              :disabled="isReadOnly"
+              class="rounded-md border border-(--border-card) bg-(--surface-input) px-2 py-1 font-mono text-[11px] text-(--color-info-text) transition-colors hover:bg-(--color-info-bg) disabled:opacity-50"
               :title="token.label"
               @click="insertToken(token.key)"
             >
@@ -319,10 +371,11 @@ onMounted(loadTemplate)
                 <label class="text-label flex items-center gap-1.5 text-sm font-medium">
                   <FileCode2 :size="14" /> HTML
                 </label>
-                <button type="button" class="text-[11px] text-(--color-info-text) underline" @click="form.html = DEFAULT_HTML">Khôi phục mẫu</button>
+                <button v-if="!isReadOnly" type="button" class="text-[11px] text-(--color-info-text) underline" @click="form.html = DEFAULT_HTML">Khôi phục mẫu</button>
               </div>
               <textarea
                 v-model="form.html"
+                :readonly="isReadOnly"
                 rows="14"
                 spellcheck="false"
                 class="w-full resize-y rounded-lg border border-(--border-input) bg-(--surface-input) px-3 py-2 font-mono text-xs text-(--text-body) outline-none transition-shadow focus:ring-2 focus:ring-(--border-focus)"
@@ -332,6 +385,7 @@ onMounted(loadTemplate)
               <label class="text-label mb-1 block text-sm font-medium">CSS</label>
               <textarea
                 v-model="form.css"
+                :readonly="isReadOnly"
                 rows="14"
                 spellcheck="false"
                 class="w-full resize-y rounded-lg border border-(--border-input) bg-(--surface-input) px-3 py-2 font-mono text-xs text-(--text-body) outline-none transition-shadow focus:ring-2 focus:ring-(--border-focus)"
@@ -344,6 +398,7 @@ onMounted(loadTemplate)
           <label class="text-label mb-1 block text-sm font-medium">Cấu hình JSON (fields)</label>
           <textarea
             v-model="form.json"
+            :readonly="isReadOnly"
             rows="14"
             spellcheck="false"
             class="w-full resize-y rounded-lg border border-(--border-input) bg-(--surface-input) px-3 py-2 font-mono text-xs text-(--text-body) outline-none transition-shadow focus:ring-2 focus:ring-(--border-focus)"
@@ -385,11 +440,19 @@ onMounted(loadTemplate)
       </div>
 
       <div class="flex justify-end gap-3">
-        <GlassButton variant="secondary" @click="goBack">Hủy</GlassButton>
-        <GlassButton variant="primary" :disabled="saving" @click="saveTemplate">
-          <template #leading><Save v-if="!saving" :size="16" /><Loader2 v-else class="h-4 w-4 animate-spin" /></template>
-          {{ saving ? 'Đang lưu...' : 'Lưu mẫu' }}
-        </GlassButton>
+        <GlassButton variant="secondary" @click="goBack">Quay lại</GlassButton>
+        <template v-if="isReadOnly">
+          <GlassButton variant="primary" type="button" @click="cloneToCampus">
+            <template #leading><Copy :size="16" /></template>
+            ✨ Sao chép thành mẫu cơ sở
+          </GlassButton>
+        </template>
+        <template v-else>
+          <GlassButton variant="primary" :disabled="saving" @click="saveTemplate">
+            <template #leading><Save v-if="!saving" :size="16" /><Loader2 v-else class="h-4 w-4 animate-spin" /></template>
+            {{ saving ? 'Đang lưu...' : 'Lưu mẫu' }}
+          </GlassButton>
+        </template>
       </div>
     </form>
   </div>

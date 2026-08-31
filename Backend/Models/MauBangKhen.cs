@@ -3,6 +3,7 @@ namespace Backend.Models;
 public class MauBangKhen
 {
     public int MaMauBangKhen { get; set; }
+    public int? MaDonVi { get; set; }
     public string TenMau { get; set; } = string.Empty;
     public string LoaiMau { get; set; } = string.Empty;
     public string FileNenUrl { get; set; } = string.Empty;
@@ -15,5 +16,6 @@ public class MauBangKhen
     public DateTime NgayTao { get; set; }
     public DateTime? NgayCapNhat { get; set; }
 
+    public DonVi? DonViNavigation { get; set; }
     public NguoiDung? NguoiTaoNavigation { get; set; }
 }

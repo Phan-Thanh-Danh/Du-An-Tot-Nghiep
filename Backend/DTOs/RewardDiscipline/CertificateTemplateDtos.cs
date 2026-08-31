@@ -13,6 +13,7 @@ public class CertificateTemplateQueryParameters
 
 public class CreateCertificateTemplateRequest
 {
+    public int? MaDonVi { get; set; }
     public string TenMau { get; set; } = string.Empty;
     public string LoaiMau { get; set; } = string.Empty;
     public string FileNenUrl { get; set; } = string.Empty;
@@ -24,6 +25,7 @@ public class CreateCertificateTemplateRequest
 
 public class UpdateCertificateTemplateRequest
 {
+    public int? MaDonVi { get; set; }
     public string TenMau { get; set; } = string.Empty;
     public string LoaiMau { get; set; } = string.Empty;
     public string FileNenUrl { get; set; } = string.Empty;
@@ -36,6 +38,9 @@ public class UpdateCertificateTemplateRequest
 public class CertificateTemplateDto
 {
     public int MaMauBangKhen { get; set; }
+    public int? MaDonVi { get; set; }
+    public string? TenDonVi { get; set; }
+    public bool IsRootTemplate { get; set; }
     public string TenMau { get; set; } = string.Empty;
     public string LoaiMau { get; set; } = string.Empty;
     public string FileNenUrl { get; set; } = string.Empty;
@@ -68,6 +73,8 @@ public class UploadRewardCertificateRequest
 public class CertificateTemplatePreviewDto
 {
     public int MaMauBangKhen { get; set; }
+    public int? MaDonVi { get; set; }
+    public bool IsRootTemplate { get; set; }
     public string TenMau { get; set; } = string.Empty;
     public string LoaiMau { get; set; } = string.Empty;
     public string FileNenUrl { get; set; } = string.Empty;
