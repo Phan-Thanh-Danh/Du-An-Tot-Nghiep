@@ -108,7 +108,7 @@ BEGIN TRY
     INSERT INTO ThoiKhoaBieu (ma_khoa_hoc, ma_phong, ma_ca_hoc, thu_trong_tuan, ngay_bat_dau, ngay_ket_thuc, trang_thai, ngay_tao)
     SELECT 
         k.ma_khoa_hoc,
-        (SELECT TOP 1 ma_phong FROM PhongHoc p JOIN ToaNha t ON p.ma_toa_nha = t.ma_toa_nha WHERE t.ma_don_vi = k.ma_don_vi AND p.trang_thai_phong = 'hoat_dong' ORDER BY NEWID()),
+        (SELECT TOP 1 ma_phong FROM PhongHoc WHERE ma_don_vi = k.ma_don_vi AND trang_thai_phong = 'hoat_dong' ORDER BY NEWID()),
         (SELECT TOP 1 ma_ca_hoc FROM CaHoc ORDER BY NEWID()),
         (k.ma_khoa_hoc % 5) + 2,  -- thu 2 den thu 6
         h.ngay_bat_dau,
