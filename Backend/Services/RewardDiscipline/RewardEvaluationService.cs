@@ -845,7 +845,6 @@ public class RewardEvaluationService : IRewardEvaluationService
 
     private async Task EnsureCampaignReadableAsync(DotKhenThuong campaign, CurrentUserContext currentUser, CancellationToken cancellationToken)
     {
-        if (currentUser.Role == AuthRoles.SuperAdmin)
         if (currentUser.Role is AuthRoles.SuperAdmin or AuthRoles.Chairman or "sieu_quan_tri" or "chu_tich")
         {
             return;
@@ -856,7 +855,6 @@ public class RewardEvaluationService : IRewardEvaluationService
             throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền xem đợt khen thưởng toàn hệ thống.");
         }
 
-        if (currentUser.Role == AuthRoles.Admin)
         if (currentUser.Role is AuthRoles.Admin or "quan_tri")
         {
             return;
