@@ -846,6 +846,7 @@ public class RewardEvaluationService : IRewardEvaluationService
     private async Task EnsureCampaignReadableAsync(DotKhenThuong campaign, CurrentUserContext currentUser, CancellationToken cancellationToken)
     {
         if (currentUser.Role == AuthRoles.SuperAdmin)
+        if (currentUser.Role is AuthRoles.SuperAdmin or AuthRoles.Chairman or "sieu_quan_tri" or "chu_tich")
         {
             return;
         }
@@ -856,8 +857,14 @@ public class RewardEvaluationService : IRewardEvaluationService
         }
 
         if (currentUser.Role == AuthRoles.Admin)
+        if (currentUser.Role is AuthRoles.Admin or "quan_tri")
         {
             return;
+        }
+
+        if (currentUser.Role is not (AuthRoles.CampusAdmin or AuthRoles.Principal or "quan_tri_co_so" or "hieu_truong"))
+        {
+            throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền xem đợt khen thưởng.");
         }
 
         var allowedOrganizationIds = await GetAllowedOrganizationIdsAsync(currentUser, cancellationToken);
