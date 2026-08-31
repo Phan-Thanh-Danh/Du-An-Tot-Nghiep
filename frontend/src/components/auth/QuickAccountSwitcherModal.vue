@@ -10,6 +10,7 @@ import {
   Check
 } from 'lucide-vue-next'
 
+// eslint-disable-next-line no-unused-vars
 const props = defineProps({
   isOpen: { type: Boolean, default: false }
 })
