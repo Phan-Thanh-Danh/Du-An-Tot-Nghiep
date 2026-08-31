@@ -1716,7 +1716,6 @@ public class TeacherClassesController : ControllerBase
                 .Select(n => new { n.MaNguoiDung, n.HoTen })
                 .ToListAsync();
 
-            // Load all DiemSo records for this class/subject/current term in one query
             var studentIds = students.Select(s => s.MaNguoiDung).ToList();
 
             // 1. Bulk DiemSo
@@ -1792,22 +1791,6 @@ public class TeacherClassesController : ControllerBase
                     foreach (var config in configs)
                     {
                         var loaiCode = config.LoaiDauDiem?.MaCode ?? "";
-                        decimal? typeGrade = null;
-
-                        if (loaiCode == "chuyen_can")
-                        {
-                            typeGrade = await _gradeService.CalculateAttendanceGradeAsync(student.MaNguoiDung, monHocId, hocKyId.Value);
-                        }
-                        else if (loaiCode == "lab" || loaiCode == "assignment")
-                        {
-                            typeGrade = await _gradeService.CalculateAssignmentGradeAsync(student.MaNguoiDung, monHocId, config);
-                        }
-                        else if (loaiCode == "quiz" || loaiCode == "progress_test")
-                        {
-                            typeGrade = await _gradeService.CalculateQuizGradeAsync(student.MaNguoiDung, monHocId, hocKyId.Value, loaiCode, config);
-                        }
-
-                        typeGrades[loaiCode] = typeGrade.HasValue ? Math.Round(typeGrade.Value, 2) : null;
                         if (loaiCode == "chuyen_can") typeGrades[loaiCode] = ccGrade;
                         else if (loaiCode == "lab" || loaiCode == "assignment") typeGrades[loaiCode] = assGrade;
                         else if (loaiCode == "quiz" || loaiCode == "progress_test") typeGrades[loaiCode] = qzGrade;
@@ -1816,33 +1799,6 @@ public class TeacherClassesController : ControllerBase
                 }
                 else
                 {
-                    var ccGrade = await _gradeService.CalculateAttendanceGradeAsync(student.MaNguoiDung, monHocId, hocKyId.Value);
-                    typeGrades["chuyen_can"] = ccGrade.HasValue ? Math.Round(ccGrade.Value, 2) : null;
-
-                    var studentSubs = await _context.BaiNops
-                        .Where(b => b.MaHocSinh == student.MaNguoiDung && b.BaiTap != null && b.BaiTap.MaMonHoc == monHocId && b.DiemSo.HasValue)
-                        .Select(b => b.DiemSo!.Value)
-                        .ToListAsync();
-                    typeGrades["assignment"] = studentSubs.Count > 0 ? Math.Round(studentSubs.Average(), 2) : null;
-
-                    var testIds = await _context.DeKiemTras
-                        .Where(d => d.MaMonHoc == monHocId && (d.MaHocKy == null || d.MaHocKy == hocKyId.Value))
-                        .Select(d => d.MaDeKiemTra)
-                        .ToListAsync();
-
-                    if (testIds.Count > 0)
-                    {
-                        var attempts = await _context.PhienThiHocSinhs
-                            .Where(p => p.MaHocSinh == student.MaNguoiDung && testIds.Contains(p.MaDeKiemTra) && p.TrangThaiLuong == "da_dung" && (p.DiemCuoiCung.HasValue || p.DiemTuDong.HasValue))
-                            .GroupBy(p => p.MaDeKiemTra)
-                            .Select(g => g.Max(p => p.DiemCuoiCung ?? p.DiemTuDong ?? 0))
-                            .ToListAsync();
-                        typeGrades["quiz"] = attempts.Count > 0 ? Math.Round(attempts.Average(), 2) : null;
-                    }
-                    else
-                    {
-                        typeGrades["quiz"] = null;
-                    }
                     typeGrades["chuyen_can"] = ccGrade;
                     typeGrades["assignment"] = assGrade;
                     typeGrades["quiz"] = qzGrade;

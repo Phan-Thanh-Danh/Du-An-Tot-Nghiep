@@ -158,8 +158,8 @@ function handleSelect(account, autoSubmit = false) {
 
 function handleKeyDown(e) {
   // Phím tắt mở popup: Ctrl + K, hoặc Ctrl + Shift + D, hoặc F2
-  if ((e.ctrlKey && e.key.toLowerCase() === 'k') || 
-      (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'd') || 
+  if ((e.ctrlKey && e.key.toLowerCase() === 'k') ||
+      (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'd') ||
       e.key === 'F2') {
     e.preventDefault()
     isVisible.value = !isVisible.value
@@ -370,3 +370,4 @@ defineExpose({
     </Teleport>
   </div>
 </template>
+
