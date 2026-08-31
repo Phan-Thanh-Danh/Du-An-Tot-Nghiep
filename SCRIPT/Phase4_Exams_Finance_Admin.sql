@@ -144,19 +144,27 @@ BEGIN TRY
 
             IF @RewardId IS NOT NULL
             BEGIN
-                -- UngVienKhenThuong: ma_dot_khen_thuong, ma_hoc_sinh, ma_hoc_ky, diem_xet, xep_hang, trang_thai
-                INSERT INTO UngVienKhenThuong (ma_dot_khen_thuong, ma_hoc_sinh, ma_hoc_ky, diem_xet, xep_hang, trang_thai, ngay_tao)
-                SELECT TOP 100
-                    @RewardId, ds.ma_hoc_sinh, @TermId, ds.gpa_mon_hoc,
-                    CAST(ROW_NUMBER() OVER(ORDER BY ds.gpa_mon_hoc DESC) AS INT),
-                    'da_duyet', @CurrentDate
-                FROM DiemSo ds
-                WHERE ds.ma_don_vi = @CampusId AND ds.ma_mon_hoc = @COM101 AND ds.trang_thai = 'dat'
-                AND NOT EXISTS (
-                    SELECT 1 FROM UngVienKhenThuong u
-                    WHERE u.ma_dot_khen_thuong = @RewardId AND u.ma_hoc_sinh = ds.ma_hoc_sinh
+                -- UngVienKhenThuong: Lấy Top 100 GPA toàn cơ sở (cho sinh viên của mọi ngành)
+                WITH TopStudents AS (
+                    SELECT 
+                        ds.ma_hoc_sinh,
+                        AVG(ds.gpa_mon_hoc) AS gpa_tb,
+                        ROW_NUMBER() OVER(ORDER BY AVG(ds.gpa_mon_hoc) DESC) AS xep_hang
+                    FROM DiemSo ds
+                    WHERE ds.ma_don_vi = @CampusId AND ds.trang_thai = 'dat'
+                    GROUP BY ds.ma_hoc_sinh
                 )
-                ORDER BY ds.gpa_mon_hoc DESC;
+                INSERT INTO UngVienKhenThuong (ma_dot_khen_thuong, ma_hoc_sinh, ma_hoc_ky, diem_xet, xep_hang, trang_thai, ngay_tao)
+                SELECT TOP 100 
+                    @RewardId, ts.ma_hoc_sinh, @TermId, CAST(ts.gpa_tb AS DECIMAL(4,2)),
+                    CAST(ts.xep_hang AS INT),
+                    'da_duyet', @CurrentDate
+                FROM TopStudents ts
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM UngVienKhenThuong u
+                    WHERE u.ma_dot_khen_thuong = @RewardId AND u.ma_hoc_sinh = ts.ma_hoc_sinh
+                )
+                ORDER BY ts.xep_hang;
 
                 -- KhenThuong: ma_don_vi, ma_hoc_sinh, ma_hoc_ky, ma_dot_khen_thuong, loai_khen_thuong,
                 --             trang_thai, url_chung_tu, cap_luc, da_huy, danh_hieu_snapshot

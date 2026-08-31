@@ -56,7 +56,7 @@ BEGIN TRY
 
     BEGIN TRY EXEC('UPDATE GiaoVienMonHoc SET con_hoat_dong = 1 WHERE con_hoat_dong IS NULL OR con_hoat_dong = 0;'); END TRY BEGIN CATCH END CATCH;
 
-    PRINT N'- Đang mở Khóa học (LMS) cho tất cả Lớp Hành chính...';
+    PRINT N'- Đang mở Khóa học (LMS) theo đúng chuyên ngành của từng Lớp Hành chính...';
     DECLARE @CampusId INT;
     DECLARE curCS CURSOR LOCAL FOR SELECT ma_don_vi FROM DonVi WHERE cap_don_vi = 'co_so';
     OPEN curCS;
@@ -68,17 +68,64 @@ BEGIN TRY
 
         IF @CampusId IS NOT NULL AND @TermId IS NOT NULL
         BEGIN
-            WITH Classes AS (SELECT ma_lop, ten_lop, ROW_NUMBER() OVER(ORDER BY ma_lop) AS rn FROM LopHanhChinh WHERE ma_don_vi = @CampusId),
-            TeachersCOM AS (SELECT gm.ma_giao_vien, ROW_NUMBER() OVER(ORDER BY NEWID()) AS rn FROM GiaoVienMonHoc gm JOIN NguoiDung u ON gm.ma_giao_vien = u.ma_nguoi_dung WHERE gm.ma_mon_hoc = @COM101 AND u.ma_don_vi = @CampusId)
+            -- 1. Lớp Kỹ thuật phần mềm (SE) -> Mở môn COM101 & DBI202
+            WITH ClassesSE AS (
+                SELECT ma_lop, ten_lop, ROW_NUMBER() OVER(ORDER BY ma_lop) AS rn 
+                FROM LopHanhChinh WHERE ma_don_vi = @CampusId AND ma_code_lop LIKE 'SE%'
+            ),
+            TeachersCOM AS (
+                SELECT gm.ma_giao_vien, ROW_NUMBER() OVER(ORDER BY NEWID()) AS rn 
+                FROM GiaoVienMonHoc gm JOIN NguoiDung u ON gm.ma_giao_vien = u.ma_nguoi_dung 
+                WHERE gm.ma_mon_hoc = @COM101 AND u.ma_don_vi = @CampusId
+            )
             INSERT INTO KhoaHoc (ma_don_vi, ma_giao_vien, ma_hoc_ky, ma_lop, ma_mon_hoc, tieu_de, trang_thai, SoBlockHoc, ngay_tao)
-            SELECT @CampusId, (SELECT TOP 1 ma_giao_vien FROM TeachersCOM t WHERE t.rn = (c.rn % (SELECT COUNT(*) FROM TeachersCOM)) + 1), @TermId, c.ma_lop, @COM101, N'Nhập môn lập trình - ' + c.ten_lop, 'da_xuat_ban', 1, @CurrentDate FROM Classes c
+            SELECT @CampusId, (SELECT TOP 1 ma_giao_vien FROM TeachersCOM t WHERE t.rn = (c.rn % (SELECT COUNT(*) FROM TeachersCOM)) + 1), @TermId, c.ma_lop, @COM101, N'Nhập môn lập trình - ' + c.ten_lop, 'da_xuat_ban', 1, @CurrentDate 
+            FROM ClassesSE c
             WHERE NOT EXISTS (SELECT 1 FROM KhoaHoc k WHERE k.ma_lop = c.ma_lop AND k.ma_mon_hoc = @COM101);
 
-            WITH Classes AS (SELECT ma_lop, ten_lop, ROW_NUMBER() OVER(ORDER BY ma_lop) AS rn FROM LopHanhChinh WHERE ma_don_vi = @CampusId),
-            TeachersDBI AS (SELECT gm.ma_giao_vien, ROW_NUMBER() OVER(ORDER BY NEWID()) AS rn FROM GiaoVienMonHoc gm JOIN NguoiDung u ON gm.ma_giao_vien = u.ma_nguoi_dung WHERE gm.ma_mon_hoc = @DBI202 AND u.ma_don_vi = @CampusId)
+            WITH ClassesSE AS (
+                SELECT ma_lop, ten_lop, ROW_NUMBER() OVER(ORDER BY ma_lop) AS rn 
+                FROM LopHanhChinh WHERE ma_don_vi = @CampusId AND ma_code_lop LIKE 'SE%'
+            ),
+            TeachersDBI AS (
+                SELECT gm.ma_giao_vien, ROW_NUMBER() OVER(ORDER BY NEWID()) AS rn 
+                FROM GiaoVienMonHoc gm JOIN NguoiDung u ON gm.ma_giao_vien = u.ma_nguoi_dung 
+                WHERE gm.ma_mon_hoc = @DBI202 AND u.ma_don_vi = @CampusId
+            )
             INSERT INTO KhoaHoc (ma_don_vi, ma_giao_vien, ma_hoc_ky, ma_lop, ma_mon_hoc, tieu_de, trang_thai, SoBlockHoc, ngay_tao)
-            SELECT @CampusId, (SELECT TOP 1 ma_giao_vien FROM TeachersDBI t WHERE t.rn = (c.rn % (SELECT COUNT(*) FROM TeachersDBI)) + 1), @TermId, c.ma_lop, @DBI202, N'Hệ quản trị CSDL - ' + c.ten_lop, 'da_xuat_ban', 1, @CurrentDate FROM Classes c
+            SELECT @CampusId, (SELECT TOP 1 ma_giao_vien FROM TeachersDBI t WHERE t.rn = (c.rn % (SELECT COUNT(*) FROM TeachersDBI)) + 1), @TermId, c.ma_lop, @DBI202, N'Hệ quản trị CSDL - ' + c.ten_lop, 'da_xuat_ban', 1, @CurrentDate 
+            FROM ClassesSE c
             WHERE NOT EXISTS (SELECT 1 FROM KhoaHoc k WHERE k.ma_lop = c.ma_lop AND k.ma_mon_hoc = @DBI202);
+
+            -- 2. Lớp Thiết kế đồ họa (GD) -> Mở môn UIX101
+            WITH ClassesGD AS (
+                SELECT ma_lop, ten_lop, ROW_NUMBER() OVER(ORDER BY ma_lop) AS rn 
+                FROM LopHanhChinh WHERE ma_don_vi = @CampusId AND ma_code_lop LIKE 'GD%'
+            ),
+            TeachersGD AS (
+                SELECT gm.ma_giao_vien, ROW_NUMBER() OVER(ORDER BY NEWID()) AS rn 
+                FROM GiaoVienMonHoc gm JOIN NguoiDung u ON gm.ma_giao_vien = u.ma_nguoi_dung 
+                WHERE gm.ma_mon_hoc = @UIX101 AND u.ma_don_vi = @CampusId
+            )
+            INSERT INTO KhoaHoc (ma_don_vi, ma_giao_vien, ma_hoc_ky, ma_lop, ma_mon_hoc, tieu_de, trang_thai, SoBlockHoc, ngay_tao)
+            SELECT @CampusId, (SELECT TOP 1 ma_giao_vien FROM TeachersGD t WHERE t.rn = (c.rn % (SELECT COUNT(*) FROM TeachersGD)) + 1), @TermId, c.ma_lop, @UIX101, N'Thiết kế UI/UX - ' + c.ten_lop, 'da_xuat_ban', 1, @CurrentDate 
+            FROM ClassesGD c
+            WHERE NOT EXISTS (SELECT 1 FROM KhoaHoc k WHERE k.ma_lop = c.ma_lop AND k.ma_mon_hoc = @UIX101);
+
+            -- 3. Lớp Digital Marketing (DM) -> Mở môn MKT101
+            WITH ClassesDM AS (
+                SELECT ma_lop, ten_lop, ROW_NUMBER() OVER(ORDER BY ma_lop) AS rn 
+                FROM LopHanhChinh WHERE ma_don_vi = @CampusId AND ma_code_lop LIKE 'DM%'
+            ),
+            TeachersDM AS (
+                SELECT gm.ma_giao_vien, ROW_NUMBER() OVER(ORDER BY NEWID()) AS rn 
+                FROM GiaoVienMonHoc gm JOIN NguoiDung u ON gm.ma_giao_vien = u.ma_nguoi_dung 
+                WHERE gm.ma_mon_hoc = @MKT101 AND u.ma_don_vi = @CampusId
+            )
+            INSERT INTO KhoaHoc (ma_don_vi, ma_giao_vien, ma_hoc_ky, ma_lop, ma_mon_hoc, tieu_de, trang_thai, SoBlockHoc, ngay_tao)
+            SELECT @CampusId, (SELECT TOP 1 ma_giao_vien FROM TeachersDM t WHERE t.rn = (c.rn % (SELECT COUNT(*) FROM TeachersDM)) + 1), @TermId, c.ma_lop, @MKT101, N'Marketing căn bản - ' + c.ten_lop, 'da_xuat_ban', 1, @CurrentDate 
+            FROM ClassesDM c
+            WHERE NOT EXISTS (SELECT 1 FROM KhoaHoc k WHERE k.ma_lop = c.ma_lop AND k.ma_mon_hoc = @MKT101);
         END
         FETCH NEXT FROM curCS INTO @CampusId;
     END
@@ -89,7 +136,7 @@ BEGIN TRY
     -- PHẦN 2: LỊCH HỌC, ĐIỂM DANH, CHẤM ĐIỂM
     -- ==========================================
     
-    PRINT N'- Đang khởi tạo Ca học và Cấu hình điểm...';
+    PRINT N'- Đang khởi tạo Ca học và Cấu hình điểm cho tất cả các môn...';
     DELETE FROM CaHoc; DBCC CHECKIDENT ('CaHoc', RESEED, 0);
     -- Cột buoi: constraint chỉ nhận 'sang', 'chieu', 'toi'
     INSERT INTO CaHoc (ten_ca, buoi, gio_bat_dau, gio_ket_thuc, thu_tu, con_hoat_dong) VALUES 
@@ -98,9 +145,11 @@ BEGIN TRY
         (N'Ca 3 (Chiều)', 'chieu', '13:00', '15:00', 3, 1),
         (N'Ca 4 (Chiều)', 'chieu', '15:15', '17:15', 4, 1);
 
+    -- Cấu hình điểm cho đủ 5 môn học
     INSERT INTO CauHinhDiemMonHoc (ma_mon_hoc, ma_hoc_ky, nguong_dat, ti_le_chuyen_can_toi_thieu, trong_so_qua_trinh, trong_so_giua_ky, trong_so_cuoi_ky)
     SELECT m.ma_mon_hoc, h.ma_hoc_ky, 5.0, 80.0, 40.0, 30.0, 30.0
-    FROM DanhMucMonHoc m CROSS JOIN HocKy h WHERE m.ma_code_mon_hoc IN ('COM101', 'DBI202') AND h.nam_hoc = '2026'
+    FROM DanhMucMonHoc m CROSS JOIN HocKy h 
+    WHERE m.ma_code_mon_hoc IN ('COM101', 'DBI202', 'WEB104', 'UIX101', 'MKT101') AND h.nam_hoc = '2026'
     AND NOT EXISTS (SELECT 1 FROM CauHinhDiemMonHoc c WHERE c.ma_mon_hoc = m.ma_mon_hoc AND c.ma_hoc_ky = h.ma_hoc_ky);
 
     PRINT N'- Đang lên Thời khóa biểu và phát sinh Buổi học...';
