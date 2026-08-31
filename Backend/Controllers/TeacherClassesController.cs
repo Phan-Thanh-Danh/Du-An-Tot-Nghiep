@@ -1718,9 +1718,50 @@ public class TeacherClassesController : ControllerBase
 
             // Load all DiemSo records for this class/subject/current term in one query
             var studentIds = students.Select(s => s.MaNguoiDung).ToList();
+
+            // 1. Bulk DiemSo
             var diemRecords = await _context.DiemSos
                 .Where(d => studentIds.Contains(d.MaHocSinh) && d.MaMonHoc == monHocId && (d.MaHocKy == hocKyId.Value || d.MaHocKy == 0))
                 .ToListAsync();
+
+            // 2. Bulk Chuyên cần (1 query tổng số buổi + 1 query điểm danh)
+            var totalSessions = await _context.BuoiHocs
+                .CountAsync(b => b.MaKhoaHoc == khoahoc.MaKhoaHoc && b.TrangThaiBuoi == "da_dien_ra");
+
+            var attendanceMap = totalSessions > 0
+                ? await _context.DiemDanhs
+                    .Where(d => studentIds.Contains(d.MaHocSinh) && d.BuoiHoc != null && d.BuoiHoc.MaKhoaHoc == khoahoc.MaKhoaHoc && (d.TrangThai == "co_mat" || d.TrangThai == "di_muon"))
+                    .GroupBy(d => d.MaHocSinh)
+                    .Select(g => new { StudentId = g.Key, PresentCount = g.Count() })
+                    .ToDictionaryAsync(x => x.StudentId, x => x.PresentCount)
+                : new Dictionary<int, int>();
+
+            // 3. Bulk Bài tập & Thực hành (1 query)
+            var assignmentMap = await _context.BaiNops
+                .Where(b => studentIds.Contains(b.MaHocSinh) && b.BaiTap != null && b.BaiTap.MaMonHoc == monHocId && b.DiemSo.HasValue)
+                .GroupBy(b => b.MaHocSinh)
+                .Select(g => new { StudentId = g.Key, AvgGrade = g.Average(b => b.DiemSo!.Value) })
+                .ToDictionaryAsync(x => x.StudentId, x => x.AvgGrade);
+
+            // 4. Bulk Quiz & Kiểm tra (1 query)
+            var testIds = await _context.DeKiemTras
+                .Where(d => d.MaMonHoc == monHocId && (d.MaHocKy == null || d.MaHocKy == hocKyId.Value))
+                .Select(d => d.MaDeKiemTra)
+                .ToListAsync();
+
+            var quizMap = new Dictionary<int, decimal>();
+            if (testIds.Count > 0)
+            {
+                var attempts = await _context.PhienThiHocSinhs
+                    .Where(p => studentIds.Contains(p.MaHocSinh) && testIds.Contains(p.MaDeKiemTra) && p.TrangThaiLuong == "da_dung" && (p.DiemCuoiCung.HasValue || p.DiemTuDong.HasValue))
+                    .GroupBy(p => new { p.MaHocSinh, p.MaDeKiemTra })
+                    .Select(g => new { g.Key.MaHocSinh, g.Key.MaDeKiemTra, MaxScore = g.Max(p => p.DiemCuoiCung ?? p.DiemTuDong ?? 0) })
+                    .ToListAsync();
+
+                quizMap = attempts
+                    .GroupBy(x => x.MaHocSinh)
+                    .ToDictionary(g => g.Key, g => g.Average(x => x.MaxScore));
+            }
 
             var studentGrades = new List<StudentGradeSummaryDto>();
 
@@ -1730,6 +1771,22 @@ public class TeacherClassesController : ControllerBase
                                  ?? diemRecords.FirstOrDefault(d => d.MaHocSinh == student.MaNguoiDung);
 
                 var typeGrades = new Dictionary<string, decimal?>();
+
+                // Tính điểm chuyên cần in-memory
+                decimal? ccGrade = totalSessions > 0
+                    ? Math.Round((decimal)attendanceMap.GetValueOrDefault(student.MaNguoiDung, 0) * 10m / totalSessions, 2)
+                    : (diemRecord?.DiemQuaTrinh != null ? diemRecord.DiemQuaTrinh : null);
+
+                // Điểm assignment in-memory
+                decimal? assGrade = assignmentMap.TryGetValue(student.MaNguoiDung, out var avgAss)
+                    ? Math.Round(avgAss, 2)
+                    : (diemRecord?.DiemQuaTrinh != null ? diemRecord.DiemQuaTrinh : null);
+
+                // Điểm quiz in-memory
+                decimal? qzGrade = quizMap.TryGetValue(student.MaNguoiDung, out var avgQz)
+                    ? Math.Round(avgQz, 2)
+                    : (diemRecord?.DiemQuaTrinh != null ? diemRecord.DiemQuaTrinh : null);
+
                 if (configs.Count > 0)
                 {
                     foreach (var config in configs)
@@ -1751,6 +1808,10 @@ public class TeacherClassesController : ControllerBase
                         }
 
                         typeGrades[loaiCode] = typeGrade.HasValue ? Math.Round(typeGrade.Value, 2) : null;
+                        if (loaiCode == "chuyen_can") typeGrades[loaiCode] = ccGrade;
+                        else if (loaiCode == "lab" || loaiCode == "assignment") typeGrades[loaiCode] = assGrade;
+                        else if (loaiCode == "quiz" || loaiCode == "progress_test") typeGrades[loaiCode] = qzGrade;
+                        else typeGrades[loaiCode] = diemRecord?.DiemQuaTrinh;
                     }
                 }
                 else
@@ -1782,6 +1843,9 @@ public class TeacherClassesController : ControllerBase
                     {
                         typeGrades["quiz"] = null;
                     }
+                    typeGrades["chuyen_can"] = ccGrade;
+                    typeGrades["assignment"] = assGrade;
+                    typeGrades["quiz"] = qzGrade;
                 }
 
                 decimal? dQT = diemRecord?.DiemQuaTrinh;
