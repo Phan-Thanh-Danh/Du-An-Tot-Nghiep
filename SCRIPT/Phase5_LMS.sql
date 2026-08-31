@@ -1,4 +1,4 @@
-﻿USE LMS;
+USE LMS;
 GO
 
 SET NOCOUNT ON;
@@ -47,7 +47,7 @@ BEGIN TRY
     -- Model: ma_chuong, tieu_de, loai_bai_hoc, thu_tu, da_an, trang_thai, ngay_tao
     WITH Numbers AS (SELECT TOP 3 ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) AS N FROM master.dbo.spt_values)
     INSERT INTO BaiHoc (ma_chuong, tieu_de, loai_bai_hoc, thu_tu, da_an, trang_thai, ngay_tao)
-    SELECT c.ma_chuong, N'Bai hoc ' + CAST(n.N AS NVARCHAR), n.N, 0, 'da_xuat_ban', @CurrentDate
+    SELECT c.ma_chuong, N'Bai hoc ' + CAST(n.N AS NVARCHAR), 'video', n.N, 0, 'da_xuat_ban', @CurrentDate
     FROM Chuong c CROSS JOIN Numbers n
     WHERE NOT EXISTS (SELECT 1 FROM BaiHoc b WHERE b.ma_chuong = c.ma_chuong AND b.thu_tu = n.N);
 
