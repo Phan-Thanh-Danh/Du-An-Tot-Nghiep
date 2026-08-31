@@ -170,7 +170,9 @@ BEGIN TRY
     FROM DanhMucMonHoc m
     JOIN @Subjects s ON m.ma_code_mon_hoc = s.code;
 
-    PRINT N'  [OK] Đã hoàn tất danh mục ' + CAST((SELECT COUNT(*) FROM DanhMucMonHoc) AS NVARCHAR) + N' môn học!';
+    DECLARE @TotalCountMonHoc INT;
+    SELECT @TotalCountMonHoc = COUNT(*) FROM DanhMucMonHoc;
+    PRINT N'  [OK] Đã hoàn tất danh mục ' + CAST(@TotalCountMonHoc AS NVARCHAR) + N' môn học!';
 
     -- ==================================================================
     -- 2.1 LIÊN KẾT MÔN HỌC - CHUYÊN NGÀNH (MonHocChuyenNganh)
@@ -496,12 +498,18 @@ BEGIN TRY
 
     COMMIT TRANSACTION;
 
+    DECLARE @TotalMonHocFinal INT, @CountSE INT, @TcSE INT, @CountGD INT, @TcGD INT, @CountDM INT, @TcDM INT;
+    SELECT @TotalMonHocFinal = COUNT(*) FROM DanhMucMonHoc;
+    SELECT @CountSE = COUNT(*), @TcSE = ISNULL(SUM(so_tin_chi), 0) FROM MonHocTrongChuongTrinh WHERE ma_chuong_trinh = @CtdtSE;
+    SELECT @CountGD = COUNT(*), @TcGD = ISNULL(SUM(so_tin_chi), 0) FROM MonHocTrongChuongTrinh WHERE ma_chuong_trinh = @CtdtGD;
+    SELECT @CountDM = COUNT(*), @TcDM = ISNULL(SUM(so_tin_chi), 0) FROM MonHocTrongChuongTrinh WHERE ma_chuong_trinh = @CtdtDM;
+
     PRINT N'======================================================================';
     PRINT N'--- HOÀN THÀNH PHASE 6 THÀNH CÔNG! ---';
-    PRINT N'- Tổng số môn học: ' + CAST((SELECT COUNT(*) FROM DanhMucMonHoc) AS NVARCHAR);
-    PRINT N'- Môn trong CTĐT SE: ' + CAST((SELECT COUNT(*) FROM MonHocTrongChuongTrinh WHERE ma_chuong_trinh = @CtdtSE) AS NVARCHAR) + N' môn (' + CAST((SELECT SUM(so_tin_chi) FROM MonHocTrongChuongTrinh WHERE ma_chuong_trinh = @CtdtSE) AS NVARCHAR) + N' TC)';
-    PRINT N'- Môn trong CTĐT GD: ' + CAST((SELECT COUNT(*) FROM MonHocTrongChuongTrinh WHERE ma_chuong_trinh = @CtdtGD) AS NVARCHAR) + N' môn (' + CAST((SELECT SUM(so_tin_chi) FROM MonHocTrongChuongTrinh WHERE ma_chuong_trinh = @CtdtGD) AS NVARCHAR) + N' TC)';
-    PRINT N'- Môn trong CTĐT DM: ' + CAST((SELECT COUNT(*) FROM MonHocTrongChuongTrinh WHERE ma_chuong_trinh = @CtdtDM) AS NVARCHAR) + N' môn (' + CAST((SELECT SUM(so_tin_chi) FROM MonHocTrongChuongTrinh WHERE ma_chuong_trinh = @CtdtDM) AS NVARCHAR) + N' TC)';
+    PRINT N'- Tổng số môn học: ' + CAST(@TotalMonHocFinal AS NVARCHAR);
+    PRINT N'- Môn trong CTĐT SE: ' + CAST(@CountSE AS NVARCHAR) + N' môn (' + CAST(@TcSE AS NVARCHAR) + N' TC)';
+    PRINT N'- Môn trong CTĐT GD: ' + CAST(@CountGD AS NVARCHAR) + N' môn (' + CAST(@TcGD AS NVARCHAR) + N' TC)';
+    PRINT N'- Môn trong CTĐT DM: ' + CAST(@CountDM AS NVARCHAR) + N' môn (' + CAST(@TcDM AS NVARCHAR) + N' TC)';
     PRINT N'======================================================================';
 END TRY
 BEGIN CATCH
