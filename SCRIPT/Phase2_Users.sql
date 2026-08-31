@@ -36,6 +36,31 @@ BEGIN TRY
     PRINT N'  [OK] VaiTro da seed';
 
     -- ==========================================
+    -- 0.5 TẠO TÀI KHOẢN CẤP CAO (TOÀN TRƯỜNG)
+    -- ==========================================
+    DECLARE @RootId INT;
+    SELECT TOP 1 @RootId = ma_don_vi FROM DonVi WHERE cap_don_vi = 'root';
+
+    IF NOT EXISTS (SELECT 1 FROM NguoiDung WHERE email = 'superadmin@aet.local')
+    BEGIN
+        INSERT INTO NguoiDung (email, ho_ten, ma_don_vi, mat_khau_hash, vai_tro_chinh, trang_thai, dang_nhap_lan_dau, ngay_tao)
+        VALUES ('superadmin@aet.local', N'Siêu Quản Trị Hệ Thống', @RootId, @DefaultPasswordHash, 'sieu_quan_tri', 'hoat_dong', 0, @CurrentDate);
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM NguoiDung WHERE email = 'hdqlnd@aet.local')
+    BEGIN
+        INSERT INTO NguoiDung (email, ho_ten, ma_don_vi, mat_khau_hash, vai_tro_chinh, trang_thai, dang_nhap_lan_dau, ngay_tao)
+        VALUES ('hdqlnd@aet.local', N'Hội Đồng Quản Lý Nội Dung', @RootId, @DefaultPasswordHash, 'hoidong_quanly_noidung', 'hoat_dong', 0, @CurrentDate);
+    END
+
+    -- Gán quyền cho các tài khoản cấp cao
+    INSERT INTO PhanQuyenNguoiDung (ma_nguoi_dung, ma_vai_tro)
+    SELECT nd.ma_nguoi_dung, vt.ma_vai_tro
+    FROM NguoiDung nd JOIN VaiTro vt ON vt.ma_code_vai_tro = nd.vai_tro_chinh
+    WHERE nd.email IN ('superadmin@aet.local', 'hdqlnd@aet.local')
+      AND NOT EXISTS (SELECT 1 FROM PhanQuyenNguoiDung pq WHERE pq.ma_nguoi_dung = nd.ma_nguoi_dung);
+
+    -- ==========================================
     -- Lặp qua từng cơ sở (cap_don_vi = 'co_so')
     -- ==========================================
     DECLARE @CampusId INT;
