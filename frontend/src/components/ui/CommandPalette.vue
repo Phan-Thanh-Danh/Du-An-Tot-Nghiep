@@ -54,6 +54,7 @@ function getRoleRoutes() {
     { id: 'bgh-dashboard', label: 'Dashboard chiến lược', icon: 'LayoutDashboard', route: '/bgh/dashboard', category: 'BGH' },
     { id: 'bgh-schedule', label: 'Duyệt thời khóa biểu', icon: 'CalendarCheck', route: '/bgh/schedule/pending', category: 'BGH' },
     { id: 'bgh-evaluations', label: 'Đánh giá giảng viên', icon: 'Star', route: '/bgh/evaluations', category: 'BGH' },
+    { id: 'bgh-awards', label: 'Quản lý Khen thưởng', icon: 'Award', route: '/bgh/awards', category: 'BGH' },
     { id: 'bgh-programs', label: 'Ngành & Chuyên ngành', icon: 'BookOpen', route: '/bgh/academic-programs', category: 'BGH' },
     { id: 'bgh-curriculum', label: 'Khung chương trình', icon: 'Library', route: '/bgh/curriculum', category: 'BGH' },
     { id: 'bgh-terms', label: 'Học kỳ & Khóa', icon: 'CalendarDays', route: '/bgh/academic-terms', category: 'BGH' },

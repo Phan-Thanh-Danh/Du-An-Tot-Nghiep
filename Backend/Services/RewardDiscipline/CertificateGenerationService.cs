@@ -688,7 +688,7 @@ public class CertificateGenerationService : ICertificateGenerationService
 
     private async Task<HashSet<int>> GetAllowedOrganizationIdsAsync(CurrentUserContext currentUser, CancellationToken cancellationToken)
     {
-        if (currentUser.Role is AuthRoles.SuperAdmin or AuthRoles.Admin)
+        if (currentUser.Role is AuthRoles.SuperAdmin or AuthRoles.Chairman or AuthRoles.Admin)
         {
             return await _context.DonVis.AsNoTracking().Select(x => x.MaDonVi).ToHashSetAsync(cancellationToken);
         }
@@ -728,9 +728,9 @@ public class CertificateGenerationService : ICertificateGenerationService
 
     private static void EnsureSuperAdmin(CurrentUserContext currentUser)
     {
-        if (currentUser.Role != AuthRoles.SuperAdmin)
+        if (currentUser.Role is not (AuthRoles.SuperAdmin or AuthRoles.Admin or AuthRoles.CampusAdmin or AuthRoles.Principal or AuthRoles.Chairman))
         {
-            throw new ApiException(StatusCodes.Status403Forbidden, "Chỉ SuperAdmin được sinh PDF bằng khen.");
+            throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền sinh PDF bằng khen.");
         }
     }
 

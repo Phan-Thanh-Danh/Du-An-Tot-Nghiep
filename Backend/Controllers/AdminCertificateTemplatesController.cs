@@ -9,7 +9,7 @@ namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/admin/certificate-templates")]
-[Authorize(Roles = AuthRoles.SuperAdmin)]
+[Authorize(Roles = $"{AuthRoles.SuperAdmin},{AuthRoles.Admin},{AuthRoles.CampusAdmin},{AuthRoles.Principal},{AuthRoles.Chairman}")]
 public class AdminCertificateTemplatesController : ControllerBase
 {
     private readonly ICertificateTemplateService _certificateTemplateService;

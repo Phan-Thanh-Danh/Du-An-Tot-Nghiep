@@ -16,12 +16,23 @@ import { useAuthStore } from '@/stores/auth'
 import { unwrapApiData } from '@/services/apiClient'
 import { usePopupStore } from '@/stores/popup'
 
+const authStore = useAuthStore()
 const popupStore = usePopupStore()
 const showCreateModal = ref(false)
 const isSubmitting = ref(false)
 const terms = ref([])
 const campuses = ref([])
 const templates = ref([])
+
+const userCampusId = computed(() => {
+  return authStore.user?.campusId ?? authStore.user?.CampusId ?? authStore.user?.maDonVi ?? authStore.user?.MaDonVi ?? null
+})
+
+const isGlobalAdmin = computed(() => {
+  const r = authStore.user?.role || authStore.user?.Role
+  return ['SuperAdmin', 'sieu_quan_tri', 'Chairman', 'chu_tich'].includes(r)
+})
+
 const createForm = ref({
   tenDot: '',
   maHocKy: null,
@@ -35,7 +46,7 @@ const resetCreateForm = () => {
   createForm.value = {
     tenDot: '',
     maHocKy: null,
-    maDonVi: null,
+    maDonVi: !isGlobalAdmin.value && userCampusId.value ? userCampusId.value : null,
     soLuongToiDa: 100,
     maMauBangKhen: null,
     ghiChu: ''
@@ -44,7 +55,7 @@ const resetCreateForm = () => {
 
 const filteredTerms = computed(() => {
   if (!createForm.value.maDonVi) return []
-  return terms.value.filter(t => t.maDonVi === createForm.value.maDonVi || t.MaDonVi === createForm.value.maDonVi)
+  return terms.value.filter(t => (t.maDonVi ?? t.MaDonVi) === createForm.value.maDonVi)
 })
 const campaigns = ref([])
 const loading = ref(false)
@@ -113,11 +124,16 @@ onMounted(async () => {
       organizationApi.getAll().catch(() => null)
     ])
     terms.value = termsRes || []
-    
+
     // Filter campuses
     const orgs = unwrapApiData(orgRes) || []
     const campusList = orgs.filter(o => o.loaiDonVi === 'Campus' || o.LoaiDonVi === 'Campus')
-    campuses.value = campusList.length ? campusList : orgs
+    let allCampuses = campusList.length ? campusList : orgs
+    if (!isGlobalAdmin.value && userCampusId.value) {
+      allCampuses = allCampuses.filter(c => (c.id || c.Id || c.maDonVi || c.MaDonVi) === userCampusId.value)
+      createForm.value.maDonVi = userCampusId.value
+    }
+    campuses.value = allCampuses
 
     const tplData = unwrapApiData(templatesRes)
     templates.value = tplData?.items ?? tplData?.Items ?? []
@@ -200,7 +216,7 @@ const selectCampaign = async (cmp) => {
       rewardDisciplineApi.getRewardCampaignCandidates(cmp.id, { pageIndex: 1, pageSize: 3 }),
       rewardDisciplineApi.getApprovalSummary(cmp.id).catch(() => null)
     ])
-    
+
     const data = unwrapApiData(candidatesRes)
     candidates.value = (data?.items ?? data?.Items ?? []).map(mapCandidate)
 
@@ -248,7 +264,7 @@ const generateCertificates = () => {
       try {
         genProgress.value = { current: 0, total: cmp.daDuyet || 1, message: 'Đang xử lý...' }
         const result = await generateCertificatesFrontend(cmp)
-        
+
         popupStore.success('Hoàn tất', 'Đã cấp phát bằng khen thành công.')
         cmp.trangThai = 'completed'
       } catch (err) {
@@ -362,7 +378,7 @@ const cancelCampaignAction = () => {
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="cmp in filteredCampaigns" :key="cmp.id" 
+                <tr v-for="cmp in filteredCampaigns" :key="cmp.id"
                     @click="selectCampaign(cmp)"
                     class="cursor-pointer transition-colors"
                     :class="selectedCampaign?.id === cmp.id ? 'bg-(--surface-hover)' : 'hover:bg-(--surface-hover)'">
@@ -496,7 +512,7 @@ const cancelCampaignAction = () => {
     <div v-if="showCreateModal" class="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
       <div class="lg-glass-strong w-full max-w-lg rounded-2xl border border-(--border-card) p-6">
         <h3 class="text-xl font-bold text-(--text-heading) mb-4">Tạo đợt khen thưởng mới (Top 100)</h3>
-        
+
         <div class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-(--text-label) mb-1">Tên đợt khen thưởng <span class="text-red-500">*</span></label>
@@ -506,14 +522,14 @@ const cancelCampaignAction = () => {
           <div class="grid grid-cols-2 gap-4">
             <div class="flex flex-col gap-1.5">
               <label class="text-sm font-medium text-(--text-body)">Cơ sở <span class="text-red-500">*</span></label>
-              <select v-model="createForm.maDonVi" @change="createForm.maHocKy = null" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg focus:ring-2 focus:ring-(--border-focus) outline-none transition-shadow text-sm">
+              <select v-model="createForm.maDonVi" :disabled="!isGlobalAdmin && Boolean(userCampusId)" @change="createForm.maHocKy = null" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg focus:ring-2 focus:ring-(--border-focus) outline-none transition-shadow text-sm disabled:opacity-75 disabled:bg-gray-100 dark:disabled:bg-gray-800">
                 <option :value="null">-- Chọn cơ sở --</option>
                 <option v-for="c in campuses" :key="c.id || c.Id || c.maDonVi" :value="c.id || c.Id || c.maDonVi">
                   {{ c.tenDonVi || c.TenDonVi || c.name }}
                 </option>
               </select>
             </div>
-            
+
             <div class="flex flex-col gap-1.5">
               <label class="text-sm font-medium text-(--text-body)">Học kỳ <span class="text-red-500">*</span></label>
               <select v-model="createForm.maHocKy" :disabled="!createForm.maDonVi" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg focus:ring-2 focus:ring-(--border-focus) outline-none transition-shadow text-sm disabled:opacity-50 disabled:bg-gray-100 dark:disabled:bg-gray-800">

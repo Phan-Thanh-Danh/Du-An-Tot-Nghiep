@@ -9,7 +9,7 @@ namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/admin/reward-campaigns")]
-[Authorize(Roles = $"{AuthRoles.SuperAdmin},{AuthRoles.Admin},{AuthRoles.CampusAdmin}")]
+[Authorize(Roles = $"{AuthRoles.SuperAdmin},{AuthRoles.Admin},{AuthRoles.CampusAdmin},{AuthRoles.Principal},{AuthRoles.Chairman}")]
 public class AdminRewardCampaignsController : ControllerBase
 {
     private readonly IRewardCampaignService _rewardCampaignService;
@@ -49,7 +49,7 @@ public class AdminRewardCampaignsController : ControllerBase
     }
 
     [HttpPost("top100")]
-    [Authorize(Roles = AuthRoles.SuperAdmin)]
+    [Authorize(Roles = $"{AuthRoles.SuperAdmin},{AuthRoles.Admin},{AuthRoles.CampusAdmin},{AuthRoles.Principal},{AuthRoles.Chairman}")]
     public async Task<ActionResult<ApiResponseDto<RewardCampaignDetailDto>>> CreateTop100(
         CreateTop100RewardCampaignRequest request,
         CancellationToken cancellationToken)
@@ -64,7 +64,7 @@ public class AdminRewardCampaignsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = AuthRoles.SuperAdmin)]
+    [Authorize(Roles = $"{AuthRoles.SuperAdmin},{AuthRoles.Admin},{AuthRoles.CampusAdmin},{AuthRoles.Principal},{AuthRoles.Chairman}")]
     public async Task<ActionResult<ApiResponseDto<RewardCampaignDetailDto>>> Update(
         int id,
         UpdateRewardCampaignRequest request,
@@ -77,7 +77,7 @@ public class AdminRewardCampaignsController : ControllerBase
     }
 
     [HttpPatch("{id:int}/cancel")]
-    [Authorize(Roles = AuthRoles.SuperAdmin)]
+    [Authorize(Roles = $"{AuthRoles.SuperAdmin},{AuthRoles.Admin},{AuthRoles.CampusAdmin},{AuthRoles.Principal},{AuthRoles.Chairman}")]
     public async Task<ActionResult<ApiResponseDto<RewardCampaignDetailDto>>> Cancel(
         int id,
         CancelRewardCampaignRequest request,
@@ -90,7 +90,7 @@ public class AdminRewardCampaignsController : ControllerBase
     }
 
     [HttpPost("{id:int}/evaluate")]
-    [Authorize(Roles = AuthRoles.SuperAdmin)]
+    [Authorize(Roles = $"{AuthRoles.SuperAdmin},{AuthRoles.Admin},{AuthRoles.CampusAdmin},{AuthRoles.Principal},{AuthRoles.Chairman}")]
     public async Task<ActionResult<ApiResponseDto<RewardEvaluationResultDto>>> Evaluate(
         int id,
         EvaluateRewardCampaignRequest request)
@@ -138,7 +138,7 @@ public class AdminRewardCampaignsController : ControllerBase
     }
 
     [HttpPatch("{id:int}/candidates/{candidateId:int}")]
-    [Authorize(Roles = AuthRoles.SuperAdmin)]
+    [Authorize(Roles = $"{AuthRoles.SuperAdmin},{AuthRoles.Admin},{AuthRoles.CampusAdmin},{AuthRoles.Principal},{AuthRoles.Chairman}")]
     public async Task<ActionResult<ApiResponseDto<RewardCandidateDto>>> AdjustCandidate(
         int id,
         int candidateId,
@@ -151,7 +151,7 @@ public class AdminRewardCampaignsController : ControllerBase
     }
 
     [HttpPost("{id:int}/candidates/manual-add")]
-    [Authorize(Roles = AuthRoles.SuperAdmin)]
+    [Authorize(Roles = $"{AuthRoles.SuperAdmin},{AuthRoles.Admin},{AuthRoles.CampusAdmin},{AuthRoles.Principal},{AuthRoles.Chairman}")]
     public async Task<ActionResult<ApiResponseDto<RewardCandidateDto>>> ManualAddCandidate(
         int id,
         ManualAddCandidateRequest request)
@@ -163,7 +163,7 @@ public class AdminRewardCampaignsController : ControllerBase
     }
 
     [HttpPost("{id:int}/candidates/reorder")]
-    [Authorize(Roles = AuthRoles.SuperAdmin)]
+    [Authorize(Roles = $"{AuthRoles.SuperAdmin},{AuthRoles.Admin},{AuthRoles.CampusAdmin},{AuthRoles.Principal},{AuthRoles.Chairman}")]
     public async Task<ActionResult<ApiResponseDto<RewardApprovalSummaryDto>>> ReorderCandidates(
         int id,
         ReorderCandidatesRequest request)
@@ -175,7 +175,7 @@ public class AdminRewardCampaignsController : ControllerBase
     }
 
     [HttpPost("{id:int}/submit-for-approval")]
-    [Authorize(Roles = AuthRoles.SuperAdmin)]
+    [Authorize(Roles = $"{AuthRoles.SuperAdmin},{AuthRoles.Admin},{AuthRoles.CampusAdmin},{AuthRoles.Principal},{AuthRoles.Chairman}")]
     public async Task<ActionResult<ApiResponseDto<RewardApprovalSummaryDto>>> SubmitForApproval(int id)
     {
         var result = await _rewardEvaluationService.SubmitForApprovalAsync(id);
@@ -185,7 +185,7 @@ public class AdminRewardCampaignsController : ControllerBase
     }
 
     [HttpPost("{id:int}/approve")]
-    [Authorize(Roles = AuthRoles.SuperAdmin)]
+    [Authorize(Roles = $"{AuthRoles.SuperAdmin},{AuthRoles.Admin},{AuthRoles.CampusAdmin},{AuthRoles.Principal},{AuthRoles.Chairman}")]
     public async Task<ActionResult<ApiResponseDto<ApproveRewardCampaignResultDto>>> Approve(int id)
     {
         var result = await _rewardEvaluationService.ApproveCampaignAsync(id);
@@ -195,7 +195,7 @@ public class AdminRewardCampaignsController : ControllerBase
     }
 
     [HttpPost("{id:int}/certificates/generate")]
-    [Authorize(Roles = AuthRoles.SuperAdmin)]
+    [Authorize(Roles = $"{AuthRoles.SuperAdmin},{AuthRoles.Admin},{AuthRoles.CampusAdmin},{AuthRoles.Principal},{AuthRoles.Chairman}")]
     public async Task<ActionResult<ApiResponseDto<GenerateRewardCertificatesResultDto>>> GenerateCertificates(
         int id,
         GenerateRewardCertificatesRequest request,
@@ -208,7 +208,7 @@ public class AdminRewardCampaignsController : ControllerBase
     }
 
     [HttpPost("{id:int}/certificates/regenerate")]
-    [Authorize(Roles = AuthRoles.SuperAdmin)]
+    [Authorize(Roles = $"{AuthRoles.SuperAdmin},{AuthRoles.Admin},{AuthRoles.CampusAdmin},{AuthRoles.Principal},{AuthRoles.Chairman}")]
     public async Task<ActionResult<ApiResponseDto<GenerateRewardCertificatesResultDto>>> RegenerateCertificates(
         int id,
         RegenerateRewardCertificatesRequest request,
@@ -221,7 +221,7 @@ public class AdminRewardCampaignsController : ControllerBase
     }
 
     [HttpPost("{id:int}/certificates/upload")]
-    [Authorize(Roles = AuthRoles.SuperAdmin)]
+    [Authorize(Roles = $"{AuthRoles.SuperAdmin},{AuthRoles.Admin},{AuthRoles.CampusAdmin},{AuthRoles.Principal},{AuthRoles.Chairman}")]
     public async Task<ActionResult<ApiResponseDto<RewardCertificateListItemDto>>> UploadCertificate(
         int id,
         UploadRewardCertificateRequest request,

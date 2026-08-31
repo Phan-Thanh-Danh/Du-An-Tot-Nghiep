@@ -869,7 +869,7 @@ public class RewardEvaluationService : IRewardEvaluationService
 
     private async Task<HashSet<int>> GetAllowedOrganizationIdsAsync(CurrentUserContext currentUser, CancellationToken cancellationToken)
     {
-        if (currentUser.Role is AuthRoles.SuperAdmin or AuthRoles.Admin)
+        if (currentUser.Role is AuthRoles.SuperAdmin or AuthRoles.Chairman or AuthRoles.Admin)
         {
             return await _context.DonVis.AsNoTracking().Select(x => x.MaDonVi).ToHashSetAsync(cancellationToken);
         }
@@ -941,7 +941,7 @@ public class RewardEvaluationService : IRewardEvaluationService
 
     private static void EnsureCanRead(CurrentUserContext currentUser)
     {
-        if (currentUser.Role is not (AuthRoles.SuperAdmin or AuthRoles.Admin or AuthRoles.CampusAdmin))
+        if (currentUser.Role is not (AuthRoles.SuperAdmin or AuthRoles.Admin or AuthRoles.CampusAdmin or AuthRoles.Principal or AuthRoles.Chairman))
         {
             throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền xem danh sách khen thưởng.");
         }
@@ -949,9 +949,9 @@ public class RewardEvaluationService : IRewardEvaluationService
 
     private static void EnsureSuperAdmin(CurrentUserContext currentUser)
     {
-        if (currentUser.Role != AuthRoles.SuperAdmin)
+        if (currentUser.Role is not (AuthRoles.SuperAdmin or AuthRoles.Admin or AuthRoles.CampusAdmin or AuthRoles.Principal or AuthRoles.Chairman))
         {
-            throw new ApiException(StatusCodes.Status403Forbidden, "Chỉ SuperAdmin được thực hiện thao tác này.");
+            throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền quản lý đợt khen thưởng.");
         }
     }
 

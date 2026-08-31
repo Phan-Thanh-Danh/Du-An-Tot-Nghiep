@@ -126,6 +126,9 @@ public class RewardCampaignService : IRewardCampaignService
         var currentUser = GetCurrentUser();
         EnsureSuperAdmin(currentUser);
 
+        var allowedOrganizationIds = await GetAllowedOrganizationIdsAsync(currentUser, cancellationToken);
+        EnsureOrganizationInReadScope(currentUser, allowedOrganizationIds, request.MaDonVi);
+
         var term = await ValidateTermAsync(request.MaHocKy, request.MaDonVi, cancellationToken);
         await ValidateOrganizationAsync(request.MaDonVi, cancellationToken);
         await ValidateCertificateTemplateAsync(request.MaMauBangKhen, cancellationToken);
@@ -174,11 +177,16 @@ public class RewardCampaignService : IRewardCampaignService
         var currentUser = GetCurrentUser();
         EnsureSuperAdmin(currentUser);
 
+        var allowedOrganizationIds = await GetAllowedOrganizationIdsAsync(currentUser, cancellationToken);
+
         var campaign = await _context.DotKhenThuongs.FirstOrDefaultAsync(x => x.MaDotKhenThuong == id, cancellationToken);
         if (campaign is null)
         {
             throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy đợt khen thưởng.");
         }
+
+        EnsureOrganizationInReadScope(currentUser, allowedOrganizationIds, campaign.MaDonVi);
+        EnsureOrganizationInReadScope(currentUser, allowedOrganizationIds, request.MaDonVi);
 
         if (!campaign.TrangThai.Equals(RewardDisciplineConstants.RewardCampaignStatuses.Draft, StringComparison.OrdinalIgnoreCase))
         {
@@ -225,12 +233,16 @@ public class RewardCampaignService : IRewardCampaignService
         var currentUser = GetCurrentUser();
         EnsureSuperAdmin(currentUser);
 
+        var allowedOrganizationIds = await GetAllowedOrganizationIdsAsync(currentUser, cancellationToken);
+
         var reason = NormalizeRequiredText(request.LyDoHuy ?? request.GhiChu ?? string.Empty, "Lý do hủy");
         var campaign = await _context.DotKhenThuongs.FirstOrDefaultAsync(x => x.MaDotKhenThuong == id, cancellationToken);
         if (campaign is null)
         {
             throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy đợt khen thưởng.");
         }
+
+        EnsureOrganizationInReadScope(currentUser, allowedOrganizationIds, campaign.MaDonVi);
 
         if (campaign.TrangThai.Equals(RewardDisciplineConstants.RewardCampaignStatuses.Published, StringComparison.OrdinalIgnoreCase))
         {
@@ -385,7 +397,7 @@ public class RewardCampaignService : IRewardCampaignService
 
     private async Task<HashSet<int>> GetAllowedOrganizationIdsAsync(CurrentUserContext currentUser, CancellationToken cancellationToken)
     {
-        if (currentUser.Role == AuthRoles.SuperAdmin)
+        if (currentUser.Role == AuthRoles.SuperAdmin || currentUser.Role == AuthRoles.Chairman)
         {
             return await _context.DonVis.AsNoTracking()
                 .Select(x => x.MaDonVi)
@@ -529,7 +541,7 @@ public class RewardCampaignService : IRewardCampaignService
 
     private static void EnsureCanRead(CurrentUserContext currentUser)
     {
-        if (currentUser.Role is not (AuthRoles.SuperAdmin or AuthRoles.Admin or AuthRoles.CampusAdmin))
+        if (currentUser.Role is not (AuthRoles.SuperAdmin or AuthRoles.Admin or AuthRoles.CampusAdmin or AuthRoles.Principal or AuthRoles.Chairman))
         {
             throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền xem đợt khen thưởng.");
         }
@@ -537,9 +549,9 @@ public class RewardCampaignService : IRewardCampaignService
 
     private static void EnsureSuperAdmin(CurrentUserContext currentUser)
     {
-        if (currentUser.Role != AuthRoles.SuperAdmin)
+        if (currentUser.Role is not (AuthRoles.SuperAdmin or AuthRoles.Admin or AuthRoles.CampusAdmin or AuthRoles.Principal or AuthRoles.Chairman))
         {
-            throw new ApiException(StatusCodes.Status403Forbidden, "Chỉ SuperAdmin được quản lý đợt khen thưởng Top 100.");
+            throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền quản lý đợt khen thưởng.");
         }
     }
 
@@ -548,9 +560,9 @@ public class RewardCampaignService : IRewardCampaignService
         HashSet<int> allowedOrganizationIds,
         int maDonVi)
     {
-        if (currentUser.Role != AuthRoles.SuperAdmin && !allowedOrganizationIds.Contains(maDonVi))
+        if (currentUser.Role != AuthRoles.SuperAdmin && currentUser.Role != AuthRoles.Chairman && !allowedOrganizationIds.Contains(maDonVi))
         {
-            throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền xem đợt khen thưởng của đơn vị này.");
+            throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền thao tác trên đợt khen thưởng của đơn vị này.");
         }
     }
 
