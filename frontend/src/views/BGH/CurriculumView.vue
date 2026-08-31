@@ -188,8 +188,18 @@ const totalCredits = computed(() => {
 })
 
 const semesters = computed(() => {
-  const terms = programTerms.value
-  const subjects = programSubjects.value
+  let terms = programTerms.value || []
+  const subjects = programSubjects.value || []
+
+  if (terms.length === 0 && subjects.length > 0) {
+    const distinctHocKy = [...new Set(subjects.map(s => s.hocKyDuKien).filter(k => k > 0))].sort((a, b) => a - b)
+    const numTerms = distinctHocKy.length > 0 ? distinctHocKy : Array.from({ length: currentProgram.value?.soHocKy || 7 }, (_, i) => i + 1)
+    terms = numTerms.map(k => ({
+      maChuongTrinhHocKy: typeof k === 'number' ? k : k.thuTuHocKy,
+      thuTuHocKy: typeof k === 'number' ? k : k.thuTuHocKy,
+    }))
+  }
+
   return terms.map(term => {
     const termSubjects = subjects.filter(s => s.hocKyDuKien === term.thuTuHocKy)
     return {
@@ -205,7 +215,7 @@ const semesters = computed(() => {
         thuTu: s.thuTu,
         conHoatDong: s.conHoatDong,
       })),
-      totalCredits: termSubjects.reduce((sum, s) => sum + s.soTinChi, 0),
+      totalCredits: termSubjects.reduce((sum, s) => sum + (s.soTinChi || 0), 0),
       ghiChu: null,
     }
   })

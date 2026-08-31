@@ -60,10 +60,10 @@ public class BghFacadeController : ControllerBase
                 TrangThai = x.TrangThai,
                 TenChuyenNganh = x.ChuyenNganh != null ? x.ChuyenNganh.TenChuyenNganh : "",
                 TenKhoa = x.KhoaTuyenSinh != null ? x.KhoaTuyenSinh.TenKhoa : "",
-                SoHocKy = _db.ChuongTrinhHocKys.Count(term => term.MaChuongTrinh == x.MaChuongTrinh),
+                SoHocKy = x.SoHocKy > 0 ? x.SoHocKy : (_db.ChuongTrinhHocKys.Count(term => term.MaChuongTrinh == x.MaChuongTrinh) > 0 ? _db.ChuongTrinhHocKys.Count(term => term.MaChuongTrinh == x.MaChuongTrinh) : 7),
                 TongTinChiYeuCau = _db.MonHocTrongChuongTrinhs
                     .Where(subject => subject.MaChuongTrinh == x.MaChuongTrinh && subject.ConHoatDong)
-                    .Sum(subject => (int?)subject.SoTinChi) ?? 0,
+                    .Sum(subject => (int?)subject.SoTinChi) ?? x.TongTinChiYeuCau ?? 120,
                 SoHocKyKhaiBao = x.SoHocKy,
                 TongTinChiKhaiBao = x.TongTinChiYeuCau,
                 SoMonHoc = _db.MonHocTrongChuongTrinhs.Count(subject =>
@@ -106,26 +106,14 @@ public class BghFacadeController : ControllerBase
                 x.MaCodeChuongTrinh,
                 x.TenChuongTrinh,
                 TenChuyenNganh = x.ChuyenNganh != null ? x.ChuyenNganh.TenChuyenNganh : "",
+                SoHocKy = x.SoHocKy > 0 ? x.SoHocKy : 7,
+                TongTinChiYeuCau = x.TongTinChiYeuCau ?? 120,
                 x.TrangThai
             })
             .FirstOrDefaultAsync();
 
         if (program == null)
             return NotFound(new { message = "Không tìm thấy chương trình trong phạm vi quản lý." });
-
-        var terms = await _db.ChuongTrinhHocKys
-            .AsNoTracking()
-            .Where(x => x.MaChuongTrinh == programId)
-            .OrderBy(x => x.ThuTuHocKy)
-            .Select(x => new
-            {
-                x.MaChuongTrinhHocKy,
-                x.MaHocKy,
-                x.ThuTuHocKy,
-                TenHocKy = x.HocKy != null ? x.HocKy.TenHocKy : "",
-                NamHoc = x.HocKy != null ? x.HocKy.NamHoc : ""
-            })
-            .ToListAsync();
 
         var subjects = await _db.MonHocTrongChuongTrinhs
             .AsNoTracking()
@@ -147,6 +135,39 @@ public class BghFacadeController : ControllerBase
             })
             .ToListAsync();
 
+        var dbTerms = await _db.ChuongTrinhHocKys
+            .AsNoTracking()
+            .Where(x => x.MaChuongTrinh == programId)
+            .OrderBy(x => x.ThuTuHocKy)
+            .Select(x => new
+            {
+                x.MaChuongTrinhHocKy,
+                x.MaHocKy,
+                x.ThuTuHocKy,
+                TenHocKy = x.HocKy != null ? x.HocKy.TenHocKy : $"Học kỳ {x.ThuTuHocKy}",
+                NamHoc = x.HocKy != null ? x.HocKy.NamHoc : ""
+            })
+            .ToListAsync();
+
+        object terms = dbTerms;
+        if (dbTerms.Count == 0)
+        {
+            var distinctSemesters = subjects.Select(s => s.HocKyDuKien).Distinct().Where(k => k > 0).OrderBy(k => k).ToList();
+            if (distinctSemesters.Count == 0)
+            {
+                int maxK = program.SoHocKy > 0 ? program.SoHocKy : 7;
+                distinctSemesters = Enumerable.Range(1, maxK).ToList();
+            }
+            terms = distinctSemesters.Select(k => new
+            {
+                MaChuongTrinhHocKy = k,
+                MaHocKy = (int?)null,
+                ThuTuHocKy = k,
+                TenHocKy = $"Học kỳ {k}",
+                NamHoc = ""
+            }).ToList();
+        }
+
         return Ok(new
         {
             data = new
@@ -154,7 +175,7 @@ public class BghFacadeController : ControllerBase
                 program,
                 terms,
                 subjects,
-                semesterCount = terms.Count,
+                semesterCount = dbTerms.Count > 0 ? dbTerms.Count : program.SoHocKy,
                 subjectCount = subjects.Count,
                 totalCredits = subjects.Sum(x => x.SoTinChi)
             },
