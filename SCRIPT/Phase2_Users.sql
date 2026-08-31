@@ -12,7 +12,7 @@ BEGIN TRY
     BEGIN TRANSACTION;
 
     -- ==========================================
-    -- 0. SEED BẢNG VAI TRÒ (VaiTro)
+    -- 0. SEED BẢNG VAI TRÒ & QUYỀN HẠN (RBAC)
     -- ==========================================
     IF NOT EXISTS (SELECT 1 FROM VaiTro WHERE ma_code_vai_tro = 'sieu_quan_tri')
     BEGIN
@@ -33,7 +33,83 @@ BEGIN TRY
             (14, 'ke_toan_truong_co_so',   N'Kế toán trưởng cơ sở');
     END
 
-    PRINT N'  [OK] VaiTro da seed';
+    -- Seed Danh mục Quyền hạn (QuyenHan)
+    DECLARE @Perms TABLE (code NVARCHAR(100), ten NVARCHAR(200), mod NVARCHAR(50), act NVARCHAR(50), mota NVARCHAR(500));
+    INSERT INTO @Perms VALUES
+        ('training.read', N'Xem chương trình đào tạo & môn học', 'training', 'read', N'Cho phép xem môn học và khung chương trình'),
+        ('training.create', N'Tạo mới môn học & CTĐT', 'training', 'create', N'Cho phép tạo môn học mới'),
+        ('training.update', N'Chỉnh sửa môn học', 'training', 'update', N'Cho phép chỉnh sửa môn học'),
+        ('training.delete', N'Xóa môn học', 'training', 'delete', N'Cho phép xóa môn học'),
+        ('training.manage_curriculum', N'Quản lý đề cương & CTĐT', 'training', 'approve', N'Cho phép duyệt CTĐT'),
+        ('schedules.read', N'Xem thời khóa biểu & lịch học', 'schedules', 'read', N'Cho phép xem lịch học và phòng học'),
+        ('schedules.create', N'Xếp lịch học', 'schedules', 'create', N'Cho phép tạo TKB'),
+        ('schedules.update', N'Điều chỉnh lịch học', 'schedules', 'update', N'Cho phép đổi ca học, đổi phòng'),
+        ('schedules.delete', N'Hủy lịch học', 'schedules', 'delete', N'Cho phép hủy TKB'),
+        ('schedules.approve', N'Phê duyệt TKB', 'schedules', 'approve', N'Cho phép BGH duyệt TKB'),
+        ('exams.read', N'Xem bảng điểm & lịch thi', 'exams', 'read', N'Cho phép xem điểm số và lịch thi'),
+        ('exams.create', N'Tạo ca thi & đề thi', 'exams', 'create', N'Cho phép tạo ca thi'),
+        ('exams.update', N'Nhập & sửa điểm', 'exams', 'update', N'Cho phép nhập điểm thi'),
+        ('exams.delete', N'Hủy ca thi', 'exams', 'delete', N'Cho phép xóa ca thi'),
+        ('exams.grade', N'Chấm bài & tổng kết GPA', 'exams', 'update', N'Cho phép chấm bài thi'),
+        ('exams.unlock_grade', N'Mở khóa bảng điểm', 'exams', 'approve', N'Cho phép duyệt mở khóa điểm'),
+        ('requests.read', N'Xem đơn từ', 'requests', 'read', N'Cho phép xem đơn từ sinh viên'),
+        ('requests.create', N'Tạo & gửi đơn', 'requests', 'create', N'Cho phép gửi đơn xin nghỉ, phúc khảo'),
+        ('requests.update', N'Xử lý đơn từ', 'requests', 'update', N'Cho phép tiếp nhận xử lý đơn'),
+        ('requests.delete', N'Hủy đơn từ', 'requests', 'delete', N'Cho phép xóa đơn từ'),
+        ('requests.process', N'Phê duyệt đơn từ', 'requests', 'approve', N'Cho phép duyệt hoặc từ chối đơn'),
+        ('accounts.read', N'Xem tài khoản', 'accounts', 'read', N'Cho phép xem tài khoản'),
+        ('accounts.create', N'Tạo tài khoản', 'accounts', 'create', N'Cho phép tạo tài khoản'),
+        ('accounts.update', N'Chỉnh sửa tài khoản', 'accounts', 'update', N'Cho phép sửa tài khoản'),
+        ('accounts.delete', N'Xóa tài khoản', 'accounts', 'delete', N'Cho phép xóa tài khoản'),
+        ('campus.read', N'Xem cơ sở', 'campus', 'read', N'Cho phép xem cơ sở'),
+        ('campus.create', N'Tạo cơ sở', 'campus', 'create', N'Cho phép tạo cơ sở'),
+        ('campus.update', N'Sửa cơ sở', 'campus', 'update', N'Cho phép sửa cơ sở'),
+        ('campus.delete', N'Xóa cơ sở', 'campus', 'delete', N'Cho phép xóa cơ sở'),
+        ('finance.read', N'Xem tài chính học phí', 'finance', 'read', N'Cho phép xem học phí'),
+        ('finance.create', N'Tạo giao dịch học phí', 'finance', 'create', N'Cho phép tạo hóa đơn'),
+        ('finance.update', N'Sửa giao dịch học phí', 'finance', 'update', N'Cho phép cập nhật giao dịch'),
+        ('finance.delete', N'Hủy giao dịch học phí', 'finance', 'delete', N'Cho phép hủy giao dịch'),
+        ('reports.read', N'Xem báo cáo học vụ', 'reports', 'read', N'Cho phép xem biểu đồ và báo cáo GPA'),
+        ('reports.export', N'Xuất báo cáo', 'reports', 'export', N'Cho phép xuất file báo cáo'),
+        ('reports.ai_analysis', N'Phân tích AI', 'reports', 'approve', N'Cho phép xem phân tích nguy cơ rớt môn');
+
+    INSERT INTO QuyenHan (ma_code, ten_quyen_han, module, action, mo_ta)
+    SELECT code, ten, mod, act, mota FROM @Perms p
+    WHERE NOT EXISTS (SELECT 1 FROM QuyenHan q WHERE q.ma_code = p.code);
+
+    -- Gán quyền cho các Vai Trò (VaiTroQuyenHan)
+    -- Sinh viên (hoc_sinh - role 9): xem học tập, TKB, kết quả thi, gửi đơn từ
+    INSERT INTO VaiTroQuyenHan (ma_vai_tro, ma_quyen_han, ngay_cap)
+    SELECT 9, q.ma_quyen_han, @CurrentDate FROM QuyenHan q
+    WHERE q.ma_code IN ('training.read', 'schedules.read', 'exams.read', 'requests.read', 'requests.create')
+    AND NOT EXISTS (SELECT 1 FROM VaiTroQuyenHan v WHERE v.ma_vai_tro = 9 AND v.ma_quyen_han = q.ma_quyen_han);
+
+    -- Giảng viên (giao_vien - role 7)
+    INSERT INTO VaiTroQuyenHan (ma_vai_tro, ma_quyen_han, ngay_cap)
+    SELECT 7, q.ma_quyen_han, @CurrentDate FROM QuyenHan q
+    WHERE q.ma_code IN ('training.read', 'schedules.read', 'exams.read', 'exams.update', 'exams.grade', 'requests.read', 'requests.update', 'requests.create', 'reports.read')
+    AND NOT EXISTS (SELECT 1 FROM VaiTroQuyenHan v WHERE v.ma_vai_tro = 7 AND v.ma_quyen_han = q.ma_quyen_han);
+
+    -- Nhân viên giáo vụ (nhan_vien - role 8)
+    INSERT INTO VaiTroQuyenHan (ma_vai_tro, ma_quyen_han, ngay_cap)
+    SELECT 8, q.ma_quyen_han, @CurrentDate FROM QuyenHan q
+    WHERE q.ma_code IN ('training.read', 'training.create', 'training.update', 'schedules.read', 'schedules.create', 'schedules.update', 'exams.read', 'exams.create', 'requests.read', 'requests.update', 'requests.process', 'reports.read', 'reports.export')
+    AND NOT EXISTS (SELECT 1 FROM VaiTroQuyenHan v WHERE v.ma_vai_tro = 8 AND v.ma_quyen_han = q.ma_quyen_han);
+
+    -- Ban giám hiệu (hieu_truong - role 5)
+    INSERT INTO VaiTroQuyenHan (ma_vai_tro, ma_quyen_han, ngay_cap)
+    SELECT 5, q.ma_quyen_han, @CurrentDate FROM QuyenHan q
+    WHERE q.ma_code IN ('training.read', 'training.manage_curriculum', 'schedules.read', 'schedules.approve', 'exams.read', 'exams.unlock_grade', 'requests.read', 'requests.process', 'reports.read', 'reports.export', 'reports.ai_analysis')
+    AND NOT EXISTS (SELECT 1 FROM VaiTroQuyenHan v WHERE v.ma_vai_tro = 5 AND v.ma_quyen_han = q.ma_quyen_han);
+
+    -- Quản trị hệ thống (sieu_quan_tri: 1, quan_tri: 2, quan_tri_co_so: 3) -> Toàn quyền
+    INSERT INTO VaiTroQuyenHan (ma_vai_tro, ma_quyen_han, ngay_cap)
+    SELECT v.ma_vai_tro, q.ma_quyen_han, @CurrentDate 
+    FROM VaiTro v CROSS JOIN QuyenHan q
+    WHERE v.ma_vai_tro IN (1, 2, 3)
+    AND NOT EXISTS (SELECT 1 FROM VaiTroQuyenHan x WHERE x.ma_vai_tro = v.ma_vai_tro AND x.ma_quyen_han = q.ma_quyen_han);
+
+    PRINT N'  [OK] VaiTro, QuyenHan & VaiTroQuyenHan da seed day du';
 
     -- ==========================================
     -- 0.5 TẠO TÀI KHOẢN CẤP CAO (TOÀN TRƯỜNG)
