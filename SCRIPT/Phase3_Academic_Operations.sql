@@ -91,9 +91,12 @@ BEGIN TRY
     
     PRINT N'- Đang khởi tạo Ca học và Cấu hình điểm...';
     DELETE FROM CaHoc; DBCC CHECKIDENT ('CaHoc', RESEED, 0);
-    INSERT INTO CaHoc (ten_ca, gio_bat_dau, gio_ket_thuc, thu_tu, con_hoat_dong) VALUES 
-        (N'Ca 1 (Sáng)', '07:30', '09:30', 1, 1), (N'Ca 2 (Sáng)', '09:45', '11:45', 2, 1),
-        (N'Ca 3 (Chiều)', '13:00', '15:00', 3, 1), (N'Ca 4 (Chiều)', '15:15', '17:15', 4, 1);
+    -- Cột buoi: constraint chỉ nhận 'sang', 'chieu', 'toi'
+    INSERT INTO CaHoc (ten_ca, buoi, gio_bat_dau, gio_ket_thuc, thu_tu, con_hoat_dong) VALUES 
+        (N'Ca 1 (Sáng)',  'sang',  '07:30', '09:30', 1, 1),
+        (N'Ca 2 (Sáng)',  'sang',  '09:45', '11:45', 2, 1),
+        (N'Ca 3 (Chiều)', 'chieu', '13:00', '15:00', 3, 1),
+        (N'Ca 4 (Chiều)', 'chieu', '15:15', '17:15', 4, 1);
 
     INSERT INTO CauHinhDiemMonHoc (ma_mon_hoc, ma_hoc_ky, nguong_dat, ti_le_chuyen_can_toi_thieu, trong_so_qua_trinh, trong_so_giua_ky, trong_so_cuoi_ky)
     SELECT m.ma_mon_hoc, h.ma_hoc_ky, 5.0, 80.0, 40.0, 30.0, 30.0
@@ -101,34 +104,84 @@ BEGIN TRY
     AND NOT EXISTS (SELECT 1 FROM CauHinhDiemMonHoc c WHERE c.ma_mon_hoc = m.ma_mon_hoc AND c.ma_hoc_ky = h.ma_hoc_ky);
 
     PRINT N'- Đang lên Thời khóa biểu và phát sinh Buổi học...';
+    -- trang_thai ThoiKhoaBieu: constraint nhận 'nhap' (default theo model)
     INSERT INTO ThoiKhoaBieu (ma_khoa_hoc, ma_phong, ma_ca_hoc, thu_trong_tuan, ngay_bat_dau, ngay_ket_thuc, trang_thai, ngay_tao)
-    SELECT k.ma_khoa_hoc, (SELECT TOP 1 ma_phong FROM PhongHoc p JOIN ToaNha t ON p.ma_toa_nha = t.ma_toa_nha WHERE t.ma_don_vi = k.ma_don_vi ORDER BY NEWID()),
-        (SELECT TOP 1 ma_ca_hoc FROM CaHoc ORDER BY NEWID()), (k.ma_khoa_hoc % 6) + 2, h.ngay_bat_dau, h.ngay_ket_thuc, 'dang_hoat_dong', @CurrentDate
+    SELECT 
+        k.ma_khoa_hoc,
+        (SELECT TOP 1 ma_phong FROM PhongHoc p JOIN ToaNha t ON p.ma_toa_nha = t.ma_toa_nha WHERE t.ma_don_vi = k.ma_don_vi AND p.trang_thai_phong = 'hoat_dong' ORDER BY NEWID()),
+        (SELECT TOP 1 ma_ca_hoc FROM CaHoc ORDER BY NEWID()),
+        (k.ma_khoa_hoc % 5) + 2,  -- thu 2 den thu 6
+        h.ngay_bat_dau,
+        h.ngay_ket_thuc,
+        'nhap',
+        @CurrentDate
     FROM KhoaHoc k JOIN HocKy h ON k.ma_hoc_ky = h.ma_hoc_ky
     WHERE NOT EXISTS (SELECT 1 FROM ThoiKhoaBieu tkb WHERE tkb.ma_khoa_hoc = k.ma_khoa_hoc);
 
-    WITH Numbers AS (SELECT TOP 10 ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) AS N FROM master.dbo.spt_values)
+    -- Sinh 10 buổi học cho mỗi khóa học (1 buổi/tuần x 10 tuần)
+    -- trang_thai_diem_danh trong BuoiHoc không có constraint, dùng 'da_chot'
+    -- trang_thai_buoi không có constraint, dùng 'da_dien_ra'
+    -- NgayHoc phải là DateOnly -> CAST sang DATE
+    WITH Numbers AS (
+        SELECT TOP 10 ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) AS N 
+        FROM master.dbo.spt_values
+    )
     INSERT INTO BuoiHoc (ma_tkb, ma_khoa_hoc, ma_phong, ma_ca_hoc, ma_giao_vien, ngay_hoc, trang_thai_buoi, trang_thai_diem_danh, ngay_tao)
-    SELECT tkb.ma_tkb, tkb.ma_khoa_hoc, tkb.ma_phong, tkb.ma_ca_hoc, k.ma_giao_vien, DATEADD(DAY, (n.N - 1) * 7, tkb.ngay_bat_dau), 'da_dien_ra', 'da_chot', @CurrentDate
-    FROM ThoiKhoaBieu tkb JOIN KhoaHoc k ON tkb.ma_khoa_hoc = k.ma_khoa_hoc CROSS JOIN Numbers n
-    WHERE NOT EXISTS (SELECT 1 FROM BuoiHoc b WHERE b.ma_tkb = tkb.ma_tkb AND b.ngay_hoc = DATEADD(DAY, (n.N - 1) * 7, tkb.ngay_bat_dau));
+    SELECT 
+        tkb.ma_tkb, tkb.ma_khoa_hoc, tkb.ma_phong, tkb.ma_ca_hoc,
+        k.ma_giao_vien,
+        CAST(DATEADD(DAY, (n.N - 1) * 7, tkb.ngay_bat_dau) AS DATE),
+        'da_dien_ra',
+        'da_chot',
+        @CurrentDate
+    FROM ThoiKhoaBieu tkb 
+    JOIN KhoaHoc k ON tkb.ma_khoa_hoc = k.ma_khoa_hoc 
+    CROSS JOIN Numbers n
+    WHERE tkb.ngay_bat_dau IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM BuoiHoc b 
+        WHERE b.ma_tkb = tkb.ma_tkb 
+          AND b.ngay_hoc = CAST(DATEADD(DAY, (n.N - 1) * 7, tkb.ngay_bat_dau) AS DATE)
+      );
 
     PRINT N'- Đang quét Điểm danh Sinh viên...';
-    INSERT INTO DiemDanh (ma_buoi_hoc, ma_don_vi, ma_hoc_sinh, trang_thai, nguoi_ghi_nhan)
-    SELECT b.ma_buoi_hoc, k.ma_don_vi, s.ma_nguoi_dung,
-        CASE WHEN (b.ma_buoi_hoc + s.ma_nguoi_dung) % 100 < 85 THEN 'co_mat' WHEN (b.ma_buoi_hoc + s.ma_nguoi_dung) % 100 < 95 THEN 'vang_mat' ELSE 'di_muon' END,
-        b.ma_giao_vien
-    FROM BuoiHoc b JOIN KhoaHoc k ON b.ma_khoa_hoc = k.ma_khoa_hoc
+    -- trang_thai DiemDanh constraint: 'co_mat', 'vang', 'di_muon', 'co_phep'
+    -- he_so_vang NOT NULL, ghi_nhan_luc NOT NULL
+    INSERT INTO DiemDanh (ma_buoi_hoc, ma_don_vi, ma_hoc_sinh, trang_thai, nguoi_ghi_nhan, ghi_nhan_luc, he_so_vang)
+    SELECT 
+        b.ma_buoi_hoc, 
+        k.ma_don_vi, 
+        s.ma_nguoi_dung,
+        CASE 
+            WHEN (b.ma_buoi_hoc + s.ma_nguoi_dung) % 100 < 85 THEN 'co_mat' 
+            WHEN (b.ma_buoi_hoc + s.ma_nguoi_dung) % 100 < 95 THEN 'vang'
+            ELSE 'di_muon' 
+        END,
+        b.ma_giao_vien,
+        @CurrentDate,
+        CASE WHEN (b.ma_buoi_hoc + s.ma_nguoi_dung) % 100 BETWEEN 85 AND 94 THEN 1 ELSE 0 END
+    FROM BuoiHoc b 
+    JOIN KhoaHoc k ON b.ma_khoa_hoc = k.ma_khoa_hoc
     JOIN NguoiDung s ON s.ma_lop = k.ma_lop AND s.vai_tro_chinh = 'hoc_sinh'
     WHERE NOT EXISTS (SELECT 1 FROM DiemDanh dd WHERE dd.ma_buoi_hoc = b.ma_buoi_hoc AND dd.ma_hoc_sinh = s.ma_nguoi_dung);
 
     PRINT N'- Đang tính toán và sinh Điểm số tổng kết...';
-    INSERT INTO DiemSo (ma_don_vi, ma_hoc_ky, ma_hoc_sinh, ma_mon_hoc, nam_nhap_hoc, diem_qua_trinh, diem_giua_ky, diem_cuoi_ky, gpa_mon_hoc, trang_thai, ly_do_rot)
-    SELECT k.ma_don_vi, k.ma_hoc_ky, s.ma_nguoi_dung, k.ma_mon_hoc, 2024,
-        (s.ma_nguoi_dung % 6) + 4.0, (s.ma_nguoi_dung % 5) + 5.0, (s.ma_nguoi_dung % 7) + 3.0,
-        ((s.ma_nguoi_dung % 6) + 4.0) * 0.4 + ((s.ma_nguoi_dung % 5) + 5.0) * 0.3 + ((s.ma_nguoi_dung % 7) + 3.0) * 0.3,
-        CASE WHEN (((s.ma_nguoi_dung % 6) + 4.0) * 0.4 + ((s.ma_nguoi_dung % 5) + 5.0) * 0.3 + ((s.ma_nguoi_dung % 7) + 3.0) * 0.3) >= 5.0 THEN 'dat' ELSE 'rot' END,
-        CASE WHEN (((s.ma_nguoi_dung % 6) + 4.0) * 0.4 + ((s.ma_nguoi_dung % 5) + 5.0) * 0.3 + ((s.ma_nguoi_dung % 7) + 3.0) * 0.3) < 5.0 THEN N'Điểm tổng kết dưới 5.0' ELSE NULL END
+    -- trang_thai DiemSo constraint: 'dat', 'rot', 'chua_hoan_thanh', 'cho_hoan_thanh_bo_sung'
+    -- ly_do_rot: constraint ISJSON -> phải là NULL hoặc chuỗi JSON hợp lệ
+    -- da_khoa: NOT NULL
+    INSERT INTO DiemSo (ma_don_vi, ma_hoc_ky, ma_hoc_sinh, ma_mon_hoc, nam_nhap_hoc, diem_qua_trinh, diem_giua_ky, diem_cuoi_ky, gpa_mon_hoc, trang_thai, ly_do_rot, da_khoa)
+    SELECT 
+        k.ma_don_vi, k.ma_hoc_ky, s.ma_nguoi_dung, k.ma_mon_hoc, 2024,
+        CAST((s.ma_nguoi_dung % 6) + 4.0 AS DECIMAL(4,2)),
+        CAST((s.ma_nguoi_dung % 5) + 5.0 AS DECIMAL(4,2)),
+        CAST((s.ma_nguoi_dung % 7) + 3.0 AS DECIMAL(4,2)),
+        CAST(((s.ma_nguoi_dung % 6) + 4.0) * 0.4 + ((s.ma_nguoi_dung % 5) + 5.0) * 0.3 + ((s.ma_nguoi_dung % 7) + 3.0) * 0.3 AS DECIMAL(4,2)),
+        CASE WHEN (((s.ma_nguoi_dung % 6) + 4.0) * 0.4 + ((s.ma_nguoi_dung % 5) + 5.0) * 0.3 + ((s.ma_nguoi_dung % 7) + 3.0) * 0.3) >= 5.0 
+             THEN 'dat' ELSE 'rot' END,
+        -- ly_do_rot phải là JSON hoặc NULL (constraint ISJSON)
+        CASE WHEN (((s.ma_nguoi_dung % 6) + 4.0) * 0.4 + ((s.ma_nguoi_dung % 5) + 5.0) * 0.3 + ((s.ma_nguoi_dung % 7) + 3.0) * 0.3) < 5.0 
+             THEN N'{"ly_do": "Điểm tổng kết dưới 5.0"}' ELSE NULL END,
+        1  -- da_khoa = 1 (đã khóa điểm cuối kỳ)
     FROM KhoaHoc k JOIN NguoiDung s ON s.ma_lop = k.ma_lop AND s.vai_tro_chinh = 'hoc_sinh'
     WHERE NOT EXISTS (SELECT 1 FROM DiemSo d WHERE d.ma_hoc_sinh = s.ma_nguoi_dung AND d.ma_mon_hoc = k.ma_mon_hoc AND d.ma_hoc_ky = k.ma_hoc_ky);
 
