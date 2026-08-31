@@ -28,6 +28,22 @@ BEGIN TRY
     SELECT @ChuyenNganhAI = ma_chuyen_nganh FROM ChuyenNganh WHERE ten_chuyen_nganh = N'Trí tuệ nhân tạo';
 
     -- ==================================================================
+    -- 1.1 BỔ SUNG BẢNG QUY ĐỔI TÍN CHỈ (QuyDoiTinChi)
+    -- ==================================================================
+    IF NOT EXISTS (SELECT 1 FROM QuyDoiTinChi WHERE so_tin_chi = 2)
+        INSERT INTO QuyDoiTinChi (so_tin_chi, so_block_hoc, so_buoi_moi_tuan, so_ca_moi_buoi) VALUES (2, 1, 2, 1);
+    IF NOT EXISTS (SELECT 1 FROM QuyDoiTinChi WHERE so_tin_chi = 3)
+        INSERT INTO QuyDoiTinChi (so_tin_chi, so_block_hoc, so_buoi_moi_tuan, so_ca_moi_buoi) VALUES (3, 1, 3, 1);
+    IF NOT EXISTS (SELECT 1 FROM QuyDoiTinChi WHERE so_tin_chi = 4)
+        INSERT INTO QuyDoiTinChi (so_tin_chi, so_block_hoc, so_buoi_moi_tuan, so_ca_moi_buoi) VALUES (4, 2, 2, 1);
+    IF NOT EXISTS (SELECT 1 FROM QuyDoiTinChi WHERE so_tin_chi = 5)
+        INSERT INTO QuyDoiTinChi (so_tin_chi, so_block_hoc, so_buoi_moi_tuan, so_ca_moi_buoi) VALUES (5, 2, 3, 1);
+    IF NOT EXISTS (SELECT 1 FROM QuyDoiTinChi WHERE so_tin_chi = 9)
+        INSERT INTO QuyDoiTinChi (so_tin_chi, so_block_hoc, so_buoi_moi_tuan, so_ca_moi_buoi) VALUES (9, 2, 4, 1);
+    IF NOT EXISTS (SELECT 1 FROM QuyDoiTinChi WHERE so_tin_chi = 12)
+        INSERT INTO QuyDoiTinChi (so_tin_chi, so_block_hoc, so_buoi_moi_tuan, so_ca_moi_buoi) VALUES (12, 2, 4, 1);
+
+    -- ==================================================================
     -- 2. NẠP TOÀN BỘ DANH MỤC MÔN HỌC (DanhMucMonHoc)
     -- ==================================================================
     PRINT N'- 1. Đang nạp danh mục môn học chuẩn hóa...';
@@ -155,6 +171,34 @@ BEGIN TRY
     JOIN @Subjects s ON m.ma_code_mon_hoc = s.code;
 
     PRINT N'  [OK] Đã hoàn tất danh mục ' + CAST((SELECT COUNT(*) FROM DanhMucMonHoc) AS NVARCHAR) + N' môn học!';
+
+    -- ==================================================================
+    -- 2.1 LIÊN KẾT MÔN HỌC - CHUYÊN NGÀNH (MonHocChuyenNganh)
+    -- ==================================================================
+    PRINT N'- 1.1 Đang liên kết môn học vào MonHocChuyenNganh...';
+
+    -- Môn chuyên ngành SE
+    INSERT INTO MonHocChuyenNganh (ma_mon_hoc, ma_chuyen_nganh)
+    SELECT m.ma_mon_hoc, @ChuyenNganhSE
+    FROM DanhMucMonHoc m
+    WHERE (m.ma_chuyen_nganh = @ChuyenNganhSE OR m.ma_nganh = @NganhCNTT OR m.ma_code_mon_hoc IN ('ENG101', 'ENG102', 'ENG103', 'SSG101', 'ENT101', 'ETH301'))
+      AND NOT EXISTS (SELECT 1 FROM MonHocChuyenNganh mc WHERE mc.ma_mon_hoc = m.ma_mon_hoc AND mc.ma_chuyen_nganh = @ChuyenNganhSE);
+
+    -- Môn chuyên ngành GD
+    INSERT INTO MonHocChuyenNganh (ma_mon_hoc, ma_chuyen_nganh)
+    SELECT m.ma_mon_hoc, @ChuyenNganhGD
+    FROM DanhMucMonHoc m
+    WHERE (m.ma_chuyen_nganh = @ChuyenNganhGD OR m.ma_nganh = @NganhTKDH OR m.ma_code_mon_hoc IN ('ENG101', 'ENG102', 'ENG103', 'SSG101', 'ENT101', 'ETH301', 'WEB104'))
+      AND NOT EXISTS (SELECT 1 FROM MonHocChuyenNganh mc WHERE mc.ma_mon_hoc = m.ma_mon_hoc AND mc.ma_chuyen_nganh = @ChuyenNganhGD);
+
+    -- Môn chuyên ngành DM
+    INSERT INTO MonHocChuyenNganh (ma_mon_hoc, ma_chuyen_nganh)
+    SELECT m.ma_mon_hoc, @ChuyenNganhDM
+    FROM DanhMucMonHoc m
+    WHERE (m.ma_chuyen_nganh = @ChuyenNganhDM OR m.ma_nganh = @NganhMKT OR m.ma_code_mon_hoc IN ('ENG101', 'ENG102', 'ENG103', 'SSG101', 'ENT101', 'ETH301', 'WEB104', 'PSH101'))
+      AND NOT EXISTS (SELECT 1 FROM MonHocChuyenNganh mc WHERE mc.ma_mon_hoc = m.ma_mon_hoc AND mc.ma_chuyen_nganh = @ChuyenNganhDM);
+
+    PRINT N'  [OK] Đã liên kết MonHocChuyenNganh!';
 
     -- ==================================================================
     -- 3. GẮN MÔN HỌC VÀO TỪNG CHƯƠNG TRÌNH ĐÀO TẠO (120 TC / 7 HỌC KỲ)
