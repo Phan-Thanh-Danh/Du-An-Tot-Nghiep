@@ -348,6 +348,149 @@ public class AuthService : IAuthService
             : 7;
     }
 
+    public async Task<DemoAccountFiltersDto> GetDemoFiltersAsync(CancellationToken cancellationToken = default)
+    {
+        var roles = await _context.VaiTros
+            .AsNoTracking()
+            .OrderBy(r => r.MaVaiTro)
+            .Select(r => new DemoFilterItemDto
+            {
+                Id = r.MaCodeVaiTro,
+                Label = r.TenVaiTro
+            })
+            .ToListAsync(cancellationToken);
+
+        var campuses = await _context.DonVis
+            .AsNoTracking()
+            .Where(d => d.CapDonVi == "CoSo" || d.CapDonVi == "TongTruong" || d.MaDonVi == 1 || d.MaDonVi == 2 || d.MaDonVi == 3 || d.MaDonVi == 4)
+            .OrderBy(d => d.MaDonVi)
+            .Select(d => new DemoFilterItemDto
+            {
+                Id = d.MaDonVi.ToString(),
+                Label = d.TenDonVi
+            })
+            .ToListAsync(cancellationToken);
+
+        return new DemoAccountFiltersDto
+        {
+            Roles = roles,
+            Campuses = campuses
+        };
+    }
+
+    public async Task<DemoAccountPagedResultDto> GetDemoAccountsAsync(
+        DemoAccountQueryParameters parameters,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.NguoiDungs
+            .AsNoTracking()
+            .Include(u => u.DonVi)
+            .Include(u => u.Lop)
+                .ThenInclude(l => l.ChuongTrinh)
+                    .ThenInclude(c => c.ChuyenNganh)
+            .Where(u => u.TrangThai != "khoa" && u.TrangThai != "locked");
+
+        if (!string.IsNullOrWhiteSpace(parameters.Search))
+        {
+            var kw = parameters.Search.Trim().ToLower();
+            query = query.Where(u => u.HoTen.ToLower().Contains(kw) || 
+                                     u.Email.ToLower().Contains(kw) || 
+                                     (u.SoDienThoai != null && u.SoDienThoai.Contains(kw)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(parameters.Role) && parameters.Role != "all")
+        {
+            var roleCode = parameters.Role.Trim().ToLower();
+            query = query.Where(u => u.VaiTroChinh.ToLower() == roleCode);
+        }
+
+        if (!string.IsNullOrWhiteSpace(parameters.Campus) && parameters.Campus != "all")
+        {
+            if (int.TryParse(parameters.Campus, out var campusId))
+            {
+                query = query.Where(u => u.MaDonVi == campusId);
+            }
+        }
+
+        var totalItems = await query.CountAsync(cancellationToken);
+
+        var page = parameters.Page > 0 ? parameters.Page : 1;
+        var pageSize = parameters.PageSize > 0 ? parameters.PageSize : 10;
+
+        var users = await query
+            .OrderBy(u => u.MaNguoiDung)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        // Pre-fetch roles to map names
+        var rolesMap = await _context.VaiTros.AsNoTracking()
+            .ToDictionaryAsync(r => r.MaCodeVaiTro.ToLower(), r => r.TenVaiTro, cancellationToken);
+
+        var items = users.Select(u =>
+        {
+            var roleCode = u.VaiTroChinh?.ToLower() ?? "";
+            var roleName = rolesMap.TryGetValue(roleCode, out var rName) ? rName : u.VaiTroChinh ?? "Người dùng";
+            
+            var note = "";
+            if (roleCode.Contains("sinh_vien") || roleCode == "student")
+            {
+                note = u.Lop != null 
+                    ? $"Lớp {u.Lop.TenLop} {(u.Lop.ChuongTrinh?.ChuyenNganh != null ? "- " + u.Lop.ChuongTrinh.ChuyenNganh.TenChuyenNganh : "")}"
+                    : "Sinh viên";
+            }
+            else if (roleCode.Contains("giang_vien") || roleCode == "teacher")
+            {
+                note = $"Giảng viên {u.DonVi?.TenDonVi ?? ""}";
+            }
+            else if (roleCode.Contains("giao_vu") || roleCode == "academic_staff" || roleCode == "staff")
+            {
+                note = $"Quản lý giáo vụ {u.DonVi?.TenDonVi ?? ""}";
+            }
+            else if (roleCode.Contains("hieu_truong") || roleCode.Contains("chu_tich") || roleCode == "bgh")
+            {
+                note = $"Ban giám hiệu {u.DonVi?.TenDonVi ?? ""}";
+            }
+            else if (roleCode.Contains("phu_huynh") || roleCode == "parent")
+            {
+                note = "Phụ huynh sinh viên";
+            }
+            else if (roleCode.Contains("sieu_quan_tri") || roleCode == "super_admin")
+            {
+                note = "Toàn quyền quản trị hệ thống";
+            }
+            else if (roleCode.Contains("hoi_dong") || roleCode == "content_council")
+            {
+                note = "Hội đồng quản lý nội dung môn học";
+            }
+            else
+            {
+                note = u.DonVi?.TenDonVi ?? "Tài khoản hệ thống";
+            }
+
+            return new DemoAccountItemDto
+            {
+                MaNguoiDung = u.MaNguoiDung,
+                Email = u.Email,
+                Password = "123456",
+                Name = u.HoTen,
+                Role = roleCode,
+                RoleName = roleName,
+                Campus = u.MaDonVi.ToString(),
+                CampusName = u.DonVi?.TenDonVi ?? "Cơ sở",
+                Note = note
+            };
+        }).ToList();
+
+        return new DemoAccountPagedResultDto
+        {
+            Items = items,
+            TotalItems = totalItems,
+            Page = page,
+            PageSize = pageSize
+        };
+    }
+
     private static string GenerateRefreshToken()
     {
         return Base64UrlEncode(RandomNumberGenerator.GetBytes(64));

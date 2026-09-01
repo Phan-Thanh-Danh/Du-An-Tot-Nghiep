@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, reactive, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, watch } from 'vue'
 import {
   Search,
   X,
@@ -7,8 +7,12 @@ import {
   KeyRound,
   Sparkles,
   ArrowRight,
-  Check
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Loader2
 } from 'lucide-vue-next'
+import { authApi } from '@/services/apiClient'
 
 // eslint-disable-next-line no-unused-vars
 const props = defineProps({
@@ -23,12 +27,29 @@ const selectedRole = ref('all')
 const selectedCampus = ref('all')
 const copiedEmail = ref('')
 
+// ── Pagination & API State ──
+const accounts = ref([])
+const totalItems = ref(0)
+const page = ref(1)
+const pageSize = ref(10)
+const totalPages = ref(1)
+const isLoading = ref(false)
+const isFiltersLoading = ref(false)
+
+const rolesList = ref([
+  { id: 'all', label: 'Tất cả vai trò' }
+])
+
+const campusesList = ref([
+  { id: 'all', label: 'Tất cả cơ sở' }
+])
+
 // ── Drag & Drop State ──
 const modalRef = ref(null)
 const isDragging = ref(false)
 const pos = reactive({
   x: Math.max(20, Math.round((window.innerWidth - 560) / 2)),
-  y: Math.max(40, Math.round((window.innerHeight - 620) / 2))
+  y: Math.max(30, Math.round((window.innerHeight - 660) / 2))
 })
 const dragStart = reactive({ x: 0, y: 0, initialX: 0, initialY: 0 })
 
@@ -50,7 +71,7 @@ function onDrag(e) {
   const dy = e.clientY - dragStart.y
 
   const modalWidth = 560
-  const modalHeight = 600
+  const modalHeight = 650
   const maxX = window.innerWidth - modalWidth - 10
   const maxY = window.innerHeight - modalHeight - 10
 
@@ -64,87 +85,95 @@ function stopDrag() {
   window.removeEventListener('mouseup', stopDrag)
 }
 
-// ── Master Demo Accounts Dataset ──
-const demoAccounts = [
-  // Cơ sở 1
-  { email: 'sv1.cs1@aet.local', password: '123456', name: 'Sinh viên 1 (SE)', role: 'student', roleName: 'Sinh viên', campus: 'cs1', campusName: 'Cơ sở 1', note: 'Lớp SE - Kỹ thuật phần mềm' },
-  { email: 'sv2.cs1@aet.local', password: '123456', name: 'Sinh viên 2 (GD)', role: 'student', roleName: 'Sinh viên', campus: 'cs1', campusName: 'Cơ sở 1', note: 'Lớp GD - Thiết kế đồ họa' },
-  { email: 'sv3.cs1@aet.local', password: '123456', name: 'Sinh viên 3 (DM)', role: 'student', roleName: 'Sinh viên', campus: 'cs1', campusName: 'Cơ sở 1', note: 'Lớp DM - Digital Marketing' },
-  { email: 'gv1.cs1@aet.local', password: '123456', name: 'Giảng viên 1 (GD)', role: 'teacher', roleName: 'Giảng viên', campus: 'cs1', campusName: 'Cơ sở 1', note: 'Dạy môn UIX101 - Thiết kế UI/UX' },
-  { email: 'gv2.cs1@aet.local', password: '123456', name: 'Giảng viên 2 (DM)', role: 'teacher', roleName: 'Giảng viên', campus: 'cs1', campusName: 'Cơ sở 1', note: 'Dạy môn MKT101 - Marketing căn bản' },
-  { email: 'gv3.cs1@aet.local', password: '123456', name: 'Giảng viên 3 (SE)', role: 'teacher', roleName: 'Giảng viên', campus: 'cs1', campusName: 'Cơ sở 1', note: 'Dạy môn COM101 & DBI202' },
-  { email: 'giaovu1.cs1@aet.local', password: '123456', name: 'Giáo vụ 1 (CS1)', role: 'staff', roleName: 'Giáo vụ', campus: 'cs1', campusName: 'Cơ sở 1', note: 'Quản lý lịch học & điểm số' },
-  { email: 'hieupho.cs1@aet.local', password: '123456', name: 'Hiệu phó Đào tạo (CS1)', role: 'bgh', roleName: 'Ban giám hiệu', campus: 'cs1', campusName: 'Cơ sở 1', note: 'Duyệt TKB, mở điểm, xem báo cáo' },
-  { email: 'ph1.cs1@aet.local', password: '123456', name: 'Phụ huynh 1 (CS1)', role: 'parent', roleName: 'Phụ huynh', campus: 'cs1', campusName: 'Cơ sở 1', note: 'Phụ huynh của Sinh viên 1' },
-
-  // Cơ sở 2
-  { email: 'sv1.cs2@aet.local', password: '123456', name: 'Sinh viên 1 (CS2)', role: 'student', roleName: 'Sinh viên', campus: 'cs2', campusName: 'Cơ sở 2', note: 'Lớp SE - Cơ sở TP.HCM' },
-  { email: 'gv1.cs2@aet.local', password: '123456', name: 'Giảng viên 1 (CS2)', role: 'teacher', roleName: 'Giảng viên', campus: 'cs2', campusName: 'Cơ sở 2', note: 'Giảng viên cơ sở TP.HCM' },
-  { email: 'giaovu1.cs2@aet.local', password: '123456', name: 'Giáo vụ 1 (CS2)', role: 'staff', roleName: 'Giáo vụ', campus: 'cs2', campusName: 'Cơ sở 2', note: 'Giáo vụ cơ sở TP.HCM' },
-  { email: 'hieupho.cs2@aet.local', password: '123456', name: 'Hiệu phó (CS2)', role: 'bgh', roleName: 'Ban giám hiệu', campus: 'cs2', campusName: 'Cơ sở 2', note: 'Ban giám hiệu cơ sở 2' },
-  { email: 'ph1.cs2@aet.local', password: '123456', name: 'Phụ huynh 1 (CS2)', role: 'parent', roleName: 'Phụ huynh', campus: 'cs2', campusName: 'Cơ sở 2', note: 'Phụ huynh cơ sở 2' },
-
-  // Cơ sở 3
-  { email: 'sv1.cs3@aet.local', password: '123456', name: 'Sinh viên 1 (CS3)', role: 'student', roleName: 'Sinh viên', campus: 'cs3', campusName: 'Cơ sở 3', note: 'Lớp SE - Cơ sở Đà Nẵng' },
-  { email: 'gv1.cs3@aet.local', password: '123456', name: 'Giảng viên 1 (CS3)', role: 'teacher', roleName: 'Giảng viên', campus: 'cs3', campusName: 'Cơ sở 3', note: 'Giảng viên cơ sở Đà Nẵng' },
-  { email: 'giaovu1.cs3@aet.local', password: '123456', name: 'Giáo vụ 1 (CS3)', role: 'staff', roleName: 'Giáo vụ', campus: 'cs3', campusName: 'Cơ sở 3', note: 'Giáo vụ cơ sở Đà Nẵng' },
-
-  // Cấp cao toàn trường
-  { email: 'hdqlnd@aet.local', password: '123456', name: 'Hội đồng Quản lý Nội dung', role: 'content-council', roleName: 'HĐQL Nội dung', campus: 'root', campusName: 'Toàn hệ thống', note: 'Duyệt khung CTĐT & đề cương môn học' },
-  { email: 'superadmin@aet.local', password: '123456', name: 'Siêu Quản Trị Hệ Thống', role: 'super-admin', roleName: 'Siêu quản trị', campus: 'root', campusName: 'Toàn hệ thống', note: 'Toàn quyền cấu hình & phân quyền RBAC' }
-]
-
-const rolesList = [
-  { id: 'all', label: 'Tất cả vai trò' },
-  { id: 'student', label: 'Sinh viên' },
-  { id: 'teacher', label: 'Giảng viên' },
-  { id: 'staff', label: 'Giáo vụ' },
-  { id: 'bgh', label: 'Ban giám hiệu' },
-  { id: 'parent', label: 'Phụ huynh' },
-  { id: 'content-council', label: 'HĐ Nội dung' },
-  { id: 'super-admin', label: 'Quản trị' }
-]
-
-const campusesList = [
-  { id: 'all', label: 'Tất cả cơ sở' },
-  { id: 'cs1', label: 'Cơ sở 1 (Hà Nội)' },
-  { id: 'cs2', label: 'Cơ sở 2 (TP.HCM)' },
-  { id: 'cs3', label: 'Cơ sở 3 (Đà Nẵng)' },
-  { id: 'root', label: 'Toàn trường' }
-]
-
-const filteredAccounts = computed(() => {
-  let list = demoAccounts
-  if (selectedRole.value !== 'all') {
-    list = list.filter(a => a.role === selectedRole.value)
+// ── Fetch Filters from Database ──
+async function fetchFilters() {
+  isFiltersLoading.value = true
+  try {
+    const res = await authApi.getDemoFilters()
+    if (res) {
+      if (res.roles && Array.isArray(res.roles)) {
+        rolesList.value = [
+          { id: 'all', label: 'Tất cả vai trò' },
+          ...res.roles.map(r => ({ id: r.id || r.Id, label: r.label || r.Label }))
+        ]
+      }
+      if (res.campuses && Array.isArray(res.campuses)) {
+        campusesList.value = [
+          { id: 'all', label: 'Tất cả cơ sở' },
+          ...res.campuses.map(c => ({ id: c.id || c.Id, label: c.label || c.Label }))
+        ]
+      }
+    }
+  } catch (error) {
+    console.error('Lỗi khi tải danh mục vai trò/cơ sở:', error)
+  } finally {
+    isFiltersLoading.value = false
   }
-  if (selectedCampus.value !== 'all') {
-    list = list.filter(a => a.campus === selectedCampus.value)
+}
+
+// ── Fetch Accounts from Database ──
+let searchTimeout = null
+
+async function fetchAccounts() {
+  isLoading.value = true
+  try {
+    const res = await authApi.getDemoAccounts({
+      search: searchKeyword.value.trim(),
+      role: selectedRole.value,
+      campus: selectedCampus.value,
+      page: page.value,
+      pageSize: pageSize.value
+    })
+
+    if (res) {
+      accounts.value = res.items || res.Items || []
+      totalItems.value = res.totalItems ?? res.TotalItems ?? 0
+      totalPages.value = res.totalPages ?? res.TotalPages ?? Math.max(1, Math.ceil(totalItems.value / pageSize.value))
+    }
+  } catch (error) {
+    console.error('Lỗi khi tải danh sách tài khoản demo:', error)
+    accounts.value = []
+    totalItems.value = 0
+    totalPages.value = 1
+  } finally {
+    isLoading.value = false
   }
-  if (searchKeyword.value.trim()) {
-    const q = searchKeyword.value.trim().toLowerCase()
-    list = list.filter(a =>
-      a.email.toLowerCase().includes(q) ||
-      a.name.toLowerCase().includes(q) ||
-      a.roleName.toLowerCase().includes(q) ||
-      a.note.toLowerCase().includes(q) ||
-      a.campusName.toLowerCase().includes(q)
-    )
-  }
-  return list
+}
+
+function handleSearchChange() {
+  clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    page.value = 1
+    fetchAccounts()
+  }, 300)
+}
+
+watch(selectedRole, () => {
+  page.value = 1
+  fetchAccounts()
 })
 
+watch(selectedCampus, () => {
+  page.value = 1
+  fetchAccounts()
+})
+
+function goToPage(p) {
+  if (p < 1 || p > totalPages.value || p === page.value) return
+  page.value = p
+  fetchAccounts()
+}
+
 function getRoleBadgeColor(role) {
-  switch (role) {
-    case 'student': return 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-    case 'teacher': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-    case 'staff': return 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-    case 'bgh': return 'bg-purple-500/10 text-purple-400 border-purple-500/20'
-    case 'parent': return 'bg-teal-500/10 text-teal-400 border-teal-500/20'
-    case 'super-admin': return 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-    case 'content-council': return 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
-    default: return 'bg-slate-500/10 text-slate-400 border-slate-500/20'
-  }
+  const r = (role || '').toLowerCase()
+  if (r.includes('sinh_vien') || r === 'student') return 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+  if (r.includes('giang_vien') || r === 'teacher') return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+  if (r.includes('giao_vu') || r === 'staff' || r === 'academic_staff') return 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+  if (r.includes('hieu_truong') || r.includes('chu_tich') || r === 'bgh') return 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+  if (r.includes('phu_huynh') || r === 'parent') return 'bg-teal-500/10 text-teal-400 border-teal-500/20'
+  if (r.includes('sieu_quan_tri') || r === 'super_admin' || r === 'super-admin' || r === 'admin') return 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+  if (r.includes('hoi_dong') || r === 'content-council' || r === 'content_council') return 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
+  return 'bg-slate-500/10 text-slate-400 border-slate-500/20'
 }
 
 function handleSelect(account, autoSubmit = false) {
@@ -158,12 +187,15 @@ function handleSelect(account, autoSubmit = false) {
 }
 
 function handleKeyDown(e) {
-  // Phím tắt mở popup: Ctrl + K, hoặc Ctrl + Shift + D, hoặc F2
   if ((e.ctrlKey && e.key.toLowerCase() === 'k') ||
       (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'd') ||
       e.key === 'F2') {
     e.preventDefault()
     isVisible.value = !isVisible.value
+    if (isVisible.value) {
+      if (rolesList.value.length <= 1) fetchFilters()
+      fetchAccounts()
+    }
   } else if (e.key === 'Escape' && isVisible.value) {
     isVisible.value = false
     emit('close')
@@ -173,21 +205,33 @@ function handleKeyDown(e) {
 onMounted(() => {
   window.addEventListener('keydown', handleKeyDown)
   pos.x = Math.max(20, Math.round((window.innerWidth - 560) / 2))
-  pos.y = Math.max(30, Math.round((window.innerHeight - 620) / 2))
+  pos.y = Math.max(20, Math.round((window.innerHeight - 660) / 2))
+  fetchFilters()
+  fetchAccounts()
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeyDown)
   stopDrag()
+  clearTimeout(searchTimeout)
 })
 
 function toggleModal() {
   isVisible.value = !isVisible.value
-  if (!isVisible.value) emit('close')
+  if (isVisible.value) {
+    if (rolesList.value.length <= 1) fetchFilters()
+    fetchAccounts()
+  } else {
+    emit('close')
+  }
 }
 
 defineExpose({
-  open() { isVisible.value = true },
+  open() { 
+    isVisible.value = true 
+    if (rolesList.value.length <= 1) fetchFilters()
+    fetchAccounts()
+  },
   close() { isVisible.value = false }
 })
 </script>
@@ -220,7 +264,7 @@ defineExpose({
           v-if="isVisible"
           ref="modalRef"
           :style="{ left: `${pos.x}px`, top: `${pos.y}px` }"
-          class="fixed z-50 w-[540px] max-w-[95vw] rounded-2xl bg-slate-900/95 text-slate-100 backdrop-blur-xl border border-slate-700/80 shadow-2xl shadow-black/70 flex flex-col max-h-[85vh] overflow-hidden select-none"
+          class="fixed z-50 w-[560px] max-w-[95vw] rounded-2xl bg-slate-900/95 text-slate-100 backdrop-blur-xl border border-slate-700/80 shadow-2xl shadow-black/80 flex flex-col max-h-[88vh] overflow-hidden select-none"
         >
           <!-- ── HEADER (VÙNG KÉO THẢ BẰNG CHUỘT) ── -->
           <div
@@ -231,10 +275,10 @@ defineExpose({
               <GripHorizontal class="w-4 h-4 text-slate-500" />
               <div class="flex items-center gap-2">
                 <Sparkles class="w-4 h-4 text-cyan-400" />
-                <span class="text-[14px] font-semibold text-white">Danh Sách Tài Khoản Demo (AET)</span>
+                <span class="text-[14px] font-semibold text-white">Danh Sách Tài Khoản Hệ Thống</span>
               </div>
               <span class="px-2 py-0.5 rounded-full text-[10px] bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-mono">
-                {{ filteredAccounts.length }} tài khoản
+                {{ totalItems.toLocaleString() }} tài khoản
               </span>
             </div>
 
@@ -247,7 +291,7 @@ defineExpose({
             </button>
           </div>
 
-          <!-- ── SEARCH & FILTERS ── -->
+          <!-- ── SEARCH & FILTERS (LẤY TỪ BẢNG DATABASE) ── -->
           <div class="p-3.5 border-b border-slate-800/80 bg-slate-900/60 space-y-2.5">
             <!-- Search bar -->
             <div class="relative">
@@ -255,20 +299,21 @@ defineExpose({
               <input
                 v-model="searchKeyword"
                 type="text"
-                placeholder="Tìm theo tên, email, chuyên ngành, môn học..."
-                class="w-full pl-9 pr-3 py-1.5 rounded-xl bg-slate-950/80 border border-slate-700/80 text-[13px] text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
+                @input="handleSearchChange"
+                placeholder="Tìm kiếm theo họ tên, email, số điện thoại..."
+                class="w-full pl-9 pr-8 py-1.5 rounded-xl bg-slate-950/80 border border-slate-700/80 text-[13px] text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
               />
               <button
                 v-if="searchKeyword"
                 type="button"
-                @click="searchKeyword = ''"
+                @click="searchKeyword = ''; fetchAccounts()"
                 class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
               >
                 <X class="w-3.5 h-3.5" />
               </button>
             </div>
 
-            <!-- Role & Campus Filters -->
+            <!-- Role & Campus Filters (Database Dropdowns) -->
             <div class="grid grid-cols-2 gap-2 text-[12px]">
               <div>
                 <select
@@ -290,23 +335,33 @@ defineExpose({
           </div>
 
           <!-- ── ACCOUNTS LIST ── -->
-          <div class="flex-1 overflow-y-auto p-3 space-y-2 max-h-[380px] scrollbar-thin scrollbar-thumb-slate-700">
-            <div
-              v-if="filteredAccounts.length === 0"
-              class="py-10 text-center text-slate-400 text-[13px]"
-            >
-              Không tìm thấy tài khoản phù hợp với bộ lọc.
+          <div class="flex-1 overflow-y-auto p-3 space-y-2 max-h-[380px] scrollbar-thin scrollbar-thumb-slate-700 relative min-h-[160px]">
+            <!-- Loading overlay -->
+            <div v-if="isLoading" class="absolute inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center z-10">
+              <div class="flex items-center gap-2 text-cyan-400 text-xs font-medium">
+                <Loader2 class="w-4 h-4 animate-spin" />
+                <span>Đang tải danh sách tài khoản...</span>
+              </div>
             </div>
 
+            <!-- Empty state -->
             <div
-              v-for="acc in filteredAccounts"
+              v-if="!isLoading && accounts.length === 0"
+              class="py-12 text-center text-slate-400 text-[13px]"
+            >
+              Không tìm thấy tài khoản phù hợp với bộ lọc tìm kiếm.
+            </div>
+
+            <!-- List items -->
+            <div
+              v-for="acc in accounts"
               :key="acc.email"
               class="group flex items-center justify-between p-2.5 rounded-xl border border-slate-800 hover:border-cyan-500/40 bg-slate-950/40 hover:bg-slate-800/60 transition-all duration-150"
             >
               <!-- Info -->
               <div class="flex items-center gap-3 min-w-0 flex-1">
-                <div class="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center flex-shrink-0 text-cyan-400 font-bold text-xs">
-                  {{ acc.name.charAt(0) }}
+                <div class="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center flex-shrink-0 text-cyan-400 font-bold text-xs uppercase">
+                  {{ (acc.name || 'U').charAt(0) }}
                 </div>
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center gap-2 flex-wrap">
@@ -323,8 +378,8 @@ defineExpose({
                   </div>
                   <div class="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
                     <span class="text-cyan-300/90 font-mono">{{ acc.email }}</span>
-                    <span>•</span>
-                    <span class="text-slate-400 truncate">{{ acc.note }}</span>
+                    <span v-if="acc.note">•</span>
+                    <span v-if="acc.note" class="text-slate-400 truncate">{{ acc.note }}</span>
                   </div>
                 </div>
               </div>
@@ -356,8 +411,37 @@ defineExpose({
             </div>
           </div>
 
+          <!-- ── PHÂN TRANG (PAGINATION CONTROLS) ── -->
+          <div class="flex items-center justify-between px-4 py-2 border-t border-slate-800/80 bg-slate-950/80 text-[12px]">
+            <div class="text-slate-400">
+              Trang <span class="text-white font-medium">{{ page }}</span> / <span class="text-slate-300 font-medium">{{ totalPages }}</span>
+            </div>
+
+            <div class="flex items-center gap-1">
+              <button
+                type="button"
+                :disabled="page <= 1 || isLoading"
+                @click="goToPage(page - 1)"
+                class="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                title="Trang trước"
+              >
+                <ChevronLeft class="w-3.5 h-3.5" />
+              </button>
+
+              <button
+                type="button"
+                :disabled="page >= totalPages || isLoading"
+                @click="goToPage(page + 1)"
+                class="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                title="Trang sau"
+              >
+                <ChevronRight class="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
           <!-- ── FOOTER ── -->
-          <div class="flex items-center justify-between px-4 py-2.5 border-t border-slate-800 bg-slate-950/60 text-[11px] text-slate-400">
+          <div class="flex items-center justify-between px-4 py-2.5 border-t border-slate-800 bg-slate-950/90 text-[11px] text-slate-400">
             <div class="flex items-center gap-2">
               <KeyRound class="w-3.5 h-3.5 text-amber-400" />
               <span>Mật khẩu tất cả tài khoản: <strong class="text-amber-300 font-mono">123456</strong></span>
@@ -371,4 +455,3 @@ defineExpose({
     </Teleport>
   </div>
 </template>
-

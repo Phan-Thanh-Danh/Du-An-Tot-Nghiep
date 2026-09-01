@@ -9,4 +9,6 @@ public interface IAuthService
     Task LogoutAsync(RevokeTokenRequestDto request);
     Task RevokeTokenAsync(RevokeTokenRequestDto request);
     Task ChangePasswordAsync(int userId, ChangePasswordDto request);
+    Task<DemoAccountFiltersDto> GetDemoFiltersAsync(CancellationToken cancellationToken = default);
+    Task<DemoAccountPagedResultDto> GetDemoAccountsAsync(DemoAccountQueryParameters parameters, CancellationToken cancellationToken = default);
 }

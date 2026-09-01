@@ -94,4 +94,22 @@ public class AuthController : ControllerBase
         await _passwordResetService.ResetPasswordAsync(request, cancellationToken);
         return Ok(new { message = "Đổi mật khẩu thành công" });
     }
+
+    [HttpGet("demo-filters")]
+    [AllowAnonymous]
+    public async Task<ActionResult<DemoAccountFiltersDto>> GetDemoFilters(CancellationToken cancellationToken)
+    {
+        var filters = await _authService.GetDemoFiltersAsync(cancellationToken);
+        return Ok(filters);
+    }
+
+    [HttpGet("demo-accounts")]
+    [AllowAnonymous]
+    public async Task<ActionResult<DemoAccountPagedResultDto>> GetDemoAccounts(
+        [FromQuery] DemoAccountQueryParameters parameters,
+        CancellationToken cancellationToken)
+    {
+        var result = await _authService.GetDemoAccountsAsync(parameters, cancellationToken);
+        return Ok(result);
+    }
 }

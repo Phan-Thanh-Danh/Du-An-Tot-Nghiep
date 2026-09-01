@@ -142,6 +142,26 @@ export const authApi = {
       body: JSON.stringify(payload),
     })
   },
+
+  getDemoFilters() {
+    return apiRequest('/api/auth/demo-filters', {
+      skipAuthRefresh: true,
+    })
+  },
+
+  getDemoAccounts(params = {}) {
+    const query = new URLSearchParams()
+    if (params.search) query.set('search', params.search)
+    if (params.role && params.role !== 'all') query.set('role', params.role)
+    if (params.campus && params.campus !== 'all') query.set('campus', params.campus)
+    if (params.page) query.set('page', params.page)
+    if (params.pageSize) query.set('pageSize', params.pageSize)
+
+    const qStr = query.toString()
+    return apiRequest(`/api/auth/demo-accounts${qStr ? '?' + qStr : ''}`, {
+      skipAuthRefresh: true,
+    })
+  },
 }
 
 export const storageApi = {
