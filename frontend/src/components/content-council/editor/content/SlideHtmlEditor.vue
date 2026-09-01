@@ -43,7 +43,15 @@ const initEditor = () => {
     placeholder: 'Nhấn Tab hoặc nút + để thêm nội dung...',
     data: initialData,
     tools: {
-      header: Header,
+      header: {
+        class: Header,
+        inlineToolbar: true,
+        config: {
+          placeholder: 'Nhập tiêu đề...',
+          levels: [1, 2, 3, 4, 5, 6],
+          defaultLevel: 2
+        }
+      },
       paragraph: {
         class: Paragraph,
         inlineToolbar: true
@@ -146,6 +154,69 @@ defineExpose({
 .editor-container .ce-block__content,
 .editor-container .ce-toolbar__content {
   max-width: 100%;
+}
+
+/* ── Heading Styles (Fix Tailwind Preflight font-size reset) ── */
+.editor-container h1.ce-header {
+  font-size: 2.25rem !important;
+  line-height: 1.25 !important;
+  font-weight: 800 !important;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  color: var(--text-heading);
+}
+
+.editor-container h2.ce-header {
+  font-size: 1.75rem !important;
+  line-height: 1.3 !important;
+  font-weight: 700 !important;
+  margin-top: 1.25rem;
+  margin-bottom: 0.625rem;
+  color: var(--text-heading);
+}
+
+.editor-container h3.ce-header {
+  font-size: 1.375rem !important;
+  line-height: 1.35 !important;
+  font-weight: 600 !important;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-heading);
+}
+
+.editor-container h4.ce-header {
+  font-size: 1.15rem !important;
+  line-height: 1.4 !important;
+  font-weight: 600 !important;
+  margin-top: 0.75rem;
+  margin-bottom: 0.375rem;
+  color: var(--text-heading);
+}
+
+.editor-container h5.ce-header {
+  font-size: 1rem !important;
+  line-height: 1.45 !important;
+  font-weight: 600 !important;
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+  color: var(--text-heading);
+}
+
+.editor-container h6.ce-header {
+  font-size: 0.875rem !important;
+  line-height: 1.5 !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+  color: var(--text-muted);
+}
+
+.editor-container .ce-paragraph {
+  font-size: 1rem;
+  line-height: 1.65;
+  margin-bottom: 0.5rem;
 }
 
 /* Make the Add (+) and Settings buttons slightly larger */

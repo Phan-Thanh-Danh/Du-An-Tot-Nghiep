@@ -247,3 +247,4 @@ Khi Ollama hoàn thành phân tích, nó sẽ trả về một gói JSON chuẩn
 
 1. **Tính Thực Tiễn & Giá Trị Đồ Án**: Mô hình kết hợp giữa **Hệ thống ERP Học vụ thực tế (ASP.NET Core + Vue 3)** và **Trí tuệ Nhân tạo Local LLM (Ollama) qua mạng Tailscale** là một điểm nhấn công nghệ cực kỳ ấn tượng, giải quyết trọn vẹn bài toán bảo mật, chi phí và chất lượng ra quyết định cho Ban Giám Hiệu.
 2. **Tính Khách Quan Tuyệt Đối**: Bằng việc tích hợp 6 lớp dữ liệu bối cảnh (LMS, chuyên cần, độ khó môn, tải giảng viên, cơ sở vật chất, tài chính), hệ thống AI không chỉ dừng lại ở việc đọc số liệu mà thực sự đóng vai trò là một **Ban Cố Vấn Chiến Lược Trí Tuệ Nhân Tạo**.
+
