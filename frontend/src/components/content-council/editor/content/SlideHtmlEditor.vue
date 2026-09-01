@@ -17,6 +17,7 @@ import RawTool from '@editorjs/raw'
 import Marker from '@editorjs/marker'
 import InlineCode from '@editorjs/inline-code'
 import Underline from '@editorjs/underline'
+import AttachesTool from '@editorjs/attaches'
 import { storageApi } from '@/services/apiClient'
 
 const props = defineProps({
@@ -117,6 +118,33 @@ const initEditor = () => {
       simpleImage: {
         class: SimpleImage,
         inlineToolbar: true
+      },
+      attaches: {
+        class: AttachesTool,
+        config: {
+          uploader: {
+            async uploadByFile(file: File) {
+              try {
+                const response = await storageApi.upload(file, 'slides')
+                if (response && response.success && response.data) {
+                  const result = Array.isArray(response.data) ? response.data[0] : response.data
+                  return {
+                    success: 1,
+                    file: {
+                      url: result.url || result.Url,
+                      size: file.size,
+                      name: file.name,
+                      extension: file.name.split('.').pop()
+                    }
+                  }
+                }
+                throw new Error('Upload failed')
+              } catch (error) {
+                return { success: 0, message: 'Upload file thất bại' }
+              }
+            }
+          }
+        }
       },
       embed: {
         class: Embed,

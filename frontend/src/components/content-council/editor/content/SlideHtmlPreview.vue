@@ -131,6 +131,31 @@ const blocks = computed(() => {
         <SafeHtmlRenderer :html="block.data.message" />
       </div>
 
+      <!-- Attaches (File đính kèm PDF, DOCX, ZIP) -->
+      <div v-else-if="block.type === 'attaches'" class="my-5 not-prose">
+        <a 
+          :href="block.data.file?.url" 
+          target="_blank" 
+          download
+          class="flex items-center gap-3.5 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all text-inherit no-underline shadow-sm hover:shadow group max-w-md"
+        >
+          <div class="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-xs uppercase shrink-0 border border-blue-100 dark:border-blue-900/40">
+            {{ block.data.file?.extension || 'FILE' }}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="font-semibold text-sm truncate text-(--text-heading) group-hover:text-blue-600 transition-colors">
+              {{ block.data.title || block.data.file?.name || 'Tài liệu đính kèm' }}
+            </div>
+            <div class="text-xs text-slate-400 mt-0.5" v-if="block.data.file?.size">
+              {{ (block.data.file.size / 1024 / 1024).toFixed(2) }} MB
+            </div>
+          </div>
+          <div class="text-xs text-blue-500 font-medium shrink-0 px-2.5 py-1 rounded-md bg-blue-50 dark:bg-blue-950/40 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/60 transition-colors">
+            Tải về ⬇
+          </div>
+        </a>
+      </div>
+
       <!-- Unsupported Block Fallback -->
       <div v-else class="my-4 p-4 border border-dashed border-slate-300 dark:border-slate-700 text-slate-400 text-sm bg-slate-50 dark:bg-slate-900 rounded">
         Unsupported block type: {{ block.type }}
