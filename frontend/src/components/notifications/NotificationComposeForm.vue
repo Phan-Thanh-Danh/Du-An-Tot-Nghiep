@@ -48,7 +48,7 @@ const updateFormBody = async () => {
     form.value.editorData = outputData
     const tempEl = document.createElement('div')
     let html = ''
-    
+
     outputData.blocks.forEach(b => {
       // Plain text extraction
       if (b.data && b.data.text) tempEl.innerHTML += b.data.text + ' '
@@ -58,7 +58,7 @@ const updateFormBody = async () => {
            tempEl.innerHTML += t + ' '
         })
       }
-      
+
       // HTML generation for preview
       if (b.type === 'paragraph') {
         html += `<p class="mb-2">${b.data.text}</p>`
@@ -85,7 +85,7 @@ const updateFormBody = async () => {
         html += `<img src="${b.data.url}" class="max-w-full rounded-lg my-2" />`
       }
     })
-    
+
     form.value.body = tempEl.textContent || tempEl.innerText || ''
     form.value.bodyHtml = html
   }
@@ -96,7 +96,7 @@ const initEditor = (initialData) => {
     editor.destroy()
     editor = null
   }
-  
+
   if (typeof initialData === 'string' && initialData.startsWith('{')) {
     try {
       initialData = JSON.parse(initialData)
@@ -167,10 +167,10 @@ const onTemplateSelect = async () => {
       form.value.title = data.tieuDeMau || data.tenMau
       form.value.category = data.loaiThongBao || 'hoc_vu'
       form.value.priority = data.mucDoUuTien || 'thong_tin'
-      
+
       await nextTick()
       initEditor(data.noiDungMau)
-      
+
       // Delay to allow editor to render before saving
       setTimeout(async () => {
         await updateFormBody()
@@ -232,7 +232,7 @@ const submitForm = async () => {
     popupStore.error('Lỗi', 'Vui lòng nhập tiêu đề thông báo')
     return
   }
-  
+
   await updateFormBody()
 
   if (!form.value.body.trim()) {
