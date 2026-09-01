@@ -133,9 +133,9 @@ const blocks = computed(() => {
 
       <!-- Attaches (File đính kèm PDF, DOCX, ZIP) -->
       <div v-else-if="block.type === 'attaches'" class="my-5 not-prose">
-        <a 
-          :href="block.data.file?.url" 
-          target="_blank" 
+        <a
+          :href="block.data.file?.url"
+          target="_blank"
           download
           class="flex items-center gap-3.5 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all text-inherit no-underline shadow-sm hover:shadow group max-w-md"
         >
