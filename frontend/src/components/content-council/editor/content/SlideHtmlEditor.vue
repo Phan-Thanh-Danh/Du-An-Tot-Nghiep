@@ -315,286 +315,79 @@ defineExpose({
   transform: scale(1.35);
 }
 
-/* ── Editor.js Liquid Glass Theme Integration (Light & Dark Mode) ── */
+/* ── Editor.js Liquid Glass Theme Integration ── */
 
-/* Canvas & Base Text */
-.editor-container {
+.editor-container .ce-popover,
+.editor-container .ce-inline-toolbar,
+.editor-container .ce-conversion-toolbar {
+  background-color: var(--surface-dropdown);
+  border: 1px solid var(--border-card);
+  box-shadow: var(--lg-shadow-md);
   color: var(--text-body);
 }
 
-.editor-container .ce-paragraph {
+.editor-container .ce-popover__item:hover,
+.editor-container .ce-inline-tool:hover,
+.editor-container .ce-inline-toolbar__dropdown:hover,
+.editor-container .ce-conversion-tool:hover {
+  background-color: var(--surface-table-row-hover);
+  color: var(--text-heading);
+}
+
+.editor-container .ce-popover__item-icon,
+.editor-container .ce-conversion-tool__icon {
+  background-color: var(--surface-input);
   color: var(--text-body);
-  font-size: 1rem;
-  line-height: 1.65;
-  margin-bottom: 0.5rem;
+  border: 1px solid var(--border-card);
+  box-shadow: none;
 }
 
-.editor-container [data-placeholder]:empty::before {
-  color: var(--text-placeholder) !important;
+.editor-container .cdx-search-field {
+  background-color: var(--surface-input);
+  border-color: var(--border-input);
+  color: var(--text-heading);
 }
 
-/* Selected Block */
-.editor-container .ce-block--selected .ce-block__content {
-  background-color: var(--focus-ring);
-  border-radius: 6px;
-}
-
-/* Toolbar Buttons (+ and Settings) */
 .editor-container .ce-toolbar__plus,
 .editor-container .ce-toolbar__settings-btn {
-  color: var(--text-muted) !important;
-  background-color: transparent;
-  border-radius: 8px;
-  transition: all 0.15s ease;
+  color: var(--text-muted);
 }
 
 .editor-container .ce-toolbar__plus:hover,
 .editor-container .ce-toolbar__settings-btn:hover {
-  background-color: var(--surface-card-hover) !important;
-  color: var(--text-heading) !important;
+  background-color: var(--surface-card-hover);
+  color: var(--text-heading);
 }
 
-/* Popover & Menus (+ menu and Settings menu) */
-.ce-popover,
-.ce-inline-toolbar,
-.ce-conversion-toolbar,
-.tc-popover {
-  background-color: var(--surface-dropdown) !important;
-  border: 1px solid var(--border-card) !important;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.22) !important;
-  color: var(--text-body) !important;
-  border-radius: 12px !important;
-  backdrop-filter: blur(16px) saturate(140%) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
+.editor-container .ce-block--selected .ce-block__content {
+  background-color: var(--focus-ring);
+  border-radius: 4px;
 }
 
-/* Popover Search Field */
-.cdx-search-field,
-.ce-popover__search {
-  background-color: var(--surface-input) !important;
-  border: 1px solid var(--border-input) !important;
-  color: var(--text-heading) !important;
-  border-radius: 8px !important;
+.editor-container [data-placeholder]:empty::before {
+  color: var(--text-placeholder);
 }
 
-.cdx-search-field__input {
-  color: var(--text-heading) !important;
+.editor-container .ce-code__textarea {
+  background-color: var(--surface-input);
+  border-color: var(--border-input);
+  color: var(--text-body);
 }
 
-.cdx-search-field__input::placeholder {
-  color: var(--text-placeholder) !important;
+.editor-container .tc-popover {
+  background-color: var(--surface-dropdown);
+  border-color: var(--border-card);
 }
 
-.cdx-search-field__icon svg {
-  fill: var(--text-muted) !important;
-}
-
-/* Popover Items (Both old and new class patterns) */
-.ce-popover__item,
-.ce-popover-item {
-  color: var(--text-body) !important;
-  border-radius: 8px !important;
-  transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.ce-popover__item:hover,
-.ce-popover-item:hover,
-.ce-popover__item--focused,
-.ce-popover-item--focused,
-.ce-popover__item--active,
-.ce-popover-item--active,
-.tc-popover__item:hover,
-.ce-conversion-tool:hover {
-  background-color: var(--surface-table-row-hover) !important;
-  color: var(--text-heading) !important;
-}
-
-.ce-popover__item-title,
-.ce-popover-item__title {
-  color: var(--text-body) !important;
-  font-weight: 500;
-}
-
-.ce-popover__item:hover .ce-popover__item-title,
-.ce-popover-item:hover .ce-popover-item__title,
-.ce-popover-item--focused .ce-popover-item__title {
-  color: var(--text-heading) !important;
-}
-
-/* Item Icons */
-.ce-popover__item-icon,
-.ce-popover-item__icon,
-.ce-conversion-tool__icon {
-  background-color: var(--surface-input) !important;
-  border: 1px solid var(--border-card) !important;
-  color: var(--text-body) !important;
-  border-radius: 6px !important;
-  box-shadow: none !important;
-}
-
-.ce-popover__item-icon svg,
-.ce-popover-item__icon svg,
-.ce-conversion-tool__icon svg {
-  fill: currentColor !important;
+.editor-container .tc-popover__item:hover {
+  background-color: var(--surface-table-row-hover);
 }
 
 .ce-popover__item-separator {
   background-color: var(--border-card) !important;
 }
 
-/* Inline Toolbar */
-.ce-inline-tool,
-.ce-inline-toolbar__dropdown {
-  color: var(--text-body) !important;
-  border-radius: 6px !important;
-  transition: background-color 0.15s ease;
-}
-
-.ce-inline-tool:hover,
-.ce-inline-toolbar__dropdown:hover {
-  background-color: var(--surface-table-row-hover) !important;
-  color: var(--text-heading) !important;
-}
-
-.ce-inline-tool--active,
-.ce-inline-tool--highlighted {
-  color: var(--text-link) !important;
-  background-color: rgba(37, 99, 235, 0.15) !important;
-}
-
-.ce-inline-tool svg {
-  fill: currentColor !important;
-}
-
-/* Code Block inside Editor */
-.editor-container .ce-code__textarea {
-  background-color: #0f172a !important;
-  border: 1px solid rgba(148, 163, 184, 0.2) !important;
-  color: #f8fafc !important;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
-  border-radius: 10px !important;
-  padding: 1rem !important;
-  line-height: 1.6 !important;
-}
-
-/* Quote Block inside Editor */
-.editor-container .cdx-quote {
-  border-left: 4px solid #2563eb !important;
-  background-color: var(--surface-card) !important;
-  border-radius: 0 8px 8px 0;
-  padding: 0.75rem 1rem !important;
-}
-
-.editor-container .cdx-quote__text {
-  color: var(--text-body) !important;
-  font-style: italic;
-}
-
-.editor-container .cdx-quote__caption {
-  color: var(--text-muted) !important;
-}
-
-/* Warning Block inside Editor */
-.editor-container .cdx-warning {
-  border-left: 4px solid #f59e0b !important;
-  border-radius: 0 8px 8px 0;
-  padding: 0.75rem 1rem !important;
-}
-
-.editor-container .cdx-warning__title {
-  color: #b45309 !important;
-  font-weight: 700;
-}
-
-.editor-container .cdx-warning__message {
-  color: var(--text-body) !important;
-}
-
-.dark .editor-container .cdx-warning {
-  background-color: rgba(120, 53, 15, 0.25) !important;
-}
-
-.dark .editor-container .cdx-warning__title {
-  color: #fbbf24 !important;
-}
-
-/* Checklist inside Editor */
-.editor-container .cdx-checklist__item {
-  color: var(--text-body) !important;
-}
-
-.editor-container .cdx-checklist__item-checkbox {
-  background-color: var(--surface-input) !important;
-  border-color: var(--border-input) !important;
-}
-
-.editor-container .cdx-checklist__item--checked .cdx-checklist__item-text {
-  color: var(--text-placeholder) !important;
-}
-
-/* Table inside Editor */
-.editor-container .tc-table {
-  border-color: var(--border-table) !important;
-}
-
-.editor-container .tc-row {
-  border-bottom-color: var(--border-table) !important;
-}
-
-.editor-container .tc-cell {
-  border-right-color: var(--border-table) !important;
-  color: var(--text-body) !important;
-}
-
-.editor-container .tc-toolbox__toggler {
-  color: var(--text-muted) !important;
-}
-
-.editor-container .tc-add-column,
-.editor-container .tc-add-row {
-  color: var(--text-muted) !important;
-}
-
-.editor-container .tc-add-column:hover,
-.editor-container .tc-add-row:hover {
-  background-color: var(--surface-table-row-hover) !important;
-  color: var(--text-heading) !important;
-}
-
-/* Attaches inside Editor */
-.editor-container .cdx-attaches {
-  background-color: var(--surface-card) !important;
-  border: 1px solid var(--border-card) !important;
-  border-radius: 12px !important;
-  color: var(--text-body) !important;
-}
-
-.editor-container .cdx-attaches__title {
-  color: var(--text-heading) !important;
-}
-
-.editor-container .cdx-attaches__size {
-  color: var(--text-muted) !important;
-}
-
-.editor-container .cdx-attaches__download-button {
-  background-color: var(--surface-input) !important;
-}
-
-/* Delimiter */
-.editor-container .ce-delimiter {
-  line-height: 1.6em;
-  text-align: center;
-}
-
-.editor-container .ce-delimiter::before {
-  color: var(--text-placeholder) !important;
-}
-
-/* Dark Mode Icon Fix */
-.dark .editor-container svg,
-.dark .ce-popover svg,
-.dark .ce-inline-toolbar svg {
+.dark .editor-container svg {
   fill: currentColor;
 }
 </style>
