@@ -10,7 +10,7 @@ BEGIN TRY
     BEGIN TRANSACTION;
 
     -- =========================================================================
-    -- PHẦN 1: TẠO 11 MẪU ĐƠN TỪ CHUẨN HÓA (MauDonTu) KÈM CẤU HÌNH JSON ĐẦY ĐỦ
+    -- PHẦN 1: TẠO 11 MẪU ĐƠN TỪ CHUẨN TRONG MauDonTu (snake_case columns)
     -- =========================================================================
     PRINT N'- Đang khởi tạo 11 Mẫu đơn từ chuẩn trong MauDonTu...';
 
@@ -236,6 +236,7 @@ BEGIN TRY
 
     -- =========================================================================
     -- PHẦN 2: THIẾT LẬP QUY TRÌNH DUYỆT ĐA BƯỚC (QuyTrinhDonTu & BuocQuyTrinh)
+    -- Chú ý: Bảng QuyTrinhDonTu & BuocQuyTrinh dùng cột PascalCase (MaQuyTrinh, LoaiDon, TenQuyTrinh...)
     -- =========================================================================
     PRINT N'- Đang thiết lập Quy trình duyệt đa bước trong QuyTrinhDonTu & BuocQuyTrinh...';
 
@@ -265,11 +266,11 @@ BEGIN TRY
     WHILE @@FETCH_STATUS = 0
     BEGIN
         DECLARE @MaQT INT = NULL;
-        SELECT @MaQT = ma_quy_trinh FROM QuyTrinhDonTu WHERE loai_don = @curLoaiDon;
+        SELECT @MaQT = MaQuyTrinh FROM QuyTrinhDonTu WHERE LoaiDon = @curLoaiDon;
 
         IF @MaQT IS NULL
         BEGIN
-            INSERT INTO QuyTrinhDonTu (loai_don, ten_quy_trinh, is_active, sla_khoang_thoi_gian)
+            INSERT INTO QuyTrinhDonTu (LoaiDon, TenQuyTrinh, IsActive, SlaKhoangThoiGian)
             VALUES (@curLoaiDon, @curTenQT, 1, @curSla);
             SET @MaQT = SCOPE_IDENTITY();
         END
@@ -277,23 +278,23 @@ BEGIN TRY
         IF @MaQT IS NOT NULL
         BEGIN
             -- Bước 1: Giáo vụ thẩm định hồ sơ
-            IF NOT EXISTS (SELECT 1 FROM BuocQuyTrinh WHERE ma_quy_trinh = @MaQT AND thu_tu = 1)
+            IF NOT EXISTS (SELECT 1 FROM BuocQuyTrinh WHERE MaQuyTrinh = @MaQT AND ThuTu = 1)
             BEGIN
-                INSERT INTO BuocQuyTrinh (ma_quy_trinh, thu_tu, ten_buoc, vai_tro_xu_ly, kieu_buoc, sla_khoang_thoi_gian)
+                INSERT INTO BuocQuyTrinh (MaQuyTrinh, ThuTu, TenBuoc, VaiTroXuLy, KieuBuoc, SlaKhoangThoiGian)
                 VALUES (@MaQT, 1, N'Giáo vụ tiếp nhận & Thẩm định hồ sơ', 'giao_vu', 'phe_duyet', '24h');
             END
 
             -- Bước 2: Ban Giám Hiệu phê duyệt quyết định
-            IF NOT EXISTS (SELECT 1 FROM BuocQuyTrinh WHERE ma_quy_trinh = @MaQT AND thu_tu = 2)
+            IF NOT EXISTS (SELECT 1 FROM BuocQuyTrinh WHERE MaQuyTrinh = @MaQT AND ThuTu = 2)
             BEGIN
-                INSERT INTO BuocQuyTrinh (ma_quy_trinh, thu_tu, ten_buoc, vai_tro_xu_ly, kieu_buoc, sla_khoang_thoi_gian)
+                INSERT INTO BuocQuyTrinh (MaQuyTrinh, ThuTu, TenBuoc, VaiTroXuLy, KieuBuoc, SlaKhoangThoiGian)
                 VALUES (@MaQT, 2, N'Ban Giám Hiệu xét duyệt quyết định', 'hieu_truong', 'phe_duyet', '48h');
             END
 
             -- Bước 3: Giáo vụ thực hiện và trả kết quả
-            IF NOT EXISTS (SELECT 1 FROM BuocQuyTrinh WHERE ma_quy_trinh = @MaQT AND thu_tu = 3)
+            IF NOT EXISTS (SELECT 1 FROM BuocQuyTrinh WHERE MaQuyTrinh = @MaQT AND ThuTu = 3)
             BEGIN
-                INSERT INTO BuocQuyTrinh (ma_quy_trinh, thu_tu, ten_buoc, vai_tro_xu_ly, kieu_buoc, sla_khoang_thoi_gian)
+                INSERT INTO BuocQuyTrinh (MaQuyTrinh, ThuTu, TenBuoc, VaiTroXuLy, KieuBuoc, SlaKhoangThoiGian)
                 VALUES (@MaQT, 3, N'Hoàn tất thủ tục & Thông báo kết quả', 'giao_vu', 'thong_bao', '12h');
             END
         END
