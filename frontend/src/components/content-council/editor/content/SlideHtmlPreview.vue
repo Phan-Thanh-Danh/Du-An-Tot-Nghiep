@@ -22,10 +22,10 @@ const blocks = computed(() => {
 <template>
   <div class="slide-html-preview prose prose-slate dark:prose-invert max-w-none">
     <template v-for="block in blocks" :key="block.id">
-      
+
       <!-- Header -->
-      <SafeHtmlRenderer 
-        v-if="block.type === 'header'" 
+      <SafeHtmlRenderer
+        v-if="block.type === 'header'"
         :tag="`h${block.data.level || 2}`"
         :html="block.data.text"
         class="text-(--text-heading) font-bold"
@@ -40,8 +40,8 @@ const blocks = computed(() => {
       />
 
       <!-- Paragraph -->
-      <SafeHtmlRenderer 
-        v-else-if="block.type === 'paragraph'" 
+      <SafeHtmlRenderer
+        v-else-if="block.type === 'paragraph'"
         tag="p"
         :html="block.data.text"
         class="my-3 text-(--text-body) leading-relaxed"
@@ -53,15 +53,15 @@ const blocks = computed(() => {
       </div>
 
       <!-- Raw HTML Block -->
-      <SafeHtmlRenderer 
-        v-else-if="block.type === 'raw'" 
-        :html="block.data.html" 
-        class="my-4" 
+      <SafeHtmlRenderer
+        v-else-if="block.type === 'raw'"
+        :html="block.data.html"
+        class="my-4"
       />
 
       <!-- List -->
-      <component 
-        v-else-if="block.type === 'list'" 
+      <component
+        v-else-if="block.type === 'list'"
         :is="block.data.style === 'ordered' ? 'ol' : 'ul'"
         class="my-4 pl-6 space-y-2 text-(--text-body)"
         :class="block.data.style === 'ordered' ? 'list-decimal' : 'list-disc'"
@@ -73,13 +73,13 @@ const blocks = computed(() => {
       <div v-else-if="block.type === 'table'" class="my-6 overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg">
           <tbody class="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-800">
-            <tr 
-              v-for="(row, rowIndex) in block.data.content" 
+            <tr
+              v-for="(row, rowIndex) in block.data.content"
               :key="rowIndex"
               :class="block.data.withHeadings && rowIndex === 0 ? 'bg-slate-50 dark:bg-slate-900/60 font-semibold text-(--text-heading)' : 'text-(--text-body)'"
             >
-              <td 
-                v-for="(cell, cellIndex) in row" 
+              <td
+                v-for="(cell, cellIndex) in row"
                 :key="cellIndex"
                 class="px-4 py-3 text-sm border-r border-slate-100 dark:border-slate-700 last:border-r-0"
               >
@@ -112,11 +112,11 @@ const blocks = computed(() => {
 
       <!-- Embed -->
       <div v-else-if="block.type === 'embed'" class="my-6 aspect-video w-full overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
-        <iframe 
-          :src="block.data.embed" 
-          class="w-full h-full" 
-          frameborder="0" 
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+        <iframe
+          :src="block.data.embed"
+          class="w-full h-full"
+          frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowfullscreen
         ></iframe>
         <SafeHtmlRenderer v-if="block.data.caption" tag="div" class="text-center text-xs text-slate-500 mt-1" :html="block.data.caption" />
@@ -135,7 +135,7 @@ const blocks = computed(() => {
       <div v-else class="my-4 p-4 border border-dashed border-slate-300 dark:border-slate-700 text-slate-400 text-sm bg-slate-50 dark:bg-slate-900 rounded">
         Unsupported block type: {{ block.type }}
       </div>
-      
+
     </template>
   </div>
 </template>

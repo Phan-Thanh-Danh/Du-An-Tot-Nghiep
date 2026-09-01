@@ -8,10 +8,15 @@ import Checklist from '@editorjs/checklist'
 import Quote from '@editorjs/quote'
 import Table from '@editorjs/table'
 import ImageTool from '@editorjs/image'
+import SimpleImage from '@editorjs/simple-image'
 import Embed from '@editorjs/embed'
 import CodeTool from '@editorjs/code'
 import Delimiter from '@editorjs/delimiter'
 import Warning from '@editorjs/warning'
+import RawTool from '@editorjs/raw'
+import Marker from '@editorjs/marker'
+import InlineCode from '@editorjs/inline-code'
+import Underline from '@editorjs/underline'
 import { storageApi } from '@/services/apiClient'
 
 const props = defineProps({
@@ -45,7 +50,7 @@ const initEditor = () => {
     tools: {
       header: {
         class: Header,
-        inlineToolbar: true,
+        inlineToolbar: ['link', 'marker', 'underline', 'inlineCode'],
         config: {
           placeholder: 'Nhập tiêu đề...',
           levels: [1, 2, 3, 4, 5, 6],
@@ -54,7 +59,7 @@ const initEditor = () => {
       },
       paragraph: {
         class: Paragraph,
-        inlineToolbar: true
+        inlineToolbar: ['link', 'marker', 'underline', 'inlineCode']
       },
       list: {
         class: List,
@@ -64,8 +69,22 @@ const initEditor = () => {
         class: Checklist,
         inlineToolbar: true
       },
-      quote: Quote,
-      table: Table,
+      quote: {
+        class: Quote,
+        inlineToolbar: true,
+        config: {
+          quotePlaceholder: 'Nhập nội dung trích dẫn...',
+          captionPlaceholder: 'Tác giả / Nguồn trích dẫn'
+        }
+      },
+      table: {
+        class: Table,
+        inlineToolbar: true,
+        config: {
+          rows: 3,
+          cols: 3
+        }
+      },
       image: {
         class: ImageTool,
         config: {
@@ -95,10 +114,47 @@ const initEditor = () => {
           }
         }
       },
-      embed: Embed,
-      code: CodeTool,
+      simpleImage: {
+        class: SimpleImage,
+        inlineToolbar: true
+      },
+      embed: {
+        class: Embed,
+        inlineToolbar: true
+      },
+      code: {
+        class: CodeTool,
+        config: {
+          placeholder: 'Nhập mã nguồn / code...'
+        }
+      },
+      raw: {
+        class: RawTool,
+        config: {
+          placeholder: 'Chèn mã HTML thô...'
+        }
+      },
       delimiter: Delimiter,
-      warning: Warning
+      warning: {
+        class: Warning,
+        inlineToolbar: true,
+        config: {
+          titlePlaceholder: 'Tiêu đề cảnh báo',
+          messagePlaceholder: 'Nội dung thông điệp chú ý...'
+        }
+      },
+      marker: {
+        class: Marker,
+        shortcut: 'CMD+SHIFT+M'
+      },
+      inlineCode: {
+        class: InlineCode,
+        shortcut: 'CMD+SHIFT+C'
+      },
+      underline: {
+        class: Underline,
+        shortcut: 'CMD+U'
+      }
     },
     onChange: async () => {
       if (editorInstance) {
