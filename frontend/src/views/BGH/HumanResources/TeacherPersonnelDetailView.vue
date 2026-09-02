@@ -215,10 +215,13 @@ onMounted(() => {
                     </td>
                     <td class="px-3 py-2.5 text-center">
                       <div class="inline-flex items-center gap-1.5">
-                        <div class="w-16 bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
-                          <div class="bg-blue-600 h-full rounded-full" :style="{ width: `${m.mucDoPhuHop}%` }"></div>
+                        <span v-if="m.phuHopChuyenMon === true" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-(--color-success-bg) text-(--color-success-text)">
+                          Đủ chuẩn ✓
+                        </span>
+                        <div class="w-14 bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                          <div class="bg-blue-600 h-full rounded-full" :style="{ width: `${m.diemDanhGia ?? m.mucDoPhuHop}%` }"></div>
                         </div>
-                        <span class="font-bold text-[11px] text-heading">{{ m.mucDoPhuHop }}%</span>
+                        <span class="font-bold text-[11px] text-heading">{{ Number(m.diemDanhGia ?? m.mucDoPhuHop).toFixed(0) }}%</span>
                       </div>
                     </td>
                     <td class="px-3 py-2.5 text-center text-muted">{{ m.soNamKinhNghiem || 2 }} năm</td>

@@ -555,6 +555,56 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
             }
         }
 
+        // === SOFT CONSTRAINT MỚI 1: GV có khoảng trống 1 ca xen giữa 2 ca dạy cùng ngày ===
+        // Phạt: GV bị xếp ca 1 và ca 3 cùng ngày (ca 2 trống) → di chuyển vô ích
+        for (var t = 0; t < problem.MaxTeachers; t++)
+        {
+            for (var d = 0; d < 6; d++)
+            {
+                var dayOffset = d * problem.ShiftCount;
+                var activeShifts = new List<int>(problem.ShiftCount);
+                for (var s = 0; s < problem.ShiftCount; s++)
+                {
+                    if (teacherOcc[t][dayOffset + s] > 0)
+                        activeShifts.Add(s);
+                }
+
+                if (activeShifts.Count >= 2)
+                {
+                    for (var i = 0; i < activeShifts.Count - 1; i++)
+                    {
+                        if (activeShifts[i + 1] - activeShifts[i] == 2)
+                            fitness -= _options.TeacherDailyLoadPenalty; // Khoảng trống đúng 1 ca
+                    }
+                }
+            }
+        }
+
+        // === SOFT CONSTRAINT MỚI 2: Lớp có khoảng trống > 1 ca giữa các môn cùng ngày ===
+        // Phạt: Lớp học ca 1 và ca 4 cùng ngày (khoảng trống 2 ca) → chờ đợi lãng phí
+        for (var c = 0; c < problem.MaxClasses; c++)
+        {
+            for (var d = 0; d < 6; d++)
+            {
+                var dayOffset = d * problem.ShiftCount;
+                var activeShifts = new List<int>(problem.ShiftCount);
+                for (var s = 0; s < problem.ShiftCount; s++)
+                {
+                    if (classOcc[c][dayOffset + s] > 0)
+                        activeShifts.Add(s);
+                }
+
+                if (activeShifts.Count >= 2)
+                {
+                    for (var i = 0; i < activeShifts.Count - 1; i++)
+                    {
+                        if (activeShifts[i + 1] - activeShifts[i] > 2)
+                            fitness -= _options.ClassDailyLoadPenalty; // Khoảng trống lớn hơn 1 ca
+                    }
+                }
+            }
+        }
+
         chromo.Fitness = fitness;
     }
 

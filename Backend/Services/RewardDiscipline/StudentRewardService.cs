@@ -84,7 +84,8 @@ public class StudentRewardService : IStudentRewardService
                 GpaHocKy = k.GpaDatDuoc,
                 NgayDuyet = k.NgayCapNhat,
                 HasCertificate = (k.UrlPdfBangKhen != null && k.UrlPdfBangKhen != "") || k.TrangThai == RewardDisciplineConstants.RewardStatuses.PdfGenerated,
-                TrangThai = k.TrangThai
+                TrangThai = k.TrangThai,
+                MaCodeXacThuc = k.MaCodeXacThuc
             })
             .ToListAsync(cancellationToken);
 
@@ -121,6 +122,7 @@ public class StudentRewardService : IStudentRewardService
                 NgayDuyet = k.NgayCapNhat,
                 HasCertificate = (k.UrlPdfBangKhen != null && k.UrlPdfBangKhen != "") || k.TrangThai == RewardDisciplineConstants.RewardStatuses.PdfGenerated,
                 TrangThai = k.TrangThai,
+                MaCodeXacThuc = k.MaCodeXacThuc,
                 HoTenSnapshot = k.HoTenSnapshot,
                 MssvSnapshot = k.MssvSnapshot,
                 MaHocKy = k.MaHocKy,

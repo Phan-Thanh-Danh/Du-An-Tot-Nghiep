@@ -11,6 +11,7 @@ using Backend.Services.BuoiHoc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
+using Backend.Services.Notifications;
 using Backend.Services.ThoiKhoaBieu.Scoring;
 using Backend.DTOs.SmartTimetable.Suggestions;
 using System.Text.Json;
@@ -28,6 +29,7 @@ public class SmartTimetableService : ISmartTimetableService
     private readonly IAcademicSchedulingContextService _schedulingContextService;
     private readonly IScheduleCandidateScoringService _scoringService;
     private readonly IGeneticTimetableSolver _geneticSolver;
+    private readonly IScheduleNotificationService _scheduleNotificationService;
     private readonly SmartTimetableScoringOptions _scoringOptions;
 
     public SmartTimetableService(
@@ -38,6 +40,7 @@ public class SmartTimetableService : ISmartTimetableService
         IAcademicSchedulingContextService schedulingContextService,
         IScheduleCandidateScoringService scoringService,
         IGeneticTimetableSolver geneticSolver,
+        IScheduleNotificationService scheduleNotificationService,
         IOptions<SmartTimetableScoringOptions> scoringOptions)
     {
         _context = context;
@@ -47,6 +50,7 @@ public class SmartTimetableService : ISmartTimetableService
         _schedulingContextService = schedulingContextService;
         _scoringService = scoringService;
         _geneticSolver = geneticSolver;
+        _scheduleNotificationService = scheduleNotificationService;
         _scoringOptions = scoringOptions.Value;
     }
 
@@ -641,6 +645,34 @@ public class SmartTimetableService : ISmartTimetableService
 
         result.Success = result.BuoiHocLoi == 0;
 
+        // === NOTIFICATION: Sau commit, ngoài transaction ===
+        var publishedCourseIds = items.Select(x => x.MaKhoaHoc).Distinct().ToList();
+        var publishedCourses = await _context.KhoaHocs.AsNoTracking()
+            .Where(k => publishedCourseIds.Contains(k.MaKhoaHoc))
+            .Select(k => new { k.MaGiaoVien, k.MaLop })
+            .ToListAsync(cancellationToken);
+
+        var publishedTeacherIds = items
+            .Select(d => d.MaGiaoVien ?? 0)
+            .Concat(publishedCourses.Select(c => c.MaGiaoVien))
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList();
+
+        var publishedClassIds = publishedCourses
+            .Select(c => c.MaLop)
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList();
+
+        await _scheduleNotificationService.NotifySchedulePublishedAsync(
+            job.MaHocKy,
+            job.MaDonVi,
+            publishedTeacherIds,
+            publishedClassIds,
+            cancellationToken);
+        // ===================================================
+
         await _auditLogService.LogAsync(
             "SmartTimetable", request.DraftId.ToString(), "PUBLISH",
             null, new { publishResult = result }, currentUser.UserId, job.MaDonVi,
@@ -1073,13 +1105,16 @@ public class SmartTimetableService : ISmartTimetableService
             .ToDictionary(
                 g => g.Key,
                 g => g
-                    .OrderByDescending(x => x.MucDoPhuHop)
+                    .OrderByDescending(x => x.PhuHopChuyenMon == true ? 1 : 0)
+                    .ThenByDescending(x => x.DiemDanhGia ?? x.MucDoPhuHop)
                     .Select(x => new TeacherSubjectSkillDto
                     {
                         MaMonHoc = x.MaMonHoc,
                         MaCodeMonHoc = skillMonHocMap.TryGetValue(x.MaMonHoc, out var mh) ? mh.MaCodeMonHoc : null,
                         TenMonHoc = skillMonHocMap.TryGetValue(x.MaMonHoc, out var mh2) ? mh2.TenMonHoc : null,
                         MucDoPhuHop = x.MucDoPhuHop,
+                        PhuHopChuyenMon = x.PhuHopChuyenMon,
+                        DiemDanhGia = x.DiemDanhGia,
                         LaMonChinh = x.LaMonChinh,
                     })
                     .ToList());

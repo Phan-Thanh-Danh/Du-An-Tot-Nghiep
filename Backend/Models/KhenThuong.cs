@@ -34,6 +34,12 @@ public class KhenThuong
     public DateTime? NgayCap { get; set; }
     public string? GhiChuVongDoi { get; set; }
 
+    /// <summary>
+    /// Mã QR xác thực công khai (12 ký tự uppercase).
+    /// Dùng để nhà tuyển dụng quét verify bằng khen — không thay đổi sau khi cấp.
+    /// </summary>
+    public string? MaCodeXacThuc { get; set; }
+
     public DonVi? DonVi { get; set; }
     public NguoiDung? HocSinh { get; set; }
     public HocKy? HocKy { get; set; }

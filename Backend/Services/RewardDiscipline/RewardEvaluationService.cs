@@ -704,7 +704,8 @@ public class RewardEvaluationService : IRewardEvaluationService
                     NgayCapNhat = now,
                     NguoiCap = currentUser.UserId,
                     NguoiDuyet = currentUser.UserId,
-                    DaHuy = false
+                    DaHuy = false,
+                    MaCodeXacThuc = GenerateVerifyCode()
                 });
                 candidate.TrangThai = RewardDisciplineConstants.RewardCandidateStatuses.ApprovedForReward;
                 candidate.NgayCapNhat = now;
@@ -1061,4 +1062,7 @@ public class RewardEvaluationService : IRewardEvaluationService
             NgayTao = candidate.NgayTao
         };
     }
+
+    private static string GenerateVerifyCode()
+        => Guid.NewGuid().ToString("N")[..12].ToUpperInvariant();
 }

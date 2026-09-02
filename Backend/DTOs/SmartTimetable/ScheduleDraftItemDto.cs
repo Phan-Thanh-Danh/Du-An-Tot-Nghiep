@@ -35,5 +35,7 @@ public class TeacherSubjectSkillDto
     public string? MaCodeMonHoc { get; set; }
     public string? TenMonHoc { get; set; }
     public int MucDoPhuHop { get; set; }
+    public bool? PhuHopChuyenMon { get; set; }
+    public decimal? DiemDanhGia { get; set; }
     public bool LaMonChinh { get; set; }
 }

@@ -18,6 +18,18 @@ public class GiaoVienMonHoc
     public int MucDoPhuHop { get; set; } = 80;
 
     /// <summary>
+    /// Hard filter: GV có đủ chuẩn chuyên môn để dạy môn này không?
+    /// true = đủ chuẩn (MucDoPhuHop >= 70), false = chưa đủ, null = chưa đánh giá
+    /// </summary>
+    public bool? PhuHopChuyenMon { get; set; }
+
+    /// <summary>
+    /// Soft score: Điểm đánh giá thực tế (0-100), dùng để ưu tiên khi có nhiều GV cùng đủ chuẩn.
+    /// Migrate từ MucDoPhuHop, sẽ được cập nhật từ khảo sát sinh viên / kinh nghiệm thực tế.
+    /// </summary>
+    public decimal? DiemDanhGia { get; set; }
+
+    /// <summary>
     /// Số lần đã từng dạy môn này
     /// </summary>
     public int SoLanDaDay { get; set; } = 0;

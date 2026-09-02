@@ -298,6 +298,8 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.ConHoatDong).HasColumnName("con_hoat_dong");
             entity.Property(e => e.NgayTao).HasColumnName("ngay_tao").HasColumnType("datetime2");
             entity.Property(e => e.NgayCapNhat).HasColumnName("ngay_cap_nhat").HasColumnType("datetime2");
+            entity.Property(e => e.PhuHopChuyenMon).HasColumnName("phu_hop_chuyen_mon");
+            entity.Property(e => e.DiemDanhGia).HasColumnName("diem_danh_gia").HasPrecision(5, 2);
 
             entity.ToTable(t => t.HasCheckConstraint("CK_GiaoVienMonHoc_muc_do_phu_hop", "[muc_do_phu_hop] BETWEEN 0 AND 100"));
             entity.ToTable(t => t.HasCheckConstraint("CK_GiaoVienMonHoc_so_lan_da_day", "[so_lan_da_day] >= 0"));
@@ -3056,6 +3058,14 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.GhiChuVongDoi)
                 .HasColumnName("ghi_chu_vong_doi")
                 .HasMaxLength(2000);
+            entity.Property(e => e.MaCodeXacThuc)
+                .HasColumnName("ma_code_xac_thuc")
+                .HasMaxLength(20);
+
+            entity.HasIndex(e => e.MaCodeXacThuc)
+                .IsUnique()
+                .HasFilter("[ma_code_xac_thuc] IS NOT NULL")
+                .HasDatabaseName("UQ_KhenThuong_MaCodeXacThuc");
 
             entity.HasIndex(e => new { e.MaHocSinh, e.MaHocKy, e.LoaiKhenThuong })
                 .HasDatabaseName("IX_KhenThuong_hoc_sinh_hoc_ky_loai");

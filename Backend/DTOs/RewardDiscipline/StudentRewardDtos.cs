@@ -25,6 +25,7 @@ public class StudentRewardListItemDto
     public DateTime? NgayDuyet { get; set; }
     public bool HasCertificate { get; set; }
     public string TrangThai { get; set; } = string.Empty;
+    public string? MaCodeXacThuc { get; set; }
 }
 
 public class StudentRewardDetailDto : StudentRewardListItemDto

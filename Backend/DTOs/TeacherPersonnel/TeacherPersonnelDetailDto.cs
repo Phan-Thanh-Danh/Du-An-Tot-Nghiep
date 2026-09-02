@@ -42,6 +42,8 @@ public class TeacherSubjectCapabilityDto
     public string TenMonHoc { get; set; } = string.Empty;
     public int SoTinChi { get; set; }
     public int MucDoPhuHop { get; set; }
+    public bool? PhuHopChuyenMon { get; set; }
+    public decimal? DiemDanhGia { get; set; }
     public int? SoNamKinhNghiem { get; set; }
     public int SoLanDaDay { get; set; }
     public bool LaMonChinh { get; set; }

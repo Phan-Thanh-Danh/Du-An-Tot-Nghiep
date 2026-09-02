@@ -286,7 +286,7 @@ Ghi chú: `CaHoc` là danh mục ca học cố định dùng bởi `ThoiKhoaBieu
 | PATCH | `/api/thoi-khoa-bieu/{id}/cancel` | Policy: AcademicOperations | Hủy thời khóa biểu bằng `TrangThai = da_huy`, không xóa vật lý. |
 | DELETE | `/api/thoi-khoa-bieu/{id}` | Policy: AcademicOperations | Xóa bản ghi thời khóa biểu khi chưa có buổi học phát sinh. |
 | POST | `/api/thoi-khoa-bieu/{id}/generate-sessions` | Policy: AcademicOperations | Sinh `BuoiHoc` từ thời khóa biểu đã `da_xuat_ban`; chỉ tạo các ngày trùng `ThuTrongTuan`, bỏ qua buổi đã tồn tại theo `MaTkb + NgayHoc`. |
-| POST | `/api/thoi-khoa-bieu/generate` | Policy: AcademicOperations | (P12 Smart Timetable) Sinh lịch thông minh batch bằng thuật toán di truyền (GA). Validate 3 điều kiện Feasibility: (1) Chỉ cho phép học kỳ tương lai gần nhất; (2) Phải có ít nhất 1 phòng học active tại cơ sở; (3) Tất cả khóa học phải được phân công giảng viên. Trả về bản nháp (`ScheduleGenerationJob`) với danh sách `ScheduleDraftItem`. Hỗ trợ tham số genetic (`TongTheHe`, `KichThuocQuanThe`, `TyLeCheo`, `DoTuoiThoToiDa`, `ClientDraftId`). |
+| POST | `/api/thoi-khoa-bieu/generate` | Policy: AcademicOperations | (P12 Smart Timetable) Sinh lịch thông minh batch bằng thuật toán di truyền (GA). Validate 4 điều kiện Feasibility tiền kỳ: (1) Tổng slot phòng (rooms × shifts × 6 ngày) ≥ tổng buổi cần xếp; (2) 100% khóa học đã được phân công giảng viên; (3) Không GV nào vượt trần ca/tuần (tối đa 6 ca); (4) Sĩ số lớp ≤ sức chứa phòng lớn nhất. *Ghi chú: Hệ thống không phân biệt loại phòng (lý thuyết/lab/thực hành) do nghiệp vụ thực tế dùng chung phòng cho tất cả loại môn học.* Trả về bản nháp (`ScheduleGenerationJob`) với danh sách `ScheduleDraftItem`. Hỗ trợ tham số genetic (`TongTheHe`, `KichThuocQuanThe`, `TyLeCheo`, `DoTuoiThoToiDa`, `ClientDraftId`). |
 | GET | `/api/thoi-khoa-bieu/drafts` | Policy: AcademicOperations | Lấy danh sách các bản nháp xếp lịch theo cơ sở và học kỳ. |
 | GET | `/api/thoi-khoa-bieu/drafts/{draftId}` | Policy: AcademicOperations | Xem chi tiết bản nháp (danh sách `ScheduleDraftItem`). |
 | GET | `/api/thoi-khoa-bieu/drafts/{draftId}/progress` | Policy: AcademicOperations | Xem tiến trình sinh lịch theo thế hệ và fitness tốt nhất. Frontend poll định kỳ để render modal progress. |
@@ -1341,4 +1341,25 @@ Known limitations:
 | GET | /api/teacher/schedule/summary | GiangVien | Tổng quan lịch dạy hôm nay và tiếp theo |
 | GET | /api/teacher/schedule/terms | GiangVien | Danh sách học kỳ có lịch dạy |
 | GET | /api/teacher/schedule | GiangVien | Lịch dạy chi tiết (phân trang) |
+
+## Finance APIs
+
+### Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/finance/invoices` | SuperAdmin, FinanceAdmin, CampusChiefAccountant, CampusAccountant, Admin, CampusAdmin, Principal | Danh sách hóa đơn học phí/lệ phí phân trang (`pageIndex`, `pageSize` tối đa 100). Filter theo `trangThai`, `loaiHoaDon`, `maHocKy`, `maHocSinh`, `keyword`. Tự động áp dụng campus scope từ `CurrentUser`. |
+| GET | `/api/finance/invoices/{id}` | SuperAdmin, FinanceAdmin, CampusChiefAccountant, CampusAccountant, Admin, CampusAdmin, Principal | Chi tiết hóa đơn kèm danh sách giao dịch liên quan (`transactions`). Chặn truy cập trái phép cross-campus bằng `404 Not Found`. |
+| GET | `/api/finance/transactions` | SuperAdmin, FinanceAdmin, CampusChiefAccountant, CampusAccountant, Admin, CampusAdmin, Principal | Sổ lịch sử giao dịch/công nợ cơ sở (phân trang). Scope qua `HoaDon.MaDonVi`. Số tài khoản ngân hàng liên quan (`SoTaiKhoan`) luôn được mask dạng `****` + 4 số cuối trước khi trả về. |
+| GET | `/api/finance/payment-accounts` | SuperAdmin, FinanceAdmin, CampusChiefAccountant, CampusAccountant, Admin, CampusAdmin, Principal | Danh sách tài khoản nhận tiền của cơ sở. Số tài khoản `SoTaiKhoan` luôn được mask (`FinanceMaskHelper.MaskAccountNumber`). |
+| GET | `/api/finance/program-tuition-configs` | SuperAdmin, FinanceAdmin, CampusChiefAccountant, CampusAccountant | Danh sách cấu hình học phí theo chương trình đào tạo (phân trang, filter chương trình, học kỳ, cơ sở). |
+
+## Public APIs (Không cần xác thực)
+
+### Đã có
+
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/public/certificates/{code}/verify` | Public | Xác thực bằng khen bằng mã QR. `{code}`: 12 ký tự uppercase, tối đa 20 ký tự. Trả `{ valid: true, hoTen, danhHieu, ngayCap, tenHocKy, donVi, maCodeXacThuc }` nếu tìm thấy và chưa hủy. Trả `{ valid: false, message }` nếu không tìm thấy, đã hủy, hoặc mã không hợp lệ. Không trả thông tin cá nhân nhạy cảm. Không yêu cầu JWT. |
+
 
