@@ -27,7 +27,8 @@ public class CertificateGenerationService : ICertificateGenerationService
         "danhHieu",
         "xepHang",
         "diemXet",
-        "ngayCap"
+        "ngayCap",
+        "maCodeXacThuc"
     };
 
     private static readonly HashSet<string> AllowedAlignments = new(StringComparer.OrdinalIgnoreCase)
@@ -783,7 +784,8 @@ public class CertificateGenerationService : ICertificateGenerationService
             ["danhHieu"] = FirstNonBlank(reward.DanhHieuSnapshot, "Top 100 học kỳ"),
             ["xepHang"] = reward.XepHang?.ToString(CultureInfo.InvariantCulture),
             ["diemXet"] = reward.DiemXet?.ToString("0.##", CultureInfo.InvariantCulture),
-            ["ngayCap"] = DateTime.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+            ["ngayCap"] = DateTime.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            ["maCodeXacThuc"] = reward.MaCodeXacThuc
         };
     }
 

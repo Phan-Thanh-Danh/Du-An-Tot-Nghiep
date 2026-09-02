@@ -344,7 +344,10 @@ public class BghEvaluationController : ControllerBase
             AnalysisMode = "rule_based",
             TotalReviews = totalReviews,
             TopTopics = topTopics,
-            Status = totalReviews > 0 ? "enough_data" : "not_enough_data"
+            Status = totalReviews > 0 ? "enough_data" : "not_enough_data",
+            AnalysisNote = topTopics.Count == 0 && totalReviews > 0
+                ? "Chủ đề AI chưa được phân tích tự động. Tính năng phân loại nhận xét sẽ khả dụng sau khi tích hợp AI Pipeline Giai đoạn 2."
+                : null
         };
 
         return Ok(ApiResponseDto<EvalAiAnalysisDto>.Ok(data));
@@ -436,6 +439,7 @@ public class EvalAiAnalysisDto
     public string AnalysisMode { get; set; } = "rule_based";
     public int TotalReviews { get; set; }
     public string Status { get; set; } = "";
+    public string? AnalysisNote { get; set; }
     public List<AiTopicDto> TopTopics { get; set; } = [];
 }
 

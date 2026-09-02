@@ -28,6 +28,7 @@ const mapReward = (item) => ({
   xepHang: item.xepHang ?? item.XepHang,
   moTa: item.danhHieuSnapshot ?? item.DanhHieuSnapshot ?? 'Khen thưởng được ghi nhận trong hệ thống.',
   certificateStatus: (item.hasCertificate ?? item.HasCertificate) ? 'generated' : 'pending',
+  maCodeXacThuc: item.maCodeXacThuc ?? item.MaCodeXacThuc,
   timeline: [
     {
       tieuDe: 'Đã ghi nhận khen thưởng',
@@ -54,7 +55,7 @@ const fetchRewards = async () => {
     if (err?.statusCode === 403) {
       forbidden.value = true
     } else {
-      error.value = err?.message || 'Không thể tải danh sách khen thưởng.'
+      error.value = err?.message || 'Không thể tải danh sách khen thưởng'
     }
   } finally {
     loading.value = false
@@ -67,12 +68,14 @@ onMounted(() => {
 
 const filteredRewards = computed(() => {
   let list = rewards.value
-  if (filter.value === 'generated') list = list.filter(r => r.certificateStatus === 'generated')
-  if (filter.value === 'pending') list = list.filter(r => r.certificateStatus !== 'generated')
-
+  if (filter.value === 'generated') {
+    list = list.filter((r) => r.certificateStatus === 'generated')
+  } else if (filter.value === 'pending') {
+    list = list.filter((r) => r.certificateStatus === 'pending')
+  }
   if (searchQuery.value) {
     const q = searchQuery.value.toLowerCase()
-    list = list.filter(r => r.tieuDe?.toLowerCase().includes(q) || r.moTa?.toLowerCase().includes(q))
+    list = list.filter((r) => r.tieuDe.toLowerCase().includes(q) || r.moTa.toLowerCase().includes(q))
   }
   return list
 })
@@ -84,14 +87,22 @@ const selectReward = (r) => {
 }
 
 function fillTokens(html, data) {
-  return html.replace(/\{\{\s*([\w]+)\s*\}\}/g, (_, key) =>
-    data[key] !== undefined && data[key] !== null ? String(data[key]) : `{{${key}}}`,
-  )
+  return html.replace(/{{\s*(\w+)\s*}}/g, (match, key) => {
+    return data[key] !== undefined && data[key] !== null ? String(data[key]) : ''
+  })
 }
 
 async function renderCertificatePdf(template, row, campaign) {
   const width = template.chieuRong || 1123
   const height = template.chieuCao || 794
+  const verifyCode = row.maCodeXacThuc ?? row.MaCodeXacThuc
+  const verifyUrl = verifyCode
+    ? `${window.location.origin}/api/public/certificates/${verifyCode}/verify`
+    : null
+  const qrImgUrl = verifyUrl
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(verifyUrl)}`
+    : null
+
   const rowData = {
     hoTen: row.hoTen ?? row.HoTen ?? 'Sinh viên',
     mssv: row.mssv ?? row.Mssv ?? '',
@@ -100,6 +111,7 @@ async function renderCertificatePdf(template, row, campaign) {
     xepHang: row.xepHang ?? row.XepHang ?? '',
     diemXet: row.diemXet ?? row.DiemXet ?? '',
     ngayCap: new Date().toISOString().slice(0, 10),
+    maCodeXacThuc: verifyCode ?? '',
   }
 
   // Strip external link tags (avoid CORS issues with Google Fonts in canvas)
@@ -137,6 +149,18 @@ async function renderCertificatePdf(template, row, campaign) {
     </style>
     <div id="pdf-cert-render" style="width:${width}px;height:${height}px;position:relative;background:white;overflow:hidden;">
       ${fillTokens(cleanHtml, rowData)}
+      ${
+        qrImgUrl
+          ? `
+        <div style="position: absolute; bottom: 24px; right: 24px; text-align: center; z-index: 10;">
+          <img src="${qrImgUrl}" width="80" height="80" alt="QR xác thực" style="display: block;" crossOrigin="anonymous" />
+          <div style="font-size: 8px; color: #666; margin-top: 4px;">
+            Quét để xác thực
+          </div>
+        </div>
+      `
+          : ''
+      }
     </div>
   `
   document.body.appendChild(container)
@@ -364,6 +388,7 @@ const downloadCertificate = async () => {
                 <p><strong>Loại:</strong> {{ selectedReward.loaiKhenThuong }}</p>
                 <p><strong>Xếp hạng:</strong> {{ selectedReward.xepHang || 'Không xếp hạng' }}</p>
                 <p><strong>Học kỳ:</strong> {{ selectedReward.hocKy }}</p>
+                <p v-if="selectedReward.maCodeXacThuc"><strong>Mã xác thực QR:</strong> <span class="font-mono text-xs px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold">{{ selectedReward.maCodeXacThuc }}</span></p>
               </div>
               <div class="mt-4 p-4 rounded-xl bg-(--surface-input) border border-(--border-default) relative">
                 <div class="absolute -left-2 -top-2 text-3xl text-amber-500/40">"</div>

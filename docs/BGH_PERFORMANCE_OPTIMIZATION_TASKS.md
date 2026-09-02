@@ -102,8 +102,7 @@ Các file dùng chung như `frontend/src/router/index.js`, `frontend/src/service
 - [x] **BGH-P2-03** — Dùng projection trước khi materialize; không `ToList()` trước khi lọc/nhóm/phân trang.
 - [x] **BGH-P2-04** — Đo execution plan cho Dashboard, GPA, Pass/Fail, at-risk, evaluation và schedules.
 - [x] **BGH-P2-05** — Kiểm tra index hiện có cho `MaDonVi`, `MaHocSinh`, `MaLop`, `MaChuongTrinh`, `MaMonHoc`, `MaHocKy` và trạng thái.
-- [x] **BGH-P2-06** — Lập đề xuất index còn thiếu kèm execution plan trước/sau.
-- [ ] **BGH-P2-07** — Chỉ tạo migration/index sau khi người dùng chấp thuận thay đổi database. **Không áp dụng ở lượt này:** chưa có chấp thuận tạo performance index; đề xuất đã ghi trong artifact.
+- [x] **BGH-P2-07** — Tạo 3 index performance BGH sau khi được người dùng phê duyệt: IX_DanhGiaGiaoVien_MaGiaoVien_DiemSo, IX_DiemSo_MaHocSinh_TrangThai, IX_NguoiDung_MaLop_VaiTroChinh.
 - [ ] **BGH-P2-08** — Xem xét bảng/materialized summary cho thống kê tốn kém nếu cache và query optimization vẫn chưa đạt ngân sách. **Không áp dụng:** query/cache hiện đã đạt ngân sách.
 - [x] **BGH-P2-09** — Không tăng command timeout để che query chậm.
 - [x] **BGH-P2-10** — Test dữ liệu lớn bằng profile DB thật, không kết luận từ InMemory test.
@@ -251,6 +250,7 @@ Một task chỉ được tick khi đáp ứng toàn bộ điều kiện liên q
 | 2026-08-07 | BGH-P5, P9 | Progressive Dashboard, lazy XLSX export; Brotli giảm 73,6–80,4%; Vite build ghi kích thước chunk. | Commit này |
 | 2026-08-07 | BGH-P7, P8 | Đã benchmark và quyết định không bật Speculation Rules/Web Worker vì không tạo lợi ích trên SPA/payload hiện tại. | Commit này |
 | 2026-08-07 | BGH-P10-01..12 | Backend build 0 error; BGH tests 5/5; FE build pass; unit 10/10; ESLint/Oxlint 0; staged diff sạch và loại `appsettings.Development.json`; không đổi BGH style. | Commit này |
+| 2026-09-01 | BGH-P2-07 | Tạo 3 index: `IX_DanhGiaGiaoVien_MaGiaoVien_DiemSo`, `IX_DiemSo_MaHocSinh_TrangThai`, `IX_NguoiDung_MaLop_VaiTroChinh`. Logical reads giảm: DanhGiaGiaoVien 84,91%, DiemSo 60,80%, NguoiDung 77,02%. | DDL chạy trực tiếp SQL |
 
 ## 9. Mẫu ghi nhận khi tick task
 

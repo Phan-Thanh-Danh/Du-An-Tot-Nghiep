@@ -19,6 +19,7 @@ const sentimentFilter = ref('all')
 const sentimentSummary = ref({ positive: 0, neutral: 0, negative: 0 })
 const topTopics = ref([])
 const campusInsights = ref([])
+const analysisNote = ref(null)
 
 const filteredTopics = computed(() => {
   let list = topTopics.value
@@ -42,6 +43,7 @@ async function loadData() {
       sentimentSummary.value = data.sentimentSummary || data.SentimentSummary || { positive: 0, neutral: 0, negative: 0 }
       topTopics.value = data.topTopics || data.TopTopics || []
       campusInsights.value = data.campusInsights || data.CampusInsights || []
+      analysisNote.value = data.analysisNote || data.AnalysisNote || null
     }
   } catch (e) {
     error.value = e.message
@@ -134,16 +136,29 @@ async function exportData() {
                <option value="negative">Neg</option>
              </LmsSelect>
            </div>
-           <div class="flex flex-wrap gap-2 max-h-60 overflow-y-auto">
-              <div v-for="topic in filteredTopics" :key="topic.label"
-                :class="['px-3 py-2 rounded-2xl text-[11px] font-bold border transition-all cursor-pointer', topic.sentiment === 'positive' ? 'bg-(--color-success-bg) text-(--color-success-text) border-(--color-success-text)/20 hover:bg-(--surface-input)' : 'bg-(--color-danger-bg) text-(--color-danger-text) border-(--color-danger-text)/20 hover:bg-(--surface-input)']">
-                 <div class="flex items-center gap-1.5">
-                    {{ topic.label }}
-                    <span class="text-[9px] font-semibold opacity-50">{{ topic.count }}</span>
-                    <span class="text-[8px] font-bold opacity-70">{{ topic.change }}</span>
-                 </div>
-              </div>
-           </div>
+            <div v-if="filteredTopics.length > 0" class="flex flex-wrap gap-2 max-h-60 overflow-y-auto">
+               <div v-for="topic in filteredTopics" :key="topic.label"
+                 :class="['px-3 py-2 rounded-2xl text-[11px] font-bold border transition-all cursor-pointer', topic.sentiment === 'positive' ? 'bg-(--color-success-bg) text-(--color-success-text) border-(--color-success-text)/20 hover:bg-(--surface-input)' : 'bg-(--color-danger-bg) text-(--color-danger-text) border-(--color-danger-text)/20 hover:bg-(--surface-input)']">
+                  <div class="flex items-center gap-1.5">
+                     {{ topic.label }}
+                     <span class="text-[9px] font-semibold opacity-50">{{ topic.count }}</span>
+                     <span class="text-[8px] font-bold opacity-70">{{ topic.change }}</span>
+                  </div>
+               </div>
+            </div>
+            <div
+              v-else-if="analysisNote"
+              class="p-4 rounded-xl border border-(--color-info-text)/20 bg-(--color-info-bg) text-(--color-info-text) text-xs flex items-start gap-2.5"
+            >
+              <AlertCircle :size="16" class="shrink-0 mt-0.5" />
+              <span class="leading-relaxed">{{ analysisNote }}</span>
+            </div>
+            <div
+              v-else
+              class="py-8 text-center text-xs text-muted"
+            >
+              Không có chủ đề nào phù hợp.
+            </div>
         </div>
 
       </div>

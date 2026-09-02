@@ -100,6 +100,20 @@ public class CourseAssignmentSuggestionService : ICourseAssignmentSuggestionServ
                 continue;
             }
 
+            // HARD FILTER: Bỏ qua GV nếu PhuHopChuyenMon = false
+            if (cap.PhuHopChuyenMon == false)
+            {
+                result.ExcludedCandidates.Add(new ExcludedTeacherCandidateDto
+                {
+                    MaGiaoVien = teacher.MaNguoiDung,
+                    HoTen = teacher.HoTen,
+                    Email = teacher.Email,
+                    ReasonCode = "NOT_QUALIFIED",
+                    ReasonMessage = "Giảng viên chưa đủ chuẩn chuyên môn cho môn học này."
+                });
+                continue;
+            }
+
             var candidate = new TeacherAssignmentCandidateDto
             {
                 MaGiaoVien = teacher.MaNguoiDung,
@@ -109,9 +123,20 @@ public class CourseAssignmentSuggestionService : ICourseAssignmentSuggestionServ
                 IsEligible = true
             };
 
-            // Calculate capability score (max 55)
-            candidate.CapabilityScore = Math.Clamp(cap.MucDoPhuHop, 0, 100) * 0.55;
-            candidate.Reasons.Add($"Mức độ phù hợp chuyên môn {cap.MucDoPhuHop}/100.");
+            // SOFT SCORE: Dùng DiemDanhGia thay MucDoPhuHop
+            var diemDanhGia = cap.DiemDanhGia
+                ?? (cap.PhuHopChuyenMon == true ? 70m : 60m); // fallback hợp lý
+
+            candidate.CapabilityScore = Math.Clamp((double)diemDanhGia, 0, 100) * 0.55;
+
+            if (cap.PhuHopChuyenMon == true)
+            {
+                candidate.Reasons.Add($"Đủ chuẩn chuyên môn. Điểm đánh giá: {diemDanhGia:F0}/100.");
+            }
+            else
+            {
+                candidate.Reasons.Add($"Chưa có đánh giá chuyên môn. Điểm tạm tính: {diemDanhGia:F0}/100.");
+            }
 
             // Calculate main subject bonus
             if (cap.LaMonChinh)

@@ -222,6 +222,8 @@ public class TeacherPersonnelService : ITeacherPersonnelService
                 TenMonHoc = g.MonHoc != null ? g.MonHoc.TenMonHoc : "",
                 SoTinChi = g.MonHoc != null ? g.MonHoc.SoTinChi : 3,
                 MucDoPhuHop = g.MucDoPhuHop,
+                PhuHopChuyenMon = g.PhuHopChuyenMon,
+                DiemDanhGia = g.DiemDanhGia,
                 SoNamKinhNghiem = g.SoNamKinhNghiem,
                 SoLanDaDay = g.SoLanDaDay,
                 LaMonChinh = g.LaMonChinh,
