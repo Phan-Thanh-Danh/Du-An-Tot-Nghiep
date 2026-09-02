@@ -1348,11 +1348,18 @@ Known limitations:
 
 | Method | Endpoint | Auth | Ghi chú |
 |---|---|---|---|
-| GET | `/api/finance/invoices` | SuperAdmin, FinanceAdmin, CampusChiefAccountant, CampusAccountant, Admin, CampusAdmin, Principal | Danh sách hóa đơn học phí/lệ phí phân trang (`pageIndex`, `pageSize` tối đa 100). Filter theo `trangThai`, `loaiHoaDon`, `maHocKy`, `maHocSinh`, `keyword`. Tự động áp dụng campus scope từ `CurrentUser`. |
-| GET | `/api/finance/invoices/{id}` | SuperAdmin, FinanceAdmin, CampusChiefAccountant, CampusAccountant, Admin, CampusAdmin, Principal | Chi tiết hóa đơn kèm danh sách giao dịch liên quan (`transactions`). Chặn truy cập trái phép cross-campus bằng `404 Not Found`. |
-| GET | `/api/finance/transactions` | SuperAdmin, FinanceAdmin, CampusChiefAccountant, CampusAccountant, Admin, CampusAdmin, Principal | Sổ lịch sử giao dịch/công nợ cơ sở (phân trang). Scope qua `HoaDon.MaDonVi`. Số tài khoản ngân hàng liên quan (`SoTaiKhoan`) luôn được mask dạng `****` + 4 số cuối trước khi trả về. |
-| GET | `/api/finance/payment-accounts` | SuperAdmin, FinanceAdmin, CampusChiefAccountant, CampusAccountant, Admin, CampusAdmin, Principal | Danh sách tài khoản nhận tiền của cơ sở. Số tài khoản `SoTaiKhoan` luôn được mask (`FinanceMaskHelper.MaskAccountNumber`). |
-| GET | `/api/finance/program-tuition-configs` | SuperAdmin, FinanceAdmin, CampusChiefAccountant, CampusAccountant | Danh sách cấu hình học phí theo chương trình đào tạo (phân trang, filter chương trình, học kỳ, cơ sở). |
+| GET | `/api/finance/hoa-don` (alias: `/api/finance/invoices`) | JWT (Admin/Staff/Finance) | Danh sách hóa đơn học phí/lệ phí phân trang (`pageIndex`, `pageSize` tối đa 100). Filter theo cơ sở `MaDonVi` từ `CurrentUser`. Trả `{ data, pagination: { pageIndex, pageSize, total, totalPages } }`. |
+| GET | `/api/finance/hoa-don/{id}` (alias: `/api/finance/invoices/{id}`) | JWT (Admin/Staff/Finance) | Chi tiết hóa đơn kèm danh sách khoản mục chi tiết (`chiTiets`) và lịch sử giao dịch (`giaoDiches`). Chặn truy cập trái phép cross-campus bằng `404 Not Found`. |
+| POST | `/api/finance/hoa-don` (alias: `/api/finance/invoices`) | FinanceAdmin, CampusAccountant, CampusAdmin, Principal, SuperAdmin | Tạo hóa đơn mới (`CreateInvoiceRequest`), validate số tiền > 0, sinh mã `INV-{YYYY}-{MaHocSinh}-{RandomId}`, ghi `NhatKyKiemToan`. Trả 201 kèm `InvoiceDetailDto`. |
+| PATCH | `/api/finance/hoa-don/{id}/status` (alias: `/api/finance/invoices/{id}/status`) | FinanceAdmin, CampusAccountant, CampusAdmin, Principal, SuperAdmin | Cập nhật trạng thái hóa đơn (`chua_thanh_toan`, `thanh_toan_mot_phan`, `da_thanh_toan`, `qua_han`, `da_huy`), cập nhật đã thu và ghi `NhatKyKiemToan`. |
+| GET | `/api/finance/monitor` | JWT (Admin/Staff/Finance) | Tổng quan dữ liệu tài chính cơ sở (`tongDoanhThu`, `daThu`, `conNo`, `soHoaDonChuaThu`, `soHoaDonQuaHan`, `topDebtors`). Filter theo `fromDate`, `toDate`. |
+| GET | `/api/finance/giao-dich` (alias: `/api/finance/transactions`) | JWT (Admin/Staff/Finance) | Sổ lịch sử giao dịch cơ sở (phân trang). Scope qua `HoaDon.MaDonVi`. Số tài khoản (`MaTaiKhoan`) luôn được mask dạng `****` + 4 số cuối. |
+| POST | `/api/finance/payment/create-link` | JWT (Admin/Staff/Finance) | Tạo link thanh toán và mã QR mẫu cho hóa đơn học phí. |
+| POST | `/api/finance/refund-requests` | FinanceAdmin, CampusAccountant, CampusAdmin, Principal, SuperAdmin | Tạo yêu cầu hoàn phí cho hóa đơn (`CreateRefundRequest`), validate số tiền yêu cầu không vượt quá giá trị hóa đơn, ghi `NhatKyKiemToan`. Trả 201 kèm `RefundRequestDto`. |
+| GET | `/api/finance/refund-requests` | FinanceAdmin, CampusAccountant, CampusAdmin, Principal, SuperAdmin | Danh sách yêu cầu hoàn phí cơ sở (phân trang). Trả `{ data, pagination }`. |
+| PATCH | `/api/finance/refund-requests/{id}` | FinanceAdmin, CampusChiefAccountant, CampusAdmin, Principal, SuperAdmin | Phê duyệt (`duaVao = true`) hoặc từ chối (`duaVao = false`) yêu cầu hoàn phí, tự động điều chỉnh đã thu / hủy hóa đơn theo loại hoàn phí, ghi `NhatKyKiemToan`. |
+| GET | `/api/finance/payment-accounts` | JWT (Admin/Staff/Finance) | Danh sách tài khoản nhận tiền của cơ sở. Số tài khoản `SoTaiKhoan` luôn được mask (`FinanceMaskHelper.MaskAccountNumber`). |
+| GET | `/api/finance/program-tuition-configs` | JWT (Admin/Staff/Finance) | Danh sách cấu hình học phí theo chương trình đào tạo (phân trang, filter chương trình, học kỳ, cơ sở). |
 
 ## Public APIs (Không cần xác thực)
 
