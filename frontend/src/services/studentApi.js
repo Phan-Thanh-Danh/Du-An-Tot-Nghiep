@@ -143,8 +143,6 @@ export const studentApi = {
       method: 'GET',
     })
   },
-  getAssignments() {
-    return apiRequest('/api/student/assignments', {
   getAssignments(params = {}) {
     const query = new URLSearchParams()
     if (params.courseId) query.append('courseId', params.courseId)
