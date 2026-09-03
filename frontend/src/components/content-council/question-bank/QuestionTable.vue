@@ -262,6 +262,8 @@ const stripHtml = (html?: string) => {
           <option :value="10">10 / trang</option>
           <option :value="20">20 / trang</option>
           <option :value="50">50 / trang</option>
+          <option :value="100">100 / trang</option>
+          <option :value="500">Tất cả</option>
         </select>
 
         <!-- Nav -->

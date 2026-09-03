@@ -85,6 +85,204 @@ public static class DatabaseSchemaPatcher
             @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[DeKiemTra]') AND name = N'ma_nguoi_duyet')
                 ALTER TABLE [dbo].[DeKiemTra] ADD [ma_nguoi_duyet] int NULL;",
 
+            // BaiHocNoiDung missing columns
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[BaiHocNoiDung]') AND name = N'ma_de_kiem_tra')
+                ALTER TABLE [dbo].[BaiHocNoiDung] ADD [ma_de_kiem_tra] int NULL;",
+
+            // CauHoi missing columns
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[CauHoi]') AND name = N'kieu_lua_chon')
+                ALTER TABLE [dbo].[CauHoi] ADD [kieu_lua_chon] nvarchar(50) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[CauHoi]') AND name = N'giai_thich_dap_an')
+                ALTER TABLE [dbo].[CauHoi] ADD [giai_thich_dap_an] nvarchar(max) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[CauHoi]') AND name = N'con_hoat_dong')
+                ALTER TABLE [dbo].[CauHoi] ADD [con_hoat_dong] bit NOT NULL CONSTRAINT DF_CauHoi_con_hoat_dong DEFAULT 1;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[CauHoi]') AND name = N'ngay_tao')
+                ALTER TABLE [dbo].[CauHoi] ADD [ngay_tao] datetime2 NOT NULL CONSTRAINT DF_CauHoi_ngay_tao DEFAULT SYSUTCDATETIME();",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[CauHoi]') AND name = N'ngay_cap_nhat')
+                ALTER TABLE [dbo].[CauHoi] ADD [ngay_cap_nhat] datetime2 NULL;",
+
+            // DonTu row_version
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[DonTu]') AND name = N'row_version')
+                ALTER TABLE [dbo].[DonTu] ADD [row_version] rowversion;",
+
+            // HoSoKyLuat missing columns
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[HoSoKyLuat]') AND name = N'ma_hoc_ky')
+                ALTER TABLE [dbo].[HoSoKyLuat] ADD [ma_hoc_ky] int NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[HoSoKyLuat]') AND name = N'tieu_de')
+                ALTER TABLE [dbo].[HoSoKyLuat] ADD [tieu_de] nvarchar(255) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[HoSoKyLuat]') AND name = N'muc_do_vi_pham')
+                ALTER TABLE [dbo].[HoSoKyLuat] ADD [muc_do_vi_pham] nvarchar(50) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[HoSoKyLuat]') AND name = N'hinh_thuc_xu_ly')
+                ALTER TABLE [dbo].[HoSoKyLuat] ADD [hinh_thuc_xu_ly] nvarchar(50) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[HoSoKyLuat]') AND name = N'trang_thai')
+                ALTER TABLE [dbo].[HoSoKyLuat] ADD [trang_thai] nvarchar(50) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[HoSoKyLuat]') AND name = N'can_cu_xu_ly')
+                ALTER TABLE [dbo].[HoSoKyLuat] ADD [can_cu_xu_ly] nvarchar(max) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[HoSoKyLuat]') AND name = N'ghi_chu_noi_bo')
+                ALTER TABLE [dbo].[HoSoKyLuat] ADD [ghi_chu_noi_bo] nvarchar(max) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[HoSoKyLuat]') AND name = N'ly_do_huy')
+                ALTER TABLE [dbo].[HoSoKyLuat] ADD [ly_do_huy] nvarchar(500) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[HoSoKyLuat]') AND name = N'nguoi_huy')
+                ALTER TABLE [dbo].[HoSoKyLuat] ADD [nguoi_huy] int NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[HoSoKyLuat]') AND name = N'ngay_huy')
+                ALTER TABLE [dbo].[HoSoKyLuat] ADD [ngay_huy] datetime2 NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[HoSoKyLuat]') AND name = N'ngay_vi_pham')
+                ALTER TABLE [dbo].[HoSoKyLuat] ADD [ngay_vi_pham] datetime2 NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[HoSoKyLuat]') AND name = N'ngay_hieu_luc')
+                ALTER TABLE [dbo].[HoSoKyLuat] ADD [ngay_hieu_luc] datetime2 NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[HoSoKyLuat]') AND name = N'ngay_het_hieu_luc')
+                ALTER TABLE [dbo].[HoSoKyLuat] ADD [ngay_het_hieu_luc] datetime2 NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[HoSoKyLuat]') AND name = N'nguoi_duyet')
+                ALTER TABLE [dbo].[HoSoKyLuat] ADD [nguoi_duyet] int NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[HoSoKyLuat]') AND name = N'ngay_duyet')
+                ALTER TABLE [dbo].[HoSoKyLuat] ADD [ngay_duyet] datetime2 NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[HoSoKyLuat]') AND name = N'ly_do_tu_choi')
+                ALTER TABLE [dbo].[HoSoKyLuat] ADD [ly_do_tu_choi] nvarchar(500) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[HoSoKyLuat]') AND name = N'ghi_chu_duyet')
+                ALTER TABLE [dbo].[HoSoKyLuat] ADD [ghi_chu_duyet] nvarchar(max) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[HoSoKyLuat]') AND name = N'chung_tu_json')
+                ALTER TABLE [dbo].[HoSoKyLuat] ADD [chung_tu_json] nvarchar(max) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[HoSoKyLuat]') AND name = N'da_go_ky_luat')
+                ALTER TABLE [dbo].[HoSoKyLuat] ADD [da_go_ky_luat] bit NOT NULL CONSTRAINT DF_HoSoKyLuat_da_go DEFAULT 0;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[HoSoKyLuat]') AND name = N'ly_do_go_ky_luat')
+                ALTER TABLE [dbo].[HoSoKyLuat] ADD [ly_do_go_ky_luat] nvarchar(500) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[HoSoKyLuat]') AND name = N'nguoi_go_ky_luat')
+                ALTER TABLE [dbo].[HoSoKyLuat] ADD [nguoi_go_ky_luat] int NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[HoSoKyLuat]') AND name = N'ngay_go_ky_luat')
+                ALTER TABLE [dbo].[HoSoKyLuat] ADD [ngay_go_ky_luat] datetime2 NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[HoSoKyLuat]') AND name = N'nguoi_ap_dung')
+                ALTER TABLE [dbo].[HoSoKyLuat] ADD [nguoi_ap_dung] int NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[HoSoKyLuat]') AND name = N'ngay_ap_dung')
+                ALTER TABLE [dbo].[HoSoKyLuat] ADD [ngay_ap_dung] datetime2 NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[HoSoKyLuat]') AND name = N'ngay_cap_nhat')
+                ALTER TABLE [dbo].[HoSoKyLuat] ADD [ngay_cap_nhat] datetime2 NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[HoSoKyLuat]') AND name = N'loai_doi_tuong_lien_ket')
+                ALTER TABLE [dbo].[HoSoKyLuat] ADD [loai_doi_tuong_lien_ket] nvarchar(50) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[HoSoKyLuat]') AND name = N'ma_doi_tuong_lien_ket')
+                ALTER TABLE [dbo].[HoSoKyLuat] ADD [ma_doi_tuong_lien_ket] int NULL;",
+
+            // HoaDon missing columns
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[HoaDon]') AND name = N'ly_do_huy')
+                ALTER TABLE [dbo].[HoaDon] ADD [ly_do_huy] nvarchar(500) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[HoaDon]') AND name = N'ngay_huy')
+                ALTER TABLE [dbo].[HoaDon] ADD [ngay_huy] datetime2 NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[HoaDon]') AND name = N'nguoi_huy')
+                ALTER TABLE [dbo].[HoaDon] ADD [nguoi_huy] int NULL;",
+
+            // KhenThuong missing columns
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[KhenThuong]') AND name = N'ma_don_vi')
+                ALTER TABLE [dbo].[KhenThuong] ADD [ma_don_vi] int NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[KhenThuong]') AND name = N'ma_dot_khen_thuong')
+                ALTER TABLE [dbo].[KhenThuong] ADD [ma_dot_khen_thuong] int NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[KhenThuong]') AND name = N'ma_mau_bang_khen')
+                ALTER TABLE [dbo].[KhenThuong] ADD [ma_mau_bang_khen] int NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[KhenThuong]') AND name = N'trang_thai')
+                ALTER TABLE [dbo].[KhenThuong] ADD [trang_thai] nvarchar(50) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[KhenThuong]') AND name = N'diem_xet')
+                ALTER TABLE [dbo].[KhenThuong] ADD [diem_xet] decimal(5,2) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[KhenThuong]') AND name = N'xep_hang')
+                ALTER TABLE [dbo].[KhenThuong] ADD [xep_hang] int NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[KhenThuong]') AND name = N'url_pdf_bang_khen')
+                ALTER TABLE [dbo].[KhenThuong] ADD [url_pdf_bang_khen] nvarchar(1000) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[KhenThuong]') AND name = N'ngay_sinh_pdf')
+                ALTER TABLE [dbo].[KhenThuong] ADD [ngay_sinh_pdf] datetime2 NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[KhenThuong]') AND name = N'loi_sinh_pdf')
+                ALTER TABLE [dbo].[KhenThuong] ADD [loi_sinh_pdf] nvarchar(max) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[KhenThuong]') AND name = N'so_lan_sinh_pdf')
+                ALTER TABLE [dbo].[KhenThuong] ADD [so_lan_sinh_pdf] int NOT NULL CONSTRAINT DF_KhenThuong_so_lan_pdf DEFAULT 0;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[KhenThuong]') AND name = N'ho_ten_snapshot')
+                ALTER TABLE [dbo].[KhenThuong] ADD [ho_ten_snapshot] nvarchar(255) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[KhenThuong]') AND name = N'mssv_snapshot')
+                ALTER TABLE [dbo].[KhenThuong] ADD [mssv_snapshot] nvarchar(50) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[KhenThuong]') AND name = N'ten_hoc_ky_snapshot')
+                ALTER TABLE [dbo].[KhenThuong] ADD [ten_hoc_ky_snapshot] nvarchar(100) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[KhenThuong]') AND name = N'danh_hieu_snapshot')
+                ALTER TABLE [dbo].[KhenThuong] ADD [danh_hieu_snapshot] nvarchar(255) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[KhenThuong]') AND name = N'ngay_cap_nhat')
+                ALTER TABLE [dbo].[KhenThuong] ADD [ngay_cap_nhat] datetime2 NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[KhenThuong]') AND name = N'nguoi_cap')
+                ALTER TABLE [dbo].[KhenThuong] ADD [nguoi_cap] int NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[KhenThuong]') AND name = N'nguoi_duyet')
+                ALTER TABLE [dbo].[KhenThuong] ADD [nguoi_duyet] int NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[KhenThuong]') AND name = N'ly_do_huy')
+                ALTER TABLE [dbo].[KhenThuong] ADD [ly_do_huy] nvarchar(500) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[KhenThuong]') AND name = N'nguoi_huy')
+                ALTER TABLE [dbo].[KhenThuong] ADD [nguoi_huy] int NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[KhenThuong]') AND name = N'ngay_huy')
+                ALTER TABLE [dbo].[KhenThuong] ADD [ngay_huy] datetime2 NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[KhenThuong]') AND name = N'ngay_cap')
+                ALTER TABLE [dbo].[KhenThuong] ADD [ngay_cap] datetime2 NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[KhenThuong]') AND name = N'ghi_chu_vong_doi')
+                ALTER TABLE [dbo].[KhenThuong] ADD [ghi_chu_vong_doi] nvarchar(max) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[KhenThuong]') AND name = N'ma_code_xac_thuc')
+                ALTER TABLE [dbo].[KhenThuong] ADD [ma_code_xac_thuc] nvarchar(100) NULL;",
+
+            // MauBangKhen missing columns
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[MauBangKhen]') AND name = N'file_nen_url')
+                ALTER TABLE [dbo].[MauBangKhen] ADD [file_nen_url] nvarchar(1000) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[MauBangKhen]') AND name = N'ngay_cap_nhat')
+                ALTER TABLE [dbo].[MauBangKhen] ADD [ngay_cap_nhat] datetime2 NULL;",
+
+            // MauThongBao missing columns
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[MauThongBao]') AND name = N'ma_don_vi')
+                ALTER TABLE [dbo].[MauThongBao] ADD [ma_don_vi] int NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[MauThongBao]') AND name = N'ten_mau')
+                ALTER TABLE [dbo].[MauThongBao] ADD [ten_mau] nvarchar(255) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[MauThongBao]') AND name = N'ma_mau')
+                ALTER TABLE [dbo].[MauThongBao] ADD [ma_mau] nvarchar(100) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[MauThongBao]') AND name = N'loai_thong_bao')
+                ALTER TABLE [dbo].[MauThongBao] ADD [loai_thong_bao] nvarchar(50) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[MauThongBao]') AND name = N'muc_do_uu_tien')
+                ALTER TABLE [dbo].[MauThongBao] ADD [muc_do_uu_tien] nvarchar(50) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[MauThongBao]') AND name = N'doi_tuong_mac_dinh')
+                ALTER TABLE [dbo].[MauThongBao] ADD [doi_tuong_mac_dinh] nvarchar(50) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[MauThongBao]') AND name = N'bien_cho_phep_json')
+                ALTER TABLE [dbo].[MauThongBao] ADD [bien_cho_phep_json] nvarchar(max) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[MauThongBao]') AND name = N'dang_hoat_dong')
+                ALTER TABLE [dbo].[MauThongBao] ADD [dang_hoat_dong] bit NOT NULL CONSTRAINT DF_MauThongBao_dang_hd DEFAULT 1;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[MauThongBao]') AND name = N'la_he_thong')
+                ALTER TABLE [dbo].[MauThongBao] ADD [la_he_thong] bit NOT NULL CONSTRAINT DF_MauThongBao_la_ht DEFAULT 0;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[MauThongBao]') AND name = N'ngay_tao')
+                ALTER TABLE [dbo].[MauThongBao] ADD [ngay_tao] datetime2 NOT NULL CONSTRAINT DF_MauThongBao_ngay_tao DEFAULT SYSUTCDATETIME();",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[MauThongBao]') AND name = N'nguoi_tao')
+                ALTER TABLE [dbo].[MauThongBao] ADD [nguoi_tao] int NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[MauThongBao]') AND name = N'ngay_cap_nhat')
+                ALTER TABLE [dbo].[MauThongBao] ADD [ngay_cap_nhat] datetime2 NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[MauThongBao]') AND name = N'nguoi_cap_nhat')
+                ALTER TABLE [dbo].[MauThongBao] ADD [nguoi_cap_nhat] int NULL;",
+
+            // NhatKyDuyetDon missing columns
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[NhatKyDuyetDon]') AND name = N'nguon_thuc_hien')
+                ALTER TABLE [dbo].[NhatKyDuyetDon] ADD [nguon_thuc_hien] nvarchar(50) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[NhatKyDuyetDon]') AND name = N'trang_thai_cu')
+                ALTER TABLE [dbo].[NhatKyDuyetDon] ADD [trang_thai_cu] nvarchar(50) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[NhatKyDuyetDon]') AND name = N'trang_thai_moi')
+                ALTER TABLE [dbo].[NhatKyDuyetDon] ADD [trang_thai_moi] nvarchar(50) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[NhatKyDuyetDon]') AND name = N'ghi_chu_cong_khai')
+                ALTER TABLE [dbo].[NhatKyDuyetDon] ADD [ghi_chu_cong_khai] nvarchar(max) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[NhatKyDuyetDon]') AND name = N'ghi_chu_noi_bo')
+                ALTER TABLE [dbo].[NhatKyDuyetDon] ADD [ghi_chu_noi_bo] nvarchar(max) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[NhatKyDuyetDon]') AND name = N'snapshot_json')
+                ALTER TABLE [dbo].[NhatKyDuyetDon] ADD [snapshot_json] nvarchar(max) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[NhatKyDuyetDon]') AND name = N'hien_thi_cho_hoc_sinh')
+                ALTER TABLE [dbo].[NhatKyDuyetDon] ADD [hien_thi_cho_hoc_sinh] bit NOT NULL CONSTRAINT DF_NhatKyDuyetDon_hien_thi DEFAULT 1;",
+
+            // YeuCauHoanPhi missing columns
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[YeuCauHoanPhi]') AND name = N'ly_do_yeu_cau')
+                ALTER TABLE [dbo].[YeuCauHoanPhi] ADD [ly_do_yeu_cau] nvarchar(max) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[YeuCauHoanPhi]') AND name = N'ly_do_tu_choi')
+                ALTER TABLE [dbo].[YeuCauHoanPhi] ADD [ly_do_tu_choi] nvarchar(max) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[YeuCauHoanPhi]') AND name = N'ghi_chu')
+                ALTER TABLE [dbo].[YeuCauHoanPhi] ADD [ghi_chu] nvarchar(max) NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[YeuCauHoanPhi]') AND name = N'nguoi_tao')
+                ALTER TABLE [dbo].[YeuCauHoanPhi] ADD [nguoi_tao] int NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[YeuCauHoanPhi]') AND name = N'nguoi_cap_nhat')
+                ALTER TABLE [dbo].[YeuCauHoanPhi] ADD [nguoi_cap_nhat] int NULL;",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[YeuCauHoanPhi]') AND name = N'ngay_tao')
+                ALTER TABLE [dbo].[YeuCauHoanPhi] ADD [ngay_tao] datetime2 NOT NULL CONSTRAINT DF_YCHoanPhi_ngay_tao DEFAULT SYSUTCDATETIME();",
+            @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[YeuCauHoanPhi]') AND name = N'ngay_cap_nhat')
+                ALTER TABLE [dbo].[YeuCauHoanPhi] ADD [ngay_cap_nhat] datetime2 NULL;",
+
             // KyThi missing columns
             @"IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[KyThi]') AND name = N'ma_nganh')
                 ALTER TABLE [dbo].[KyThi] ADD [ma_nganh] int NULL;",

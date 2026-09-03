@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { X, UploadCloud, Download, FileSpreadsheet, CheckCircle2, AlertCircle } from 'lucide-vue-next'
+import { ref, computed } from 'vue'
+import { X, UploadCloud, Download, FileSpreadsheet, CheckCircle2, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { contentCouncilApi } from '@/services/contentCouncilApi'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 
@@ -8,7 +8,10 @@ const props = defineProps<{
   isOpen: boolean
 }>()
 
-const emit = defineEmits(['update:isOpen', 'import'])
+const emit = defineEmits<{
+  (e: 'update:isOpen', val: boolean): void
+  (e: 'import', count: number): void
+}>()
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const selectedFile = ref<File | null>(null)
@@ -19,6 +22,37 @@ const checkResult = ref<{
   total: number
   errors: Array<{row: number, col: string, msg: string}>
 } | null>(null)
+
+interface ParsedImportRow {
+  rowNum: number
+  maMonHoc: string
+  loai: string
+  kieuLuaChon: string
+  doKho: string
+  noiDung: string
+  dapAnDung: string
+  isValid: boolean
+  errorMsg?: string
+}
+
+const parsedRows = ref<ParsedImportRow[]>([])
+const previewPage = ref(1)
+const previewPageSize = ref(10)
+const previewTab = ref<'all' | 'valid' | 'invalid'>('all')
+
+const filteredPreviewRows = computed(() => {
+  if (previewTab.value === 'valid') return parsedRows.value.filter(r => r.isValid)
+  if (previewTab.value === 'invalid') return parsedRows.value.filter(r => !r.isValid)
+  return parsedRows.value
+})
+
+const totalPreviewPages = computed(() => Math.max(1, Math.ceil(filteredPreviewRows.value.length / previewPageSize.value)))
+
+const paginatedPreviewRows = computed(() => {
+  if (previewPageSize.value >= 1000) return filteredPreviewRows.value
+  const start = (previewPage.value - 1) * previewPageSize.value
+  return filteredPreviewRows.value.slice(start, start + previewPageSize.value)
+})
 
 const modalState = ref({
   isOpen: false,
@@ -45,6 +79,9 @@ const showAlert = (msg: string, title = 'Thông báo', variant: 'warning' | 'dan
 const close = () => {
   selectedFile.value = null
   checkResult.value = null
+  parsedRows.value = []
+  previewPage.value = 1
+  previewTab.value = 'all'
   emit('update:isOpen', false)
 }
 
@@ -62,6 +99,8 @@ const onFileSelect = (e: Event) => {
     }
     selectedFile.value = file
     checkResult.value = null
+    parsedRows.value = []
+    previewPage.value = 1
   }
 }
 
@@ -72,6 +111,9 @@ const triggerFileSelect = () => {
 const removeFile = () => {
   selectedFile.value = null
   checkResult.value = null
+  parsedRows.value = []
+  previewPage.value = 1
+  previewTab.value = 'all'
   if (fileInput.value) fileInput.value.value = ''
 }
 
@@ -91,6 +133,7 @@ const checkFile = async () => {
     
     if (!worksheet) {
       isChecking.value = false
+      parsedRows.value = []
       checkResult.value = {
         total: 0,
         valid: 0,
@@ -102,6 +145,7 @@ const checkFile = async () => {
 
     const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: '' })
     const errors: Array<{row: number, col: string, msg: string}> = []
+    const rowsList: ParsedImportRow[] = []
     let validCount = 0
 
     jsonData.forEach((row: any, idx: number) => {
@@ -109,31 +153,54 @@ const checkFile = async () => {
       const maMonHoc = String(row['MaCodeMonHoc'] || row['Mã môn'] || row['MaMonHoc'] || '').trim()
       const loai = String(row['LoaiCauHoi'] || row['Loại câu hỏi'] || '').trim()
       const noiDung = String(row['NoiDung'] || row['Nội dung'] || '').trim()
+      const doKho = String(row['DoKho'] || row['Độ khó'] || 'trung_binh').trim()
+      const kieuLuaChon = String(row['KieuLuaChon'] || row['Kiểu lựa chọn'] || '').trim()
+      const dapAnDung = String(row['DapAnDung'] || row['Đáp án đúng'] || '').trim()
 
+      let rowError = ''
       if (!maMonHoc) {
-        errors.push({ row: rowNum, col: 'MaCodeMonHoc', msg: 'Thiếu mã môn học' })
+        rowError = 'Thiếu mã môn học'
+        errors.push({ row: rowNum, col: 'MaCodeMonHoc', msg: rowError })
       } else if (!noiDung) {
-        errors.push({ row: rowNum, col: 'NoiDung', msg: 'Thiếu nội dung câu hỏi' })
+        rowError = 'Thiếu nội dung câu hỏi'
+        errors.push({ row: rowNum, col: 'NoiDung', msg: rowError })
       } else if (loai === 'trac_nghiem') {
         const choiceA = String(row['LuaChonA'] || row['Lựa chọn A'] || row['Đáp án A'] || '').trim()
         const choiceB = String(row['LuaChonB'] || row['Lựa chọn B'] || row['Đáp án B'] || '').trim()
         const legacyChoices = String(row['LuaChon'] || row['Lựa chọn'] || '').trim()
-        const dapAnDung = String(row['DapAnDung'] || row['Đáp án đúng'] || '').trim()
 
         const hasOptionCols = choiceA || choiceB
         const hasLegacyChoice = legacyChoices
 
         if (!hasOptionCols && !hasLegacyChoice) {
-          errors.push({ row: rowNum, col: 'LuaChonA', msg: 'Câu trắc nghiệm phải có ít nhất các lựa chọn A và B' })
+          rowError = 'Câu trắc nghiệm phải có ít nhất các lựa chọn A và B'
+          errors.push({ row: rowNum, col: 'LuaChonA', msg: rowError })
         } else if (!dapAnDung) {
-          errors.push({ row: rowNum, col: 'DapAnDung', msg: 'Câu trắc nghiệm phải có đáp án đúng' })
+          rowError = 'Câu trắc nghiệm phải có đáp án đúng'
+          errors.push({ row: rowNum, col: 'DapAnDung', msg: rowError })
         } else {
           validCount++
         }
       } else {
         validCount++
       }
+
+      rowsList.push({
+        rowNum,
+        maMonHoc,
+        loai: loai || 'trac_nghiem',
+        kieuLuaChon,
+        doKho,
+        noiDung,
+        dapAnDung,
+        isValid: !rowError,
+        errorMsg: rowError
+      })
     })
+
+    parsedRows.value = rowsList
+    previewPage.value = 1
+    previewTab.value = 'all'
 
     checkResult.value = {
       total: jsonData.length,
@@ -143,6 +210,7 @@ const checkFile = async () => {
     }
   } catch (err: any) {
     showAlert('Không thể đọc dữ liệu file Excel. Vui lòng kiểm tra định dạng file.', 'Lỗi đọc file', 'danger')
+    parsedRows.value = []
     checkResult.value = { total: 0, valid: 0, invalid: 0, errors: [] }
   } finally {
     isChecking.value = false
@@ -202,7 +270,7 @@ const importData = async () => {
       v-if="isOpen"
       class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0"
     >
-      <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
         <!-- Header -->
         <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
           <h3 class="text-xl font-bold text-slate-800">Import câu hỏi từ Excel</h3>
@@ -301,7 +369,7 @@ const importData = async () => {
                 <!-- Errors Table -->
                 <div v-if="checkResult.invalid > 0" class="border border-red-200 rounded-lg overflow-hidden">
                   <div class="bg-red-50 px-3 py-2 text-sm font-medium text-red-800 flex items-center gap-2">
-                    <AlertCircle class="w-4 h-4" /> Chi tiết lỗi cần sửa
+                    <AlertCircle class="w-4 h-4" /> Chi tiết lỗi cần sửa ({{ checkResult.invalid }} dòng)
                   </div>
                   <table class="w-full text-sm text-left">
                     <thead class="bg-slate-50 border-y border-red-100 text-slate-600">
@@ -319,6 +387,135 @@ const importData = async () => {
                       </tr>
                     </tbody>
                   </table>
+                </div>
+
+                <!-- Questions Preview Section -->
+                <div v-if="parsedRows.length > 0" class="space-y-3 pt-2">
+                  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">Xem trước:</span>
+                      <button
+                        type="button"
+                        @click="previewTab = 'all'; previewPage = 1"
+                        class="px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors"
+                        :class="previewTab === 'all' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+                      >
+                        Tất cả ({{ checkResult.total }})
+                      </button>
+                      <button
+                        type="button"
+                        @click="previewTab = 'valid'; previewPage = 1"
+                        class="px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors"
+                        :class="previewTab === 'valid' ? 'bg-green-600 text-white' : 'bg-green-50 text-green-700 hover:bg-green-100'"
+                      >
+                        Hợp lệ ({{ checkResult.valid }})
+                      </button>
+                      <button
+                        v-if="checkResult.invalid > 0"
+                        type="button"
+                        @click="previewTab = 'invalid'; previewPage = 1"
+                        class="px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors"
+                        :class="previewTab === 'invalid' ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700 hover:bg-red-100'"
+                      >
+                        Có lỗi ({{ checkResult.invalid }})
+                      </button>
+                    </div>
+
+                    <div class="flex items-center gap-2 text-xs text-slate-500">
+                      <span>Hiển thị:</span>
+                      <select
+                        v-model.number="previewPageSize"
+                        @change="previewPage = 1"
+                        class="border border-slate-200 rounded px-2 py-1 text-xs bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      >
+                        <option :value="10">10 / trang</option>
+                        <option :value="20">20 / trang</option>
+                        <option :value="50">50 / trang</option>
+                        <option :value="100">100 / trang</option>
+                        <option :value="1000">Tất cả</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Preview Table -->
+                  <div class="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm">
+                    <div class="overflow-x-auto max-h-80">
+                      <table class="w-full text-xs text-left">
+                        <thead class="bg-slate-50 text-slate-700 font-semibold sticky top-0 z-10 border-b border-slate-200">
+                          <tr>
+                            <th class="px-3 py-2.5 w-14 text-center">Dòng</th>
+                            <th class="px-3 py-2.5 w-28">Mã môn</th>
+                            <th class="px-3 py-2.5 w-24">Loại</th>
+                            <th class="px-3 py-2.5 min-w-[240px]">Nội dung câu hỏi</th>
+                            <th class="px-3 py-2.5 w-24 text-center">Độ khó</th>
+                            <th class="px-3 py-2.5 w-28 text-center">Trạng thái</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                          <tr v-for="row in paginatedPreviewRows" :key="row.rowNum" :class="{'bg-red-50/40': !row.isValid}">
+                            <td class="px-3 py-2.5 text-center font-medium text-slate-500">{{ row.rowNum }}</td>
+                            <td class="px-3 py-2.5 font-mono font-semibold text-slate-800">{{ row.maMonHoc }}</td>
+                            <td class="px-3 py-2.5 text-slate-600">
+                              <span class="px-2 py-0.5 rounded text-[11px] font-medium" :class="row.loai === 'tu_luan' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-blue-50 text-blue-700 border border-blue-200'">
+                                {{ row.loai === 'tu_luan' ? 'Tự luận' : 'Trắc nghiệm' }}
+                              </span>
+                            </td>
+                            <td class="px-3 py-2.5 text-slate-800">
+                              <div class="line-clamp-2 max-w-sm" :title="row.noiDung">{{ row.noiDung }}</div>
+                              <div v-if="!row.isValid && row.errorMsg" class="text-red-600 text-[11px] mt-0.5 font-medium">
+                                {{ row.errorMsg }}
+                              </div>
+                            </td>
+                            <td class="px-3 py-2.5 text-center text-slate-600 capitalize">
+                              <span class="px-2 py-0.5 rounded text-[11px] font-medium" :class="{
+                                'bg-green-50 text-green-700': row.doKho === 'de',
+                                'bg-yellow-50 text-yellow-700': row.doKho === 'trung_binh',
+                                'bg-red-50 text-red-700': row.doKho === 'kho'
+                              }">
+                                {{ row.doKho === 'de' ? 'Dễ' : row.doKho === 'kho' ? 'Khó' : 'TB' }}
+                              </span>
+                            </td>
+                            <td class="px-3 py-2.5 text-center">
+                              <span v-if="row.isValid" class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-100 text-green-700">
+                                Hợp lệ
+                              </span>
+                              <span v-else class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-red-100 text-red-700" :title="row.errorMsg">
+                                Lỗi
+                              </span>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <!-- Preview Pagination Controls -->
+                    <div class="px-4 py-2.5 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-600">
+                      <div>
+                        Hiển thị <span class="font-semibold text-slate-800">{{ filteredPreviewRows.length > 0 ? (previewPage - 1) * previewPageSize + 1 : 0 }}</span>–<span class="font-semibold text-slate-800">{{ Math.min(previewPage * previewPageSize, filteredPreviewRows.length) }}</span> / <span class="font-semibold text-slate-800">{{ filteredPreviewRows.length }}</span> câu hỏi
+                      </div>
+                      <div class="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          @click="previewPage--"
+                          :disabled="previewPage <= 1"
+                          class="p-1 rounded border border-slate-200 text-slate-600 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                          title="Trang trước"
+                        >
+                          <ChevronLeft class="w-4 h-4" />
+                        </button>
+                        <span class="px-2 font-medium">Trang {{ previewPage }} / {{ totalPreviewPages }}</span>
+                        <button
+                          type="button"
+                          @click="previewPage++"
+                          :disabled="previewPage >= totalPreviewPages"
+                          class="p-1 rounded border border-slate-200 text-slate-600 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                          title="Trang sau"
+                        >
+                          <ChevronRight class="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
               </div>
