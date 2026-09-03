@@ -498,16 +498,18 @@ public class BghAiAnalyticsService : IBghAiAnalyticsService
         var updatedCss = request.CurrentCss;
         var explanation = "Đã cập nhật giao diện giấy khen theo đúng yêu cầu prompt của bạn.";
         var changes = new List<string>();
+        var sw = System.Diagnostics.Stopwatch.StartNew();
 
         try
         {
             using var editCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             editCts.CancelAfter(TimeSpan.FromSeconds(60));
 
+            var targetMode = !string.IsNullOrWhiteSpace(request.Mode) ? request.Mode : "fast";
             var chatRequest = new AiChatRequest
             {
                 Message = prompt.ToString(),
-                Mode = "deep"
+                Mode = targetMode
             };
 
             var aiRes = await _ollamaService.ChatAsync(chatRequest, currentUser, editCts.Token);
@@ -913,13 +915,15 @@ public class BghAiAnalyticsService : IBghAiAnalyticsService
 
         explanation = "Đã tinh chỉnh thiết kế giấy khen theo yêu cầu: " + string.Join("; ", changes);
 
+        sw.Stop();
         return new AiCertificateTemplateEditResponse
         {
             TemplateId = request.TemplateId,
             UpdatedHtml = updatedHtml,
             UpdatedCss = updatedCss,
             Explanation = explanation,
-            ChangesSummary = changes.Count > 0 ? changes : new List<string> { "Đã cập nhật theo yêu cầu phong cách của bạn." }
+            ChangesSummary = changes.Count > 0 ? changes : new List<string> { "Đã cập nhật theo yêu cầu phong cách của bạn." },
+            ResponseTimeSeconds = Math.Round(sw.Elapsed.TotalSeconds, 2)
         };
     }
 

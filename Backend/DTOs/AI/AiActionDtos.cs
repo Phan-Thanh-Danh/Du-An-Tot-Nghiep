@@ -276,7 +276,7 @@ public class AiCertificateTemplateEditRequest
     public string CurrentCss { get; set; } = string.Empty;
     [Required]
     public string Instruction { get; set; } = string.Empty;
-    public string Mode { get; set; } = "deep";
+    public string Mode { get; set; } = "fast";
 }
 
 public class AiCertificateTemplateEditResponse
@@ -286,6 +286,7 @@ public class AiCertificateTemplateEditResponse
     public string UpdatedCss { get; set; } = string.Empty;
     public string Explanation { get; set; } = string.Empty;
     public List<string> ChangesSummary { get; set; } = new();
+    public double ResponseTimeSeconds { get; set; }
 }
 
 public class AcademicOverviewContextDto
