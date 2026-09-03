@@ -299,6 +299,7 @@ public class SmartTimetableService : ISmartTimetableService
             xepDuoc = result.XepDuoc,
             khongXepDuoc = result.KhongXepDuoc,
             Score = job.Score,
+            profile = request.Profile ?? "balanced",
             tongTheHe = request.TongTheHe ?? 100,
             kichThuocQuanThe = request.KichThuocQuanThe ?? 50,
             tyLeCheo = request.TyLeCheo ?? 0.5,

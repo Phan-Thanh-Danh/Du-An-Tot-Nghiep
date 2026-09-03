@@ -17,11 +17,16 @@ public class AiController : ControllerBase
 {
     private readonly IOllamaService _ollamaService;
     private readonly IBghAiAnalyticsService _bghAiAnalyticsService;
+    private readonly ISchedulingAiService _schedulingAiService;
 
-    public AiController(IOllamaService ollamaService, IBghAiAnalyticsService bghAiAnalyticsService)
+    public AiController(
+        IOllamaService ollamaService,
+        IBghAiAnalyticsService bghAiAnalyticsService,
+        ISchedulingAiService schedulingAiService)
     {
         _ollamaService = ollamaService;
         _bghAiAnalyticsService = bghAiAnalyticsService;
+        _schedulingAiService = schedulingAiService;
     }
 
     [HttpGet("health")]
@@ -168,5 +173,38 @@ public class AiController : ControllerBase
 
         var fileName = $"De_Tu_Luyen_On_Tap_{maDeKiemTra}.doc";
         return File(docBytes, "application/msword", fileName);
+    }
+
+    [HttpPost("scheduling/interpret")]
+    [Authorize(Policy = "AcademicOperations")]
+    public async Task<ActionResult<ApiResponseDto<AiSchedulingInterpretResponse>>> InterpretScheduling(
+        [FromBody] AiSchedulingInterpretRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var user = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+        var result = await _schedulingAiService.InterpretIntentAsync(request, user, cancellationToken);
+        return Ok(ApiResponseDto<AiSchedulingInterpretResponse>.Ok(result));
+    }
+
+    [HttpPost("scheduling/explain-draft")]
+    [Authorize(Policy = "AcademicOperations")]
+    public async Task<ActionResult<ApiResponseDto<AiExplainDraftResponse>>> ExplainDraft(
+        [FromBody] AiExplainDraftRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var user = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+        var result = await _schedulingAiService.ExplainDraftAsync(request, user, cancellationToken);
+        return Ok(ApiResponseDto<AiExplainDraftResponse>.Ok(result));
+    }
+
+    [HttpPost("scheduling/explain-readiness")]
+    [Authorize(Policy = "AcademicOperations")]
+    public async Task<ActionResult<ApiResponseDto<AiExplainReadinessResponse>>> ExplainReadiness(
+        [FromBody] AiExplainReadinessRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var user = HttpContext.Items["CurrentUser"] as CurrentUserContext;
+        var result = await _schedulingAiService.ExplainReadinessAsync(request, user, cancellationToken);
+        return Ok(ApiResponseDto<AiExplainReadinessResponse>.Ok(result));
     }
 }

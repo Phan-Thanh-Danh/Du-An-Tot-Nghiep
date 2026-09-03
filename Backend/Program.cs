@@ -288,6 +288,7 @@ builder.Services.Configure<OllamaOptions>(
 builder.Services.AddSingleton<IAiRequestGate, AiRequestGate>();
 builder.Services.AddHttpClient<IOllamaService, OllamaService>();
 builder.Services.AddScoped<IBghAiAnalyticsService, BghAiAnalyticsService>();
+builder.Services.AddScoped<ISchedulingAiService, SchedulingAiService>();
 
 builder.Services.AddSignalR(options =>
 {
