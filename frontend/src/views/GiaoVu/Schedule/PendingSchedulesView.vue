@@ -49,6 +49,11 @@ const selectedDraftSummary = computed(() => {
   const warnings = items.filter(item => (item.canhBao || item.CanhBao || []).length).length
   return { assigned: Math.max(0, items.length - unassigned), unassigned, warnings, sessions: items.length }
 })
+const selectedDraftCourseCount = computed(() => {
+  const items = selectedDraftItems.value
+  const courseIds = new Set(items.map(item => item.maKhoaHoc ?? item.MaKhoaHoc).filter(Boolean))
+  return courseIds.size || selectedItem.value?.metrics?.classes || 0
+})
 const hasHardViolation = computed(() => selectedDraftItems.value.some(item => (item.loi || item.Loi || []).length > 0) || Boolean(selectedItem.value?.raw?.hasHardViolation ?? selectedItem.value?.raw?.HasHardViolation))
 const groupedDraftItems = computed(() => {
   const items = selectedDraftItems.value
@@ -69,6 +74,46 @@ const groupedDraftItems = computed(() => {
   })
   return Array.from(groups.values()).sort((a, b) => a.title.localeCompare(b.title, 'vi'))
 })
+
+const displayLimit = ref(50)
+const totalDraftItemsCount = computed(() => selectedDraftItems.value.length)
+
+const displayedGroupedDraftItems = computed(() => {
+  let remaining = displayLimit.value
+  return groupedDraftItems.value.map(grp => {
+    if (remaining <= 0) {
+      return {
+        ...grp,
+        renderedItems: [],
+        totalCount: grp.items.length,
+      }
+    }
+    const take = Math.min(remaining, grp.items.length)
+    remaining -= take
+    return {
+      ...grp,
+      renderedItems: grp.items.slice(0, take),
+      totalCount: grp.items.length,
+    }
+  }).filter(grp => grp.totalCount > 0)
+})
+
+const displayedItemsCount = computed(() =>
+  displayedGroupedDraftItems.value.reduce((acc, g) => acc + g.renderedItems.length, 0)
+)
+
+function loadMoreDraftItems() {
+  displayLimit.value += 50
+}
+
+watch(scheduleView, () => {
+  displayLimit.value = 50
+})
+
+watch(() => selectedItem.value?.id, () => {
+  displayLimit.value = 50
+})
+
 const getStatusLabel = (status) => statusLabels[status] || statusLabels.draft
 
 function unwrap(response) {
@@ -372,7 +417,7 @@ watch(
     <!-- Main Content Layout -->
     <div class="flex flex-1 min-h-0 gap-4 flex-col lg:flex-row">
       <!-- Left: List -->
-      <div class="flex-1 surface-card border border-(--border-card) rounded-2xl p-4 flex flex-col gap-3 min-w-0 overflow-y-auto">
+      <div data-testid="draft-container-card" class="flex-1 surface-card border border-(--border-card) rounded-2xl p-4 flex flex-col gap-3 min-w-0 overflow-y-auto">
         <div v-if="!filterMaDonVi || !filterMaHocKy" class="surface-card border border-(--border-card) rounded-2xl p-8 text-sm text-(--text-muted)">
           Chưa có học kỳ phù hợp để xem bản nháp thời khóa biểu.
         </div>
@@ -435,7 +480,7 @@ watch(
 
       <!-- Right: Detail Panel -->
       <div v-if="selectedItem" class="w-full lg:w-80 shrink-0 flex flex-col gap-3">
-        <div class="surface-card border border-(--border-card) rounded-2xl shadow-sm flex flex-col h-full overflow-hidden">
+        <div data-testid="draft-container-card" class="surface-card border border-(--border-card) rounded-2xl shadow-sm flex flex-col h-full overflow-hidden">
           <div class="p-4 border-b border-(--border-default) flex justify-between items-center bg-(--surface-input)">
             <h3 class="font-bold text-(--text-heading)">Chi tiết bộ TKB</h3>
             <button class="text-(--text-muted) hover:text-(--text-heading)" @click="selectedItem = null"><X :size="16" /></button>
@@ -454,9 +499,15 @@ watch(
             </div>
 
             <div class="grid grid-cols-2 gap-2 text-center text-sm">
+              <div class="rounded-lg bg-(--surface-input) p-2">
+                <strong data-testid="summary-courses">{{ selectedDraftCourseCount }}/{{ selectedDraftCourseCount }} khóa</strong>
+                <span class="block text-xs text-(--text-muted)">Khóa học</span>
+              </div>
+              <div class="rounded-lg bg-(--surface-input) p-2">
+                <strong data-testid="summary-sessions">{{ selectedDraftSummary.sessions }} buổi</strong>
+                <span class="block text-xs text-(--text-muted)">Tổng số buổi</span>
+              </div>
               <div class="rounded-lg bg-(--surface-input) p-2"><strong>{{ selectedDraftSummary.assigned }}</strong><span class="block text-xs text-(--text-muted)">Đã xếp</span></div>
-              <div class="rounded-lg bg-(--surface-input) p-2"><strong>{{ selectedDraftSummary.unassigned }}</strong><span class="block text-xs text-(--text-muted)">Chưa xếp</span></div>
-              <div class="rounded-lg bg-(--surface-input) p-2"><strong>{{ selectedDraftSummary.sessions }}</strong><span class="block text-xs text-(--text-muted)">Ca mỗi tuần</span></div>
               <div class="rounded-lg bg-(--surface-input) p-2"><strong>{{ selectedDraftSummary.warnings }}</strong><span class="block text-xs text-(--text-muted)">Cảnh báo</span></div>
             </div>
 
@@ -470,14 +521,25 @@ watch(
             </div>
 
             <div v-if="(selectedItem.raw.items && selectedItem.raw.items.length) || (selectedItem.raw.Items && selectedItem.raw.Items.length)">
-              <p class="text-xs text-(--text-muted) uppercase tracking-wider font-bold mb-1">Chi tiết môn học</p>
+              <div class="flex items-center justify-between mb-1">
+                <p class="text-xs text-(--text-muted) uppercase tracking-wider font-bold">Chi tiết môn học</p>
+                <span data-testid="display-count" class="text-xs font-semibold text-(--text-muted)">
+                  Đang hiển thị {{ displayedItemsCount }}/{{ totalDraftItemsCount }} buổi
+                </span>
+              </div>
               <div class="space-y-4 mt-2 max-h-[360px] overflow-y-auto pr-1">
-                <div v-for="grp in groupedDraftItems" :key="grp.title" class="space-y-2">
+                <div v-for="grp in displayedGroupedDraftItems" :key="grp.title" class="space-y-2">
                   <div class="flex items-center justify-between px-1 text-xs font-bold text-(--text-muted) border-b border-(--border-default) pb-1 sticky top-0 bg-(--surface-card) z-10">
                     <span class="truncate text-(--text-heading)">{{ grp.title }}</span>
-                    <span class="text-[10px] rounded-full bg-(--surface-input) px-2 py-0.5 shrink-0">{{ grp.items.length }} ca</span>
+                    <span class="text-[10px] rounded-full bg-(--surface-input) px-2 py-0.5 shrink-0">{{ grp.renderedItems.length }}/{{ grp.totalCount }} ca</span>
                   </div>
-                  <div v-for="cItem in grp.items" :key="cItem.maDraftItem || cItem.MaDraftItem" class="text-sm border border-(--border-default) rounded-xl p-3">
+                  <div
+                    v-for="cItem in grp.renderedItems"
+                    :key="cItem.maDraftItem || cItem.MaDraftItem || `${grp.title}-${cItem.maKhoaHoc}-${cItem.thuTrongTuan}-${cItem.maCaHoc}`"
+                    data-testid="draft-session-item"
+                    :data-draft-item-id="cItem.maDraftItem || cItem.MaDraftItem || `${cItem.maKhoaHoc}-${cItem.thuTrongTuan}-${cItem.maCaHoc}`"
+                    class="text-sm border border-(--border-default) rounded-xl p-3"
+                  >
                   <div class="flex justify-between items-center mb-1 gap-2">
                     <span class="font-bold text-(--text-heading) truncate">{{ cItem.tenMonHoc ?? cItem.TenMonHoc ?? `Khóa học ${cItem.maKhoaHoc ?? cItem.MaKhoaHoc}` }}</span>
                     <GlassBadge :variant="(cItem.loi || cItem.Loi || []).length ? 'danger' : (cItem.canhBao || cItem.CanhBao || []).length ? 'warning' : 'success'" size="sm">{{ (cItem.loi || cItem.Loi || []).length ? 'Không thể xuất bản' : (cItem.canhBao || cItem.CanhBao || []).length ? 'Cần xem lại' : 'Tốt' }}</GlassBadge>
@@ -547,6 +609,19 @@ watch(
                     </div>
                   </div>
                 </div>
+                </div>
+
+                <!-- Load More button -->
+                <div v-if="displayedItemsCount < totalDraftItemsCount" class="pt-2 text-center">
+                  <GlassButton
+                    variant="secondary"
+                    size="sm"
+                    class="w-full justify-center"
+                    data-testid="load-more-btn"
+                    @click="loadMoreDraftItems"
+                  >
+                    Xem thêm {{ totalDraftItemsCount - displayedItemsCount }} buổi
+                  </GlassButton>
                 </div>
               </div>
             </div>

@@ -235,6 +235,18 @@ const progressPercent = computed(() => {
   return Math.min(100, Math.round((current / total) * 100))
 })
 
+const progressStageMessage = computed(() => {
+  if (generationProgress.value?.trangThai === 'da_xuat_ban' || generationProgress.value?.trangThai === 'draft') {
+    return 'Đã hoàn tất'
+  }
+  const pct = progressPercent.value
+  if (pct === 0) return 'Đang chuẩn bị dữ liệu'
+  if (pct <= 65) return 'Đang xếp lịch'
+  if (pct <= 85) return 'Đang kiểm tra'
+  if (pct < 100) return 'Sắp hoàn tất'
+  return 'Đã hoàn tất'
+})
+
 const unscheduledCourses = computed(() => {
   const scheduled = new Set(rows.value.filter(r => r.trangThai !== 'da_huy').map(r => Number(r.maKhoaHoc)))
   return courseOptions.value.filter(c => !scheduled.has(Number(c.maKhoaHoc)))
@@ -562,9 +574,31 @@ async function loadScheduleOptions() {
     } catch (e) {
       console.error(e)
     }
+    await checkAndRecoverActiveDraft()
   }
   loadScheduleOptions().then(loadData)
 })
+
+async function checkAndRecoverActiveDraft() {
+  const termId = schedulingContext.schedulableTerm?.maHocKy
+  const campusId = authorizedCampusId.value
+  if (!termId || !campusId) return
+  try {
+    const activeJob = await scheduleApi.getCurrentGenerationJob({
+      maHocKy: termId,
+      maDonVi: campusId
+    })
+    const jobData = activeJob?.data ?? activeJob?.Data ?? activeJob
+    if (jobData && (jobData.trangThai === 'pending' || jobData.trangThai === 'draft')) {
+      const draftId = jobData.draftId || jobData.DraftId
+      if (draftId) {
+        startProgressPolling(draftId)
+      }
+    }
+  } catch {
+    // Ignored if no active job
+  }
+}
 
 // ── Filtered rows ─────────────────────────────────────────────────
 const filteredRows = computed(() => {
@@ -1970,10 +2004,15 @@ function thuLabel(thu) {
         <div v-if="showProgressModal" class="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
           <div class="w-full max-w-md rounded-2xl border border-(--border-card) bg-(--surface-modal) p-6 shadow-2xl">
             <div class="mb-4 flex items-center gap-3">
-              <Loader2 class="animate-spin text-(--sidebar-accent)" :size="22" />
+              <Loader2 v-if="progressPercent < 100 && progressStageMessage !== 'Đã hoàn tất'" class="animate-spin text-(--sidebar-accent)" :size="22" />
+              <CheckCircle v-else class="text-(--color-success-text)" :size="22" />
               <div>
-                <h3 class="text-sm font-bold text-(--text-heading)">Đang hoàn thiện bản nháp</h3>
-                <p class="text-xs text-(--text-muted)">Hệ thống đang tìm phương án phù hợp. Bạn có thể chờ tại đây; yêu cầu mới sẽ không được tạo thêm.</p>
+                <h3 class="text-sm font-bold text-(--text-heading)" data-testid="progress-stage-heading">{{ progressStageMessage }}</h3>
+                <p v-if="generationProgress?.xepDuoc != null" class="text-xs text-(--text-muted)" data-testid="progress-scheduled-count">
+                  Đã xếp: <span class="font-semibold text-(--color-success-text)">{{ generationProgress.xepDuoc }}</span> khóa
+                  <span v-if="generationProgress?.khongXepDuoc"> · Chưa xếp: <span class="font-semibold text-(--color-danger-text)">{{ generationProgress.khongXepDuoc }}</span></span>
+                </p>
+                <p v-else class="text-xs text-(--text-muted)">Hệ thống đang tìm phương án phù hợp. Bạn có thể chờ tại đây; yêu cầu mới sẽ không được tạo thêm.</p>
               </div>
             </div>
             <div class="mb-3 h-2 w-full overflow-hidden rounded-full bg-(--surface-input)">
@@ -1982,26 +2021,38 @@ function thuLabel(thu) {
                 :style="{ width: progressPercent + '%', background: 'linear-gradient(90deg, var(--active-start), var(--active-end))' }"
               ></div>
             </div>
-            <details class="text-xs">
-              <summary class="cursor-pointer text-(--text-muted)">Xem thông tin kỹ thuật</summary>
-            <div class="mt-2 grid grid-cols-2 gap-2">
-              <div class="rounded-lg border border-(--border-default) p-2">
-                <p class="text-(--text-muted)">Quần thể</p>
-                <p class="font-semibold text-(--text-heading)">{{ generationProgress?.kichThuocQuanThe || '—' }}</p>
+            <details class="text-xs" data-testid="technical-details">
+              <summary class="cursor-pointer font-medium text-(--text-muted) hover:text-(--text-heading)">Chi tiết kỹ thuật</summary>
+              <div class="mt-2 grid grid-cols-2 gap-2" data-testid="technical-details-body">
+                <div class="rounded-lg border border-(--border-default) p-2">
+                  <p class="text-(--text-muted)">Thuật toán</p>
+                  <p class="font-semibold text-(--text-heading)">Genetic Algorithm (GA)</p>
+                </div>
+                <div class="rounded-lg border border-(--border-default) p-2">
+                  <p class="text-(--text-muted)">Thế hệ</p>
+                  <p class="font-semibold text-(--text-heading)">{{ generationProgress?.theHeHienTai || 0 }} / {{ generationProgress?.tongTheHe || 0 }}</p>
+                </div>
+                <div class="rounded-lg border border-(--border-default) p-2">
+                  <p class="text-(--text-muted)">Fitness tốt nhất</p>
+                  <p class="font-semibold text-(--text-heading)">{{ generationProgress?.bestFitness != null ? generationProgress.bestFitness.toFixed(2) : '—' }}</p>
+                </div>
+                <div class="rounded-lg border border-(--border-default) p-2">
+                  <p class="text-(--text-muted)">Quần thể</p>
+                  <p class="font-semibold text-(--text-heading)">{{ generationProgress?.kichThuocQuanThe || '—' }}</p>
+                </div>
+                <div class="rounded-lg border border-(--border-default) p-2">
+                  <p class="text-(--text-muted)">Tỷ lệ chéo</p>
+                  <p class="font-semibold text-(--text-heading)">{{ generationProgress?.tyLeCheo || '—' }}</p>
+                </div>
+                <div class="rounded-lg border border-(--border-default) p-2">
+                  <p class="text-(--text-muted)">Độ tuổi thọ</p>
+                  <p class="font-semibold text-(--text-heading)">{{ generationProgress?.doTuoiThoToiDa || '—' }}</p>
+                </div>
+                <div v-if="generationProgress?.draftId" class="col-span-2 rounded-lg border border-(--border-default) p-2">
+                  <p class="text-(--text-muted)">Draft ID</p>
+                  <p class="font-mono text-[11px] text-(--text-heading) truncate">{{ generationProgress.draftId }}</p>
+                </div>
               </div>
-              <div class="rounded-lg border border-(--border-default) p-2">
-                <p class="text-(--text-muted)">Tỷ lệ chéo</p>
-                <p class="font-semibold text-(--text-heading)">{{ generationProgress?.tyLeCheo || '—' }}</p>
-              </div>
-              <div class="rounded-lg border border-(--border-default) p-2">
-                <p class="text-(--text-muted)">Độ tuổi thọ</p>
-                <p class="font-semibold text-(--text-heading)">{{ generationProgress?.doTuoiThoToiDa || '—' }}</p>
-              </div>
-              <div class="rounded-lg border border-(--border-default) p-2">
-                <p class="text-(--text-muted)">Fitness tốt nhất</p>
-                <p class="font-semibold text-(--text-heading)">{{ generationProgress?.bestFitness != null ? generationProgress.bestFitness.toFixed(2) : '—' }}</p>
-              </div>
-            </div>
             </details>
             <p v-if="generationProgress?.xepDuoc != null" class="mt-3 text-xs text-(--text-muted)">
               Xếp được: <span class="font-semibold text-(--color-success-text)">{{ generationProgress.xepDuoc }}</span> ·

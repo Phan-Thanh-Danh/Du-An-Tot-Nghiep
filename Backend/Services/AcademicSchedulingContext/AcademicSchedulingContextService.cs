@@ -216,7 +216,23 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
             AffectedItems = teacherSkillAffectedItems
         });
 
-        // 5. TEACHER_AVAILABILITY_READY
+        // 5. ACTIVE_SHIFTS_READY
+        var activeShifts = await _db.CaHocs.AsNoTracking()
+            .Where(x => x.ConHoatDong)
+            .OrderBy(x => x.ThuTu)
+            .ToListAsync(cancellationToken);
+        var hasShifts = activeShifts.Count > 0;
+        var activeShiftIdSet = activeShifts.Select(x => x.MaCaHoc).ToHashSet();
+        readinessItems.Add(new SchedulingReadinessItemDto
+        {
+            Code = "ACTIVE_SHIFTS_READY",
+            Status = hasShifts ? "ready" : "blocked",
+            Message = hasShifts ? $"Có {activeShifts.Count} ca học đang hoạt động." : "Không có ca học nào đang hoạt động.",
+            ActionRoute = "/facilities/shifts",
+            AffectedCount = activeShifts.Count
+        });
+
+        // 6. TEACHER_AVAILABILITY_READY
         var courseTeacherIds = termCourses.Where(c => c.MaGiaoVien > 0).Select(c => c.MaGiaoVien).Distinct().ToList();
         var teacherPreferences = await _db.GiaoVienNguyenVongHocKys.AsNoTracking()
             .Include(x => x.ChiTietNguyenVong)
@@ -224,11 +240,37 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
             .ToListAsync(cancellationToken);
         var teacherPrefMap = teacherPreferences.ToDictionary(x => x.MaGiaoVien);
         var unavailableTeacherIds = new List<int>();
+        var totalPossibleSlots = (activeShiftIdSet.Count > 0 ? activeShiftIdSet.Count : 1) * 6; // 6 days per week (Mon-Sat)
+
         foreach (var tId in courseTeacherIds)
         {
-            if (teacherPrefMap.TryGetValue(tId, out var pref) && pref.SoCaToiDaMoiTuan <= 0)
+            if (teacherPrefMap.TryGetValue(tId, out var pref))
             {
-                unavailableTeacherIds.Add(tId);
+                if (pref.SoCaToiDaMoiTuan <= 0)
+                {
+                    unavailableTeacherIds.Add(tId);
+                    continue;
+                }
+
+                // Check unavailable slots in preference details
+                var unavailableSlotsInDetail = pref.ChiTietNguyenVong
+                    .Where(s => s.MucDo == "unavailable" && (activeShiftIdSet.Count == 0 || activeShiftIdSet.Contains(s.MaCaHoc)))
+                    .Select(s => (s.ThuTrongTuan, s.MaCaHoc))
+                    .Distinct()
+                    .Count();
+
+                var remainingSlots = Math.Max(0, totalPossibleSlots - unavailableSlotsInDetail);
+
+                var teacherRequiredSlots = termCourses.Where(c => c.MaGiaoVien == tId).Sum(c =>
+                {
+                    var credits = subjects.TryGetValue(c.MaMonHoc, out var sub) ? sub.SoTinChi : (c.MonHoc?.SoTinChi ?? 0);
+                    return creditMappings.TryGetValue(credits, out var qd) ? qd.SoBuoiMoiTuan : 1;
+                });
+
+                if (remainingSlots < teacherRequiredSlots || remainingSlots == 0)
+                {
+                    unavailableTeacherIds.Add(tId);
+                }
             }
         }
         var teacherAvailabilityBlocked = unavailableTeacherIds.Count > 0;
@@ -243,7 +285,7 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
             Code = "TEACHER_AVAILABILITY_READY",
             Status = teacherAvailabilityBlocked ? "blocked" : "ready",
             Message = teacherAvailabilityBlocked
-                ? $"Có {unavailableTeacherIds.Count} giảng viên bị cấu hình 0 ca khả dụng."
+                ? $"Có {unavailableTeacherIds.Count} giảng viên không đủ thời gian khả dụng (slot không khả dụng hoặc 0 ca khả dụng)."
                 : "Thời gian khả dụng của giảng viên hợp lệ.",
             ActionRoute = "/staff/teaching-preferences",
             AffectedCount = unavailableTeacherIds.Count,
@@ -317,20 +359,6 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
             AffectedItems = roomCapacityAffectedItems
         });
 
-        // 9. ACTIVE_SHIFTS_READY
-        var activeShifts = await _db.CaHocs.AsNoTracking()
-            .Where(x => x.ConHoatDong)
-            .OrderBy(x => x.ThuTu)
-            .ToListAsync(cancellationToken);
-        var hasShifts = activeShifts.Count > 0;
-        readinessItems.Add(new SchedulingReadinessItemDto
-        {
-            Code = "ACTIVE_SHIFTS_READY",
-            Status = hasShifts ? "ready" : "blocked",
-            Message = hasShifts ? $"Có {activeShifts.Count} ca học đang hoạt động." : "Không có ca học nào đang hoạt động.",
-            ActionRoute = "/facilities/shifts",
-            AffectedCount = activeShifts.Count
-        });
 
 
         // 10. TOTAL_ROOM_SLOTS_READY
@@ -520,8 +548,13 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
 
         if (!context.CanPrepareSchedule && context.SchedulableTerm?.MaHocKy == requestedTermId)
         {
-            var errCode = context.LockReasonCode ?? context.ReasonCode;
-            throw new ApiException(StatusCodes.Status409Conflict, context.ReasonMessage, errCode);
+            if (context.LockReasonCode != null)
+            {
+                throw new ApiException(StatusCodes.Status409Conflict, context.ReasonMessage, context.LockReasonCode);
+            }
+            var errCode = context.Readiness?.BlockingIssues?.FirstOrDefault()?.Code ?? context.ReasonCode ?? "SCHEDULE_PREPARATION_BLOCKED";
+            var message = context.Readiness?.BlockingIssues?.FirstOrDefault()?.Message ?? context.ReasonMessage ?? "Không thể chuẩn bị lịch do điều kiện chưa sẵn sàng.";
+            throw new ApiException(StatusCodes.Status400BadRequest, message, errCode);
         }
 
         if (context.SchedulableTerm == null)
