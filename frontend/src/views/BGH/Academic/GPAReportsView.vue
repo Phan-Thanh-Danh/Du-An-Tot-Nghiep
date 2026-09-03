@@ -549,7 +549,7 @@ async function exportPdf() {
     <!-- AI Strategic Report Modal -->
     <BghAiReportModal
       :is-open="aiModalOpen"
-      title="Báo Cáo Phân Tích GPA AI (Qwen 9B)"
+      title="Báo Cáo Phân Tích GPA AI"
       subtitle="Đánh giá phổ điểm, phân tích độ lệch chuẩn GPA và xếp hạng năng lực học thuật"
       :scope-badges="aiScopeBadges"
       :loading="aiLoading"

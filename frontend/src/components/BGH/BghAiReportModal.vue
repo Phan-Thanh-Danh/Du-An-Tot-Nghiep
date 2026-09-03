@@ -26,7 +26,7 @@
                 <h3 class="text-base font-bold text-heading">{{ title || 'Báo Cáo Phân Tích Chiến Lược BGH' }}</h3>
                 <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30">
                   <Brain :size="11" />
-                  Qwen 9B Deep Reasoning
+                  AI Phân tích Chiến lược
                 </span>
               </div>
               <p class="text-xs text-muted mt-0.5">{{ subtitle || 'Báo cáo tổng hợp và đề xuất hành động từ trợ lý AI cấp cao' }}</p>
@@ -64,7 +64,7 @@
               </div>
             </div>
             <div class="space-y-1 max-w-md">
-              <p class="text-sm font-bold text-heading">Mô hình Qwen 9B đang phân tích dữ liệu...</p>
+              <p class="text-sm font-bold text-heading">Hệ thống AI đang phân tích dữ liệu...</p>
               <p class="text-xs text-muted leading-relaxed">Đang quét toàn bộ chỉ số từ CSDL, đối chiếu quy chế và xây dựng dự báo chiến lược cho Ban Giám Hiệu.</p>
             </div>
           </div>

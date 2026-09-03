@@ -80,7 +80,7 @@ onMounted(() => {
           <div class="flex items-center gap-1.5">
             <h3 class="text-sm font-bold text-heading">Trợ lý Sư phạm AI</h3>
             <span class="inline-flex items-center gap-0.5 rounded-full bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-blue-600 dark:text-blue-300">
-              <Sparkles :size="10" /> Qwen
+              <Sparkles :size="10" /> AI
             </span>
           </div>
           <p class="text-[11px] text-muted">Nhận định học thuật & hỗ trợ giảng dạy tức thì</p>

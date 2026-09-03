@@ -1124,7 +1124,7 @@ public class BghAiAnalyticsService : IBghAiAnalyticsService
             GeneratedAt = DateTime.UtcNow,
             Metrics = metricsObj,
             AiAnalysis = analysisResult,
-            Model = modelUsed,
+            Model = "Trợ lý AI Chiến lược",
             Cached = false,
             Sources = request.UseRag ? new List<string> { "Quy chế Đào tạo & Khảo thí AET LMS 2026", "Sổ tay Học vụ Đại học" } : new List<string>()
         };

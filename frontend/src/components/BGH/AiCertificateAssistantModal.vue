@@ -68,7 +68,7 @@ function handleApply() {
                 <div class="flex items-center gap-2">
                   <h3 class="text-base font-bold text-heading">AI Trợ Lý Thiết Kế Mẫu Bằng Khen</h3>
                   <span class="px-2 py-0.5 text-[10px] font-extrabold tracking-wider uppercase rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/30">
-                    Qwen 9B Deep
+                    Trợ lý AI
                   </span>
                 </div>
                 <p class="text-xs text-muted mt-0.5">
@@ -105,7 +105,7 @@ function handleApply() {
               >
                 <Sparkles v-if="!loading" :size="16" />
                 <Loader2 v-else :size="16" class="animate-spin" />
-                <span>{{ loading ? 'MÔ HÌNH 9B ĐANG THIẾT KẾ...' : 'THỰC THI CHỈNH SỬA BẰNG AI' }}</span>
+                <span>{{ loading ? 'AI ĐANG THIẾT KẾ...' : 'THỰC THI CHỈNH SỬA BẰNG AI' }}</span>
               </button>
             </div>
 

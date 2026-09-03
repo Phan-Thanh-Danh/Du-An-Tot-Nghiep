@@ -160,9 +160,9 @@
     <!-- AI Strategic Report Modal -->
     <BghAiReportModal
       :is-open="aiModalOpen"
-      title="Báo Cáo Đánh Giá & Xếp Hạng Giảng Viên AI (Qwen 9B)"
+      title="Báo Cáo Đánh Giá & Xếp Hạng Giảng Viên AI"
       subtitle="Phân tích chất lượng giảng dạy từ phản hồi sinh viên, xếp hạng uy tín và khuyến nghị đào tạo bồi dưỡng"
-      :scope-badges="['Toàn cơ sở', 'Phản hồi & Khảo sát sinh viên', 'Mô hình: Qwen 9B Deep']"
+      :scope-badges="['Toàn cơ sở', 'Phản hồi & Khảo sát sinh viên', 'Chế độ: Phân tích chuyên sâu']"
       :loading="aiLoading"
       :error="aiError"
       :report-content="aiReport?.aiAnalysis"

@@ -35,7 +35,7 @@ const input = ref('')
 const isLoading = ref(false)
 const isExpanded = ref(false)
 const copiedIndex = ref(null)
-const inferenceMode = ref('fast') // "fast" (qwen2.5:3b) | "deep" (qwen3.5:9b-q4_K_M)
+const inferenceMode = ref('fast') // "fast" | "deep" (chế độ suy luận)
 const useRag = ref(false)
 const chatContainerRef = ref(null)
 const textareaRef = ref(null)
@@ -690,14 +690,14 @@ function cancelDraft(msg) {
             <!-- Mode & RAG Controls Bar -->
             <div class="flex items-center justify-between pb-2 px-1 text-[10.5px]">
               <div class="flex items-center gap-1.5">
-                <span class="text-slate-600 dark:text-slate-300 font-semibold">Mô hình:</span>
+                <span class="text-slate-600 dark:text-slate-300 font-semibold">Chế độ:</span>
                 <select
                   v-model="inferenceMode"
                   class="rounded-lg border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 text-[10.5px] font-semibold text-slate-700 dark:text-slate-200 outline-none hover:border-blue-400 focus:border-blue-500 cursor-pointer transition-colors"
                   title="Chọn chế độ suy luận của mô hình AI"
                 >
-                  <option value="fast">⚡ Nhanh (Qwen 3B)</option>
-                  <option value="deep">🧠 Sâu (Qwen 9B)</option>
+                  <option value="fast">⚡ Phản hồi nhanh</option>
+                  <option value="deep">🧠 Phân tích chuyên sâu</option>
                 </select>
               </div>
 
