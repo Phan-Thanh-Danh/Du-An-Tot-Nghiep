@@ -117,37 +117,59 @@ async function renderCertificatePdf(template, row, campaign) {
   // Strip external link tags (avoid CORS issues with Google Fonts in canvas)
   const cleanHtml = (template.html || '').replace(/<link[^>]*>/gi, '')
 
-  // Scope the template CSS so it never leaks into the main page.
-  // Replace `html` / `body` selectors and prefix any top-level rules
-  // with `#pdf-cert-render` to keep them contained.
-  const rawCss = (template.css || '')
+  // Extract @import rules so they appear at the very top of <style>
+  const rawCss = template.css || ''
+  const importRegex = /@import\s+[^;]+;/gi
+  const imports = rawCss.match(importRegex) || []
+  const cleanCss = rawCss.replace(importRegex, '')
+
+  // Replace `html` / `body` selectors with `#pdf-cert-render`
+  const scopedCss = cleanCss
     .replace(/\bhtml\s*,?\s*body\b/g, '#pdf-cert-render')
     .replace(/\bbody\b/g, '#pdf-cert-render')
     .replace(/\bhtml\b/g, '#pdf-cert-render')
 
-  // Create a hidden container off-screen (position:fixed + left:-Npx keeps
-  // it out of view but still in the live document so fonts/images load)
+  // Create a hidden container placed at document (0, 0) behind page to avoid html2canvas clipping
   const container = document.createElement('div')
   container.id = 'pdf-gen-host'
   container.style.cssText = `
-    position:fixed;
-    left:-${width + 400}px;
-    top:0;
-    width:${width}px;
-    height:${height}px;
-    overflow:hidden;
-    z-index:-9999;
-    pointer-events:none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: ${width}px;
+    height: ${height}px;
+    overflow: hidden;
+    z-index: -9999;
+    opacity: 0.01;
+    pointer-events: none;
   `
 
-  // Put scoped <style> INSIDE the container div so it does NOT affect the main page
   container.innerHTML = `
     <style>
-      #pdf-cert-render { box-sizing: border-box; }
-      #pdf-cert-render * { box-sizing: border-box; }
-      ${rawCss}
+      ${imports.join('\n')}
+      #pdf-cert-render {
+        width: ${width}px;
+        height: ${height}px;
+        position: relative;
+        background: white;
+        overflow: hidden;
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        line-height: normal;
+      }
+      #pdf-cert-render * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      #pdf-cert-render > * {
+        width: 100% !important;
+        height: 100% !important;
+      }
+      ${scopedCss}
     </style>
-    <div id="pdf-cert-render" style="width:${width}px;height:${height}px;position:relative;background:white;overflow:hidden;">
+    <div id="pdf-cert-render">
       ${fillTokens(cleanHtml, rowData)}
       ${
         qrImgUrl
@@ -167,7 +189,7 @@ async function renderCertificatePdf(template, row, campaign) {
 
   const mmPerPx = 25.4 / 96
   try {
-    // Wait for fonts to load in the main document context
+    // Wait for fonts to load in the document context
     await document.fonts.ready
 
     // Wait for any images inside the certificate
@@ -184,11 +206,17 @@ async function renderCertificatePdf(template, row, campaign) {
     )
 
     // Let gradients / CSS animations settle
-    await new Promise((r) => setTimeout(r, 500))
+    await new Promise((r) => setTimeout(r, 600))
 
     const wrapper = container.querySelector('#pdf-cert-render')
     const pdfWidthMm = Number((width * mmPerPx).toFixed(2))
     const pdfHeightMm = Number((height * mmPerPx).toFixed(2))
+    const isLandscape = width >= height
+    const ratio = width / height
+    const isA4 = Math.abs(ratio - 1.414) < 0.1 || Math.abs(1 / ratio - 1.414) < 0.1
+
+    const pdfOrientation = isLandscape ? 'landscape' : 'portrait'
+    const pdfFormat = isA4 ? 'a4' : (isLandscape ? [pdfHeightMm, pdfWidthMm] : [pdfWidthMm, pdfHeightMm])
 
     const blob = await html2pdf()
       .set({
@@ -203,21 +231,13 @@ async function renderCertificatePdf(template, row, campaign) {
           logging: false,
           width: width,
           height: height,
-          windowWidth: width,
-          windowHeight: height,
-          scrollX: 0,
-          scrollY: 0,
-          x: 0,
-          y: 0,
         },
-        // Disable automatic page-break detection so we always get exactly 1 page
         pagebreak: { mode: [] },
         jsPDF: {
           unit: 'mm',
-          format: [pdfWidthMm, pdfHeightMm],
-          orientation: width > height ? 'l' : 'p',
+          format: pdfFormat,
+          orientation: pdfOrientation,
           compress: true,
-          hotfixes: ['px_scaling'],
         },
       })
       .from(wrapper)
