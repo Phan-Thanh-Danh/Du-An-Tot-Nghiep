@@ -809,7 +809,7 @@ public class TrainingProgramService : ITrainingProgramService
     private CurrentUserContext EnsureSuperAdmin()
     {
         var currentUser = GetCurrentUser();
-        if (currentUser.Role != AuthRoles.SuperAdmin)
+        if (currentUser.Role != AuthRoles.SuperAdmin && currentUser.Role != "sieu_quan_tri")
         {
             throw new ApiException(StatusCodes.Status403Forbidden, "Chỉ SuperAdmin được tạo, cập nhật hoặc gửi duyệt chương trình đào tạo.");
         }
@@ -820,9 +820,9 @@ public class TrainingProgramService : ITrainingProgramService
     private CurrentUserContext EnsureChairman()
     {
         var currentUser = GetCurrentUser();
-        if (currentUser.Role != AuthRoles.Chairman)
+        if (currentUser.Role is not (AuthRoles.Chairman or AuthRoles.SuperAdmin or "sieu_quan_tri" or "chu_tich"))
         {
-            throw new ApiException(StatusCodes.Status403Forbidden, "Chỉ Chủ tịch được duyệt, từ chối, kích hoạt hoặc lưu trữ chương trình đào tạo.");
+            throw new ApiException(StatusCodes.Status403Forbidden, "Chỉ SuperAdmin hoặc Chủ tịch được duyệt, từ chối, kích hoạt hoặc lưu trữ chương trình đào tạo.");
         }
 
         return currentUser;

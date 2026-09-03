@@ -364,7 +364,7 @@ public class TrainingProgramSubjectService : ITrainingProgramSubjectService
     private void EnsureSuperAdmin()
     {
         var currentUser = GetCurrentUser();
-        if (currentUser.Role != AuthRoles.SuperAdmin)
+        if (currentUser.Role != AuthRoles.SuperAdmin && currentUser.Role != "sieu_quan_tri")
         {
             throw new ApiException(StatusCodes.Status403Forbidden, "Chỉ SuperAdmin được quản lý môn học trong chương trình đào tạo.");
         }
