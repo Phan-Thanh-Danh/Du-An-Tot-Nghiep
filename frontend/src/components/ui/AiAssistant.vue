@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import {
   Bot,
   Sparkles,
@@ -13,12 +13,16 @@ import {
   Minimize2,
   AlertCircle,
   Loader2,
-  BookOpen,
   Brain,
   ChevronDown,
-  Zap
+  ChevronRight,
+  Zap,
+  Download,
+  Paperclip
 } from 'lucide-vue-next'
 import { aiApi } from '@/services/aiApi'
+import { studentApi } from '@/services/studentApi'
+import { storageApi, unwrapApiData } from '@/services/apiClient'
 import { useAuthStore } from '@/stores/auth'
 import { useAiAssistant } from '@/composables/useAiAssistant'
 
@@ -31,6 +35,8 @@ const input = ref('')
 const isLoading = ref(false)
 const isExpanded = ref(false)
 const copiedIndex = ref(null)
+const inferenceMode = ref('fast') // "fast" (qwen2.5:3b) | "deep" (qwen3.5:9b-q4_K_M)
+const useRag = ref(false)
 const chatContainerRef = ref(null)
 const textareaRef = ref(null)
 
@@ -49,19 +55,30 @@ const rolePrompts = computed(() => {
 
   if (role === 'Student' || role === 'hoc_sinh') {
     return [
-      { label: '📚 Đăng ký môn học', prompt: 'Hãy hướng dẫn tôi các bước và quy định đăng ký môn học trong kỳ.' },
-      { label: '⏱️ Quy chế điểm danh', prompt: 'Quy định về tỷ lệ chuyên cần và số buổi vắng tối đa cho phép là bao nhiêu?' },
-      { label: '📊 Tính điểm GPA & Phúc khảo', prompt: 'Quy trình phúc khảo điểm số và công thức tính điểm trung bình học kỳ như thế nào?' },
-      { label: '🔄 Quy chế học lại / thi lại', prompt: 'Khi nào sinh viên phải học lại hoặc được quyền đăng ký thi lại?' },
-      { label: '🎫 Gửi đơn từ & Ticket hỗ trợ', prompt: 'Làm thế nào để gửi đơn xin nghỉ phép hoặc tạo ticket hỗ trợ học vụ?' },
+      { label: '📊 Bảng điểm & GPA của tôi', prompt: 'Hãy tra cứu bảng điểm và điểm trung bình tích lũy GPA hiện tại của tôi.' },
+      { label: '📅 Lịch học sắp tới', prompt: 'Hôm nay và những ngày tới tôi có những ca học nào?' },
+      { label: '⏱️ Tình hình chuyên cần', prompt: 'Kiểm tra tỷ lệ chuyên cần và số buổi vắng học của tôi có bị nguy cơ cấm thi không?' },
+      { label: '📝 Bài tập cần nộp', prompt: 'Danh sách các bài tập chưa nộp sắp đến hạn deadline của tôi là gì?' },
+      { label: '💡 Tư vấn ôn tập', prompt: 'Dựa vào kết quả học tập, hãy tư vấn cho tôi kế hoạch ôn tập hiệu quả nhất.' },
     ]
   }
 
   if (role === 'Teacher' || role === 'giao_vien') {
     return [
-      { label: '📝 Quy trình nhập & sửa điểm', prompt: 'Quy định và thời hạn nhập điểm thành phần cho lớp học phần là gì?' },
-      { label: '💡 Gợi ý câu hỏi trắc nghiệm', prompt: 'Hãy gợi ý cách xây dựng ngân hàng câu hỏi trắc nghiệm phân hóa tốt cho sinh viên.' },
-      { label: '🔓 Mở khóa điểm danh', prompt: 'Quy trình gửi yêu cầu mở khóa buổi điểm danh quá hạn cho phòng Giáo vụ.' },
+      { label: '📅 Lịch dạy hôm nay', prompt: 'Hôm nay tôi có những ca dạy nào và tại phòng học nào?' },
+      { label: '📝 Bài tập chờ chấm', prompt: 'Hiện tại có bao nhiêu bài nộp của sinh viên đang chờ tôi chấm điểm?' },
+      { label: '⚠️ Sinh viên cần lưu ý', prompt: 'Trong các lớp tôi phụ trách, có những sinh viên nào đang có nguy cơ cấm thi hoặc điểm thấp?' },
+      { label: '💡 Gợi ý câu hỏi trắc nghiệm', prompt: 'Hãy gợi ý cách xây dựng ngân hàng câu hỏi trắc nghiệm phân hóa tốt cho môn học tôi đang dạy.' },
+      { label: '🔓 Quy trình mở khóa điểm', prompt: 'Hướng dẫn quy trình gửi yêu cầu mở khóa nhập điểm quá hạn cho phòng Giáo vụ.' },
+    ]
+  }
+
+  if (role === 'HoiDongQuanLyNoiDung' || role === 'hoidong_quanly_noidung') {
+    return [
+      { label: '📋 Rà soát đề cương Syllabus', prompt: 'Quy trình và tiêu chuẩn thẩm định đề cương chi tiết học phần theo chuẩn kiểm định.' },
+      { label: '🎯 Đối sánh ma trận CLO - PLO', prompt: 'Cách đối sánh chuẩn đầu ra môn học (CLO) với chuẩn đầu ra chương trình đào tạo (PLO).' },
+      { label: '⚖️ Cân đối phân bổ giờ học', prompt: 'Tiêu chuẩn phân bổ số tiết lý thuyết, thực hành và tự học cho học phần 3 tín chỉ.' },
+      { label: '📝 Tiêu chí ngân hàng câu hỏi', prompt: 'Tiêu chí đánh giá chất lượng câu hỏi trắc nghiệm và rubric theo thang đo nhận thức Bloom.' },
     ]
   }
 
@@ -69,12 +86,6 @@ const rolePrompts = computed(() => {
     return [
       { label: '🏢 Tiêu chuẩn xếp phòng & ca', prompt: 'Các nguyên tắc phân bổ phòng học và tránh trùng lịch ca học.' },
       { label: '📑 Xử lý đơn từ học sinh', prompt: 'Quy trình thẩm định và phê duyệt các loại đơn học vụ phổ biến.' },
-    ]
-  }
-
-  if (role === 'HoiDongQuanLyNoiDung') {
-    return [
-      { label: '📋 Rà soát đề cương Syllabus', prompt: 'Tiêu chuẩn rà soát chuẩn đầu ra (CLO) và ma trận liên kết bài học môn học.' },
     ]
   }
 
@@ -144,6 +155,8 @@ async function sendMessage(text) {
       conversationId: conversationId.value,
       courseId: currentContext.value?.courseId,
       lessonId: currentContext.value?.lessonId,
+      mode: inferenceMode.value,
+      useRag: useRag.value,
     }
 
     const res = await aiApi.chat(payload)
@@ -159,6 +172,7 @@ async function sendMessage(text) {
       showThinking: false,
       processingTimeMs: res?.processingTimeMs || null,
       model: res?.model,
+      action: res?.action || null,
       timestamp: new Date(),
     })
   } catch (err) {
@@ -223,12 +237,87 @@ watch(pendingPrompt, (newPrompt) => {
   }
 })
 
-watch(isOpen, (open) => {
-  if (open) {
-    scrollToEnd()
-    nextTick(() => textareaRef.value?.focus())
+// ── File Attachment & Draft Ticket State ────────────────────
+const attachedChatFile = ref(null)
+const chatFileInputRef = ref(null)
+const fileInputRefs = ref({})
+
+function setCardFileInput(msgId, el) {
+  if (el) fileInputRefs.value[msgId] = el
+}
+
+function triggerCardFileInput(msgId) {
+  fileInputRefs.value[msgId]?.click()
+}
+
+function handleCardFileChange(msg, e) {
+  if (e.target.files?.length > 0) {
+    msg.action.file = e.target.files[0]
   }
-})
+}
+
+function triggerChatFileInput() {
+  chatFileInputRef.value?.click()
+}
+
+function handleChatFileChange(e) {
+  if (e.target.files?.length > 0) {
+    const file = e.target.files[0]
+    attachedChatFile.value = file
+    const lastDraftMsg = messages.value.slice().reverse().find(m => m.action?.actionType === 'draft_ticket' && !m.action.submitted)
+    if (lastDraftMsg) {
+      lastDraftMsg.action.file = file
+    }
+  }
+}
+
+function removeChatFile() {
+  attachedChatFile.value = null
+  if (chatFileInputRef.value) chatFileInputRef.value.value = ''
+}
+
+async function submitDraftTicket(msg) {
+  if (!msg.action?.metadata?.title || !msg.action?.metadata?.content || msg.action.isSubmitting) return
+
+  msg.action.isSubmitting = true
+  try {
+    let attachmentUrl = null
+    const fileToUpload = msg.action.file || attachedChatFile.value
+    if (fileToUpload) {
+      const uploadRes = await storageApi.upload(fileToUpload, 'support-tickets')
+      const uploadData = unwrapApiData(uploadRes)
+      attachmentUrl = uploadData?.url || uploadData?.Url || uploadData?.data?.url || (typeof uploadRes === 'string' ? uploadRes : null)
+    }
+
+    const response = await studentApi.createSupportTicket({
+      title: msg.action.metadata.title.trim(),
+      category: msg.action.metadata.category || 'Học vụ',
+      content: msg.action.metadata.content.trim(),
+      attachmentUrl
+    })
+
+    const data = unwrapApiData(response) || {}
+    const newId = data.id || data.Id || data.maPhieuHt || ''
+    const newCode = data.code || data.Code || (newId ? `TCK-${String(newId).padStart(3, '0')}` : 'TCK-NEW')
+
+    msg.action.submitted = true
+    msg.action.submittedCode = newCode
+    msg.action.submittedId = newId
+    msg.action.status = 'completed'
+    msg.action.title = `Phiếu hỗ trợ ${newCode}`
+    msg.action.actionUrl = '/student/support-tickets'
+
+    if (attachedChatFile.value) removeChatFile()
+  } catch (err) {
+    alert(err?.message || 'Không thể gửi phiếu hỗ trợ. Vui lòng kiểm tra lại kết nối.')
+  } finally {
+    msg.action.isSubmitting = false
+  }
+}
+
+function cancelDraft(msg) {
+  msg.action = null
+}
 </script>
 
 <template>
@@ -363,6 +452,179 @@ watch(isOpen, (open) => {
                     {{ msg.text }}
                   </div>
 
+                  <!-- Action Card: DRAFT TICKET (Bản nháp yêu cầu hỗ trợ) -->
+                  <div
+                    v-if="msg.action && msg.action.actionType === 'draft_ticket' && !msg.action.submitted"
+                    class="mt-3 rounded-2xl border border-blue-500/40 bg-slate-900/90 text-slate-100 p-3.5 text-left shadow-lg backdrop-blur-md"
+                  >
+                    <div class="flex items-center justify-between border-b border-white/10 pb-2">
+                      <div class="flex items-center gap-1.5 min-w-0">
+                        <Sparkles :size="14" class="text-blue-400 flex-shrink-0" />
+                        <span class="text-xs font-bold text-white uppercase tracking-wide">Xác nhận tạo yêu cầu hỗ trợ</span>
+                      </div>
+                      <span class="text-[9px] bg-blue-500/20 text-blue-300 rounded-full px-2 py-0.5 font-semibold">Bản nháp AI</span>
+                    </div>
+
+                    <div class="mt-2 flex items-start gap-1.5 rounded-lg bg-indigo-950/60 p-2 text-[10.5px] text-indigo-200 border border-indigo-500/20 leading-snug">
+                      <Bot :size="13" class="shrink-0 mt-0.5 text-indigo-400" />
+                      <span>Hệ thống AI sẽ tự động phân tích nội dung và chuyển yêu cầu của bạn đến nhân sự/phòng ban phù hợp nhất.</span>
+                    </div>
+
+                    <div class="mt-2.5 space-y-2">
+                      <div>
+                        <label class="block text-[10.5px] font-semibold text-slate-300 mb-0.5">Tiêu đề</label>
+                        <input
+                          v-model="msg.action.metadata.title"
+                          type="text"
+                          class="w-full text-xs rounded-lg bg-slate-800/90 border border-slate-700 px-2.5 py-1.5 text-white focus:border-blue-500 focus:outline-none placeholder-slate-500"
+                          placeholder="Nhập tiêu đề yêu cầu..."
+                        />
+                      </div>
+
+                      <div>
+                        <label class="block text-[10.5px] font-semibold text-slate-300 mb-0.5">Danh mục (Tùy chọn)</label>
+                        <select
+                          v-model="msg.action.metadata.category"
+                          class="w-full text-xs rounded-lg bg-slate-800/90 border border-slate-700 px-2 py-1.5 text-white focus:border-blue-500 focus:outline-none cursor-pointer"
+                        >
+                          <option value="Học vụ">Học vụ & Điểm số</option>
+                          <option value="Kỹ thuật">Kỹ thuật & Hệ thống</option>
+                          <option value="Tài chính">Học phí & Tài chính</option>
+                          <option value="Khác">Khác</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label class="block text-[10.5px] font-semibold text-slate-300 mb-0.5">Mô tả chi tiết</label>
+                        <textarea
+                          v-model="msg.action.metadata.content"
+                          rows="3"
+                          class="w-full text-xs rounded-lg bg-slate-800/90 border border-slate-700 px-2.5 py-1.5 text-white focus:border-blue-500 focus:outline-none placeholder-slate-500 resize-none leading-relaxed"
+                          placeholder="Cung cấp chi tiết lỗi, thời gian xảy ra, các bước bạn đã làm..."
+                        ></textarea>
+                      </div>
+
+                      <div>
+                        <label class="block text-[10.5px] font-semibold text-slate-300 mb-0.5">Tệp đính kèm (Hình ảnh lỗi minh chứng)</label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          class="hidden"
+                          :ref="el => setCardFileInput(msg.id, el)"
+                          @change="e => handleCardFileChange(msg, e)"
+                        />
+                        <div
+                          class="border border-dashed border-slate-600 hover:border-blue-400 rounded-lg p-2.5 text-center cursor-pointer transition-colors bg-slate-800/50 flex flex-col items-center justify-center gap-1"
+                          @click="triggerCardFileInput(msg.id)"
+                        >
+                          <Paperclip :size="15" class="text-slate-400" />
+                          <span v-if="!msg.action.file && !attachedChatFile" class="text-[10px] text-slate-400">
+                            Kéo thả file hoặc nhấn để chọn (Tối đa 5MB)
+                          </span>
+                          <div v-else class="flex items-center gap-1 text-[11px] text-emerald-400 font-semibold truncate max-w-full">
+                            <Check :size="12" />
+                            <span class="truncate">{{ (msg.action.file || attachedChatFile).name }}</span>
+                            <button
+                              type="button"
+                              class="text-rose-400 hover:text-rose-300 ml-1 font-bold"
+                              @click.stop="msg.action.file = null; removeChatFile()"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="mt-3 flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+                      <button
+                        type="button"
+                        class="px-3 py-1.5 rounded-lg border border-slate-600 hover:bg-slate-800 text-slate-300 text-xs font-semibold transition-colors"
+                        :disabled="msg.action.isSubmitting"
+                        @click="cancelDraft(msg)"
+                      >
+                        Quay lại
+                      </button>
+                      <button
+                        type="button"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-md active:scale-95 disabled:opacity-50"
+                        :disabled="!msg.action.metadata.title || !msg.action.metadata.content || msg.action.isSubmitting"
+                        @click="submitDraftTicket(msg)"
+                      >
+                        <Loader2 v-if="msg.action.isSubmitting" :size="13" class="animate-spin" />
+                        <span>{{ msg.action.isSubmitting ? 'Đang gửi...' : 'Gửi Yêu Cầu' }}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Action Card: ĐÃ TẠO TICKET THÀNH CÔNG -->
+                  <div
+                    v-else-if="msg.action && msg.action.actionType === 'draft_ticket' && msg.action.submitted"
+                    class="mt-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-left"
+                  >
+                    <div class="flex items-center justify-between gap-1.5">
+                      <div class="flex items-center gap-1.5 min-w-0">
+                        <Check :size="14" class="text-emerald-500 flex-shrink-0" />
+                        <span class="text-xs font-bold text-emerald-700 dark:text-emerald-300 truncate">Phiếu hỗ trợ đã gửi thành công!</span>
+                      </div>
+                      <span class="text-[9px] bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-full px-2 py-0.5 font-bold whitespace-nowrap">
+                        {{ msg.action.submittedCode }}
+                      </span>
+                    </div>
+                    <p class="text-[10.5px] text-slate-700 dark:text-slate-300 mt-1">
+                      Tiêu đề: <strong>{{ msg.action.metadata.title }}</strong> ({{ msg.action.metadata.category }})
+                    </p>
+                    <div class="mt-2">
+                      <router-link
+                        to="/student/support-tickets"
+                        class="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                        @click="close"
+                      >
+                        <span>Xem và theo dõi phiếu hỗ trợ ngay</span>
+                        <ChevronRight :size="12" />
+                      </router-link>
+                    </div>
+                  </div>
+
+                  <!-- Action Card (nếu AI thực thi thành công một hành động, ví dụ tạo đề thi) -->
+                  <div
+                    v-else-if="msg.action"
+                    class="mt-2.5 rounded-xl border border-blue-500/30 bg-blue-500/10 p-2.5 text-left"
+                  >
+                    <div class="flex items-center justify-between gap-1.5">
+                      <div class="flex items-center gap-1.5 min-w-0">
+                        <Sparkles :size="13" class="text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                        <span class="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">{{ msg.action.title }}</span>
+                      </div>
+                      <span class="text-[9px] bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-full px-1.5 py-0.5 font-bold whitespace-nowrap">Đã tạo vào CSDL</span>
+                    </div>
+                    <p class="text-[10.5px] text-slate-600 dark:text-slate-300 mt-1 leading-snug">{{ msg.action.description }}</p>
+                    <div class="mt-2 flex flex-wrap items-center gap-2">
+                      <!-- Nút tải file Word trực tiếp -->
+                      <a
+                        v-if="msg.action.downloadUrl"
+                        :href="msg.action.downloadUrl"
+                        target="_blank"
+                        download
+                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold transition-all shadow-sm active:scale-95"
+                      >
+                        <Download :size="12" />
+                        <span>Tải file Word (.doc) tự ôn tập</span>
+                      </a>
+
+                      <!-- Nút điều hướng nội bộ -->
+                      <router-link
+                        v-if="msg.action.actionUrl && !msg.action.downloadUrl"
+                        :to="msg.action.actionUrl"
+                        class="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                        @click="close"
+                      >
+                        <span>{{ msg.action.actionType === 'create_ticket' ? 'Xem và theo dõi phiếu hỗ trợ ngay' : 'Vào quản lý đề thi kiểm tra ngay' }}</span>
+                        <ChevronRight :size="12" />
+                      </router-link>
+                    </div>
+                  </div>
+
                   <!-- Latency Badge -->
                   <div
                     v-if="msg.role === 'bot' && !msg.isError && msg.processingTimeMs"
@@ -425,12 +687,72 @@ watch(isOpen, (open) => {
 
           <!-- Bottom Input Area -->
           <div class="border-t border-slate-200/60 dark:border-white/10 bg-white/90 dark:bg-slate-900/90 p-2.5">
+            <!-- Mode & RAG Controls Bar -->
+            <div class="flex items-center justify-between pb-2 px-1 text-[10.5px]">
+              <div class="flex items-center gap-1.5">
+                <span class="text-slate-600 dark:text-slate-300 font-semibold">Mô hình:</span>
+                <select
+                  v-model="inferenceMode"
+                  class="rounded-lg border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 text-[10.5px] font-semibold text-slate-700 dark:text-slate-200 outline-none hover:border-blue-400 focus:border-blue-500 cursor-pointer transition-colors"
+                  title="Chọn chế độ suy luận của mô hình AI"
+                >
+                  <option value="fast">⚡ Nhanh (Qwen 3B)</option>
+                  <option value="deep">🧠 Sâu (Qwen 9B)</option>
+                </select>
+              </div>
+
+              <label class="flex items-center gap-1.5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  v-model="useRag"
+                  class="h-3 w-3 rounded text-blue-600 focus:ring-0 cursor-pointer"
+                />
+                <span class="font-medium">Tra cứu quy chế (RAG)</span>
+              </label>
+            </div>
+
+            <!-- Chip hiển thị file ảnh đính kèm -->
+            <div
+              v-if="attachedChatFile"
+              class="mb-2 flex items-center justify-between rounded-lg bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 text-[11px] text-blue-600 dark:text-blue-400"
+            >
+              <div class="flex items-center gap-1.5 truncate">
+                <Paperclip :size="12" />
+                <span class="truncate max-w-[240px] font-medium">{{ attachedChatFile.name }}</span>
+              </div>
+              <button
+                type="button"
+                class="text-rose-500 hover:text-rose-700 dark:hover:text-rose-400 ml-1 font-bold text-xs"
+                title="Gỡ ảnh"
+                @click="removeChatFile"
+              >
+                ✕
+              </button>
+            </div>
+
             <div class="flex items-end gap-1.5 rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-950/60 px-3 py-2 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
+              <input
+                ref="chatFileInputRef"
+                type="file"
+                accept="image/*"
+                class="hidden"
+                @change="handleChatFileChange"
+              />
+
+              <button
+                type="button"
+                class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl text-slate-500 hover:text-blue-600 hover:bg-slate-200/50 dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-slate-800 transition-colors"
+                title="Đính kèm ảnh minh chứng"
+                @click="triggerChatFileInput"
+              >
+                <Paperclip :size="14" />
+              </button>
+
               <textarea
                 ref="textareaRef"
                 v-model="input"
                 rows="1"
-                placeholder="Nhập câu hỏi tự do cho AI (Enter để gửi)..."
+                placeholder="Nhập câu hỏi hoặc yêu cầu cho AI (Enter để gửi)..."
                 class="max-h-24 min-h-[22px] flex-1 resize-none bg-transparent text-[12px] text-slate-800 dark:text-slate-100 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 leading-relaxed"
                 :disabled="isLoading"
                 @keydown="handleKeydown"
@@ -438,7 +760,7 @@ watch(isOpen, (open) => {
 
               <button
                 class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-sm hover:opacity-90 active:scale-95 disabled:opacity-40 disabled:pointer-events-none transition-all"
-                :disabled="!input.trim() || isLoading"
+                :disabled="(!input.trim() && !attachedChatFile) || isLoading"
                 title="Gửi câu hỏi"
                 @click="sendMessage(input)"
               >

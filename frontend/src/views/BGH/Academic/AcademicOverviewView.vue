@@ -18,11 +18,14 @@ import {
   GraduationCap,
   Eye,
   Loader2,
+  Sparkles,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import LmsSelect from '@/components/LmsSelect.vue'
-import { exportBghToExcel, exportAcademicOverviewToPdf, exportAcademicOverviewToExcelAdvanced } from '@/components/BGH/performance/bghExport.js'
+import BghAiReportModal from '@/components/BGH/BghAiReportModal.vue'
+import { exportAcademicOverviewToPdf, exportAcademicOverviewToExcelAdvanced } from '@/components/BGH/performance/bghExport.js'
 import { bghApi } from '@/services/bghApi'
+import { aiApi } from '@/services/aiApi'
 import { unwrapApiData } from '@/services/apiClient'
 
 const loading = ref(false)
@@ -142,7 +145,7 @@ async function loadData(isInitial = false) {
         ...chartData.value.map(item => ({ value: item.k, label: item.k })),
       ]
     }
-  } catch (_e) {
+  } catch {
     error.value = null
   } finally {
     if (isInitial) loading.value = false
@@ -153,9 +156,53 @@ watch(industryFilter, () => {
   majorFilter.value = 'all'
 })
 
-watch([semesterFilter, industryFilter, majorFilter, campusFilter], () => {
-  loadData(false)
+// AI Strategic Report State
+const aiModalOpen = ref(false)
+const aiLoading = ref(false)
+const aiError = ref(null)
+const aiReport = ref(null)
+
+const aiScopeBadges = computed(() => {
+  const list = []
+  const sem = semesters.value.find(s => s.value === semesterFilter.value)?.label || 'Tất cả học kỳ'
+  list.push(`Học kỳ: ${sem}`)
+  const ind = industries.value.find(i => i.value === industryFilter.value)?.label || 'Tất cả Ngành'
+  list.push(`Ngành: ${ind}`)
+  if (majorFilter.value !== 'all') {
+    const maj = availableMajors.value.find(m => m.value === majorFilter.value)?.label
+    if (maj) list.push(`Chuyên ngành: ${maj}`)
+  }
+  const cam = campuses.value.find(c => c.value === campusFilter.value)?.label || 'Tất cả cơ sở'
+  list.push(`Cơ sở: ${cam}`)
+  return list
 })
+
+async function triggerAiAnalysis() {
+  aiModalOpen.value = true
+  aiLoading.value = true
+  aiError.value = null
+  try {
+    await loadData(false)
+    const semId = semesterFilter.value !== 'all' ? parseInt(semesterFilter.value) : undefined
+    const camId = campusFilter.value !== 'all' ? parseInt(campusFilter.value) : undefined
+    const majId = industryFilter.value !== 'all' ? parseInt(industryFilter.value) : undefined
+    const specId = majorFilter.value !== 'all' ? parseInt(majorFilter.value) : undefined
+    const res = await aiApi.generateBghReport({
+      reportType: 'academic_overview',
+      semesterId: isNaN(semId) ? undefined : semId,
+      campusId: isNaN(camId) ? undefined : camId,
+      majorId: isNaN(majId) ? undefined : majId,
+      specializationId: isNaN(specId) ? undefined : specId,
+      mode: 'deep',
+      forceRefresh: true,
+    })
+    aiReport.value = res
+  } catch (err) {
+    aiError.value = err.message || 'Không thể tạo báo cáo phân tích AI.'
+  } finally {
+    aiLoading.value = false
+  }
+}
 
 onMounted(() => { loadData(true) })
 
@@ -201,11 +248,6 @@ const exportOptions = computed(() => [
 const getBarHeight = (gpa) => {
   if (!gpa || isNaN(gpa)) return 0
   return Math.min(Math.round((gpa / 10.0) * 100), 100)
-}
-
-const getBarColor = (index) => {
-  const colors = ['bg-(--lg-primary)', 'bg-(--color-info-text)', 'bg-(--color-warning-text)', 'bg-(--color-success-text)', 'bg-(--color-danger-text)']
-  return colors[index % colors.length]
 }
 </script>
 
@@ -254,6 +296,16 @@ const getBarColor = (index) => {
         <LmsSelect v-model="industryFilter" :options="industries" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)" />
         <LmsSelect v-model="majorFilter" :options="availableMajors" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)" />
         <LmsSelect v-model="campusFilter" :options="campuses" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)" />
+
+        <button
+          @click="triggerAiAnalysis"
+          :disabled="aiLoading"
+          class="ml-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white text-xs font-bold shadow-md shadow-indigo-500/20 flex items-center gap-2 transition-all active:scale-95 disabled:opacity-60 cursor-pointer"
+        >
+          <Sparkles v-if="!aiLoading" :size="15" />
+          <Loader2 v-else :size="15" class="animate-spin" />
+          <span>{{ aiLoading ? 'ĐANG PHÂN TÍCH...' : 'PHÂN TÍCH BẰNG AI' }}</span>
+        </button>
       </div>
 
       <!-- ── KPI Cards ── -->
@@ -298,7 +350,7 @@ const getBarColor = (index) => {
                  <div v-for="i in 5" :key="i" class="h-px w-full bg-(--border-default) border-t border-dashed"></div>
               </div>
               
-              <div v-for="(item, i) in chartData" :key="item.k" class="flex-1 group relative cursor-pointer flex flex-col items-center justify-end h-full z-10">
+              <div v-for="item in chartData" :key="item.k" class="flex-1 group relative cursor-pointer flex flex-col items-center justify-end h-full z-10">
                  <!-- Điểm GPA hiển thị trên đỉnh cột -->
                  <span class="text-[11px] font-extrabold text-heading mb-1 transition-transform group-hover:scale-110">
                    {{ (Number(item.toanTruong) || 0).toFixed(2) }}
@@ -488,6 +540,20 @@ const getBarColor = (index) => {
       </div>
 
     </div>
+
+    <!-- AI Strategic Report Modal -->
+    <BghAiReportModal
+      :is-open="aiModalOpen"
+      title="Báo Cáo Tổng Quan Học Thuật AI (Qwen 9B)"
+      subtitle="Phân tích tổng hợp chất lượng đào tạo và dự báo xu hướng toàn cơ sở"
+      :scope-badges="aiScopeBadges"
+      :loading="aiLoading"
+      :error="aiError"
+      :report-content="aiReport?.aiAnalysis"
+      :generated-at="aiReport?.generatedAt"
+      @close="aiModalOpen = false"
+      @retry="triggerAiAnalysis"
+    />
   </PageContainer>
 </template>
 

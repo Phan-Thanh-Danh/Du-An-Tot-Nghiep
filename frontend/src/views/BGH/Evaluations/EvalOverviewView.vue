@@ -1,11 +1,13 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { ShieldAlert, PieChart, ChevronRight, AlertCircle, CheckCircle2, TrendingUp } from 'lucide-vue-next'
+import { ShieldAlert, PieChart, ChevronRight, AlertCircle, CheckCircle2, TrendingUp, Sparkles, Loader2 } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { usePopupStore } from '@/stores/popup'
 import { bghApi } from '@/services/bghApi'
+import { aiApi } from '@/services/aiApi'
 import { unwrapApiData } from '@/services/apiClient'
 import SkeletonDashboard from '@/components/common/skeleton/SkeletonDashboard.vue'
+import BghAiReportModal from '@/components/BGH/BghAiReportModal.vue'
 
 const router = useRouter()
 const popup = usePopupStore()
@@ -17,6 +19,30 @@ const sentiment = ref([])
 const trendHistory = ref([])
 const lowRatingCount = ref(0)
 const hoveredTrendPoint = ref(null)
+
+// AI Strategic Report State
+const aiModalOpen = ref(false)
+const aiLoading = ref(false)
+const aiError = ref(null)
+const aiReport = ref(null)
+
+async function triggerEvalOverviewAiAnalysis() {
+  aiModalOpen.value = true
+  aiLoading.value = true
+  aiError.value = null
+  try {
+    const res = await aiApi.generateBghReport({
+      reportType: 'teacher_eval',
+      mode: 'deep',
+      forceRefresh: true,
+    })
+    aiReport.value = res
+  } catch (err) {
+    aiError.value = err.message || 'Không thể tạo báo cáo phân tích đánh giá giảng viên AI.'
+  } finally {
+    aiLoading.value = false
+  }
+}
 
 // Y-Scale Range: 3.0 to 5.0
 const minY = 3.0
@@ -129,6 +155,23 @@ function viewWarningList() {
     </div>
     <div v-else class="space-y-8">
       
+      <!-- Header Action Banner -->
+      <div class="surface-card border border-card rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 class="text-base font-bold text-heading">Tổng Quan Đánh Giá & Khảo Sát Giảng Viên</h2>
+          <p class="text-xs text-muted mt-0.5">Theo dõi chỉ số hài lòng của sinh viên và dự báo xu hướng chất lượng đào tạo</p>
+        </div>
+        <button
+          @click="triggerEvalOverviewAiAnalysis"
+          :disabled="aiLoading"
+          class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white text-xs font-bold shadow-md shadow-indigo-500/20 flex items-center gap-2 transition-all active:scale-95 disabled:opacity-60 cursor-pointer shrink-0"
+        >
+          <Sparkles v-if="!aiLoading" :size="15" />
+          <Loader2 v-else :size="15" class="animate-spin" />
+          <span>{{ aiLoading ? 'ĐANG PHÂN TÍCH...' : '⚡ CHIẾN LƯỢC ĐẢM BẢO CHẤT LƯỢNG (AI 9B)' }}</span>
+        </button>
+      </div>
+
       <!-- Top KPI Cards -->
       <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <div v-for="kpi in kpis" :key="kpi.id" class="surface-card border border-card rounded-2xl p-4 group hover:border-(--border-input-focus) transition-all shadow-xs">
@@ -325,6 +368,20 @@ function viewWarningList() {
        </div>
 
     </div>
+
+    <!-- AI Strategic Report Modal -->
+    <BghAiReportModal
+      :is-open="aiModalOpen"
+      title="Báo Cáo Đảm Bảo Chất Lượng & Đánh Giá Giảng Viên AI (Qwen 9B)"
+      subtitle="Tổng hợp dữ liệu khảo sát từ người học, phát hiện các điểm nóng và đề xuất giải pháp bồi dưỡng chuyên môn"
+      :scope-badges="['Tổng quan Đánh giá', 'Phản hồi người học', 'Mô hình: Qwen 9B Deep']"
+      :loading="aiLoading"
+      :error="aiError"
+      :report-content="aiReport?.aiAnalysis"
+      :generated-at="aiReport?.generatedAt"
+      @close="aiModalOpen = false"
+      @retry="triggerEvalOverviewAiAnalysis"
+    />
   </div>
 </template>
 

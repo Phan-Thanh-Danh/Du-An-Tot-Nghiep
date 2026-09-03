@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import ContentCouncilSidebar from '@/components/content-council/layout/ContentCouncilSidebar.vue'
 import ContentCouncilHeader from '@/components/content-council/layout/ContentCouncilHeader.vue'
+import AiAssistant from '@/components/ui/AiAssistant.vue'
 
 const isSidebarCollapsed = ref(false)
 const isMobileDrawerOpen = ref(false)
@@ -72,6 +73,9 @@ const isMobileDrawerOpen = ref(false)
         </div>
       </main>
     </div>
+
+    <!-- AI Assistant Floating Widget -->
+    <AiAssistant />
   </div>
 </template>
 

@@ -1,11 +1,12 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Copy, Eye, FileCode2, Loader2, Palette, Save } from 'lucide-vue-next'
+import { ArrowLeft, Copy, Eye, FileCode2, Loader2, Palette, Save, Sparkles } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import GlassInput from '@/components/ui/GlassInput.vue'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
+import AiCertificateAssistantModal from '@/components/BGH/AiCertificateAssistantModal.vue'
 import { certificateTemplateApi } from '@/services/certificateTemplateApi'
 import { usePopupStore } from '@/stores/popup'
 
@@ -30,23 +31,25 @@ const TOKEN_HINT = '{{hoTen}}'
 const SAMPLE_DATA = {
   hoTen: 'Nguyễn Văn A',
   mssv: 'SV000001',
-  tenHocKy: 'Học kỳ 1 năm học 2026-2027',
+  tenHocKy: 'Học kỳ 3 Năm 2026',
   danhHieu: 'Top 100 học kỳ',
-  xepHang: '1',
-  diemXet: '9.25',
+  xepHang: 'Top 100',
   ngayCap: new Date().toISOString().slice(0, 10),
 }
 
 const DEFAULT_HTML = `<div class="certificate">
   <div class="frame">
-    <p class="org">TRƯỜNG ĐẠI HỌC LẠC HỒNG</p>
+    <p class="org">TRƯỜNG ĐẠI HỌC AET • CƠ SỞ TP.HCM</p>
     <h1 class="title">GIẤY KHEN</h1>
     <p class="subtitle">tặng cho sinh viên</p>
     <h2 class="name">{{hoTen}}</h2>
     <p class="mssv">MSSV: {{mssv}}</p>
-    <p class="body">đạt danh hiệu <strong>{{danhHieu}}</strong> — hạng <strong>{{xepHang}}</strong></p>
-    <p class="body">Học kỳ: {{tenHocKy}} &nbsp;•&nbsp; Điểm xét: {{diemXet}}</p>
-    <p class="footer">Ngày cấp: {{ngayCap}}</p>
+    <p class="body">Đã có thành tích xuất sắc: <strong>{{danhHieu}}</strong></p>
+    <p class="body">{{tenHocKy}} (Trường AET Cơ sở TP.HCM)</p>
+    <div class="footer">
+      <p>Ngày cấp: {{ngayCap}}</p>
+      <p class="signer">HIỆU TRƯỞNG NHÀ TRƯỜNG</p>
+    </div>
   </div>
 </div>`
 
@@ -99,6 +102,7 @@ const loading = ref(false)
 const saving = ref(false)
 const previewOpen = ref(true)
 const formError = ref('')
+const showAiAssistant = ref(false)
 
 const form = ref({
   tenMau: '',
@@ -241,7 +245,22 @@ function tokenText(token) {
   return `{{${token}}}`
 }
 
-onMounted(loadTemplate)
+function applyAiDesign({ updatedHtml, updatedCss }) {
+  if (updatedHtml) form.value.html = updatedHtml
+  if (updatedCss) form.value.css = updatedCss
+  popupStore.show({
+    title: 'Đã cập nhật',
+    message: 'Thiết kế mới từ AI 9B đã được áp dụng vào trình soạn thảo!',
+    type: 'success',
+  })
+}
+
+onMounted(() => {
+  loadTemplate()
+  if (route.query.aiPrompt === 'true') {
+    showAiAssistant.value = true
+  }
+})
 </script>
 
 <template>
@@ -265,11 +284,21 @@ onMounted(loadTemplate)
           </p>
         </div>
       </div>
-      <div v-if="isReadOnly">
-        <GlassButton variant="primary" @click="cloneToCampus">
-          <template #leading><Copy :size="16" /></template>
-          ✨ Sao chép thành mẫu cơ sở
-        </GlassButton>
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          @click="showAiAssistant = true"
+          class="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white text-xs font-bold shadow-md shadow-indigo-500/20 flex items-center gap-2 transition-all active:scale-95 cursor-pointer shrink-0"
+        >
+          <Sparkles :size="15" />
+          <span>AI CHỈNH SỬA MẪU (9B)</span>
+        </button>
+        <div v-if="isReadOnly">
+          <GlassButton variant="primary" @click="cloneToCampus">
+            <template #leading><Copy :size="16" /></template>
+            ✨ Sao chép thành mẫu cơ sở
+          </GlassButton>
+        </div>
       </div>
     </div>
 
@@ -469,5 +498,15 @@ onMounted(loadTemplate)
         </template>
       </div>
     </form>
+    <!-- Modal AI Trợ Lý Thiết Kế Mẫu Bằng Khen -->
+    <AiCertificateAssistantModal
+      :is-open="showAiAssistant"
+      :template-id="editingId || 0"
+      :template-name="form.tenMau || 'Mẫu Giấy Khen'"
+      :current-html="form.html"
+      :current-css="form.css"
+      @close="showAiAssistant = false"
+      @apply="applyAiDesign"
+    />
   </div>
 </template>

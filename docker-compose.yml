@@ -44,7 +44,7 @@ services:
       - Ollama__MaxOutputTokens=2048
       - Ollama__TimeoutSeconds=180
     ports:
-      - "5597:5097"
+      - "5097:5097"
     depends_on:
       - sqlserver
 

@@ -19,7 +19,6 @@ export const bghMenuGroups = [
     children: [
       { id: 'human-resources', label: 'Nhân sự Giảng viên', icon: 'UserCheck', route: '/bgh/human-resources' },
       { id: 'organizations', label: 'Quản lý Đơn vị', icon: 'Building2', route: '/bgh/organizations' },
-      { id: 'roles', label: 'Phạm vi & Vai trò', icon: 'Layers', route: '/bgh/roles' },
       { id: 'users', label: 'Quản lý Người dùng', icon: 'Users', route: '/bgh/users' },
     ],
   },
@@ -42,16 +41,12 @@ export const bghMenuGroups = [
     ],
   },
 
-  // ── PHÊ DUYỆT & ĐÁNH GIÁ ──────────────────────────────────
+  // ── ĐÁNH GIÁ & KHEN THƯỞNG ────────────────────────────────
   {
     id: 'phe-duyet-danh-gia',
-    label: 'Phê duyệt & Đánh giá',
+    label: 'Đánh giá & Khen thưởng',
     icon: 'ClipboardCheck',
     children: [
-      { id: 'schedule-pending', label: 'Duyệt Thời khóa biểu', icon: 'CalendarClock', route: '/bgh/schedule/pending', permission: 'schedules.approve' },
-      { id: 'schedule-conflicts', label: 'Xung đột lịch học', icon: 'AlertTriangle', route: '/bgh/schedule/conflicts', permission: 'schedules.approve' },
-      { id: 'schedule-published', label: 'TKB đã duyệt', icon: 'CalendarCheck', route: '/bgh/schedule/published', permission: 'schedules.approve' },
-      { id: 'schedule-changes', label: 'Thay đổi & Dạy bù', icon: 'ArrowLeftRight', route: '/bgh/schedule/changes', permission: 'schedules.approve' },
       { id: 'evaluations', label: 'Đánh giá Giảng viên', icon: 'Star', route: '/bgh/evaluations' },
       { id: 'evaluations-ranking', label: 'Xếp hạng giảng viên', icon: 'Trophy', route: '/bgh/evaluations/ranking' },
       { id: 'evaluations-overview', label: 'Tổng quan đánh giá', icon: 'PieChart', route: '/bgh/evaluations/overview' },

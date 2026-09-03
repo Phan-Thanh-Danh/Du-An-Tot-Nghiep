@@ -1,16 +1,18 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Award, Search, Users, Loader2 } from 'lucide-vue-next'
+import { Award, Search, Users, Loader2, Sparkles } from 'lucide-vue-next'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import TableShell from '@/components/ui/TableShell.vue'
 import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import BghAiReportModal from '@/components/BGH/BghAiReportModal.vue'
 import { rewardDisciplineApi } from '@/services/rewardDisciplineApi'
 import { organizationApi } from '@/services/organizationService'
 import { certificateTemplateApi } from '@/services/certificateTemplateApi'
 import { academicTermApi } from '@/services/academicTermApi'
+import { aiApi } from '@/services/aiApi'
 import { useAuthStore } from '@/stores/auth'
 import { unwrapApiData } from '@/services/apiClient'
 import { usePopupStore } from '@/stores/popup'
@@ -22,6 +24,38 @@ const isSubmitting = ref(false)
 const terms = ref([])
 const campuses = ref([])
 const templates = ref([])
+
+// AI Strategic Report State
+const aiModalOpen = ref(false)
+const aiLoading = ref(false)
+const aiError = ref(null)
+const aiReport = ref(null)
+
+const aiScopeBadges = computed(() => {
+  return [
+    `Cơ sở: ${userCampusId.value ? `Cơ sở #${userCampusId.value}` : 'Toàn trường'}`,
+    'Phân tích: Đợt Khen thưởng & Tổng kết Năm học',
+    'Mục tiêu: Đề xuất Top 3 GPA Vinh danh'
+  ]
+})
+
+async function triggerAwardsAiAnalysis() {
+  aiModalOpen.value = true
+  aiLoading.value = true
+  aiError.value = null
+  try {
+    const res = await aiApi.generateBghReport({
+      reportType: 'awards',
+      mode: 'deep',
+      forceRefresh: true,
+    })
+    aiReport.value = res
+  } catch (err) {
+    aiError.value = err.message || 'Không thể tổng hợp báo cáo khen thưởng AI.'
+  } finally {
+    aiLoading.value = false
+  }
+}
 
 const userCampusId = computed(() => {
   return authStore.user?.campusId ?? authStore.user?.CampusId ?? authStore.user?.maDonVi ?? authStore.user?.MaDonVi ?? null
@@ -380,6 +414,15 @@ const cancelCampaignAction = () => {
           <option value="completed">Đã hoàn tất</option>
           <option value="cancelled">Đã hủy</option>
         </select>
+        <button
+          @click="triggerAwardsAiAnalysis"
+          :disabled="aiLoading"
+          class="h-10 px-4 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white text-xs font-bold shadow-md shadow-indigo-500/20 flex items-center gap-2 transition-all active:scale-95 disabled:opacity-60 cursor-pointer shrink-0"
+        >
+          <Sparkles v-if="!aiLoading" :size="15" />
+          <Loader2 v-else :size="15" class="animate-spin" />
+          <span>{{ aiLoading ? 'ĐANG TỔNG HỢP...' : '⚡ AI TỔNG KẾT & ĐỀ XUẤT TOP 3 GPA NĂM HỌC' }}</span>
+        </button>
         <GlassButton @click="showCreateModal = true" variant="primary" class="h-10">Tạo đợt mới</GlassButton>
       </div>
 
@@ -656,5 +699,18 @@ const cancelCampaignAction = () => {
         </div>
       </div>
     </div>
+    <!-- AI Strategic Report Modal -->
+    <BghAiReportModal
+      :is-open="aiModalOpen"
+      title="Báo Cáo Khen Thưởng & Đề Xuất Top 3 GPA Năm Học (Qwen 9B)"
+      subtitle="Phân tích tần suất khen thưởng, tổng kết GPA tích lũy và đề xuất danh sách Top 3 sinh viên xuất sắc nhất toàn trường"
+      :scope-badges="aiScopeBadges"
+      :loading="aiLoading"
+      :error="aiError"
+      :report-content="aiReport?.aiAnalysis"
+      :generated-at="aiReport?.generatedAt"
+      @close="aiModalOpen = false"
+      @retry="triggerAwardsAiAnalysis"
+    />
   </div>
 </template>

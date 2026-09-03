@@ -14,7 +14,7 @@ const menuRef = ref(null)
 
 const actions = computed(() => {
   if (authStore.hasRole('Principal')) return [
-    { id: 'bgh-schedule', label: 'Duyệt thời khóa biểu', icon: 'CalendarCheck', route: '/bgh/schedule/pending' },
+    { id: 'bgh-overview', label: 'Tổng quan kết quả học tập', icon: 'BarChart3', route: '/bgh/academic/overview' },
     { id: 'bgh-evaluations', label: 'Đánh giá giảng viên', icon: 'Star', route: '/bgh/evaluations' },
     { id: 'bgh-curriculum', label: 'Khung chương trình', icon: 'Library', route: '/bgh/curriculum' },
   ]

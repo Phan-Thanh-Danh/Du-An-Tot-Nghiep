@@ -52,7 +52,7 @@ function getNotifRoute() {
 function getRoleRoutes() {
   if (authStore.hasRole('Principal')) return [
     { id: 'bgh-dashboard', label: 'Dashboard chiến lược', icon: 'LayoutDashboard', route: '/bgh/dashboard', category: 'BGH' },
-    { id: 'bgh-schedule', label: 'Duyệt thời khóa biểu', icon: 'CalendarCheck', route: '/bgh/schedule/pending', category: 'BGH' },
+    { id: 'bgh-academic-overview', label: 'Tổng quan kết quả học tập', icon: 'BarChart3', route: '/bgh/academic/overview', category: 'BGH' },
     { id: 'bgh-evaluations', label: 'Đánh giá giảng viên', icon: 'Star', route: '/bgh/evaluations', category: 'BGH' },
     { id: 'bgh-awards', label: 'Quản lý Khen thưởng', icon: 'Award', route: '/bgh/awards', category: 'BGH' },
     { id: 'bgh-programs', label: 'Ngành & Chuyên ngành', icon: 'BookOpen', route: '/bgh/academic-programs', category: 'BGH' },

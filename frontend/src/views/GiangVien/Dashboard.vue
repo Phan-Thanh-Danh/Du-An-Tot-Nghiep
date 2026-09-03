@@ -1,3 +1,4 @@
+<!-- eslint-disable vue/multi-word-component-names -->
 <template>
   <div v-if="loading" class="flex items-center justify-center min-h-[300px]">
     <div class="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full"></div>
@@ -147,6 +148,9 @@
       <!-- Right (1/3) -->
       <div class="space-y-5">
 
+        <!-- AI Pedagogical Insight Card -->
+        <TeacherAiInsightCard />
+
         <!-- Recent Submissions -->
         <div class="lg-glass-soft rounded-2xl p-4">
           <div class="mb-3 flex items-center justify-between">
@@ -294,6 +298,7 @@ import { useAuthStore } from '@/stores/auth'
 import { teacherApi } from '@/services/teacherApi'
 import { apiRequest, unwrapApiData } from '@/services/apiClient'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
+import TeacherAiInsightCard from '@/components/GiangVien/dashboard/TeacherAiInsightCard.vue'
 import {
   Users, BookOpen, ClipboardCheck, TrendingUp,
   ArrowUpRight, AlertCircle, User, Bell, Calendar

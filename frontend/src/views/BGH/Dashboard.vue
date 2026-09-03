@@ -369,27 +369,7 @@
       <!-- ═════ Right Column (1/3) ═════ -->
       <div class="space-y-5">
 
-        <!-- ── TKB Pending ── -->
-        <div class="rounded-2xl border border-card surface-card shadow-sm overflow-hidden section-enter" style="animation-delay: 0.15s">
-          <div class="flex items-center justify-between px-5 py-4 border-b border-default">
-            <h3 class="text-base font-bold text-heading">TKB Chờ Duyệt</h3>
-            <span v-if="pendingCount > 0" class="rounded-full bg-(--color-info-bg) px-2.5 py-0.5 text-[10px] font-bold text-(--color-info-text)">{{ pendingCount }} Mới</span>
-          </div>
-          <div class="p-4 space-y-3">
-            <div v-for="item in pendingScheduleItems" :key="item.id"
-                 class="p-3 rounded-xl border border-default surface-solid transition-all hover:bg-(--surface-input) cursor-pointer group">
-              <div class="flex justify-between items-start">
-                <p class="text-xs font-bold text-heading leading-tight">{{ item.title }}</p>
-                <span class="text-[9px] font-bold text-(--lg-primary) bg-(--lg-primary)/10 px-1.5 py-0.5 rounded">{{ item.badge }}</span>
-              </div>
-              <p class="mt-1 text-[10px] text-muted">{{ item.description }}</p>
-              <router-link to="/bgh/schedule/pending" class="mt-2 block text-center text-[10px] font-bold text-link group-hover:underline transition-colors">Xem ngay →</router-link>
-            </div>
-            <div v-if="!pendingScheduleItems.length" class="py-6 text-center">
-              <p class="text-xs text-muted font-medium">Không có TKB nào chờ duyệt</p>
-            </div>
-          </div>
-        </div>
+
 
         <!-- ── AI Risk Alerts ── -->
         <div class="rounded-2xl border border-(--color-danger-text)/20 bg-(--color-danger-bg)/50 overflow-hidden section-enter" style="animation-delay: 0.2s">
@@ -959,12 +939,7 @@ const topTeachers = ref([])
 // ── Risk Students (Real BE Data) ──
 const riskStudents = ref([])
 
-// ── Pending Schedules (Real BE Data) ──
-const pendingCount = computed(() => apiData.value?.pendingSchedules ?? 0)
-const pendingScheduleItems = computed(() => {
-  const items = apiData.value?.pendingScheduleItems
-  return Array.isArray(items) ? items : []
-})
+
 
 // ── Announcements (Real BE Data) ──
 const announcements = computed(() => {

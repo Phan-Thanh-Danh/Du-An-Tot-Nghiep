@@ -19,12 +19,15 @@ import {
   Phone,
   AlertTriangle,
   AlertCircle,
+  Sparkles,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import LmsSelect from '@/components/LmsSelect.vue'
+import BghAiReportModal from '@/components/BGH/BghAiReportModal.vue'
 import { exportBghToExcel, exportAtRiskToPdf } from '@/components/BGH/performance/bghExport.js'
 import { usePopupStore } from '@/stores/popup'
 import { bghApi } from '@/services/bghApi'
+import { aiApi } from '@/services/aiApi'
 import { unwrapApiData } from '@/services/apiClient'
 
 const popup = usePopupStore()
@@ -163,6 +166,44 @@ watch(semesterFilter, () => {
   currentPage.value = 1
   loadData()
 })
+
+// AI Strategic Report State
+const aiModalOpen = ref(false)
+const aiLoading = ref(false)
+const aiError = ref(null)
+const aiReport = ref(null)
+
+const aiScopeBadges = computed(() => {
+  const list = []
+  const sem = semesters.value.find(s => s.value === semesterFilter.value)?.label || 'Tất cả học kỳ'
+  list.push(`Học kỳ: ${sem}`)
+  if (riskFilter.value !== 'all') {
+    list.push(`Mức độ rủi ro: ${riskFilter.value.toUpperCase()}`)
+  }
+  list.push(`Tổng SV cảnh báo: ${totalAtRisk.value}`)
+  return list
+})
+
+async function triggerAiAnalysis() {
+  aiModalOpen.value = true
+  aiLoading.value = true
+  aiError.value = null
+  try {
+    await loadData()
+    const semId = semesterFilter.value !== 'all' ? parseInt(semesterFilter.value) : undefined
+    const res = await aiApi.generateBghReport({
+      reportType: 'at_risk',
+      semesterId: isNaN(semId) ? undefined : semId,
+      mode: 'deep',
+      forceRefresh: true,
+    })
+    aiReport.value = res
+  } catch (err) {
+    aiError.value = err.message || 'Không thể phân tích dữ liệu sinh viên nguy cơ.'
+  } finally {
+    aiLoading.value = false
+  }
+}
 
 const getRiskBadge = (risk) => {
   switch (risk) {
@@ -325,9 +366,20 @@ function sendBulkWarning() {
              </LmsSelect>
            </div>
         </div>
-        <button @click="sendBulkWarning" class="lg-button-primary py-2.5 px-4 text-sm font-semibold flex items-center gap-2">
-           <Send :size="18" /> Gửi cảnh báo cho Giảng viên
-        </button>
+        <div class="flex items-center gap-3">
+          <button
+            @click="triggerAiAnalysis"
+            :disabled="aiLoading"
+            class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white text-xs font-bold shadow-md shadow-indigo-500/20 flex items-center gap-2 transition-all active:scale-95 disabled:opacity-60 cursor-pointer shrink-0"
+          >
+            <Sparkles v-if="!aiLoading" :size="15" />
+            <Loader2 v-else :size="15" class="animate-spin" />
+            <span>{{ aiLoading ? 'ĐANG PHÂN TÍCH...' : 'PHÂN TÍCH BẰNG AI' }}</span>
+          </button>
+          <button @click="sendBulkWarning" class="lg-button-primary py-2.5 px-4 text-xs font-semibold flex items-center gap-2">
+             <Send :size="15" /> Gửi cảnh báo cho Giảng viên
+          </button>
+        </div>
       </div>
 
       <!-- ── Empty State ── -->
@@ -484,6 +536,20 @@ function sendBulkWarning() {
       </div>
     </Transition>
   </Teleport>
+
+  <!-- AI Strategic Report Modal -->
+  <BghAiReportModal
+    :is-open="aiModalOpen"
+    title="Báo Cáo Phân Tích SV Nguy Cơ Rớt Môn (Qwen 9B)"
+    subtitle="Cảnh báo sớm sinh viên rủi ro cao, phân tích điểm nghẽn môn học và giải pháp can thiệp"
+    :scope-badges="aiScopeBadges"
+    :loading="aiLoading"
+    :error="aiError"
+    :report-content="aiReport?.aiAnalysis"
+    :generated-at="aiReport?.generatedAt"
+    @close="aiModalOpen = false"
+    @retry="triggerAiAnalysis"
+  />
   </div>
 </template>
 

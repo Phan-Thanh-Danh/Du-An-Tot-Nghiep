@@ -16,12 +16,15 @@ import {
   BarChart3,
   AlertCircle,
   Loader2,
+  Sparkles,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import LmsSelect from '@/components/LmsSelect.vue'
+import BghAiReportModal from '@/components/BGH/BghAiReportModal.vue'
 import { exportBghToExcel, exportPassFailRatesToPdf } from '@/components/BGH/performance/bghExport.js'
 import { usePopupStore } from '@/stores/popup'
 import { bghApi } from '@/services/bghApi'
+import { aiApi } from '@/services/aiApi'
 import { unwrapApiData } from '@/services/apiClient'
 
 const popup = usePopupStore()
@@ -123,9 +126,49 @@ watch(industryFilter, () => {
   majorFilter.value = 'all'
 })
 
-watch([semesterFilter, industryFilter, majorFilter], () => {
-  loadData()
+// AI Strategic Report State
+const aiModalOpen = ref(false)
+const aiLoading = ref(false)
+const aiError = ref(null)
+const aiReport = ref(null)
+
+const aiScopeBadges = computed(() => {
+  const list = []
+  const sem = semesters.value.find(s => String(s.value) === String(semesterFilter.value))?.label || 'Tất cả học kỳ'
+  list.push(`Học kỳ: ${sem}`)
+  const ind = industries.value.find(i => String(i.value) === String(industryFilter.value))?.label || 'Tất cả Ngành'
+  list.push(`Ngành: ${ind}`)
+  if (majorFilter.value !== 'all') {
+    const maj = availableMajors.value.find(m => String(m.value) === String(majorFilter.value))?.label
+    if (maj) list.push(`Chuyên ngành: ${maj}`)
+  }
+  return list
 })
+
+async function triggerAiAnalysis() {
+  aiModalOpen.value = true
+  aiLoading.value = true
+  aiError.value = null
+  try {
+    await loadData()
+    const semId = semesterFilter.value !== 'all' ? parseInt(semesterFilter.value) : undefined
+    const majId = industryFilter.value !== 'all' ? parseInt(industryFilter.value) : undefined
+    const specId = majorFilter.value !== 'all' ? parseInt(majorFilter.value) : undefined
+    const res = await aiApi.generateBghReport({
+      reportType: 'pass_fail',
+      semesterId: isNaN(semId) ? undefined : semId,
+      majorId: isNaN(majId) ? undefined : majId,
+      specializationId: isNaN(specId) ? undefined : specId,
+      mode: 'deep',
+      forceRefresh: true,
+    })
+    aiReport.value = res
+  } catch (err) {
+    aiError.value = err.message || 'Không thể tạo phân tích tỷ lệ Pass/Fail.'
+  } finally {
+    aiLoading.value = false
+  }
+}
 
 const filteredStats = computed(() => {
   let list = courseStats.value
@@ -278,9 +321,20 @@ async function exportPdf() {
              <option v-for="m in availableMajors" :key="m.value" :value="m.value">{{ m.label }}</option>
            </LmsSelect>
         </div>
-        <button @click="showFilterDetail = !showFilterDetail" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2" :class="{ 'bg-(--surface-input-hover) border-(--lg-primary)': showFilterDetail }">
-           <Filter :size="18" /> Lọc nâng cao <ChevronDown :size="14" :class="{ 'rotate-180': showFilterDetail }" class="transition-transform" />
-        </button>
+        <div class="flex items-center gap-2">
+           <button
+             @click="triggerAiAnalysis"
+             :disabled="aiLoading"
+             class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white text-xs font-bold shadow-md shadow-indigo-500/20 flex items-center gap-2 transition-all active:scale-95 disabled:opacity-60 cursor-pointer shrink-0"
+           >
+             <Sparkles v-if="!aiLoading" :size="15" />
+             <Loader2 v-else :size="15" class="animate-spin" />
+             <span>{{ aiLoading ? 'ĐANG PHÂN TÍCH...' : 'PHÂN TÍCH BẰNG AI' }}</span>
+           </button>
+           <button @click="showFilterDetail = !showFilterDetail" class="lg-button-secondary px-4 py-2.5 text-sm font-bold flex items-center gap-2" :class="{ 'bg-(--surface-input-hover) border-(--lg-primary)': showFilterDetail }">
+              <Filter :size="18" /> Lọc nâng cao <ChevronDown :size="14" :class="{ 'rotate-180': showFilterDetail }" class="transition-transform" />
+           </button>
+        </div>
       </div>
 
       <!-- ── Advanced Filter Panel ── -->
@@ -557,6 +611,20 @@ async function exportPdf() {
         </div>
       </Transition>
     </Teleport>
+
+    <!-- AI Strategic Report Modal -->
+    <BghAiReportModal
+      :is-open="aiModalOpen"
+      title="Báo Cáo Tỷ Lệ Pass/Fail Môn Học AI (Qwen 9B)"
+      subtitle="Phân tích chuyên sâu môn học có tỷ lệ rớt cao, điểm nghẽn học phần và khuyến nghị đào tạo"
+      :scope-badges="aiScopeBadges"
+      :loading="aiLoading"
+      :error="aiError"
+      :report-content="aiReport?.aiAnalysis"
+      :generated-at="aiReport?.generatedAt"
+      @close="aiModalOpen = false"
+      @retry="triggerAiAnalysis"
+    />
   </PageContainer>
 </template>
 
