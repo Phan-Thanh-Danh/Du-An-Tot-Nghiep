@@ -93,15 +93,20 @@ function normalizeCampaignStatus(status) {
   return 'evaluating'
 }
 
-const mapCandidate = (item) => ({
-  id: item.maUngVienKhenThuong ?? item.MaUngVienKhenThuong,
-  rank: item.xepHang ?? item.XepHang ?? '-',
-  name: item.hoTenSnapshot ?? item.HoTenSnapshot ?? 'Chưa có tên',
-  rollNum: item.mssvSnapshot ?? item.MssvSnapshot ?? '',
-  class: '',
-  gpa: item.gpaHocKy ?? item.GpaHocKy ?? item.diemXet ?? item.DiemXet ?? '-',
-  status: item.trangThai ?? item.TrangThai ?? '',
-})
+const mapCandidate = (item) => {
+  const rawStatus = item.trangThai ?? item.TrangThai ?? ''
+  const isApproved = ['da_duyet_kt', 'approved', 'da_duyet', 'da_cap', 'da_sinh_pdf'].includes(rawStatus)
+  return {
+    id: item.maUngVienKhenThuong ?? item.MaUngVienKhenThuong,
+    rank: item.xepHang ?? item.XepHang ?? '-',
+    name: item.hoTenSnapshot ?? item.HoTenSnapshot ?? 'Chưa có tên',
+    rollNum: item.mssvSnapshot ?? item.MssvSnapshot ?? '',
+    class: '',
+    gpa: item.gpaHocKy ?? item.GpaHocKy ?? item.diemXet ?? item.DiemXet ?? '-',
+    status: isApproved ? 'approved' : 'evaluating',
+    rawStatus,
+  }
+}
 
 const fetchCampaigns = async () => {
   loading.value = true
@@ -238,7 +243,10 @@ const selectCampaign = async (cmp) => {
       const summary = unwrapApiData(summaryRes)
       if (summary) {
         cmp.tongUngVien = summary.totalCandidates ?? summary.TotalCandidates ?? 0
-        cmp.daDuyet = summary.selectedCount ?? summary.SelectedCount ?? summary.approvedCandidateCount ?? summary.ApprovedCandidateCount ?? 0
+        cmp.daDuyet = (summary.approvedCandidateCount || summary.ApprovedCandidateCount)
+          || (summary.rewardsCreatedCount || summary.RewardsCreatedCount)
+          || (summary.selectedCount || summary.SelectedCount)
+          || 0
       }
     }
   } catch (err) {
@@ -273,7 +281,9 @@ const generateCertificates = () => {
         await generateCertificatesFrontend(cmp)
         popupStore.success('Hoàn tất', 'Đã cấp phát bằng khen thành công.')
         cmp.trangThai = 'completed'
+        cmp.rawStatus = 'da_cong_bo'
         await fetchCampaigns()
+        await selectCampaign(cmp)
       } catch (err) {
         console.error(err)
         popupStore.error('Lỗi', err?.message || 'Có lỗi xảy ra khi tạo bằng khen.')
@@ -295,9 +305,10 @@ const approveCampaign = () => {
       try {
         await rewardDisciplineApi.approveRewardCampaign(selectedCampaign.value.id)
         selectedCampaign.value.trangThai = 'approved'
-        candidates.value.forEach(c => c.status = 'approved')
+        selectedCampaign.value.rawStatus = 'da_duyet'
         confirmAction.value = null
         popupStore.success('Thành công', 'Đã chốt danh sách đợt khen thưởng.')
+        await selectCampaign(selectedCampaign.value)
       } catch (err) {
         popupStore.error('Lỗi', err?.message || 'Không thể chốt danh sách khen thưởng.')
       }
