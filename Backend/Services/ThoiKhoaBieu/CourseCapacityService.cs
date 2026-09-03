@@ -5,13 +5,31 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Services.ThoiKhoaBieu;
 
-public sealed record RequiredCapacity(int Value, string Status, string Source);
+public sealed record RequiredCapacity(
+    int Value,
+    string Status,
+    string Source,
+    bool IsKnown = true,
+    string? WarningCode = null)
+{
+    public const string SourceRegistered = "registered_students";
+    public const string SourceClassStudents = "administrative_class_students";
+    public const string SourceExpected = "class_expected_count";
+    public const string SourceMissing = "STUDENT_CAPACITY_DATA_MISSING";
+
+    public const string StatusReady = "ready";
+    public const string StatusWarning = "warning";
+    public const string StatusBlocked = "blocked";
+    public const string StatusUnknown = "unknown";
+}
 
 public interface ICourseCapacityService
 {
     Task<IReadOnlyDictionary<int, RequiredCapacity>> GetRequiredCapacitiesAsync(
         IEnumerable<KhoaHoc> courses,
         CancellationToken cancellationToken = default);
+
+    bool IsRoomEligible(PhongHoc room, RequiredCapacity capacity, int expectedCampusId);
 }
 
 /// <summary>Single source of truth for room-capacity decisions. A missing count is never treated as zero.</summary>
@@ -21,6 +39,18 @@ public sealed class CourseCapacityService : ICourseCapacityService
 
     public CourseCapacityService(ApplicationDbContext db) => _db = db;
 
+    public bool IsRoomEligible(PhongHoc room, RequiredCapacity capacity, int expectedCampusId)
+    {
+        if (room == null || capacity == null) return false;
+        if (!capacity.IsKnown || capacity.Status == RequiredCapacity.StatusBlocked || capacity.Value <= 0)
+            return false;
+        if (room.MaDonVi != expectedCampusId || room.TrangThaiPhong != "hoat_dong")
+            return false;
+        if (room.SucChua < capacity.Value)
+            return false;
+        return true;
+    }
+
     public async Task<IReadOnlyDictionary<int, RequiredCapacity>> GetRequiredCapacitiesAsync(
         IEnumerable<KhoaHoc> courses,
         CancellationToken cancellationToken = default)
@@ -28,24 +58,38 @@ public sealed class CourseCapacityService : ICourseCapacityService
         var source = courses.DistinctBy(x => x.MaKhoaHoc).ToList();
         var classIds = source.Where(x => x.MaLop > 0).Select(x => x.MaLop).Distinct().ToList();
         var sectionIds = source.Where(x => x.MaLopHocPhan.HasValue).Select(x => x.MaLopHocPhan!.Value).Distinct().ToList();
+        var studentRoleCode = AuthRoles.ToDatabaseCode(AuthRoles.Student);
 
+        // 1. Đếm distinct sinh viên đăng ký hợp lệ theo từng Lớp học phần:
+        var registrationsBySection = new Dictionary<int, int>();
+        if (sectionIds.Count > 0)
+        {
+            var rawRegistrations = await _db.DangKyHocPhans.AsNoTracking()
+                .Where(x => sectionIds.Contains(x.MaLopHocPhan)
+                    && (x.TrangThai == "da_dang_ky" || x.TrangThai == "da_duyet" || x.TrangThai == "da_thanh_toan")
+                    && x.HocSinh != null
+                    && x.HocSinh.VaiTroChinh == studentRoleCode
+                    && x.HocSinh.TrangThai == UserStatuses.DbActive)
+                .Select(x => new { x.MaLopHocPhan, x.MaHocSinh })
+                .ToListAsync(cancellationToken);
+
+            registrationsBySection = rawRegistrations
+                .GroupBy(x => x.MaLopHocPhan)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(x => x.MaHocSinh).Distinct().Count());
+        }
+
+        // 2. Đếm sinh viên hoạt động trong Lớp hành chính theo MaLop & MaDonVi:
         var classCounts = await _db.NguoiDungs.AsNoTracking()
             .Where(x => x.MaLop.HasValue && classIds.Contains(x.MaLop.Value)
-                && x.VaiTroChinh == AuthRoles.ToDatabaseCode(AuthRoles.Student)
-                && x.TrangThai == "hoat_dong")
+                && x.VaiTroChinh == studentRoleCode
+                && x.TrangThai == UserStatuses.DbActive)
             .GroupBy(x => new { ClassId = x.MaLop!.Value, x.MaDonVi })
-            .Select(g => new { g.Key.ClassId, g.Key.MaDonVi, Count = g.Count() })
+            .Select(g => new { g.Key.ClassId, g.Key.MaDonVi, Count = g.Select(u => u.MaNguoiDung).Distinct().Count() })
             .ToListAsync(cancellationToken);
 
-        var sections = await _db.LopHocPhans.AsNoTracking()
-            .Where(x => sectionIds.Contains(x.MaLopHocPhan))
-            .Select(x => new { x.MaLopHocPhan, x.SoDaDangKy })
-            .ToDictionaryAsync(x => x.MaLopHocPhan, cancellationToken);
-        var registrations = await _db.DangKyHocPhans.AsNoTracking()
-            .Where(x => sectionIds.Contains(x.MaLopHocPhan) && x.TrangThai == "da_dang_ky")
-            .GroupBy(x => x.MaLopHocPhan)
-            .Select(g => new { SectionId = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(x => x.SectionId, x => x.Count, cancellationToken);
+        // 3. Sĩ số dự kiến từ Lớp hành chính:
         var expected = await _db.LopHanhChinhs.AsNoTracking()
             .Where(x => classIds.Contains(x.MaLop))
             .Select(x => new { x.MaLop, x.SiSoDuKien })
@@ -54,17 +98,49 @@ public sealed class CourseCapacityService : ICourseCapacityService
         var result = new Dictionary<int, RequiredCapacity>();
         foreach (var course in source)
         {
+            // Ưu tiên 1: Đăng ký học phần thực tế
+            if (course.MaLopHocPhan.HasValue &&
+                registrationsBySection.TryGetValue(course.MaLopHocPhan.Value, out var regCount) &&
+                regCount > 0)
+            {
+                result[course.MaKhoaHoc] = new RequiredCapacity(
+                    regCount,
+                    RequiredCapacity.StatusReady,
+                    RequiredCapacity.SourceRegistered,
+                    IsKnown: true);
+                continue;
+            }
+
+            // Ưu tiên 2: Sinh viên hoạt động trong Lớp hành chính
             var active = classCounts.FirstOrDefault(x => x.ClassId == course.MaLop && x.MaDonVi == course.MaDonVi)?.Count ?? 0;
-            var enrolled = course.MaLopHocPhan.HasValue
-                ? Math.Max(registrations.GetValueOrDefault(course.MaLopHocPhan.Value), sections.GetValueOrDefault(course.MaLopHocPhan.Value)?.SoDaDangKy ?? 0)
-                : 0;
-            var actual = Math.Max(active, enrolled);
-            if (actual > 0)
-                result[course.MaKhoaHoc] = new RequiredCapacity(actual, "ready", active > 0 && enrolled > 0 ? "active_students_and_enrollments" : active > 0 ? "active_students" : "section_enrollment");
-            else if (expected.GetValueOrDefault(course.MaLop) is int fallback && fallback > 0)
-                result[course.MaKhoaHoc] = new RequiredCapacity(fallback, "warning", "class_expected_count");
-            else
-                result[course.MaKhoaHoc] = new RequiredCapacity(0, "blocked", "DATA_INCOMPLETE");
+            if (active > 0)
+            {
+                result[course.MaKhoaHoc] = new RequiredCapacity(
+                    active,
+                    RequiredCapacity.StatusReady,
+                    RequiredCapacity.SourceClassStudents,
+                    IsKnown: true);
+                continue;
+            }
+
+            // Ưu tiên 3: Sĩ số dự kiến
+            if (expected.GetValueOrDefault(course.MaLop) is int fallback && fallback > 0)
+            {
+                result[course.MaKhoaHoc] = new RequiredCapacity(
+                    fallback,
+                    RequiredCapacity.StatusWarning,
+                    RequiredCapacity.SourceExpected,
+                    IsKnown: true);
+                continue;
+            }
+
+            // Ưu tiên 4: Thiếu dữ liệu - Tuyệt đối không fallback về 0
+            result[course.MaKhoaHoc] = new RequiredCapacity(
+                0,
+                RequiredCapacity.StatusBlocked,
+                RequiredCapacity.SourceMissing,
+                IsKnown: false,
+                WarningCode: "STUDENT_CAPACITY_DATA_MISSING");
         }
         return result;
     }
