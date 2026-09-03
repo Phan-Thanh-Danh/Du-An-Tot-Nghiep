@@ -186,6 +186,55 @@ async function renderCertificatePdf(template, row, campaign) {
     // Let gradients / CSS animations settle
     await new Promise((r) => setTimeout(r, 600))
 
+    // Polyfill CSS clip-path: polygon(...) so html2canvas renders true geometric triangles instead of black rectangles
+    Array.from(container.querySelectorAll('*')).forEach((el) => {
+      const cs = window.getComputedStyle(el)
+      const clipVal = el.style.clipPath || cs.clipPath || ''
+      const polyMatch = clipVal.match(/polygon\(([^)]+)\)/i)
+      if (polyMatch) {
+        const w = el.offsetWidth || el.getBoundingClientRect().width
+        const h = el.offsetHeight || el.getBoundingClientRect().height
+        if (w > 0 && h > 0) {
+          const rawCoords = polyMatch[1].split(',')
+          const points = rawCoords
+            .map((coord) => {
+              const parts = coord.trim().split(/\s+/)
+              if (parts.length >= 2) {
+                const xVal = parts[0].endsWith('%')
+                  ? (parseFloat(parts[0]) / 100) * w
+                  : parseFloat(parts[0])
+                const yVal = parts[1].endsWith('%')
+                  ? (parseFloat(parts[1]) / 100) * h
+                  : parseFloat(parts[1])
+                return `${xVal.toFixed(1)},${yVal.toFixed(1)}`
+              }
+              return ''
+            })
+            .filter(Boolean)
+            .join(' ')
+
+          const bg = cs.backgroundColor
+          if (points && bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+            svg.setAttribute('viewBox', `0 0 ${w} ${h}`)
+            svg.setAttribute(
+              'style',
+              'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;'
+            )
+            const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon')
+            polygon.setAttribute('points', points)
+            polygon.setAttribute('fill', bg)
+            svg.appendChild(polygon)
+
+            el.style.backgroundColor = 'transparent'
+            el.style.backgroundImage = 'none'
+            el.style.clipPath = 'none'
+            el.insertBefore(svg, el.firstChild)
+          }
+        }
+      }
+    })
+
     const wrapper = container.querySelector('#pdf-cert-render')
 
     const blob = await html2pdf()
