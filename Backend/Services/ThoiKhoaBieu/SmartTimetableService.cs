@@ -95,11 +95,10 @@ public class SmartTimetableService : ISmartTimetableService
         }
 
         var capacityByCourse = await _courseCapacityService.GetRequiredCapacitiesAsync(courses, cancellationToken);
-        var incompleteCourses = courses.Where(x => capacityByCourse[x.MaKhoaHoc].Status == "blocked").ToList();
+        var incompleteCourses = courses.Where(x => capacityByCourse[x.MaKhoaHoc].Status == RequiredCapacity.StatusBlocked).ToList();
         if (incompleteCourses.Count > 0)
-            throw new ApiException(StatusCodes.Status400BadRequest, $"DATA_INCOMPLETE: {incompleteCourses.Count} khóa học chưa có sĩ số thực tế hoặc sĩ số dự kiến.");
-        var studentCounts = courses.GroupBy(x => x.MaLop)
-            .ToDictionary(g => g.Key, g => g.Max(x => capacityByCourse[x.MaKhoaHoc].Value));
+            throw new ApiException(StatusCodes.Status400BadRequest, $"STUDENT_CAPACITY_DATA_MISSING: {incompleteCourses.Count} khóa học chưa có sĩ số thực tế hoặc sĩ số dự kiến.");
+        var studentCounts = courses.ToDictionary(x => x.MaKhoaHoc, x => capacityByCourse[x.MaKhoaHoc].Value);
 
         // =========================================================================
         // FEASIBILITY CHECK TIỀN KỲ (Kiểm tra khả thi trước khi khởi tạo GA)
@@ -116,11 +115,21 @@ public class SmartTimetableService : ISmartTimetableService
             throw new ApiException(StatusCodes.Status400BadRequest, "Không có ca học nào đang hoạt động.");
         }
 
+        foreach (var course in courses)
+        {
+            var reqCap = capacityByCourse[course.MaKhoaHoc];
+            if (!rooms.Any(r => _courseCapacityService.IsRoomEligible(r, reqCap, request.MaDonVi)))
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest,
+                    $"ROOM_CAPACITY_INSUFFICIENT: Khóa học {course.MaKhoaHoc} (sĩ số {reqCap.Value}) không có phòng học nào đủ sức chứa tại cơ sở.");
+            }
+        }
+
         var totalAvailableRoomSlots = rooms.Count * shifts.Count * 6; // 6 ngày học (Thứ 2 -> Thứ 7)
         if (totalRequiredSlots > totalAvailableRoomSlots)
         {
             throw new ApiException(StatusCodes.Status400BadRequest,
-                $"Không đủ tài nguyên phòng học: Cần {totalRequiredSlots} slot/tuần nhưng cơ sở chỉ có tối đa {totalAvailableRoomSlots} slot/tuần ({rooms.Count} phòng x {shifts.Count} ca x 6 ngày). Thiếu ít nhất {totalRequiredSlots - totalAvailableRoomSlots} slot.");
+                $"TOTAL_ROOM_SLOTS_INSUFFICIENT: Cần {totalRequiredSlots} slot/tuần nhưng cơ sở chỉ có tối đa {totalAvailableRoomSlots} slot/tuần ({rooms.Count} phòng x {shifts.Count} ca x 6 ngày). Thiếu ít nhất {totalRequiredSlots - totalAvailableRoomSlots} slot.");
         }
 
         // 2. Kiểm tra phân công giảng viên
@@ -511,9 +520,14 @@ public class SmartTimetableService : ISmartTimetableService
                     .Where(x => x.ConHoatDong)
                     .Select(x => x.MaCaHoc)
                     .ToHashSetAsync(cancellationToken);
-                var studentCounts = await GetClassStudentCountsAsync(courses.Values.Select(x => x.MaLop), cancellationToken);
+                var capacityByCourse = await _courseCapacityService.GetRequiredCapacitiesAsync(courses.Values, cancellationToken);
                 var unavailableSlots = await LoadConfirmedTeachingAvailabilityAsync(
                     job.MaHocKy, job.MaDonVi, courses.Values.Select(x => x.MaGiaoVien), cancellationToken);
+
+                var termBlocks = await _context.Blocks.AsNoTracking()
+                    .Where(b => b.MaHocKy == job.MaHocKy)
+                    .OrderBy(b => b.ThuTuBlock)
+                    .ToListAsync(cancellationToken);
 
                 var groupedItems = items.GroupBy(x => x.MaKhoaHoc).ToList();
                 var activeCourseCount = courses.Count;
@@ -575,10 +589,11 @@ public class SmartTimetableService : ISmartTimetableService
                         continue;
                     }
 
-                    if (room.SucChua > 0 && studentCounts.GetValueOrDefault(course.MaLop, 0) > room.SucChua)
+                    var reqCap = capacityByCourse.GetValueOrDefault(course.MaKhoaHoc);
+                    if (reqCap == null || !_courseCapacityService.IsRoomEligible(room, reqCap, job.MaDonVi))
                     {
                         result.BuoiHocLoi++;
-                        result.ChiTietLoi.Add($"MaKhoaHoc {item.MaKhoaHoc}: phòng không đủ sức chứa lớp.");
+                        result.ChiTietLoi.Add($"MaKhoaHoc {item.MaKhoaHoc}: phòng {room.TenPhong} không hợp lệ hoặc không đủ sức chứa (cần {reqCap?.Value ?? 0}, sức chứa {room.SucChua}).");
                         continue;
                     }
 
@@ -623,7 +638,21 @@ public class SmartTimetableService : ISmartTimetableService
                         NgayCapNhat = DateTime.UtcNow
                     };
 
-                    if (job.HocKy != null)
+                    if (course.MaBlockBatDau.HasValue && termBlocks.Count > 0)
+                    {
+                        var startBlock = termBlocks.FirstOrDefault(b => b.MaBlock == course.MaBlockBatDau.Value);
+                        if (startBlock != null)
+                        {
+                            var courseBlocks = termBlocks.Where(b => b.ThuTuBlock >= startBlock.ThuTuBlock && b.ThuTuBlock < startBlock.ThuTuBlock + course.SoBlockHoc).ToList();
+                            if (courseBlocks.Count > 0)
+                            {
+                                schedule.NgayBatDau = courseBlocks.First().NgayBatDau;
+                                schedule.NgayKetThuc = courseBlocks.Last().NgayKetThuc;
+                            }
+                        }
+                    }
+
+                    if (!schedule.NgayBatDau.HasValue && job.HocKy != null)
                     {
                         schedule.NgayBatDau = job.HocKy.NgayBatDau;
                         schedule.NgayKetThuc = job.HocKy.NgayKetThuc;
@@ -744,7 +773,7 @@ public class SmartTimetableService : ISmartTimetableService
             .Where(x => x.ConHoatDong)
             .Select(x => x.MaCaHoc)
             .ToHashSetAsync(cancellationToken);
-        var studentCounts = await GetClassStudentCountsAsync(courses.Values.Select(x => x.MaLop), cancellationToken);
+        var capacityByCourse = await _courseCapacityService.GetRequiredCapacitiesAsync(courses.Values, cancellationToken);
         var unavailableSlots = await LoadConfirmedTeachingAvailabilityAsync(
             request.MaHocKy, request.MaDonVi, courses.Values.Select(x => x.MaGiaoVien), cancellationToken);
 
@@ -774,10 +803,11 @@ public class SmartTimetableService : ISmartTimetableService
                 if (!activeShiftIds.Contains(item.MaCaHoc.Value))
                     conflicts.Add("Ca học không hoạt động.");
 
+                var reqCap = capacityByCourse.GetValueOrDefault(course.MaKhoaHoc);
                 if (!rooms.TryGetValue(item.MaPhong.Value, out var room) || room.TrangThaiPhong != "hoat_dong")
                     conflicts.Add("Phòng học không khả dụng.");
-                else if (room.SucChua > 0 && studentCounts.GetValueOrDefault(course.MaLop, 0) > room.SucChua)
-                    conflicts.Add("Phòng không đủ sức chứa lớp.");
+                else if (reqCap == null || !_courseCapacityService.IsRoomEligible(room, reqCap, request.MaDonVi))
+                    conflicts.Add($"Phòng không đủ sức chứa (cần {reqCap?.Value ?? 0}, sức chứa {room.SucChua}).");
 
                 if (unavailableSlots.TryGetValue(course.MaGiaoVien, out var teacherUnavailableSlots) &&
                     teacherUnavailableSlots.Contains((item.ThuTrongTuan.Value, item.MaCaHoc.Value)))
@@ -879,7 +909,12 @@ public class SmartTimetableService : ISmartTimetableService
         var shifts = await LoadShiftsAsync(request.CandidateShiftIds, cancellationToken);
         var rooms = await LoadRoomsAsync(course.MaDonVi, request.CandidateRoomIds, cancellationToken);
         var map = await BuildOccupationMapAsync(course.MaHocKy ?? 0, course.MaDonVi, cancellationToken);
-        var studentCounts = await GetClassStudentCountsAsync(new[] { course.MaLop }, cancellationToken);
+        var capacityByCourse = await _courseCapacityService.GetRequiredCapacitiesAsync(new[] { course }, cancellationToken);
+        var studentCounts = new Dictionary<int, int>
+        {
+            [course.MaLop] = capacityByCourse.GetValueOrDefault(course.MaKhoaHoc)?.Value ?? 0,
+            [course.MaKhoaHoc] = capacityByCourse.GetValueOrDefault(course.MaKhoaHoc)?.Value ?? 0
+        };
         var unavailableSlots = await LoadConfirmedTeachingAvailabilityAsync(
             course.MaHocKy ?? 0, course.MaDonVi, new[] { course.MaGiaoVien }, cancellationToken);
 
@@ -916,7 +951,12 @@ public class SmartTimetableService : ISmartTimetableService
         var shifts = await LoadShiftsAsync(null, cancellationToken);
         var rooms = await LoadRoomsAsync(maDonVi, null, cancellationToken);
         var map = await BuildOccupationMapAsync(maHocKy, maDonVi, cancellationToken);
-        var studentCounts = await GetClassStudentCountsAsync(courses.Select(x => x.MaLop), cancellationToken);
+        var batchCapacity = await _courseCapacityService.GetRequiredCapacitiesAsync(courses, cancellationToken);
+        var studentCounts = courses.ToDictionary(x => x.MaKhoaHoc, x => batchCapacity.GetValueOrDefault(x.MaKhoaHoc)?.Value ?? 0);
+        foreach (var c in courses)
+        {
+            studentCounts.TryAdd(c.MaLop, batchCapacity.GetValueOrDefault(c.MaKhoaHoc)?.Value ?? 0);
+        }
         var unavailableSlots = await LoadConfirmedTeachingAvailabilityAsync(
             maHocKy, maDonVi, courses.Select(x => x.MaGiaoVien), cancellationToken);
 
@@ -924,8 +964,7 @@ public class SmartTimetableService : ISmartTimetableService
 
         // Sort deterministic to ensure batch suggestions are stable
         var sortedCourses = courses
-            .OrderBy(c => c.MaGiaoVien)
-            .ThenBy(c => c.MaKhoaHoc)
+            .OrderByDescending(c => studentCounts.GetValueOrDefault(c.MaKhoaHoc, studentCounts.GetValueOrDefault(c.MaLop, 0)))
             .ToList();
 
         foreach (var course in sortedCourses)
@@ -979,7 +1018,9 @@ public class SmartTimetableService : ISmartTimetableService
             MaKhoaHoc = course.MaKhoaHoc,
             MaHocKy = course.MaHocKy ?? 0,
             MaDonVi = course.MaDonVi,
-            ExpectedStudentCount = studentCounts.GetValueOrDefault(course.MaLop, 0)
+            ExpectedStudentCount = studentCounts.TryGetValue(course.MaKhoaHoc, out var countByCourse)
+                ? countByCourse
+                : studentCounts.GetValueOrDefault(course.MaLop, 0)
         };
 
         var days = candidateDays ?? new List<int> { 2, 3, 4, 5, 6, 7 };
