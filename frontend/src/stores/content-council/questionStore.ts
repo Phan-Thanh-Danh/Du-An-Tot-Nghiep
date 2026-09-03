@@ -95,7 +95,7 @@ export const useQuestionStore = defineStore('contentCouncilQuestion', () => {
     loading.value = true
     error.value = null
     try {
-      const res = await contentCouncilApi.getQuestions({ pageSize: 100 })
+      const res = await contentCouncilApi.getQuestions({ pageSize: 1000 })
       const rawData = res?.data?.items ?? res?.items ?? res?.data ?? (Array.isArray(res) ? res : [])
       questions.value = Array.isArray(rawData) ? rawData.map(mapBeToFeQuestion) : []
       initialized.value = true

@@ -95,6 +95,10 @@ const fetchQuestions = async () => {
       (Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [])
 
     const rawTotal: number =
+      res?.data?.totalItems ??
+      res?.data?.TotalItems ??
+      res?.totalItems ??
+      res?.TotalItems ??
       res?.data?.totalCount ??
       res?.data?.TotalCount ??
       res?.totalCount ??
@@ -117,6 +121,7 @@ const fetchQuestions = async () => {
 watch(() => props.subjectId, () => { currentPage.value = 1; fetchQuestions() })
 watch(() => props.format, () => { currentPage.value = 1; fetchQuestions() })
 watch(currentPage, fetchQuestions)
+watch(pageSize, () => { currentPage.value = 1; fetchQuestions() })
 
 let searchTimer: ReturnType<typeof setTimeout>
 const onSearch = () => {
@@ -314,23 +319,41 @@ const diffClass = (d: string) => {
             </div>
           </div>
 
-          <div class="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
-            <p class="text-xs text-slate-500">
-              Hiển thị {{ (currentPage - 1) * pageSize + 1 }}–{{ Math.min(currentPage * pageSize, totalItems) }} / {{ totalItems }} câu hỏi
-            </p>
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 pt-4 border-t border-slate-100">
+            <div class="flex items-center gap-3">
+              <p class="text-xs text-slate-500">
+                Hiển thị {{ totalItems > 0 ? (currentPage - 1) * pageSize + 1 : 0 }}–{{ Math.min(currentPage * pageSize, totalItems) }} / {{ totalItems }} câu hỏi
+              </p>
+              <div class="flex items-center gap-1.5 text-xs text-slate-500">
+                <span>Số câu/trang:</span>
+                <select
+                  v-model.number="pageSize"
+                  class="border border-slate-200 rounded px-2 py-0.5 text-xs bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option :value="10">10</option>
+                  <option :value="20">20</option>
+                  <option :value="50">50</option>
+                  <option :value="100">100</option>
+                  <option :value="1000">Tất cả</option>
+                </select>
+              </div>
+            </div>
+
             <div class="flex items-center gap-2">
               <button
                 @click="currentPage--"
                 :disabled="currentPage <= 1"
                 class="p-1.5 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                title="Trang trước"
               >
                 <ChevronLeft class="w-4 h-4" />
               </button>
-              <span class="text-xs text-slate-600 tabular-nums px-1">{{ currentPage }} / {{ totalPages }}</span>
+              <span class="text-xs text-slate-600 tabular-nums px-1">Trang {{ currentPage }} / {{ totalPages }}</span>
               <button
                 @click="currentPage++"
                 :disabled="currentPage >= totalPages"
                 class="p-1.5 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                title="Trang sau"
               >
                 <ChevronRight class="w-4 h-4" />
               </button>
