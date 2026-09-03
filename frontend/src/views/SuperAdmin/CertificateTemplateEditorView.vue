@@ -350,6 +350,20 @@ onMounted(loadTemplate)
         </div>
 
         <div v-if="form.mode === 'html'">
+          <!-- Hướng dẫn kỹ thuật Vector SVG & xuất PDF -->
+          <div class="mb-4 rounded-xl border border-amber-200/80 bg-amber-50/80 p-3.5 text-xs text-amber-900 shadow-sm dark:border-amber-700/50 dark:bg-amber-950/40 dark:text-amber-200">
+            <div class="flex items-start gap-2.5">
+              <span class="text-base leading-none">💡</span>
+              <div class="space-y-1">
+                <div class="font-bold text-amber-950 dark:text-amber-100">Lưu ý khi thiết kế hình khối (tam giác, vạt chéo, nếp gấp):</div>
+                <p class="leading-relaxed">
+                  Thư viện xuất file PDF (<code>html2canvas</code>) <strong>không hỗ trợ thuộc tính CSS <code>clip-path</code></strong> (khi xuất ra PDF sẽ bị biến thành khối chữ nhật đặc).
+                  Để tạo các họa tiết hình tam giác hoặc góc vát chéo, hãy chuyển đổi sang thẻ <strong>Vector SVG <code>&lt;polygon&gt;</code></strong>. Thẻ SVG được 100% trình duyệt và tất cả thư viện xuất PDF hỗ trợ sắc nét, đảm bảo file PDF tải về chuẩn xác y hệt như bản xem trước.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div class="mb-3 flex flex-wrap items-center gap-2">
             <span class="text-label text-xs font-semibold uppercase">Token có sẵn:</span>
             <button
