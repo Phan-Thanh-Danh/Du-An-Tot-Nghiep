@@ -3333,6 +3333,11 @@ namespace Backend.Migrations
                         .HasColumnType("bit")
                         .HasColumnName("con_hoat_dong");
 
+                    b.Property<decimal?>("DiemDanhGia")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)")
+                        .HasColumnName("diem_danh_gia");
+
                     b.Property<bool>("LaMonChinh")
                         .HasColumnType("bit")
                         .HasColumnName("la_mon_chinh");
@@ -3348,6 +3353,10 @@ namespace Backend.Migrations
                     b.Property<DateTime>("NgayTao")
                         .HasColumnType("datetime2")
                         .HasColumnName("ngay_tao");
+
+                    b.Property<bool?>("PhuHopChuyenMon")
+                        .HasColumnType("bit")
+                        .HasColumnName("phu_hop_chuyen_mon");
 
                     b.Property<int>("SoLanDaDay")
                         .HasColumnType("int")
@@ -3951,6 +3960,11 @@ namespace Backend.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("ly_do_huy");
 
+                    b.Property<string>("MaCodeXacThuc")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("ma_code_xac_thuc");
+
                     b.Property<int>("MaDonVi")
                         .HasColumnType("int")
                         .HasColumnName("ma_don_vi");
@@ -4039,6 +4053,11 @@ namespace Backend.Migrations
 
                     b.HasKey("MaKhenThuong")
                         .HasName("PK_KhenThuong");
+
+                    b.HasIndex("MaCodeXacThuc")
+                        .IsUnique()
+                        .HasDatabaseName("UQ_KhenThuong_MaCodeXacThuc")
+                        .HasFilter("[ma_code_xac_thuc] IS NOT NULL");
 
                     b.HasIndex("MaHocKy");
 

@@ -490,15 +490,27 @@ public class CertificateGenerationService : ICertificateGenerationService
             Items = items
         };
 
-        // Nếu có ít nhất 1 bằng khen được sinh thành công → chuyển đợt sang "da_cong_bo"
-        if (result.SuccessCount > 0 || result.SkippedCount > 0)
+        // Sau khi phát sinh (dù thành công hay thất bại), luôn chuyển đợt sang "da_cong_bo"
+        // để tránh user phát sinh lại nhiều lần. User dùng chức năng Phát sinh lại riêng.
+        await _context.DotKhenThuongs
+            .Where(x => x.MaDotKhenThuong == campaign.MaDotKhenThuong &&
+                        x.TrangThai == RewardDisciplineConstants.RewardCampaignStatuses.Approved)
+            .ExecuteUpdateAsync(
+                s => s.SetProperty(x => x.TrangThai, RewardDisciplineConstants.RewardCampaignStatuses.Published),
+                cancellationToken);
+
+        // Nếu đợt chưa có MaMauBangKhen nhưng đã sinh thành công với 1 template, cập nhật lại cho đợt
+        if (campaign.MaMauBangKhen == null)
         {
-            await _context.DotKhenThuongs
-                .Where(x => x.MaDotKhenThuong == campaign.MaDotKhenThuong &&
-                            x.TrangThai == RewardDisciplineConstants.RewardCampaignStatuses.Approved)
-                .ExecuteUpdateAsync(
-                    s => s.SetProperty(x => x.TrangThai, RewardDisciplineConstants.RewardCampaignStatuses.Published),
-                    cancellationToken);
+            var usedTemplateId = rewards.FirstOrDefault(r => r.MaMauBangKhen.HasValue)?.MaMauBangKhen;
+            if (usedTemplateId.HasValue)
+            {
+                await _context.DotKhenThuongs
+                    .Where(x => x.MaDotKhenThuong == campaign.MaDotKhenThuong)
+                    .ExecuteUpdateAsync(
+                        s => s.SetProperty(x => x.MaMauBangKhen, usedTemplateId.Value),
+                        cancellationToken);
+            }
         }
 
         await _auditLogService.LogAsync(
@@ -533,7 +545,34 @@ public class CertificateGenerationService : ICertificateGenerationService
         var templateId = reward.MaMauBangKhen ?? campaign.MaMauBangKhen;
         if (!templateId.HasValue)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Khen thưởng chưa có mẫu bằng khen.");
+            // Fallback: tìm mẫu bằng khen đang hoạt động của Top 100 học kỳ
+            // Ưu tiên: mẫu của đơn vị đợt -> mẫu toàn trường (null hoặc 1) -> mẫu bất kỳ đang hoạt động
+            var fallbackTemplate = await _context.MauBangKhens
+                .AsNoTracking()
+                .Where(x => x.ConHoatDong && x.LoaiMau == RewardDisciplineConstants.CertificateTemplateTypes.Top100Semester)
+                .OrderByDescending(x => campaign.MaDonVi.HasValue && x.MaDonVi == campaign.MaDonVi)
+                .ThenByDescending(x => x.MaDonVi == null || x.MaDonVi == 1)
+                .ThenBy(x => x.MaMauBangKhen)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (fallbackTemplate != null)
+            {
+                return fallbackTemplate;
+            }
+
+            var anyActive = await _context.MauBangKhens
+                .AsNoTracking()
+                .Where(x => x.ConHoatDong)
+                .OrderByDescending(x => x.MaDonVi == null || x.MaDonVi == 1)
+                .ThenBy(x => x.MaMauBangKhen)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (anyActive != null)
+            {
+                return anyActive;
+            }
+
+            throw new ApiException(StatusCodes.Status400BadRequest, "Khen thưởng chưa có mẫu bằng khen và không tìm thấy mẫu mặc định trong hệ thống.");
         }
 
         return await LoadActiveTemplateAsync(templateId.Value, cancellationToken);
@@ -549,10 +588,9 @@ public class CertificateGenerationService : ICertificateGenerationService
             throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy mẫu bằng khen.");
         }
 
-        if (!template.ConHoatDong ||
-            template.LoaiMau != RewardDisciplineConstants.CertificateTemplateTypes.Top100Semester)
+        if (!template.ConHoatDong)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Mẫu bằng khen không hoạt động hoặc không đúng loại Top 100 học kỳ.");
+            throw new ApiException(StatusCodes.Status400BadRequest, "Mẫu bằng khen đã ngừng hoạt động.");
         }
 
         return template;

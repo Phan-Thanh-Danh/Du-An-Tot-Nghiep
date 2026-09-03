@@ -157,12 +157,14 @@ const submitCreateForm = async () => {
   }
   isSubmitting.value = true
   try {
+    const templateId = createForm.value.maMauBangKhen ? Number(createForm.value.maMauBangKhen) : null
     await rewardDisciplineApi.createTop100Campaign({
       MaDonVi: targetCampusId,
       MaHocKy: createForm.value.maHocKy,
       TenDot: createForm.value.tenDot,
       SoLuongToiDa: createForm.value.soLuongToiDa,
-      MaMauBangKhen: createForm.value.maMauBangKhen,
+      MaMauBangKhen: templateId,
+      maMauBangKhen: templateId,
       GhiChu: createForm.value.ghiChu
     })
     popupStore.success('Thành công', 'Đã tạo đợt khen thưởng mới.')
@@ -245,9 +247,11 @@ const selectCampaign = async (cmp) => {
 }
 
 async function generateCertificatesFrontend(campaign) {
+  const tplId = campaign.maMauBangKhen ? Number(campaign.maMauBangKhen) : undefined
   await rewardDisciplineApi.generateRewardCertificates(campaign.id, {
     forceRegenerate: true,
-    maMauBangKhen: campaign.maMauBangKhen || undefined,
+    maMauBangKhen: tplId,
+    MaMauBangKhen: tplId,
   })
   return { mode: 'backend' }
 }
@@ -572,7 +576,7 @@ const cancelCampaignAction = () => {
             <label class="block text-sm font-medium text-(--text-label) mb-1">Mẫu bằng khen</label>
             <select v-model="createForm.maMauBangKhen" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg focus:ring-2 focus:ring-(--border-focus) outline-none transition-shadow text-sm">
               <option :value="null">-- Mặc định --</option>
-              <option v-for="tpl in templates" :key="tpl.maMauBangKhen || tpl.MaMauBangKhen" :value="tpl.maMauBangKhen || tpl.MaMauBangKhen">
+              <option v-for="tpl in templates" :key="tpl.maMauBangKhen ?? tpl.MaMauBangKhen ?? tpl.id ?? tpl.Id" :value="tpl.maMauBangKhen ?? tpl.MaMauBangKhen ?? tpl.id ?? tpl.Id">
                 {{ (tpl.isRootTemplate || tpl.maDonVi === 1 || !tpl.maDonVi) ? '🌐 [Toàn trường] ' : '📍 [Cơ sở] ' }}{{ tpl.tenMau || tpl.TenMau }}
               </option>
             </select>
