@@ -117,59 +117,48 @@ async function renderCertificatePdf(template, row, campaign) {
   // Strip external link tags (avoid CORS issues with Google Fonts in canvas)
   const cleanHtml = (template.html || '').replace(/<link[^>]*>/gi, '')
 
-  // Extract @import rules so they appear at the very top of <style>
   const rawCss = template.css || ''
-  const importRegex = /@import\s+[^;]+;/gi
-  const imports = rawCss.match(importRegex) || []
-  const cleanCss = rawCss.replace(importRegex, '')
 
-  // Replace `html` / `body` selectors with `#pdf-cert-render`
-  const scopedCss = cleanCss
+  // Inject any Google Fonts into document.head so the browser loads them globally
+  const fontMatches = rawCss.match(/https:\/\/fonts\.googleapis\.com\/[^'")\s]+/gi)
+  if (fontMatches) {
+    fontMatches.forEach((fontUrl) => {
+      if (!document.querySelector(`link[href="${fontUrl}"]`)) {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = fontUrl
+        document.head.appendChild(link)
+      }
+    })
+  }
+
+  // Scope CSS to #pdf-cert-render
+  const scopedCss = rawCss
     .replace(/\bhtml\s*,?\s*body\b/g, '#pdf-cert-render')
     .replace(/\bbody\b/g, '#pdf-cert-render')
     .replace(/\bhtml\b/g, '#pdf-cert-render')
 
-  // Create a hidden container placed at document (0, 0) behind page to avoid html2canvas clipping
+  // Create a hidden container placed offscreen with opacity: 1 so html2canvas renders all colors
   const container = document.createElement('div')
   container.id = 'pdf-gen-host'
   container.style.cssText = `
-    position: absolute;
+    position: fixed;
+    left: -${width + 2000}px;
     top: 0;
-    left: 0;
     width: ${width}px;
     height: ${height}px;
     overflow: hidden;
     z-index: -9999;
-    opacity: 0.01;
     pointer-events: none;
   `
 
   container.innerHTML = `
-    <style>
-      ${imports.join('\n')}
-      #pdf-cert-render {
-        width: ${width}px;
-        height: ${height}px;
-        position: relative;
-        background: white;
-        overflow: hidden;
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-        line-height: normal;
-      }
-      #pdf-cert-render * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
-      #pdf-cert-render > * {
-        width: 100% !important;
-        height: 100% !important;
-      }
-      ${scopedCss}
-    </style>
-    <div id="pdf-cert-render">
+    <div id="pdf-cert-render" style="width:${width}px;height:${height}px;position:relative;background:white;overflow:hidden;box-sizing:border-box;">
+      <style>
+        #pdf-cert-render { box-sizing: border-box; }
+        #pdf-cert-render * { box-sizing: border-box; }
+        ${scopedCss}
+      </style>
       ${fillTokens(cleanHtml, rowData)}
       ${
         qrImgUrl
@@ -266,7 +255,7 @@ const downloadCertificate = async () => {
   try {
     const responseBlob = await studentApi.downloadRewardCertificate(selectedReward.value.id)
     let blob = responseBlob
-    
+
     if (responseBlob.type === 'application/json') {
       const text = await responseBlob.text()
       const renderData = JSON.parse(text)
@@ -305,7 +294,7 @@ const downloadCertificate = async () => {
       </div>
       <!-- Subtle gradient overlay -->
       <div class="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-orange-500/5 pointer-events-none"></div>
-      
+
       <div class="flex items-center gap-5 relative z-10">
         <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg shadow-amber-500/30 flex items-center justify-center transform -rotate-6">
           <Trophy :size="32" />
@@ -342,7 +331,7 @@ const downloadCertificate = async () => {
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div class="lg:col-span-2 space-y-4">
         <LoadingSkeleton v-if="loading" :lines="6" />
-        
+
         <!-- Forbidden state -->
         <div v-else-if="forbidden" class="flex flex-col items-center justify-center py-16 bg-(--surface-card) border border-(--border-default) rounded-xl">
           <ShieldAlert :size="48" class="text-(--color-danger-bg, #ef4444) mb-4" />
@@ -368,8 +357,8 @@ const downloadCertificate = async () => {
             variant="flat"
             class="flex flex-col cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-amber-500/10 border relative overflow-hidden"
             :class="[
-              selectedReward?.id === r.id 
-                ? 'ring-2 ring-amber-500 border-amber-500/50' 
+              selectedReward?.id === r.id
+                ? 'ring-2 ring-amber-500 border-amber-500/50'
                 : 'border-(--border-default)'
             ]"
             @click="selectReward(r)"
