@@ -69,7 +69,13 @@ export const useAuthStore = defineStore('auth', () => {
   const permissions = computed(() => user.value?.permissions || user.value?.Permissions || [])
   const hasPermission = (permissionCode) => {
     const currentRole = role.value
-    if (['SuperAdmin', 'sieu_quan_tri', 'Admin', 'quan_tri'].includes(currentRole)) return true
+    if ([
+      'SuperAdmin', 'sieu_quan_tri', 
+      'Admin', 'quan_tri', 
+      'Principal', 'hieu_truong', 
+      'Chairman', 'chu_tich', 
+      'VicePrincipal', 'AcademicDirector', 'DepartmentHead', 'TruongKhoa', 'BanGiamHieu'
+    ].includes(currentRole)) return true
     return permissions.value.includes(permissionCode)
   }
   const displayName = computed(() => user.value?.fullName || user.value?.FullName || user.value?.email || user.value?.Email || 'Người dùng')
