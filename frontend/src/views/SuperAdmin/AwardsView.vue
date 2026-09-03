@@ -481,8 +481,8 @@ const cancelCampaignAction = () => {
                 <GlassButton v-if="selectedCampaign.trangThai === 'approved'" variant="primary" class="w-full justify-center bg-amber-600 hover:bg-amber-700 text-white border-none" @click="generateCertificates">
                   Phát sinh bằng khen (PDF)
                 </GlassButton>
-                <GlassButton v-if="selectedCampaign.trangThai === 'completed'" variant="secondary" class="w-full justify-center opacity-70" disabled>
-                  Đợt khen thưởng đã hoàn tất
+                <GlassButton v-if="selectedCampaign.trangThai === 'completed'" variant="primary" class="w-full justify-center bg-amber-600 hover:bg-amber-700 text-white border-none" @click="generateCertificates">
+                  🔄 Phát sinh lại bằng khen (PDF)
                 </GlassButton>
                 <GlassButton v-if="selectedCampaign.trangThai === 'approved' || selectedCampaign.trangThai === 'completed'" variant="ghost" class="w-full justify-center">
                   Gửi thông báo cho sinh viên
