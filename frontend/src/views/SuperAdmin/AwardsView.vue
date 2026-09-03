@@ -80,6 +80,7 @@ const mapCampaign = (item) => ({
   hocKy: item.tenHocKy ?? item.TenHocKy ?? 'Chưa có học kỳ',
   donVi: item.tenDonVi ?? item.TenDonVi,
   trangThai: normalizeCampaignStatus(item.trangThai ?? item.TrangThai ?? 'nhap'),
+  rawStatus: item.trangThai ?? item.TrangThai ?? 'nhap',
   maMauBangKhen: item.maMauBangKhen ?? item.MaMauBangKhen,
   tenMauBangKhen: item.tenMauBangKhen ?? item.TenMauBangKhen,
   tongUngVien: 0,
@@ -193,7 +194,9 @@ const fetchFullCandidates = async () => {
   isLoadingCandidates.value = true
   showCandidatesModal.value = true
   try {
-    const res = await rewardDisciplineApi.getRewardCampaignCandidates(selectedCampaign.value.id, { pageIndex: 1, pageSize: 500 })
+    const isApprovedOrPublished = ['da_duyet', 'da_cong_bo', 'completed'].includes(selectedCampaign.value.rawStatus)
+    const statusQuery = isApprovedOrPublished ? 'da_duyet_kt' : 'duoc_de_xuat'
+    const res = await rewardDisciplineApi.getRewardCampaignCandidates(selectedCampaign.value.id, { pageIndex: 1, pageSize: 500, status: statusQuery })
     const data = unwrapApiData(res)
     fullCandidates.value = (data?.items ?? data?.Items ?? []).map(mapCandidate)
   } catch (err) {
@@ -219,8 +222,10 @@ const selectCampaign = async (cmp) => {
   selectedCampaign.value = cmp
   candidates.value = []
   try {
+    const isApprovedOrPublished = ['da_duyet', 'da_cong_bo', 'completed'].includes(cmp.rawStatus)
+    const statusQuery = isApprovedOrPublished ? 'da_duyet_kt' : 'duoc_de_xuat'
     const [candidatesRes, summaryRes] = await Promise.all([
-      rewardDisciplineApi.getRewardCampaignCandidates(cmp.id, { pageIndex: 1, pageSize: 3 }),
+      rewardDisciplineApi.getRewardCampaignCandidates(cmp.id, { pageIndex: 1, pageSize: 3, status: statusQuery }),
       rewardDisciplineApi.getApprovalSummary(cmp.id).catch(() => null)
     ])
 
