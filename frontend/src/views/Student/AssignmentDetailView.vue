@@ -44,6 +44,8 @@ const assignment = ref({
   submissions: []
 })
 
+const defaultAllowedFormats = ['.zip', '.rar', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt']
+
 // ── Deadline countdown ───────────────────────────────────────────────────
 const deadlinePassed = computed(() => assignment.value.status === 'overdue')
 const deadlineUrgent = computed(() => assignment.value.status === 'late' || assignment.value.status === 'pending')
@@ -58,13 +60,17 @@ const scoreText = computed(() => {
 const cleanAllowedFormats = computed(() => {
   let raw = assignment.value.rules?.allowedFormats
   if (!raw || (Array.isArray(raw) && raw.length === 0)) {
-    return ['.zip', '.rar', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt']
+    return defaultAllowedFormats
   }
   if (Array.isArray(raw)) raw = raw.join(',')
   const str = String(raw).replace(/[[\]"\s]/g, '')
-  if (!str) return ['.zip', '.rar', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt']
+  if (!str) return defaultAllowedFormats
   const parsed = str.split(',').map(f => f.startsWith('.') ? f.toLowerCase() : '.' + f.toLowerCase()).filter(f => f.length > 1)
-  return parsed.length ? parsed : ['.zip', '.rar', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt']
+  if (!parsed.length) return defaultAllowedFormats
+
+  const legacyFormats = new Set(['.zip', '.rar', '.pdf'])
+  const isLegacyFormatList = parsed.length === legacyFormats.size && parsed.every(format => legacyFormats.has(format))
+  return isLegacyFormatList ? defaultAllowedFormats : parsed
 })
 
 async function fetchDetail() {
