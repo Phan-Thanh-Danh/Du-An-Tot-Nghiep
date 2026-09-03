@@ -132,8 +132,9 @@ async function renderCertificatePdf(template, row, campaign) {
     })
   }
 
-  // Scope CSS to #pdf-cert-render
+  // Scope CSS to #pdf-cert-render and remove @import so style tag is valid
   const scopedCss = rawCss
+    .replace(/@import\s+[^;]+;?/gi, '')
     .replace(/\bhtml\s*,?\s*body\b/g, '#pdf-cert-render')
     .replace(/\bbody\b/g, '#pdf-cert-render')
     .replace(/\bhtml\b/g, '#pdf-cert-render')
@@ -155,8 +156,8 @@ async function renderCertificatePdf(template, row, campaign) {
   container.innerHTML = `
     <div id="pdf-cert-render" style="width:${width}px;height:${height}px;position:relative;background:white;overflow:hidden;box-sizing:border-box;">
       <style>
-        #pdf-cert-render { box-sizing: border-box; }
-        #pdf-cert-render * { box-sizing: border-box; }
+        #pdf-cert-render, #pdf-cert-render * { box-sizing: border-box; }
+        #pdf-cert-render > * { width: 100% !important; height: 100% !important; }
         ${scopedCss}
       </style>
       ${fillTokens(cleanHtml, rowData)}
