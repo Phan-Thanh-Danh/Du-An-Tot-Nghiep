@@ -13,13 +13,15 @@ public class StudentRewardService : IStudentRewardService
     private readonly ICertificatePdfStorageService _storage;
 
     /// <summary>
-    /// Reward statuses visible to students. Internal statuses like Draft, PdfFailed are hidden.
+    /// Reward statuses visible to students. Internal statuses like Draft are hidden.
+    /// PdfFailed is included so students can still see their reward even if PDF generation fails.
     /// </summary>
     private static readonly HashSet<string> StudentVisibleStatuses = new(StringComparer.OrdinalIgnoreCase)
     {
         RewardDisciplineConstants.RewardStatuses.Approved,
         RewardDisciplineConstants.RewardStatuses.Issued,
-        RewardDisciplineConstants.RewardStatuses.PdfGenerated
+        RewardDisciplineConstants.RewardStatuses.PdfGenerated,
+        RewardDisciplineConstants.RewardStatuses.PdfFailed
     };
 
     public StudentRewardService(
