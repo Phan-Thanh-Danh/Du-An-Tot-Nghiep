@@ -918,7 +918,7 @@ public class TeacherSubmissionsController : ControllerBase
                 .Select(item => item.Trim().StartsWith('.') ? item.Trim() : $".{item.Trim()}")
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray()
-            : [".zip", ".rar", ".pdf", ".doc", ".docx"];
+            : [".zip", ".rar", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt"];
 
         return JsonSerializer.Serialize(formats);
     }

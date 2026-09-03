@@ -248,7 +248,7 @@ public static class TeacherRichDataSeeder
                     MoTa = "Sinh viên hoàn thành bài thực hành theo yêu cầu trong tài liệu hướng dẫn và nộp file zip source code.",
                     HanNop = DateTime.UtcNow.AddDays(7),
                     SoLanNopToiDa = 3,
-                    DinhDangChoPhep = JsonSerializer.Serialize(new[] { "zip", "rar", "pdf" }),
+                    DinhDangChoPhep = JsonSerializer.Serialize(new[] { "zip", "rar", "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt" }),
                     TrangThai = "da_xuat_ban",
                     DungLuongToiThieuKB = 10,
                     DungLuongToiDaMB = 50
@@ -261,7 +261,7 @@ public static class TeacherRichDataSeeder
                     MoTa = "Xây dựng ứng dụng hoàn chỉnh theo đề tài đã đăng ký, viết báo cáo kỹ thuật và quay video demo chức năng.",
                     HanNop = DateTime.UtcNow.AddDays(14),
                     SoLanNopToiDa = 5,
-                    DinhDangChoPhep = JsonSerializer.Serialize(new[] { "pdf", "zip", "rar" }),
+                    DinhDangChoPhep = JsonSerializer.Serialize(new[] { "pdf", "zip", "rar", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt" }),
                     TrangThai = "da_xuat_ban",
                     DungLuongToiThieuKB = 10,
                     DungLuongToiDaMB = 100

@@ -393,7 +393,7 @@ public class StudentAssignmentsController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(raw))
         {
-            return [".zip", ".rar", ".pdf", ".doc", ".docx"];
+            return [".zip", ".rar", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt"];
         }
 
         return raw
