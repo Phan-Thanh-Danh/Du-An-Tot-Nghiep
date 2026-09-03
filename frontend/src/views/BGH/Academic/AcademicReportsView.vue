@@ -2,7 +2,6 @@
 import { ref, computed, nextTick, onMounted } from 'vue'
 import { 
   FileSearch, 
-  BarChart, 
   Printer, 
   ExternalLink,
   Clock,
@@ -10,16 +9,16 @@ import {
   FileText,
   AlertCircle,
   X,
-  PieChart,
-  CheckCircle2,
-  TrendingUp,
   Loader2,
+  Sparkles,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import LmsSelect from '@/components/LmsSelect.vue'
+import BghAiReportModal from '@/components/BGH/BghAiReportModal.vue'
 import { exportBghToExcel, exportAcademicReportsToPdf } from '@/components/BGH/performance/bghExport.js'
 import { usePopupStore } from '@/stores/popup'
 import { bghApi } from '@/services/bghApi'
+import { aiApi } from '@/services/aiApi'
 import { unwrapApiData } from '@/services/apiClient'
 import SkeletonDashboard from '@/components/common/skeleton/SkeletonDashboard.vue'
 
@@ -162,9 +161,29 @@ onMounted(async () => {
   }
 })
 
+// AI Strategic Report State
+const aiModalOpen = ref(false)
+const aiLoading = ref(false)
+const aiError = ref(null)
+const aiReport = ref(null)
+
+const aiScopeBadges = computed(() => {
+  const list = []
+  const sem = semesters.value.find(s => String(s.value) === String(semesterFilter.value))?.label || 'Tất cả học kỳ'
+  list.push(`Học kỳ: ${sem}`)
+  const rep = reportTypes.find(r => r.value === reportType.value)?.label || 'Báo cáo chi tiết'
+  list.push(`Phân loại: ${rep}`)
+  const cam = campuses.value.find(c => String(c.value) === String(campusFilter.value))?.label || 'Tất cả cơ sở'
+  list.push(`Cơ sở: ${cam}`)
+  return list
+})
+
 async function generateReport() {
   if (generating.value) return
   generating.value = true
+  aiLoading.value = true
+  aiModalOpen.value = true
+  aiError.value = null
   try {
     await loadData()
     const reportByType = {
@@ -173,12 +192,25 @@ async function generateReport() {
       campus: reports.value.find(item => item.id === 'SEMESTER-TREND'),
     }
     selectedReport.value = reportByType[reportType.value] || reports.value[0] || null
-    showViewModal.value = Boolean(selectedReport.value)
-    popup.success('Tạo báo cáo thành công', 'Báo cáo đã được truy vấn từ CSDL và sẵn sàng để xem hoặc xuất file.')
+
+    // Gọi AI Model 9B để phân tích sâu song song với tạo báo cáo
+    const semId = semesterFilter.value !== 'all' ? parseInt(semesterFilter.value) : undefined
+    const camId = campusFilter.value !== 'all' ? parseInt(campusFilter.value) : undefined
+    const res = await aiApi.generateBghReport({
+      reportType: 'detailed_report',
+      semesterId: isNaN(semId) ? undefined : semId,
+      campusId: isNaN(camId) ? undefined : camId,
+      mode: 'deep',
+      forceRefresh: true,
+    })
+    aiReport.value = res
+    popup.success('Tạo báo cáo thành công', 'Báo cáo chi tiết và nhận định AI đã được tạo thành công.')
   } catch (e) {
+    aiError.value = e?.message || 'Không thể tải dữ liệu phân tích AI.'
     popup.error('Lỗi làm mới báo cáo', e?.message || 'Không thể tải dữ liệu.')
   } finally {
     generating.value = false
+    aiLoading.value = false
   }
 }
 
@@ -344,8 +376,10 @@ async function exportPdf() {
                </div>
             </div>
             <div class="flex items-end">
-               <button @click="generateReport" :disabled="generating" class="w-full lg-button-primary py-2.5 text-xs font-bold flex items-center justify-center gap-2 disabled:opacity-60">
-                  <BarChart :size="16" /> {{ generating ? 'ĐANG TẠO...' : 'TẠO BÁO CÁO' }}
+               <button @click="generateReport" :disabled="generating" class="w-full lg-button-primary py-2.5 text-xs font-bold flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer shadow-md shadow-blue-500/20">
+                  <Sparkles v-if="!generating" :size="16" />
+                  <Loader2 v-else :size="16" class="animate-spin" />
+                  <span>{{ generating ? 'ĐANG TẠO & PHÂN TÍCH...' : 'TẠO BÁO CÁO & PHÂN TÍCH AI' }}</span>
                </button>
             </div>
          </div>
@@ -609,6 +643,20 @@ async function exportPdf() {
       </Teleport>
 
     </div>
+
+    <!-- AI Strategic Report Modal -->
+    <BghAiReportModal
+      :is-open="aiModalOpen"
+      title="Báo Cáo Học Thuật Chi Tiết AI (Qwen 9B)"
+      subtitle="Tổng hợp dữ liệu đa chiều theo lớp, môn học, cơ sở và đề xuất giải pháp đào tạo"
+      :scope-badges="aiScopeBadges"
+      :loading="aiLoading"
+      :error="aiError"
+      :report-content="aiReport?.aiAnalysis"
+      :generated-at="aiReport?.generatedAt"
+      @close="aiModalOpen = false"
+      @retry="generateReport"
+    />
   </PageContainer>
 </template>
 

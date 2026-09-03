@@ -46,10 +46,15 @@
       <div v-for="prog in filteredPrograms" :key="getProgId(prog)" class="surface-card border border-card rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div class="flex items-start gap-4">
-            <div class="h-12 w-12 rounded-2xl bg-gradient-to-br from-blue-800 to-blue-600 flex items-center justify-center text-white font-bold text-sm shrink-0">{{ prog.maCodeChuongTrinh || prog.maCode }}</div>
+            <div class="h-12 w-12 rounded-2xl bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/15 shrink-0 border border-white/10">
+              <GraduationCap :size="22" />
+            </div>
             <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 flex-wrap">
+              <div class="flex items-center gap-2.5 flex-wrap">
                 <h3 class="text-base font-bold text-heading truncate">{{ prog.tenChuongTrinh }}</h3>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 shrink-0 tracking-wider shadow-xs" :title="'Mã chương trình: ' + (prog.maCodeChuongTrinh || prog.maCode)">
+                  {{ prog.maCodeChuongTrinh || prog.maCode }}
+                </span>
                 <span :class="statusBadge(prog.trangThai)" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
                   <component :is="statusIcon(prog.trangThai)" :size="12" />
                   {{ statusLabel(prog.trangThai) }}
@@ -105,7 +110,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import {
-  BookOpen, Users, Layers, BookMarked, Clock,
+  GraduationCap, BookOpen, Users, Layers, BookMarked, Clock,
   ChevronDown, ChevronRight, FileText, CheckCircle2,
   AlertCircle, Archive, Eye, Loader2
 } from 'lucide-vue-next'

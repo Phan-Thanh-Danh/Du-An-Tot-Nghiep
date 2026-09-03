@@ -11,6 +11,15 @@
           <option value="all">Tất cả cơ sở</option>
           <option v-for="c in campuses" :key="c.maDonVi" :value="c.maDonVi">{{ c.tenDonVi }}</option>
         </LmsSelect>
+        <button
+          @click="triggerFacilitiesAiAnalysis"
+          :disabled="aiLoading"
+          class="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white text-xs font-bold shadow-md shadow-indigo-500/20 flex items-center gap-2 transition-all active:scale-95 disabled:opacity-60 cursor-pointer shrink-0"
+        >
+          <Sparkles v-if="!aiLoading" :size="15" />
+          <Loader2 v-else :size="15" class="animate-spin" />
+          <span>{{ aiLoading ? 'ĐANG PHÂN TÍCH...' : '⚡ PHÂN TÍCH CSVC & BẢO TRÌ BẰNG AI' }}</span>
+        </button>
         <button @click="openAddBuildingModal" class="flex items-center gap-1.5 px-4 py-2 bg-(--lg-primary) hover:bg-(--lg-primary-dark) text-white text-xs font-bold rounded-xl transition-all shadow-sm">
           <Plus :size="16" />
           <span>Thêm Tòa nhà</span>
@@ -144,21 +153,72 @@
         </form>
       </div>
     </div>
+
+    <!-- AI Strategic Report Modal -->
+    <BghAiReportModal
+      :is-open="aiModalOpen"
+      title="Báo Cáo Tình Trạng Cơ Sở Vật Chất & Bảo Trì AI (Qwen 9B)"
+      subtitle="Đánh giá quy mô tòa nhà, phòng học hoạt động tốt, thiết bị lỗi cần bảo dưỡng và tối ưu công suất sử dụng"
+      :scope-badges="aiScopeBadges"
+      :loading="aiLoading"
+      :error="aiError"
+      :report-content="aiReport?.aiAnalysis"
+      :generated-at="aiReport?.generatedAt"
+      @close="aiModalOpen = false"
+      @retry="triggerFacilitiesAiAnalysis"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Building2, ChevronRight, AlertCircle, AlertTriangle, Layers, DoorOpen, Package, Plus, X, Loader2, Trash2, RotateCcw } from 'lucide-vue-next'
+import { Building2, ChevronRight, AlertCircle, AlertTriangle, Layers, DoorOpen, Package, Plus, X, Loader2, Trash2, RotateCcw, Sparkles } from 'lucide-vue-next'
 import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
 import LmsSelect from '@/components/LmsSelect.vue'
+import BghAiReportModal from '@/components/BGH/BghAiReportModal.vue'
 import { apiRequest, unwrapApiData } from '@/services/apiClient'
 import { bghApi } from '@/services/bghApi'
+import { aiApi } from '@/services/aiApi'
 
 const router = useRouter()
 const loading = ref(false)
 const error = ref(null)
+
+// AI Strategic Report State
+const aiModalOpen = ref(false)
+const aiLoading = ref(false)
+const aiError = ref(null)
+const aiReport = ref(null)
+
+const aiScopeBadges = computed(() => {
+  const cName = campusFilter.value !== 'all' ? campuses.value.find(c => String(c.maDonVi) === String(campusFilter.value))?.tenDonVi : 'Toàn cơ sở'
+  return [
+    `Cơ sở: ${cName || 'Toàn trường'}`,
+    `Tòa nhà: ${filteredBuildings.value.length} tòa`,
+    'Phạm vi: Phòng học & Trang thiết bị'
+  ]
+})
+
+async function triggerFacilitiesAiAnalysis() {
+  aiModalOpen.value = true
+  aiLoading.value = true
+  aiError.value = null
+  try {
+    const cId = campusFilter.value !== 'all' ? parseInt(campusFilter.value) : undefined
+    const res = await aiApi.generateBghReport({
+      reportType: 'facilities',
+      campusId: isNaN(cId) ? undefined : cId,
+      mode: 'deep',
+      forceRefresh: true,
+    })
+    aiReport.value = res
+  } catch (err) {
+    aiError.value = err.message || 'Không thể tạo báo cáo cơ sở vật chất AI.'
+  } finally {
+    aiLoading.value = false
+  }
+}
 
 const campusFilter = ref('all')
 

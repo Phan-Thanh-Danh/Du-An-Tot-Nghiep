@@ -12,6 +12,16 @@ public class AiChatRequest
     public string? ConversationId { get; set; }
     public int? CourseId { get; set; }
     public int? LessonId { get; set; }
+
+    /// <summary>
+    /// Chế độ suy luận: "fast" (qwen2.5:3b) hoặc "deep" (qwen3.5:9b-q4_K_M)
+    /// </summary>
+    public string Mode { get; set; } = "fast";
+
+    /// <summary>
+    /// Kích hoạt tìm kiếm văn bản quy chế học vụ qua RAG Vector Embedding
+    /// </summary>
+    public bool UseRag { get; set; } = false;
 }
 
 public class AiChatResponse
@@ -22,6 +32,22 @@ public class AiChatResponse
     public string ConversationId { get; set; } = string.Empty;
     public string Model { get; set; } = string.Empty;
     public List<string> Sources { get; set; } = new();
+
+    /// <summary>
+    /// Hành động thực thi (nếu AI kích hoạt tạo đề, phân tích,...)
+    /// </summary>
+    public AiChatActionDto? Action { get; set; }
+}
+
+public class AiChatActionDto
+{
+    public string ActionType { get; set; } = string.Empty; // "create_quiz", "view_report", "schedule_alert", "create_ticket", "download_quiz"
+    public string Title { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Status { get; set; } = "completed"; // "completed", "pending"
+    public string? ActionUrl { get; set; }
+    public string? DownloadUrl { get; set; }
+    public Dictionary<string, object>? Metadata { get; set; }
 }
 
 public class AiHealthResponse

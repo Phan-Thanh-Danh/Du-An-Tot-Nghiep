@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Code2, Eye, Plus, Power, Search } from 'lucide-vue-next'
+import { Code2, Eye, Plus, Power, Search, Sparkles } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
@@ -54,6 +54,14 @@ function openEdit(template) {
     router.push(`/bgh/awards/certificate-templates/${template.maMauBangKhen}/edit`)
   } else {
     router.push(`/super-admin/awards/certificate-templates/${template.maMauBangKhen}/edit`)
+  }
+}
+
+function openAiEdit(template) {
+  if (isBgh.value) {
+    router.push(`/bgh/awards/certificate-templates/${template.maMauBangKhen}/edit?aiPrompt=true`)
+  } else {
+    router.push(`/super-admin/awards/certificate-templates/${template.maMauBangKhen}/edit?aiPrompt=true`)
   }
 }
 
@@ -175,6 +183,14 @@ watch(() => route.path, () => {
               <div class="flex items-center justify-end gap-2">
                 <!-- BGH xem mẫu Root -->
                 <template v-if="isBgh && (t.isRootTemplate || t.maDonVi === 1 || !t.maDonVi)">
+                  <button
+                    type="button"
+                    @click.stop="openAiEdit(t)"
+                    class="px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Sparkles :size="13" />
+                    <span>AI Sửa mẫu</span>
+                  </button>
                   <GlassButton variant="secondary" size="sm" @click="openEdit(t)">
                     <template #leading><Eye :size="13" /></template>
                     Xem & Sao chép
@@ -182,6 +198,14 @@ watch(() => route.path, () => {
                 </template>
                 <!-- Mẫu của cơ sở hoặc SuperAdmin -->
                 <template v-else>
+                  <button
+                    type="button"
+                    @click.stop="openAiEdit(t)"
+                    class="px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Sparkles :size="13" />
+                    <span>AI Sửa mẫu</span>
+                  </button>
                   <GlassButton variant="secondary" size="sm" @click="openEdit(t)">
                     <template #leading><Code2 :size="13" /></template>
                     Sửa

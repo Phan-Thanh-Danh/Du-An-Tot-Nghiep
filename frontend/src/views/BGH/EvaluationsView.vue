@@ -32,7 +32,18 @@
     <div class="surface-card border border-card rounded-2xl overflow-hidden">
       <div class="p-4 flex items-center justify-between">
         <h2 class="text-base font-bold text-heading">Xếp hạng giảng viên</h2>
-        <span class="text-xs text-muted">{{ filteredRankings.length }} giảng viên</span>
+        <div class="flex items-center gap-2">
+          <button
+            @click="triggerTeacherEvalAiAnalysis"
+            :disabled="aiLoading"
+            class="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white text-xs font-bold shadow-md shadow-indigo-500/20 flex items-center gap-2 transition-all active:scale-95 disabled:opacity-60 cursor-pointer shrink-0"
+          >
+            <Sparkles v-if="!aiLoading" :size="15" />
+            <Loader2 v-else :size="15" class="animate-spin" />
+            <span>{{ aiLoading ? 'ĐANG PHÂN TÍCH...' : 'PHÂN TÍCH ĐÁNH GIÁ GV BẰNG AI' }}</span>
+          </button>
+          <span class="text-xs text-muted">{{ filteredRankings.length }} giảng viên</span>
+        </div>
       </div>
       <div class="overflow-x-auto">
         <table class="w-full text-left text-sm text-body whitespace-nowrap">
@@ -145,19 +156,58 @@
       </div>
     </div>
     </template>
+
+    <!-- AI Strategic Report Modal -->
+    <BghAiReportModal
+      :is-open="aiModalOpen"
+      title="Báo Cáo Đánh Giá & Xếp Hạng Giảng Viên AI (Qwen 9B)"
+      subtitle="Phân tích chất lượng giảng dạy từ phản hồi sinh viên, xếp hạng uy tín và khuyến nghị đào tạo bồi dưỡng"
+      :scope-badges="['Toàn cơ sở', 'Phản hồi & Khảo sát sinh viên', 'Mô hình: Qwen 9B Deep']"
+      :loading="aiLoading"
+      :error="aiError"
+      :report-content="aiReport?.aiAnalysis"
+      :generated-at="aiReport?.generatedAt"
+      @close="aiModalOpen = false"
+      @retry="triggerTeacherEvalAiAnalysis"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Star, TrendingUp, TrendingDown, ThumbsUp, MessageSquare, Users, Award, AlertCircle, Loader2 } from 'lucide-vue-next'
+import { Star, TrendingUp, TrendingDown, ThumbsUp, MessageSquare, Users, Award, AlertCircle, Loader2, Sparkles } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
-import LmsSelect from '@/components/LmsSelect.vue'
+import BghAiReportModal from '@/components/BGH/BghAiReportModal.vue'
 import { bghApi } from '@/services/bghApi'
+import { aiApi } from '@/services/aiApi'
 import { unwrapApiData } from '@/services/apiClient'
 
 const loading = ref(false)
 const error = ref(null)
+
+// AI Strategic Report State
+const aiModalOpen = ref(false)
+const aiLoading = ref(false)
+const aiError = ref(null)
+const aiReport = ref(null)
+
+async function triggerTeacherEvalAiAnalysis() {
+  aiModalOpen.value = true
+  aiLoading.value = true
+  aiError.value = null
+  try {
+    const res = await aiApi.generateBghReport({
+      reportType: 'teacher_eval',
+      mode: 'deep',
+      forceRefresh: true,
+    })
+    aiReport.value = res
+  } catch (err) {
+    aiError.value = err.message || 'Không thể tạo báo cáo đánh giá giảng viên AI.'
+  } finally {
+    aiLoading.value = false
+  }
+}
 
 const router = useRouter()
 

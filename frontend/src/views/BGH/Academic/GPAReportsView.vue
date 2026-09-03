@@ -15,11 +15,14 @@ import {
   BarChart3,
   AlertCircle,
   Loader2,
+  Sparkles,
 } from 'lucide-vue-next'
 import PageContainer from '@/components/SinhVien/PageContainer.vue'
 import LmsSelect from '@/components/LmsSelect.vue'
-import { exportBghToExcel, printBghPage as triggerPrint } from '@/components/BGH/performance/bghExport.js'
+import BghAiReportModal from '@/components/BGH/BghAiReportModal.vue'
+import { exportBghToExcel } from '@/components/BGH/performance/bghExport.js'
 import { bghApi } from '@/services/bghApi'
+import { aiApi } from '@/services/aiApi'
 import { unwrapApiData } from '@/services/apiClient'
 
 const loading = ref(false)
@@ -125,7 +128,7 @@ async function loadData(isInitial = false) {
         ...gpaStats.value.map(item => ({ value: item.id, label: item.group })),
       ]
     }
-  } catch (_e) {
+  } catch {
     error.value = null
   } finally {
     if (isInitial) loading.value = false
@@ -136,9 +139,55 @@ watch(industryFilter, () => {
   majorFilter.value = 'all'
 })
 
-watch([semesterFilter, industryFilter, majorFilter, campusFilter], () => {
-  loadData(false)
+// AI Strategic Report State
+const aiModalOpen = ref(false)
+const aiLoading = ref(false)
+const aiError = ref(null)
+const aiReport = ref(null)
+
+const aiScopeBadges = computed(() => {
+  const list = []
+  const sem = semesters.value.find(s => s.value === semesterFilter.value)?.label || 'Tất cả học kỳ'
+  list.push(`Học kỳ: ${sem}`)
+  const ind = industries.value.find(i => i.value === industryFilter.value)?.label || 'Tất cả Ngành'
+  list.push(`Ngành: ${ind}`)
+  if (majorFilter.value !== 'all') {
+    const maj = availableMajors.value.find(m => m.value === majorFilter.value)?.label
+    if (maj) list.push(`Chuyên ngành: ${maj}`)
+  }
+  const cam = campuses.value.find(c => c.value === campusFilter.value)?.label || 'Tất cả cơ sở'
+  list.push(`Cơ sở: ${cam}`)
+  return list
 })
+
+async function triggerAiAnalysis() {
+  aiModalOpen.value = true
+  aiLoading.value = true
+  aiError.value = null
+  try {
+    await loadData(false)
+    const semId = semesterFilter.value !== 'all' ? parseInt(semesterFilter.value) : undefined
+    const camId = campusFilter.value !== 'all' ? parseInt(campusFilter.value) : undefined
+    const majId = industryFilter.value !== 'all' ? parseInt(industryFilter.value) : undefined
+    const specId = majorFilter.value !== 'all' ? parseInt(majorFilter.value) : undefined
+    
+    // Lưu ý: sortBy chỉ dùng để sắp xếp UI hiển thị, KHÔNG gửi cho AI phân tích
+    const res = await aiApi.generateBghReport({
+      reportType: 'gpa',
+      semesterId: isNaN(semId) ? undefined : semId,
+      campusId: isNaN(camId) ? undefined : camId,
+      majorId: isNaN(majId) ? undefined : majId,
+      specializationId: isNaN(specId) ? undefined : specId,
+      mode: 'deep',
+      forceRefresh: true,
+    })
+    aiReport.value = res
+  } catch (err) {
+    aiError.value = err.message || 'Không thể tạo báo cáo GPA AI.'
+  } finally {
+    aiLoading.value = false
+  }
+}
 
 onMounted(() => { loadData(true) })
 
@@ -256,13 +305,24 @@ async function exportPdf() {
            <LmsSelect v-model="majorFilter" :options="availableMajors" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)" />
            <LmsSelect v-model="campusFilter" :options="campuses" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)" />
         </div>
-        <div class="flex items-center gap-2">
-           <span class="text-[10px] font-semibold text-muted uppercase tracking-widest mr-2">Sắp xếp theo</span>
-           <LmsSelect v-model="sortBy" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none">
-              <option value="gpa-desc">GPA Trung bình (Cao - Thấp)</option>
-              <option value="gpa-asc">GPA Trung bình (Thấp - Cao)</option>
-              <option value="warning">Số lượng SV cảnh báo</option>
-           </LmsSelect>
+        <div class="flex items-center gap-3">
+           <div class="flex items-center gap-2">
+              <span class="text-[10px] font-semibold text-muted uppercase tracking-widest mr-2">Sắp xếp theo</span>
+              <LmsSelect v-model="sortBy" class="surface-input border border-input rounded-xl px-4 py-2.5 text-xs font-bold outline-none">
+                 <option value="gpa-desc">GPA Trung bình (Cao - Thấp)</option>
+                 <option value="gpa-asc">GPA Trung bình (Thấp - Cao)</option>
+                 <option value="warning">Số lượng SV cảnh báo</option>
+              </LmsSelect>
+           </div>
+           <button
+             @click="triggerAiAnalysis"
+             :disabled="aiLoading"
+             class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white text-xs font-bold shadow-md shadow-indigo-500/20 flex items-center gap-2 transition-all active:scale-95 disabled:opacity-60 cursor-pointer shrink-0"
+           >
+             <Sparkles v-if="!aiLoading" :size="15" />
+             <Loader2 v-else :size="15" class="animate-spin" />
+             <span>{{ aiLoading ? 'ĐANG PHÂN TÍCH...' : 'PHÂN TÍCH BẰNG AI' }}</span>
+           </button>
         </div>
       </div>
 
@@ -485,6 +545,20 @@ async function exportPdf() {
       </Teleport>
 
     </div>
+
+    <!-- AI Strategic Report Modal -->
+    <BghAiReportModal
+      :is-open="aiModalOpen"
+      title="Báo Cáo Phân Tích GPA AI (Qwen 9B)"
+      subtitle="Đánh giá phổ điểm, phân tích độ lệch chuẩn GPA và xếp hạng năng lực học thuật"
+      :scope-badges="aiScopeBadges"
+      :loading="aiLoading"
+      :error="aiError"
+      :report-content="aiReport?.aiAnalysis"
+      :generated-at="aiReport?.generatedAt"
+      @close="aiModalOpen = false"
+      @retry="triggerAiAnalysis"
+    />
   </PageContainer>
 </template>
 

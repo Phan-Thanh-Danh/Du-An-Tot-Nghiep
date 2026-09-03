@@ -4,10 +4,12 @@ import SkeletonDashboard from '@/components/common/skeleton/SkeletonDashboard.vu
 import LmsSelect from '@/components/LmsSelect.vue'
 import { 
   Search, Trophy, TrendingUp, TrendingDown, Minus, Star, ChevronRight, ShieldCheck, Building2,
-  AlertCircle
+  AlertCircle, Sparkles, Loader2
 } from 'lucide-vue-next'
 import { useRouter, useRoute } from 'vue-router'
+import BghAiReportModal from '@/components/BGH/BghAiReportModal.vue'
 import { bghApi } from '@/services/bghApi'
+import { aiApi } from '@/services/aiApi'
 import { unwrapApiData } from '@/services/apiClient'
 
 const router = useRouter()
@@ -16,13 +18,36 @@ const searchQuery = ref('')
 const industryFilter = ref('all')
 const majorFilter = ref('all')
 const ratingFilter = ref('all')
-const semesterFilter = ref('all')
 const rankings = ref([])
 const semesters = ref([])
 const industryOptions = ref([{ value: 'all', label: 'Tất cả Ngành' }])
 const specializationOptions = ref([])
 const loading = ref(false)
 const error = ref(null)
+
+// AI Strategic Report State
+const aiModalOpen = ref(false)
+const aiLoading = ref(false)
+const aiError = ref(null)
+const aiReport = ref(null)
+
+async function triggerTeacherRankingAiAnalysis() {
+  aiModalOpen.value = true
+  aiLoading.value = true
+  aiError.value = null
+  try {
+    const res = await aiApi.generateBghReport({
+      reportType: 'teacher_eval',
+      mode: 'deep',
+      forceRefresh: true,
+    })
+    aiReport.value = res
+  } catch (err) {
+    aiError.value = err.message || 'Không thể phân tích xếp hạng giảng viên AI.'
+  } finally {
+    aiLoading.value = false
+  }
+}
 
 const availableMajors = computed(() => {
   if (industryFilter.value === 'all') {
@@ -76,11 +101,6 @@ const filteredRankings = computed(() => {
   }
   return list
 })
-
-const semesterOptions = computed(() => [
-  { value: 'all', label: 'Tất cả học kỳ' },
-  ...semesters.value.map(s => ({ value: s, label: s }))
-])
 
 const getTrendIcon = (trend) => {
   if (trend === 'up') return TrendingUp
@@ -191,6 +211,15 @@ function viewDetail(gv) {
            <LmsSelect v-model="majorFilter" :options="availableMajors" class="w-44 surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)" />
            <LmsSelect v-model="ratingFilter" :options="ratingOptions" class="w-48 surface-input border border-input rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-4 focus:ring-(--border-focus-ring)" />
         </div>
+         <button
+           @click="triggerTeacherRankingAiAnalysis"
+           :disabled="aiLoading"
+           class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white text-xs font-bold shadow-md shadow-indigo-500/20 flex items-center gap-2 transition-all active:scale-95 disabled:opacity-60 cursor-pointer shrink-0"
+         >
+           <Sparkles v-if="!aiLoading" :size="15" />
+           <Loader2 v-else :size="15" class="animate-spin" />
+           <span>{{ aiLoading ? 'ĐANG PHÂN TÍCH...' : 'PHÂN TÍCH BẰNG AI' }}</span>
+         </button>
       </div>
 
       <div class="lg-table-shell overflow-hidden">
@@ -266,5 +295,19 @@ function viewDetail(gv) {
       </div>
 
     </div>
+
+    <!-- AI Strategic Report Modal -->
+    <BghAiReportModal
+      :is-open="aiModalOpen"
+      title="Báo Cáo Phân Tích & Xếp Hạng Giảng Viên AI (Qwen 9B)"
+      subtitle="Đánh giá năng lực sư phạm, mức độ hài lòng từ người học và khuyến nghị bồi dưỡng chuyên môn"
+      :scope-badges="['Xếp hạng Giảng viên', 'Bộ lọc: Đánh giá sinh viên', 'Mô hình: Qwen 9B Deep']"
+      :loading="aiLoading"
+      :error="aiError"
+      :report-content="aiReport?.aiAnalysis"
+      :generated-at="aiReport?.generatedAt"
+      @close="aiModalOpen = false"
+      @retry="triggerTeacherRankingAiAnalysis"
+    />
   </div>
 </template>
