@@ -40,4 +40,8 @@ public interface ISmartTimetableService
     Task<bool> DeleteDraftAsync(
         Guid draftId,
         CancellationToken cancellationToken = default);
+
+    Task<ScheduleDraftDto?> GetCurrentGenerationJobAsync(
+        int maHocKy,
+        CancellationToken cancellationToken = default);
 }

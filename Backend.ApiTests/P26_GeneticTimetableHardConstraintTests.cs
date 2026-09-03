@@ -38,7 +38,7 @@ public class P26_GeneticTimetableHardConstraintTests
     }
 
     [Test]
-    public void Solve_WhenTeacherHasConfirmedAvailability_OnlyUsesConfirmedSlots()
+    public void Solve_WhenTeacherHasUnavailableSlot_DoesNotUseThatSlot()
     {
         var result = CreateSolver().Solve(
             new[] { Course(1, 101, 1001, 501) },
@@ -50,8 +50,10 @@ public class P26_GeneticTimetableHardConstraintTests
             }, 30, 10, 0.5, 5);
 
         Assert.That(result.Assignments, Has.Count.EqualTo(1));
-        Assert.That(result.Assignments.Single().ThuTrongTuan, Is.EqualTo(3));
-        Assert.That(result.Assignments.Single().MaGiaoVien, Is.EqualTo(1001));
+        var assignment = result.Assignments.Single();
+        Assert.That(assignment.MaGiaoVien, Is.EqualTo(1001));
+        Assert.That((assignment.ThuTrongTuan, assignment.MaCaHoc), Is.Not.EqualTo((3, 1)),
+            "The solver must reject the teacher's explicitly unavailable day/shift pair.");
     }
 
     [Test]

@@ -138,6 +138,7 @@ function normalizeApiExam(item) {
     durationMinutes: valueOf('durationMinutes', 'DurationMinutes') || 0,
     totalQuestions: valueOf('totalQuestions', 'TotalQuestions') || 0,
     maxAttempts: valueOf('maxAttempts', 'MaxAttempts') || 1,
+    status: valueOf('status', 'Status') || 'scheduled',
     examTypeLabel: valueOf('examTypeLabel', 'ExamTypeLabel') || 'Thi',
     openAt: valueOf('openAt', 'OpenAt'),
     closeAt: valueOf('closeAt', 'CloseAt'),

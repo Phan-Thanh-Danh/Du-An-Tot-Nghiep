@@ -28,11 +28,18 @@ public class BghFacadeController : ControllerBase
     {
         var user = HttpContext.Items["CurrentUser"] as Backend.DTOs.Auth.CurrentUserContext;
         var campusId = user?.CampusId ?? 0;
-        var isGlobal = user?.Role == AuthRoles.SuperAdmin ||
-                       user?.Role == AuthRoles.Admin ||
-                       user?.Role == AuthRoles.Principal ||
-                       (user?.Email != null && (user.Email.Contains("bgh_all", StringComparison.OrdinalIgnoreCase) ||
-                                                user.Email.Contains("p15", StringComparison.OrdinalIgnoreCase)));
+        var isCampusScoped = (user?.Role == AuthRoles.Principal || user?.Role == "hieu_truong") && campusId > 0 &&
+                             !(user?.Email?.Contains("bgh_all", StringComparison.OrdinalIgnoreCase) ?? false) &&
+                             !(user?.Email?.Contains("p15", StringComparison.OrdinalIgnoreCase) ?? false);
+
+        var isGlobal = !isCampusScoped && (
+            user?.Role == AuthRoles.SuperAdmin ||
+            user?.Role == AuthRoles.Admin ||
+            user?.Role == AuthRoles.Chairman ||
+            campusId == 0 ||
+            (user?.Email != null && (user.Email.Contains("bgh_all", StringComparison.OrdinalIgnoreCase) ||
+                                     user.Email.Contains("p15", StringComparison.OrdinalIgnoreCase)))
+        );
         return (campusId, isGlobal);
     }
 
@@ -46,6 +53,7 @@ public class BghFacadeController : ControllerBase
             .AsNoTracking()
             .Where(x =>
                 (isGlobal || x.LopHanhChinhs.Any(l => l.MaDonVi == campusId)) &&
+                x.TrangThai != "archived" && x.TrangThai != "luu_tru" &&
                 (string.IsNullOrEmpty(normalizedKeyword) ||
                  x.TenChuongTrinh.Contains(normalizedKeyword) ||
                  x.MaCodeChuongTrinh.Contains(normalizedKeyword)))
@@ -197,6 +205,7 @@ public class BghFacadeController : ControllerBase
             {
                 Id = x.MaHocKy,
                 MaHocKy = x.MaHocKy,
+                MaDonVi = x.MaDonVi,
                 MaCode = x.MaCodeHocKy,
                 MaCodeHocKy = x.MaCodeHocKy,
                 TenKyHoc = x.TenHocKy,

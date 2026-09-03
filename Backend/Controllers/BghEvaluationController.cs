@@ -24,11 +24,18 @@ public class BghEvaluationController : ControllerBase
     {
         var user = HttpContext.Items["CurrentUser"] as Backend.DTOs.Auth.CurrentUserContext;
         var campusId = user?.CampusId ?? 0;
-        var isGlobal = user?.Role == AuthRoles.SuperAdmin ||
-                       user?.Role == AuthRoles.Admin ||
-                       user?.Role == AuthRoles.Principal ||
-                       (user?.Email != null && (user.Email.Contains("bgh_all", StringComparison.OrdinalIgnoreCase) ||
-                                                user.Email.Contains("p15", StringComparison.OrdinalIgnoreCase)));
+        var isCampusScoped = (user?.Role == AuthRoles.Principal || user?.Role == "hieu_truong") && campusId > 0 &&
+                             !(user?.Email?.Contains("bgh_all", StringComparison.OrdinalIgnoreCase) ?? false) &&
+                             !(user?.Email?.Contains("p15", StringComparison.OrdinalIgnoreCase) ?? false);
+
+        var isGlobal = !isCampusScoped && (
+            user?.Role == AuthRoles.SuperAdmin ||
+            user?.Role == AuthRoles.Admin ||
+            user?.Role == AuthRoles.Chairman ||
+            campusId == 0 ||
+            (user?.Email != null && (user.Email.Contains("bgh_all", StringComparison.OrdinalIgnoreCase) ||
+                                     user.Email.Contains("p15", StringComparison.OrdinalIgnoreCase)))
+        );
         return (campusId, isGlobal);
     }
 

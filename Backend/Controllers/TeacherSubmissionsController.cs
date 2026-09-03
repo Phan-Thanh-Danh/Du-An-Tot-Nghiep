@@ -330,7 +330,9 @@ public class TeacherSubmissionsController : ControllerBase
                 else
                 {
                     // Local file
-                    var localPath = Path.Combine(env.WebRootPath, sub.UrlTapTin.TrimStart('/'));
+                    var webRootPath = env.WebRootPath ?? Path.Combine(env.ContentRootPath, "wwwroot");
+                    var relativePath = sub.UrlTapTin.TrimStart('/');
+                    var localPath = Path.Combine(webRootPath, relativePath);
                     if (System.IO.File.Exists(localPath))
                     {
                         using var fs = new FileStream(localPath, FileMode.Open, FileAccess.Read);
@@ -918,7 +920,7 @@ public class TeacherSubmissionsController : ControllerBase
                 .Select(item => item.Trim().StartsWith('.') ? item.Trim() : $".{item.Trim()}")
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray()
-            : [".zip", ".rar", ".pdf", ".doc", ".docx"];
+            : [".zip", ".rar", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt"];
 
         return JsonSerializer.Serialize(formats);
     }

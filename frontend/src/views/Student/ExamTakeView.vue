@@ -368,11 +368,15 @@ function addViolation(type, severity, message, details = {}, options = {}) {
     else if (type === 'NO_CAMERA' || type === 'mat_camera') dbType = 'mat_camera'
     else if (type === 'tieng_on') dbType = 'tieng_on'
 
+    const dbSeverity = ['high', 'critical'].includes(String(severity).toLowerCase())
+      ? 'nghiem_trong'
+      : 'nhac_nho'
+
     examApi.logViolation({
       maCaThi: caThiId,
       maHocSinh: STUDENT_ID.value,
       loaiViPham: dbType,
-      mucDo: severity,
+      mucDo: dbSeverity,
       chiTietJson: JSON.stringify({ message, originalType: type, details: details || null })
     }).catch(() => {})
   } catch(e) {}
@@ -482,7 +486,15 @@ async function startExamEnvironment() {
         type = q.kieuLuaChon === 'nhieu_lua_chon' ? 'multiple_choice' : 'single_choice'
       }
       let parsedChoices = typeof q.luaChon === 'string' ? JSON.parse(q.luaChon) : (q.luaChon || [])
-      parsedChoices = parsedChoices.map(c => ({...c, label: c.id}))
+      parsedChoices = parsedChoices.map((choice, index) => {
+        const id = choice.id || choice.key || String.fromCharCode(65 + index)
+        return {
+          ...choice,
+          id,
+          label: choice.label || id,
+          text: choice.text || choice.content || '',
+        }
+      })
 
       return {
         id: q.maCauHoi,

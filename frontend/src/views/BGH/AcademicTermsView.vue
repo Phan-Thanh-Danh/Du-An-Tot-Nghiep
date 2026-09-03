@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="space-y-4 pb-10">
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-20">
@@ -106,6 +106,10 @@ import { bghApi } from '@/services/bghApi'
 import LmsSelect from '@/components/LmsSelect.vue'
 import { unwrapApiData } from '@/services/apiClient'
 
+import { useAuthStore } from '@/stores/auth'
+
+const authStore = useAuthStore()
+
 const loading = ref(false)
 const error = ref(null)
 
@@ -131,14 +135,24 @@ async function loadData() {
   }
 }
 
-const academicYears = computed(() => {
-  const years = new Set(terms.value.map(t => t.namHoc))
-  return [...years].sort()
+const filteredTerms = computed(() => {
+  let result = terms.value
+  const userCampusId = authStore.user?.campusId || authStore.user?.maDonVi
+  const isSpecificCampus = userCampusId && Number(userCampusId) > 0 &&
+    !authStore.user?.email?.toLowerCase().includes('bgh_all') &&
+    !authStore.user?.email?.toLowerCase().includes('p15')
+
+  if (isSpecificCampus && (authStore.user?.role === 'Principal' || authStore.user?.role === 'hieu_truong')) {
+    result = result.filter(t => !t.maDonVi || t.maDonVi === Number(userCampusId))
+  }
+
+  if (!yearFilter.value) return result
+  return result.filter(t => t.namHoc === yearFilter.value)
 })
 
-const filteredTerms = computed(() => {
-  if (!yearFilter.value) return terms.value
-  return terms.value.filter(t => t.namHoc === yearFilter.value)
+const academicYears = computed(() => {
+  const years = new Set(filteredTerms.value.map(t => t.namHoc))
+  return [...years].sort()
 })
 
 function filterData() {}

@@ -106,11 +106,11 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
         // nearest locked term as the fallback so existing callers still receive
         // the precise SCHEDULE_ALREADY_PUBLISHED reason when no alternative
         // future term exists.
-        var permanentlyLockedTermIds = await GetPermanentlyLockedTermIdsAsync(
+        var permanentlyLockedTerms = await GetPermanentlyLockedTermsAsync(
             campusId,
             futureTerms.Select(x => x.MaHocKy).ToList(),
             cancellationToken);
-        result.SchedulableTerm = futureTerms.FirstOrDefault(x => !permanentlyLockedTermIds.Contains(x.MaHocKy))
+        result.SchedulableTerm = futureTerms.FirstOrDefault(x => !permanentlyLockedTerms.Contains(x.MaHocKy))
             ?? result.NextTerm;
 
         if (result.SchedulableTerm == null)
@@ -199,6 +199,11 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
         var subjectsWithoutTeachers = subjectIds.Where(s => !qualifiedSubjects.Contains(s)).ToList();
         var unassignedTeacherCourses = termCourses.Where(c => c.MaGiaoVien <= 0).Select(c => c.MaKhoaHoc).ToList();
         var teacherSkillBlocked = subjectsWithoutTeachers.Count > 0 || (hasCourses && unassignedTeacherCourses.Count > 0);
+        var teacherSkillAffectedItems = subjectsWithoutTeachers
+            .Select(id => subjects.TryGetValue(id, out var subject) ? subject.TenMonHoc : $"Môn #{id}")
+            .Concat(unassignedTeacherCourses.Select(id => $"Khóa học #{id} chưa phân công giảng viên"))
+            .Take(20)
+            .ToList();
         readinessItems.Add(new SchedulingReadinessItemDto
         {
             Code = "TEACHER_SKILL_READY",
@@ -207,34 +212,84 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
                 ? $"Có {subjectsWithoutTeachers.Count} môn chưa có giảng viên đạt năng lực (>=70%) hoặc {unassignedTeacherCourses.Count} khóa chưa phân công giảng viên."
                 : "Tất cả môn học đều có giảng viên đủ năng lực chuyên môn."),
             ActionRoute = "/academic/teacher-capabilities",
-            AffectedCount = subjectsWithoutTeachers.Count + unassignedTeacherCourses.Count
+            AffectedCount = subjectsWithoutTeachers.Count + unassignedTeacherCourses.Count,
+            AffectedItems = teacherSkillAffectedItems
         });
 
-        // 5. TEACHER_AVAILABILITY_READY
+        // 5. ACTIVE_SHIFTS_READY
+        var activeShifts = await _db.CaHocs.AsNoTracking()
+            .Where(x => x.ConHoatDong)
+            .OrderBy(x => x.ThuTu)
+            .ToListAsync(cancellationToken);
+        var hasShifts = activeShifts.Count > 0;
+        var activeShiftIdSet = activeShifts.Select(x => x.MaCaHoc).ToHashSet();
+        readinessItems.Add(new SchedulingReadinessItemDto
+        {
+            Code = "ACTIVE_SHIFTS_READY",
+            Status = hasShifts ? "ready" : "blocked",
+            Message = hasShifts ? $"Có {activeShifts.Count} ca học đang hoạt động." : "Không có ca học nào đang hoạt động.",
+            ActionRoute = "/facilities/shifts",
+            AffectedCount = activeShifts.Count
+        });
+
+        // 6. TEACHER_AVAILABILITY_READY
         var courseTeacherIds = termCourses.Where(c => c.MaGiaoVien > 0).Select(c => c.MaGiaoVien).Distinct().ToList();
         var teacherPreferences = await _db.GiaoVienNguyenVongHocKys.AsNoTracking()
             .Include(x => x.ChiTietNguyenVong)
             .Where(x => x.MaHocKy == schedulableTermId && courseTeacherIds.Contains(x.MaGiaoVien))
             .ToListAsync(cancellationToken);
         var teacherPrefMap = teacherPreferences.ToDictionary(x => x.MaGiaoVien);
-        var teachersWithAllUnavailable = 0;
+        var unavailableTeacherIds = new List<int>();
+        var totalPossibleSlots = (activeShiftIdSet.Count > 0 ? activeShiftIdSet.Count : 1) * 6; // 6 days per week (Mon-Sat)
+
         foreach (var tId in courseTeacherIds)
         {
-            if (teacherPrefMap.TryGetValue(tId, out var pref) && pref.SoCaToiDaMoiTuan <= 0)
+            if (teacherPrefMap.TryGetValue(tId, out var pref))
             {
-                teachersWithAllUnavailable++;
+                if (pref.SoCaToiDaMoiTuan <= 0)
+                {
+                    unavailableTeacherIds.Add(tId);
+                    continue;
+                }
+
+                // Check unavailable slots in preference details
+                var unavailableSlotsInDetail = pref.ChiTietNguyenVong
+                    .Where(s => s.MucDo == "unavailable" && (activeShiftIdSet.Count == 0 || activeShiftIdSet.Contains(s.MaCaHoc)))
+                    .Select(s => (s.ThuTrongTuan, s.MaCaHoc))
+                    .Distinct()
+                    .Count();
+
+                var remainingSlots = Math.Max(0, totalPossibleSlots - unavailableSlotsInDetail);
+
+                var teacherRequiredSlots = termCourses.Where(c => c.MaGiaoVien == tId).Sum(c =>
+                {
+                    var credits = subjects.TryGetValue(c.MaMonHoc, out var sub) ? sub.SoTinChi : (c.MonHoc?.SoTinChi ?? 0);
+                    return creditMappings.TryGetValue(credits, out var qd) ? qd.SoBuoiMoiTuan : 1;
+                });
+
+                if (remainingSlots < teacherRequiredSlots || remainingSlots == 0)
+                {
+                    unavailableTeacherIds.Add(tId);
+                }
             }
         }
-        var teacherAvailabilityBlocked = teachersWithAllUnavailable > 0;
+        var teacherAvailabilityBlocked = unavailableTeacherIds.Count > 0;
+        var unavailableTeacherNames = await _db.NguoiDungs.AsNoTracking()
+            .Where(x => unavailableTeacherIds.Contains(x.MaNguoiDung))
+            .OrderBy(x => x.HoTen)
+            .Select(x => string.IsNullOrWhiteSpace(x.HoTen) ? $"Giảng viên #{x.MaNguoiDung}" : x.HoTen)
+            .Take(20)
+            .ToListAsync(cancellationToken);
         readinessItems.Add(new SchedulingReadinessItemDto
         {
             Code = "TEACHER_AVAILABILITY_READY",
             Status = teacherAvailabilityBlocked ? "blocked" : "ready",
             Message = teacherAvailabilityBlocked
-                ? $"Có {teachersWithAllUnavailable} giảng viên bị cấu hình 0 ca khả dụng."
+                ? $"Có {unavailableTeacherIds.Count} giảng viên không đủ thời gian khả dụng (slot không khả dụng hoặc 0 ca khả dụng)."
                 : "Thời gian khả dụng của giảng viên hợp lệ.",
             ActionRoute = "/staff/teaching-preferences",
-            AffectedCount = teachersWithAllUnavailable
+            AffectedCount = unavailableTeacherIds.Count,
+            AffectedItems = unavailableTeacherNames
         });
 
         // 6. TEACHER_CAPACITY_READY
@@ -254,7 +309,10 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
                 ? $"Tổng ca cần dạy ({totalRequiredSlots} ca) vượt quá tổng trần tải giảng viên khả dụng ({totalFacultyCapacity} ca, trần {weeklyCap} ca/GV)."
                 : $"Tổng trần tải giảng viên ({totalFacultyCapacity} ca) đủ cho {totalRequiredSlots} ca học yêu cầu.",
             ActionRoute = "/academic/teachers",
-            AffectedCount = teacherCapacityBlocked ? (totalRequiredSlots - totalFacultyCapacity) : 0
+            AffectedCount = teacherCapacityBlocked ? (totalRequiredSlots - totalFacultyCapacity) : 0,
+            AffectedItems = teacherCapacityBlocked
+                ? new List<string> { $"Thiếu {totalRequiredSlots - totalFacultyCapacity} ca/tuần so với trần tải giảng viên." }
+                : new List<string>()
         });
 
         // 7. ACTIVE_ROOMS_READY
@@ -282,6 +340,11 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
             return cap == null || !activeRooms.Any(r => _capacityService.IsRoomEligible(r, cap, campusId));
         }).Select(c => c.MaKhoaHoc).ToList();
         var roomCapacityBlocked = hasCourses && (missingCapCourses.Count > 0 || coursesWithoutFittingRoom.Count > 0);
+        var roomCapacityAffectedItems = termCourses
+            .Where(c => missingCapCourses.Contains(c.MaKhoaHoc) || coursesWithoutFittingRoom.Contains(c.MaKhoaHoc))
+            .Select(c => string.IsNullOrWhiteSpace(c.TieuDe) ? $"Khóa học #{c.MaKhoaHoc}" : $"{c.TieuDe} (#{c.MaKhoaHoc})")
+            .Take(20)
+            .ToList();
         readinessItems.Add(new SchedulingReadinessItemDto
         {
             Code = "ROOM_CAPACITY_READY",
@@ -292,23 +355,11 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
                     ? $"Có {coursesWithoutFittingRoom.Count} khóa học không có phòng nào đủ sức chứa tại cơ sở."
                     : "Sức chứa phòng học đáp ứng toàn bộ các khóa học.")),
             ActionRoute = "/facilities/rooms",
-            AffectedCount = missingCapCourses.Count + coursesWithoutFittingRoom.Count
+            AffectedCount = missingCapCourses.Count + coursesWithoutFittingRoom.Count,
+            AffectedItems = roomCapacityAffectedItems
         });
 
-        // 9. ACTIVE_SHIFTS_READY
-        var activeShifts = await _db.CaHocs.AsNoTracking()
-            .Where(x => x.ConHoatDong)
-            .OrderBy(x => x.ThuTu)
-            .ToListAsync(cancellationToken);
-        var hasShifts = activeShifts.Count > 0;
-        readinessItems.Add(new SchedulingReadinessItemDto
-        {
-            Code = "ACTIVE_SHIFTS_READY",
-            Status = hasShifts ? "ready" : "blocked",
-            Message = hasShifts ? $"Có {activeShifts.Count} ca học đang hoạt động." : "Không có ca học nào đang hoạt động.",
-            ActionRoute = "/facilities/shifts",
-            AffectedCount = activeShifts.Count
-        });
+
 
         // 10. TOTAL_ROOM_SLOTS_READY
         var totalRoomSlots = activeRooms.Count * activeShifts.Count * 6; // 6 days / week
@@ -321,7 +372,10 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
                 ? $"Tổng số slot phòng/tuần ({totalRoomSlots}) không đủ cho nhu cầu ({totalRequiredSlots} ca). Thiếu {totalRequiredSlots - totalRoomSlots} slot."
                 : $"Tổng số slot phòng khả dụng ({totalRoomSlots} slot/tuần) đủ đáp ứng {totalRequiredSlots} ca học yêu cầu.",
             ActionRoute = "/facilities/rooms",
-            AffectedCount = totalRoomSlotsBlocked ? (totalRequiredSlots - totalRoomSlots) : 0
+            AffectedCount = totalRoomSlotsBlocked ? (totalRequiredSlots - totalRoomSlots) : 0,
+            AffectedItems = totalRoomSlotsBlocked
+                ? new List<string> { $"Thiếu {totalRequiredSlots - totalRoomSlots} slot phòng/tuần." }
+                : new List<string>()
         });
 
         // 11. EXISTING_SCHEDULE_LOCK_READY
@@ -334,16 +388,23 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
                 && x.TrangThai == "da_xuat_ban")
             .ToListAsync(cancellationToken);
         var hasPublishedSchedule = publishedSchedules.Count > 0;
-        var isLockedPermanently = permanentlyLockedTermIds.Contains(schedulableTermId);
+        var isLockedByAttendance = permanentlyLockedTerms.IsLockedByAttendance(schedulableTermId);
+        var isLockedByTimeout = permanentlyLockedTerms.IsLockedByTimeout(schedulableTermId);
+        var isLockedPermanently = permanentlyLockedTerms.Contains(schedulableTermId);
         readinessItems.Add(new SchedulingReadinessItemDto
         {
             Code = "EXISTING_SCHEDULE_LOCK_READY",
             Status = isLockedPermanently ? "blocked" : "ready",
-            Message = isLockedPermanently
-                ? "Thời khóa biểu đã được công bố chính thức và đã bị khóa vĩnh viễn (quá 30 phút hoặc đã điểm danh)."
-                : "Học kỳ cho phép chuẩn bị hoặc xuất bản lịch mới.",
+            Message = isLockedByAttendance
+                ? "Thời khóa biểu đã được công bố chính thức và đã có dữ liệu điểm danh phát sinh (khóa vĩnh viễn)."
+                : (isLockedByTimeout
+                    ? "Thời khóa biểu đã được công bố chính thức quá 30 phút (hết thời hạn chỉnh sửa)."
+                    : "Học kỳ cho phép chuẩn bị hoặc xuất bản lịch mới."),
             ActionRoute = "/staff/schedule/published",
-            AffectedCount = isLockedPermanently ? 1 : 0
+            AffectedCount = isLockedPermanently ? 1 : 0,
+            AffectedItems = isLockedPermanently
+                ? publishedSchedules.Select(x => $"Khóa học #{x.MaKhoaHoc}").Distinct().Take(20).ToList()
+                : new List<string>()
         });
 
         var hasDraftSchedule = await _db.ScheduleGenerationJobs.AnyAsync(
@@ -361,7 +422,8 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
             HasShifts = hasShifts,
             HasPublishedSchedule = hasPublishedSchedule,
             HasDraftSchedule = hasDraftSchedule,
-            Items = readinessItems
+            Items = readinessItems,
+            BlockingIssues = new List<SchedulingBlockingIssueDto>()
         };
 
         var blockedItems = readinessItems.Where(x => x.Status == "blocked").ToList();
@@ -372,13 +434,29 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
             {
                 result.Readiness.BlockingIssues.Add(new SchedulingBlockingIssueDto
                 {
-                    Code = b.Code,
+                    Code = b.Code == "EXISTING_SCHEDULE_LOCK_READY"
+                        ? (isLockedByAttendance ? "SCHEDULE_LOCKED_BY_ATTENDANCE" : "SCHEDULE_LOCKED_AFTER_EDIT_WINDOW")
+                        : b.Code,
                     Message = b.Message,
                     ActionRoute = b.ActionRoute
                 });
             }
 
-            if (!hasCourses)
+            if (isLockedPermanently)
+            {
+                result.ReasonCode = "SCHEDULE_ALREADY_PUBLISHED";
+                if (isLockedByAttendance)
+                {
+                    result.LockReasonCode = "SCHEDULE_LOCKED_BY_ATTENDANCE";
+                    result.ReasonMessage = "Thời khóa biểu cho học kỳ này đã có dữ liệu điểm danh thực tế và đã bị khóa vĩnh viễn.";
+                }
+                else
+                {
+                    result.LockReasonCode = "SCHEDULE_LOCKED_AFTER_EDIT_WINDOW";
+                    result.ReasonMessage = "Thời khóa biểu cho học kỳ này đã được công bố chính thức quá 30 phút và đã hết thời hạn chỉnh sửa.";
+                }
+            }
+            else if (!hasCourses)
             {
                 result.ReasonCode = "NO_COURSES";
                 result.ReasonMessage = "Học kỳ chưa có lớp học phần hoặc khóa học để xếp lịch.";
@@ -388,24 +466,28 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
                 result.ReasonCode = "NO_ACTIVE_ROOMS";
                 result.ReasonMessage = "Không có phòng học nào đang hoạt động tại cơ sở này.";
             }
-            else if (isLockedPermanently)
-            {
-                result.ReasonCode = "SCHEDULE_ALREADY_PUBLISHED";
-                result.ReasonMessage = "Thời khóa biểu cho học kỳ này đã được công bố chính thức và đã bị khóa (quá 30 phút hoặc đã điểm danh).";
-            }
         }
 
         return result;
     }
 
-    private async Task<HashSet<int>> GetPermanentlyLockedTermIdsAsync(
+    private record PermanentlyLockedTerms(
+        HashSet<int> AttendanceLockedTermIds,
+        HashSet<int> TimeoutLockedTermIds)
+    {
+        public bool Contains(int termId) => AttendanceLockedTermIds.Contains(termId) || TimeoutLockedTermIds.Contains(termId);
+        public bool IsLockedByAttendance(int termId) => AttendanceLockedTermIds.Contains(termId);
+        public bool IsLockedByTimeout(int termId) => TimeoutLockedTermIds.Contains(termId);
+    }
+
+    private async Task<PermanentlyLockedTerms> GetPermanentlyLockedTermsAsync(
         int campusId,
         IReadOnlyCollection<int> futureTermIds,
         CancellationToken cancellationToken)
     {
         if (futureTermIds.Count == 0)
         {
-            return new HashSet<int>();
+            return new PermanentlyLockedTerms(new HashSet<int>(), new HashSet<int>());
         }
 
         var publishedSchedules = await _db.ThoiKhoaBieus
@@ -427,25 +509,33 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
 
         if (publishedSchedules.Count == 0)
         {
-            return new HashSet<int>();
+            return new PermanentlyLockedTerms(new HashSet<int>(), new HashSet<int>());
         }
 
         var publishedCourseIds = publishedSchedules.Select(x => x.MaKhoaHoc).Distinct().ToList();
-        var attendedCourseIds = await _db.DiemDanhs
-            .AsNoTracking()
-            .Where(x => x.BuoiHoc != null && publishedCourseIds.Contains(x.BuoiHoc.MaKhoaHoc))
-            .Select(x => x.BuoiHoc!.MaKhoaHoc)
-            .Distinct()
-            .ToListAsync(cancellationToken);
+        var attendedCourseIds = await (
+            from dd in _db.DiemDanhs.AsNoTracking()
+            join bh in _db.BuoiHocs.AsNoTracking() on dd.MaBuoiHoc equals bh.MaBuoiHoc
+            where publishedCourseIds.Contains(bh.MaKhoaHoc)
+            select bh.MaKhoaHoc
+        ).Distinct().ToListAsync(cancellationToken);
         var attendedSet = attendedCourseIds.ToHashSet();
         var now = _timeProvider.GetUtcNow().UtcDateTime;
 
-        return publishedSchedules
+        var attendanceLocked = publishedSchedules
             .GroupBy(x => x.TermId)
-            .Where(group => group.Any(x => attendedSet.Contains(x.MaKhoaHoc))
-                || now - group.Min(x => x.PublishedAt) > TimeSpan.FromMinutes(30))
+            .Where(group => group.Any(x => attendedSet.Contains(x.MaKhoaHoc)))
             .Select(group => group.Key)
             .ToHashSet();
+
+        var timeoutLocked = publishedSchedules
+            .GroupBy(x => x.TermId)
+            .Where(group => !attendanceLocked.Contains(group.Key)
+                && now - group.Min(x => x.PublishedAt) > TimeSpan.FromMinutes(30))
+            .Select(group => group.Key)
+            .ToHashSet();
+
+        return new PermanentlyLockedTerms(attendanceLocked, timeoutLocked);
     }
 
     public async Task ValidateSchedulableTermAsync(
@@ -458,14 +548,21 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
 
         if (!context.CanPrepareSchedule && context.SchedulableTerm?.MaHocKy == requestedTermId)
         {
-            throw new ApiException(StatusCodes.Status409Conflict, context.ReasonMessage);
+            if (context.LockReasonCode != null)
+            {
+                throw new ApiException(StatusCodes.Status409Conflict, context.ReasonMessage, context.LockReasonCode);
+            }
+            var errCode = context.Readiness?.BlockingIssues?.FirstOrDefault()?.Code ?? context.ReasonCode ?? "SCHEDULE_PREPARATION_BLOCKED";
+            var message = context.Readiness?.BlockingIssues?.FirstOrDefault()?.Message ?? context.ReasonMessage ?? "Không thể chuẩn bị lịch do điều kiện chưa sẵn sàng.";
+            throw new ApiException(StatusCodes.Status400BadRequest, message, errCode);
         }
 
         if (context.SchedulableTerm == null)
         {
             throw new ApiException(
                 StatusCodes.Status400BadRequest,
-                "Không thể chuẩn bị lịch do không có học kỳ hợp lệ."
+                "Không thể chuẩn bị lịch do không có học kỳ hợp lệ.",
+                "NO_FUTURE_TERM"
             );
         }
 

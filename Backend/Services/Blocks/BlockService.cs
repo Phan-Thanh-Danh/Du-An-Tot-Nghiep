@@ -1,9 +1,12 @@
+using Backend.Constants;
+using Backend.DTOs.Auth;
 using Backend.Exceptions;
 using Backend.Middlewares;
 using Backend.Data;
 using Backend.DTOs.Blocks;
 using Backend.Helpers;
 using Backend.Models;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Services.Blocks;
@@ -11,14 +14,26 @@ namespace Backend.Services.Blocks;
 public class BlockService : IBlockService
 {
     private readonly ApplicationDbContext _context;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public BlockService(ApplicationDbContext context)
+    public BlockService(ApplicationDbContext context, IHttpContextAccessor httpContextAccessor)
     {
         _context = context;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<IReadOnlyList<BlockDto>> GetByTermIdAsync(int termId, CancellationToken cancellationToken = default)
     {
+        var currentUser = _httpContextAccessor.HttpContext?.Items["CurrentUser"] as CurrentUserContext;
+        var term = await _context.HocKys
+            .AsNoTracking()
+            .FirstOrDefaultAsync(h => h.MaHocKy == termId, cancellationToken);
+
+        if (term != null && currentUser != null && currentUser.Role != AuthRoles.SuperAdmin && term.MaDonVi != currentUser.CampusId)
+        {
+            throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền xem cấu hình block của cơ sở này.", "FORBIDDEN_CAMPUS");
+        }
+
         var blocks = await _context.Blocks
             .AsNoTracking()
             .Where(b => b.MaHocKy == termId)
@@ -44,6 +59,12 @@ public class BlockService : IBlockService
 
         if (block == null)
             throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy Block.");
+
+        var currentUser = _httpContextAccessor.HttpContext?.Items["CurrentUser"] as CurrentUserContext;
+        if (currentUser != null && currentUser.Role != AuthRoles.SuperAdmin && block.HocKy != null && block.HocKy.MaDonVi != currentUser.CampusId)
+        {
+            throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền chỉnh sửa block của cơ sở này.", "FORBIDDEN_CAMPUS");
+        }
 
         if (request.NgayBatDau >= request.NgayKetThuc)
             throw new ApiException(StatusCodes.Status400BadRequest, "Ngày bắt đầu phải trước ngày kết thúc.");

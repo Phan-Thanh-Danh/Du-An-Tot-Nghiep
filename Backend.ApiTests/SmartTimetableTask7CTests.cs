@@ -60,6 +60,22 @@ public class SmartTimetableTask7CTests
         _db = new ApplicationDbContext(options);
     }
 
+    private static void SeedReadyPrerequisites(ApplicationDbContext db, int campusId, int termId, DateOnly startDate, DateOnly endDate)
+    {
+        db.DonVis.Add(new DonVi { MaDonVi = campusId, TenDonVi = "Campus " + campusId, CapDonVi = "co_so", ConHoatDong = true });
+        db.HocKys.Add(new HocKy { MaHocKy = termId, MaDonVi = campusId, TenHocKy = "HK1_2027", NgayBatDau = startDate, NgayKetThuc = endDate, DaKhoa = false });
+        db.Blocks.Add(new Block { MaHocKy = termId, ThuTuBlock = 1, TenBlock = "Block 1", NgayBatDau = startDate, NgayKetThuc = endDate });
+        db.CaHocs.Add(new CaHoc { MaCaHoc = 1, TenCa = "Ca 1", ThuTu = 1, ConHoatDong = true });
+        db.QuyDoiTinChis.Add(new QuyDoiTinChi { SoTinChi = 3, SoBuoiMoiTuan = 2, SoCaMoiBuoi = 1 });
+        db.DanhMucMonHocs.Add(new DanhMucMonHoc { MaMonHoc = 10, TenMonHoc = "Mon 1", SoTinChi = 3 });
+        db.NguoiDungs.Add(new NguoiDung { MaNguoiDung = 5, MaDonVi = campusId, VaiTroChinh = "giao_vien", TrangThai = "hoat_dong", Email = $"gv5_{campusId}@lms.local", HoTen = "GV 5" });
+        db.NguoiDungs.Add(new NguoiDung { MaNguoiDung = 20, MaDonVi = campusId, MaLop = 10, VaiTroChinh = "hoc_sinh", TrangThai = "hoat_dong", Email = $"hs20_{campusId}@lms.local", HoTen = "HS 20" });
+        db.GiaoVienMonHocs.Add(new GiaoVienMonHoc { MaGiaoVien = 5, MaMonHoc = 10, ConHoatDong = true, MucDoPhuHop = 100, PhuHopChuyenMon = true });
+        db.LopHanhChinhs.Add(new LopHanhChinh { MaLop = 10, MaDonVi = campusId, TenLop = "Lop 10", ConHoatDong = true, SiSoDuKien = 30 });
+        db.KhoaHocs.Add(new KhoaHoc { MaKhoaHoc = 101, MaHocKy = termId, MaDonVi = campusId, MaMonHoc = 10, MaGiaoVien = 5, MaLop = 10, TrangThai = "mo" });
+        db.PhongHocs.Add(new PhongHoc { MaPhong = 1, MaDonVi = campusId, TenPhong = "P101", SucChua = 50, TrangThaiPhong = "hoat_dong" });
+    }
+
     [Test]
     public async Task RealDb_GetContext_ShouldReturnCurrentAndNearestFutureTerm()
     {
@@ -75,21 +91,38 @@ public class SmartTimetableTask7CTests
             .UseSqlServer(connStr)
             .Options;
 
-        using var db = new ApplicationDbContext(options);
-        var service = new AcademicSchedulingContextService(db);
+        await using var db = new ApplicationDbContext(options);
+        var campus = new DonVi { TenDonVi = "Test Campus Context " + Guid.NewGuid().ToString("N")[..8], CapDonVi = "co_so", ConHoatDong = true };
+        db.DonVis.Add(campus);
+        await db.SaveChangesAsync();
+        var campusId = campus.MaDonVi;
 
-        var context = await service.GetContextAsync(14);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var currentTerm = new HocKy { MaDonVi = campusId, TenHocKy = "HK_Current", ThuTuTrongNam = 1, NgayBatDau = today.AddDays(-30), NgayKetThuc = today.AddDays(30), DaKhoa = false };
+        var schedulableTerm = new HocKy { MaDonVi = campusId, TenHocKy = "HK_Future_Nearest", ThuTuTrongNam = 2, NgayBatDau = today.AddDays(40), NgayKetThuc = today.AddDays(100), DaKhoa = false };
+        db.HocKys.AddRange(currentTerm, schedulableTerm);
+        await db.SaveChangesAsync();
 
-        TestContext.Out.WriteLine($"Today: {context.Today}");
-        TestContext.Out.WriteLine($"CurrentTerm: {context.CurrentTerm?.TenHocKy} ({context.CurrentTerm?.MaHocKy})");
-        TestContext.Out.WriteLine($"NextTerm: {context.NextTerm?.TenHocKy} ({context.NextTerm?.MaHocKy})");
-        TestContext.Out.WriteLine($"SchedulableTerm: {context.SchedulableTerm?.TenHocKy} ({context.SchedulableTerm?.MaHocKy})");
-        TestContext.Out.WriteLine($"CanPrepareSchedule: {context.CanPrepareSchedule}, Reason: {context.ReasonCode}");
+        try
+        {
+            var service = new AcademicSchedulingContextService(db);
+            var context = await service.GetContextAsync(campusId);
 
-        Assert.That(context.CurrentTerm, Is.Not.Null);
-        Assert.That(context.CurrentTerm!.MaHocKy, Is.EqualTo(14));
-        Assert.That(context.SchedulableTerm, Is.Not.Null);
-        Assert.That(context.SchedulableTerm!.MaHocKy, Is.EqualTo(15));
+            TestContext.Out.WriteLine($"Today: {context.Today}");
+            TestContext.Out.WriteLine($"CurrentTerm: {context.CurrentTerm?.TenHocKy} ({context.CurrentTerm?.MaHocKy})");
+            TestContext.Out.WriteLine($"SchedulableTerm: {context.SchedulableTerm?.TenHocKy} ({context.SchedulableTerm?.MaHocKy})");
+
+            Assert.That(context.CurrentTerm, Is.Not.Null);
+            Assert.That(context.CurrentTerm!.MaHocKy, Is.EqualTo(currentTerm.MaHocKy));
+            Assert.That(context.SchedulableTerm, Is.Not.Null);
+            Assert.That(context.SchedulableTerm!.MaHocKy, Is.EqualTo(schedulableTerm.MaHocKy));
+        }
+        finally
+        {
+            db.HocKys.RemoveRange(currentTerm, schedulableTerm);
+            db.DonVis.Remove(campus);
+            await db.SaveChangesAsync();
+        }
     }
 
     [Test]
@@ -102,43 +135,61 @@ public class SmartTimetableTask7CTests
             .Options;
         await using var db = new ApplicationDbContext(options);
 
-        const int sourceCampusId = 14;
-        const int foreignCampusId = 2;
-        var academicStaffCode = AuthRoles.ToDatabaseCode(AuthRoles.AcademicStaff);
-        var sourceStaff = await db.NguoiDungs.AsNoTracking()
-            .Where(x => x.MaDonVi == sourceCampusId && x.VaiTroChinh == academicStaffCode && x.TrangThai == "hoat_dong")
-            .OrderBy(x => x.MaNguoiDung)
-            .FirstOrDefaultAsync();
-        var foreignCampus = await db.DonVis.AsNoTracking()
-            .SingleOrDefaultAsync(x => x.MaDonVi == foreignCampusId && x.ConHoatDong);
-        var foreignTerm = await db.HocKys.AsNoTracking()
-            .Where(x => x.MaDonVi == foreignCampusId)
-            .OrderBy(x => x.MaHocKy)
-            .FirstOrDefaultAsync();
-        var foreignRequesterId = await db.NguoiDungs.AsNoTracking()
-            .Where(x => x.MaDonVi == foreignCampusId && x.TrangThai == "hoat_dong")
-            .Select(x => (int?)x.MaNguoiDung)
-            .FirstOrDefaultAsync();
+        var uid = Guid.NewGuid().ToString("N")[..8];
+        var sourceCampus = new DonVi { TenDonVi = "Src Campus " + uid, CapDonVi = "co_so", ConHoatDong = true };
+        var foreignCampus = new DonVi { TenDonVi = "Foreign Campus " + uid, CapDonVi = "co_so", ConHoatDong = true };
+        db.DonVis.AddRange(sourceCampus, foreignCampus);
+        await db.SaveChangesAsync();
 
-        Assert.Multiple(() =>
+        var sourceCampusId = sourceCampus.MaDonVi;
+        var foreignCampusId = foreignCampus.MaDonVi;
+
+        var academicStaffCode = AuthRoles.ToDatabaseCode(AuthRoles.AcademicStaff);
+        var sourceStaff = new NguoiDung
         {
-            Assert.That(sourceStaff, Is.Not.Null, "A real non-SuperAdmin AcademicStaff fixture must exist in campus 14.");
-            Assert.That(foreignCampus, Is.Not.Null, "A real active campus 2 fixture must exist.");
-            Assert.That(foreignTerm, Is.Not.Null, "Campus 2 must have a real term fixture.");
-            Assert.That(foreignRequesterId, Is.Not.Null, "Campus 2 must have an active requester fixture.");
-        });
+            MaDonVi = sourceCampusId,
+            VaiTroChinh = academicStaffCode,
+            TrangThai = "hoat_dong",
+            Email = $"staff_{uid}@lms.local",
+            HoTen = "Staff " + uid,
+            MatKhauHash = "hash"
+        };
+        var foreignRequester = new NguoiDung
+        {
+            MaDonVi = foreignCampusId,
+            VaiTroChinh = academicStaffCode,
+            TrangThai = "hoat_dong",
+            Email = $"foreign_{uid}@lms.local",
+            HoTen = "Foreign " + uid,
+            MatKhauHash = "hash"
+        };
+        db.NguoiDungs.AddRange(sourceStaff, foreignRequester);
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var foreignTerm = new HocKy
+        {
+            MaDonVi = foreignCampusId,
+            TenHocKy = "HK_Foreign_" + uid,
+            ThuTuTrongNam = 1,
+            NgayBatDau = today.AddDays(20),
+            NgayKetThuc = today.AddDays(90),
+            DaKhoa = false
+        };
+        db.HocKys.Add(foreignTerm);
+        await db.SaveChangesAsync();
 
         var originalJobCount = await db.ScheduleGenerationJobs.CountAsync();
         var originalDraftItemCount = await db.ScheduleDraftItems.CountAsync();
         var originalTimetableCount = await db.ThoiKhoaBieus.CountAsync();
         var originalSessionCount = await db.BuoiHocs.CountAsync();
+
         var draftId = Guid.NewGuid();
         var testJob = new ScheduleGenerationJob
         {
             DraftId = draftId,
             MaDonVi = foreignCampusId,
-            MaHocKy = foreignTerm!.MaHocKy,
-            NguoiYeuCau = foreignRequesterId!.Value,
+            MaHocKy = foreignTerm.MaHocKy,
+            NguoiYeuCau = foreignRequester.MaNguoiDung,
             TrangThai = "draft",
             NgayTao = DateTime.UtcNow
         };
@@ -149,7 +200,7 @@ public class SmartTimetableTask7CTests
         {
             var staffContext = new CurrentUserContext
             {
-                UserId = sourceStaff!.MaNguoiDung,
+                UserId = sourceStaff.MaNguoiDung,
                 Email = sourceStaff.Email,
                 Role = AuthRoles.AcademicStaff,
                 CampusId = sourceCampusId
@@ -206,6 +257,9 @@ public class SmartTimetableTask7CTests
         finally
         {
             db.ScheduleGenerationJobs.Remove(testJob);
+            db.HocKys.Remove(foreignTerm);
+            db.NguoiDungs.RemoveRange(sourceStaff, foreignRequester);
+            db.DonVis.RemoveRange(sourceCampus, foreignCampus);
             await db.SaveChangesAsync();
         }
 
@@ -228,9 +282,7 @@ public class SmartTimetableTask7CTests
         var termId = 15;
         var today = DateOnly.FromDateTime(publishTime);
 
-        _db.HocKys.Add(new HocKy { MaHocKy = termId, MaDonVi = campusId, TenHocKy = "HK1_2027", NgayBatDau = today.AddDays(10), NgayKetThuc = today.AddDays(100) });
-        _db.KhoaHocs.Add(new KhoaHoc { MaKhoaHoc = 101, MaHocKy = termId, MaDonVi = campusId, TrangThai = "mo" });
-        _db.PhongHocs.Add(new PhongHoc { MaPhong = 1, MaDonVi = campusId, TenPhong = "P101", TrangThaiPhong = "hoat_dong" });
+        SeedReadyPrerequisites(_db, campusId, termId, today.AddDays(10), today.AddDays(100));
         _db.ThoiKhoaBieus.Add(new ThoiKhoaBieu { MaTkb = 1, MaKhoaHoc = 101, TrangThai = "da_xuat_ban", NgayCapNhat = publishTime });
         await _db.SaveChangesAsync();
 
@@ -238,6 +290,7 @@ public class SmartTimetableTask7CTests
 
         // 29:59.999 -> Can prepare schedule, NOT locked
         Assert.That(context.SchedulableTerm, Is.Not.Null);
+        Assert.That(context.CanPrepareSchedule, Is.True);
         Assert.That(context.ReasonCode, Is.Not.EqualTo("SCHEDULE_ALREADY_PUBLISHED"), "29:59.999 must NOT be permanently locked.");
         Assert.DoesNotThrowAsync(async () => await service.ValidateSchedulableTermAsync(campusId, termId));
     }
@@ -253,9 +306,7 @@ public class SmartTimetableTask7CTests
         var termId = 15;
         var today = DateOnly.FromDateTime(publishTime);
 
-        _db.HocKys.Add(new HocKy { MaHocKy = termId, MaDonVi = campusId, TenHocKy = "HK1_2027", NgayBatDau = today.AddDays(10), NgayKetThuc = today.AddDays(100) });
-        _db.KhoaHocs.Add(new KhoaHoc { MaKhoaHoc = 101, MaHocKy = termId, MaDonVi = campusId, TrangThai = "mo" });
-        _db.PhongHocs.Add(new PhongHoc { MaPhong = 1, MaDonVi = campusId, TenPhong = "P101", TrangThaiPhong = "hoat_dong" });
+        SeedReadyPrerequisites(_db, campusId, termId, today.AddDays(10), today.AddDays(100));
         _db.ThoiKhoaBieus.Add(new ThoiKhoaBieu { MaTkb = 1, MaKhoaHoc = 101, TrangThai = "da_xuat_ban", NgayCapNhat = publishTime });
         await _db.SaveChangesAsync();
 
@@ -263,6 +314,7 @@ public class SmartTimetableTask7CTests
 
         // Exactly 30:00.000 -> strict > is false, so NOT locked
         Assert.That(context.SchedulableTerm, Is.Not.Null);
+        Assert.That(context.CanPrepareSchedule, Is.True);
         Assert.That(context.ReasonCode, Is.Not.EqualTo("SCHEDULE_ALREADY_PUBLISHED"), "Exactly 30:00.000 must NOT be locked under strict '>' comparison.");
         Assert.DoesNotThrowAsync(async () => await service.ValidateSchedulableTermAsync(campusId, termId));
     }
@@ -278,9 +330,7 @@ public class SmartTimetableTask7CTests
         var termId = 15;
         var today = DateOnly.FromDateTime(publishTime);
 
-        _db.HocKys.Add(new HocKy { MaHocKy = termId, MaDonVi = campusId, TenHocKy = "HK1_2027", NgayBatDau = today.AddDays(10), NgayKetThuc = today.AddDays(100) });
-        _db.KhoaHocs.Add(new KhoaHoc { MaKhoaHoc = 101, MaHocKy = termId, MaDonVi = campusId, TrangThai = "mo" });
-        _db.PhongHocs.Add(new PhongHoc { MaPhong = 1, MaDonVi = campusId, TenPhong = "P101", TrangThaiPhong = "hoat_dong" });
+        SeedReadyPrerequisites(_db, campusId, termId, today.AddDays(10), today.AddDays(100));
         _db.ThoiKhoaBieus.Add(new ThoiKhoaBieu { MaTkb = 1, MaKhoaHoc = 101, TrangThai = "da_xuat_ban", NgayCapNhat = publishTime });
         await _db.SaveChangesAsync();
 
@@ -305,19 +355,26 @@ public class SmartTimetableTask7CTests
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var campusId = 14;
 
-        _db.HocKys.Add(new HocKy { MaHocKy = 14, MaDonVi = campusId, TenHocKy = "HK3_2026", NgayBatDau = today.AddDays(-60), NgayKetThuc = today.AddDays(30) });
-        _db.HocKys.Add(new HocKy { MaHocKy = 15, MaDonVi = campusId, TenHocKy = "HK1_2027", NgayBatDau = today.AddDays(40), NgayKetThuc = today.AddDays(100) });
-        _db.HocKys.Add(new HocKy { MaHocKy = 16, MaDonVi = campusId, TenHocKy = "HK2_2027", NgayBatDau = today.AddDays(110), NgayKetThuc = today.AddDays(180) });
-        _db.HocKys.Add(new HocKy { MaHocKy = 17, MaDonVi = campusId, TenHocKy = "HK3_2027", NgayBatDau = today.AddDays(190), NgayKetThuc = today.AddDays(260) });
+        SeedReadyPrerequisites(_db, campusId, 15, today.AddDays(40), today.AddDays(100));
 
-        _db.KhoaHocs.Add(new KhoaHoc { MaKhoaHoc = 1, MaHocKy = 15, MaDonVi = campusId, TrangThai = "nhap" });
+        _db.HocKys.Add(new HocKy { MaHocKy = 14, MaDonVi = campusId, TenHocKy = "HK3_2026", NgayBatDau = today.AddDays(-60), NgayKetThuc = today.AddDays(30), DaKhoa = false });
+        _db.HocKys.Add(new HocKy { MaHocKy = 16, MaDonVi = campusId, TenHocKy = "HK2_2027", NgayBatDau = today.AddDays(110), NgayKetThuc = today.AddDays(180), DaKhoa = false });
+        _db.HocKys.Add(new HocKy { MaHocKy = 17, MaDonVi = campusId, TenHocKy = "HK3_2027", NgayBatDau = today.AddDays(190), NgayKetThuc = today.AddDays(260), DaKhoa = false });
+
+        // Term 14 has published schedule that is permanently locked (> 30m)
+        _db.KhoaHocs.Add(new KhoaHoc { MaKhoaHoc = 140, MaHocKy = 14, MaDonVi = campusId, TrangThai = "mo" });
+        _db.ThoiKhoaBieus.Add(new ThoiKhoaBieu { MaTkb = 140, MaKhoaHoc = 140, TrangThai = "da_xuat_ban", NgayCapNhat = DateTime.UtcNow.AddHours(-5) });
+
         _db.KhoaHocs.Add(new KhoaHoc { MaKhoaHoc = 2, MaHocKy = 16, MaDonVi = campusId, TrangThai = "nhap" });
-        _db.PhongHocs.Add(new PhongHoc { MaPhong = 1, MaDonVi = campusId, TenPhong = "P101", TrangThaiPhong = "hoat_dong" });
         await _db.SaveChangesAsync();
 
         var service = new AcademicSchedulingContextService(_db);
+        var context = await service.GetContextAsync(campusId);
 
-        // Term 15 is nearest future -> allowed
+        // Term 15 is nearest future and NOT affected by Term 14's lock
+        Assert.That(context.SchedulableTerm, Is.Not.Null);
+        Assert.That(context.SchedulableTerm!.MaHocKy, Is.EqualTo(15));
+        Assert.That(context.CanPrepareSchedule, Is.True);
         Assert.DoesNotThrowAsync(async () => await service.ValidateSchedulableTermAsync(campusId, 15));
 
         // Term 16 is second future -> blocked with 400 Bad Request
@@ -331,7 +388,7 @@ public class SmartTimetableTask7CTests
     }
 
     // =========================================================================
-    // 3. DIEMDANH PROTECTION TESTS
+    // 3. DIEMDANH PROTECTION & VALIDATION PRECEDENCE REGRESSION TESTS
     // =========================================================================
 
     [Test]
@@ -344,6 +401,7 @@ public class SmartTimetableTask7CTests
         var termId = 15;
         var today = DateOnly.FromDateTime(publishTime);
 
+        _db.DonVis.Add(new DonVi { MaDonVi = campusId, TenDonVi = "Campus 14", ConHoatDong = true });
         _db.HocKys.Add(new HocKy { MaHocKy = termId, MaDonVi = campusId, TenHocKy = "HK1_2027", NgayBatDau = today.AddDays(10), NgayKetThuc = today.AddDays(100) });
         _db.KhoaHocs.Add(new KhoaHoc { MaKhoaHoc = 101, MaHocKy = termId, MaDonVi = campusId, TrangThai = "mo" });
         _db.ThoiKhoaBieus.Add(new ThoiKhoaBieu { MaTkb = 1, MaKhoaHoc = 101, TrangThai = "da_xuat_ban", NgayCapNhat = publishTime });
@@ -359,6 +417,92 @@ public class SmartTimetableTask7CTests
 
         var ex = Assert.ThrowsAsync<ApiException>(async () => await service.ValidateSchedulableTermAsync(campusId, termId));
         Assert.That(ex!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
+    }
+
+    [Test]
+    public async Task Precedence_PublishedWithAttendance_WithActiveRooms_ReturnsScheduleAlreadyPublished_AndPreventsGenerate()
+    {
+        var publishTime = DateTime.UtcNow.AddMinutes(-5);
+        var campusId = 14;
+        var termId = 15;
+        var today = DateOnly.FromDateTime(publishTime);
+
+        SeedReadyPrerequisites(_db, campusId, termId, today.AddDays(10), today.AddDays(100));
+        _db.ThoiKhoaBieus.Add(new ThoiKhoaBieu { MaTkb = 1, MaKhoaHoc = 101, TrangThai = "da_xuat_ban", NgayCapNhat = publishTime });
+        _db.BuoiHocs.Add(new BuoiHoc { MaBuoiHoc = 501, MaTkb = 1, MaKhoaHoc = 101, NgayHoc = today.AddDays(12) });
+        _db.DiemDanhs.Add(new DiemDanh { MaDiemDanh = 1, MaDonVi = campusId, MaBuoiHoc = 501, MaHocSinh = 201, TrangThai = "co_mat" });
+        await _db.SaveChangesAsync();
+
+        var service = new AcademicSchedulingContextService(_db);
+        var context = await service.GetContextAsync(campusId);
+
+        Assert.That(context.CanPrepareSchedule, Is.False);
+        Assert.That(context.ReasonCode, Is.EqualTo("SCHEDULE_ALREADY_PUBLISHED"));
+
+        var conflictEx = Assert.ThrowsAsync<ApiException>(async () => await service.ValidateSchedulableTermAsync(campusId, termId));
+        Assert.That(conflictEx!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
+
+        // Generate call also blocked with 409
+        var staffContext = new CurrentUserContext { UserId = 100, Email = "staff@lms.local", Role = AuthRoles.AcademicStaff, CampusId = campusId };
+        var httpContext = new DefaultHttpContext();
+        httpContext.Items["CurrentUser"] = staffContext;
+        var httpAccessor = new HttpContextAccessor { HttpContext = httpContext };
+        var scoringOptions = Options.Create(new SmartTimetableScoringOptions());
+        var scoringService = new ScheduleCandidateScoringService(scoringOptions);
+        var timetableService = new SmartTimetableService(
+            _db, httpAccessor, new ThrowingAuditLogService(), NullLogger<SmartTimetableService>.Instance,
+            service, scoringService, new GeneticTimetableSolver(scoringService, scoringOptions),
+            new ScheduleNotificationService(_db, NullLogger<ScheduleNotificationService>.Instance),
+            scoringOptions, new CourseCapacityService(_db));
+
+        var genEx = Assert.ThrowsAsync<ApiException>(async () => await timetableService.GenerateAsync(new GenerateTimetableRequest { MaHocKy = termId, MaDonVi = campusId }));
+        Assert.That(genEx!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
+        Assert.That(await _db.ScheduleGenerationJobs.CountAsync(), Is.EqualTo(0), "No generation job created when locked by attendance.");
+    }
+
+    [Test]
+    public async Task Precedence_PublishedWithAttendance_WithoutActiveRooms_ReturnsScheduleAlreadyPublished_NotNoActiveRooms_AndPreventsGenerate()
+    {
+        var publishTime = DateTime.UtcNow.AddMinutes(-5);
+        var campusId = 14;
+        var termId = 15;
+        var today = DateOnly.FromDateTime(publishTime);
+
+        // Explicitly NO active rooms in DB
+        _db.DonVis.Add(new DonVi { MaDonVi = campusId, TenDonVi = "Campus 14", ConHoatDong = true });
+        _db.HocKys.Add(new HocKy { MaHocKy = termId, MaDonVi = campusId, TenHocKy = "HK1_2027", NgayBatDau = today.AddDays(10), NgayKetThuc = today.AddDays(100) });
+        _db.KhoaHocs.Add(new KhoaHoc { MaKhoaHoc = 101, MaHocKy = termId, MaDonVi = campusId, TrangThai = "mo" });
+        _db.ThoiKhoaBieus.Add(new ThoiKhoaBieu { MaTkb = 1, MaKhoaHoc = 101, TrangThai = "da_xuat_ban", NgayCapNhat = publishTime });
+        _db.BuoiHocs.Add(new BuoiHoc { MaBuoiHoc = 501, MaTkb = 1, MaKhoaHoc = 101, NgayHoc = today.AddDays(12) });
+        _db.DiemDanhs.Add(new DiemDanh { MaDiemDanh = 1, MaDonVi = campusId, MaBuoiHoc = 501, MaHocSinh = 201, TrangThai = "co_mat" });
+        await _db.SaveChangesAsync();
+
+        var service = new AcademicSchedulingContextService(_db);
+        var context = await service.GetContextAsync(campusId);
+
+        Assert.That(context.CanPrepareSchedule, Is.False);
+        Assert.That(context.ReasonCode, Is.EqualTo("SCHEDULE_ALREADY_PUBLISHED"),
+            "CRITICAL PRECEDENCE: SCHEDULE_ALREADY_PUBLISHED must NOT be masked by NO_ACTIVE_ROOMS.");
+
+        var conflictEx = Assert.ThrowsAsync<ApiException>(async () => await service.ValidateSchedulableTermAsync(campusId, termId));
+        Assert.That(conflictEx!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
+
+        // Generate call also blocked with 409
+        var staffContext = new CurrentUserContext { UserId = 100, Email = "staff@lms.local", Role = AuthRoles.AcademicStaff, CampusId = campusId };
+        var httpContext = new DefaultHttpContext();
+        httpContext.Items["CurrentUser"] = staffContext;
+        var httpAccessor = new HttpContextAccessor { HttpContext = httpContext };
+        var scoringOptions = Options.Create(new SmartTimetableScoringOptions());
+        var scoringService = new ScheduleCandidateScoringService(scoringOptions);
+        var timetableService = new SmartTimetableService(
+            _db, httpAccessor, new ThrowingAuditLogService(), NullLogger<SmartTimetableService>.Instance,
+            service, scoringService, new GeneticTimetableSolver(scoringService, scoringOptions),
+            new ScheduleNotificationService(_db, NullLogger<ScheduleNotificationService>.Instance),
+            scoringOptions, new CourseCapacityService(_db));
+
+        var genEx = Assert.ThrowsAsync<ApiException>(async () => await timetableService.GenerateAsync(new GenerateTimetableRequest { MaHocKy = termId, MaDonVi = campusId }));
+        Assert.That(genEx!.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));
+        Assert.That(await _db.ScheduleGenerationJobs.CountAsync(), Is.EqualTo(0), "No mutation when locked by attendance even without rooms.");
     }
 
     // =========================================================================

@@ -103,4 +103,8 @@ export const scheduleApi = {
   deleteDraft(id) {
     return apiRequest(`/api/thoi-khoa-bieu/drafts/${id}`, { method: 'DELETE' })
   },
+
+  getCurrentGenerationJob(params = {}) {
+    return apiRequest(`/api/thoi-khoa-bieu/current-job${buildQuery(params)}`).then(res => res?.data ?? res?.Data ?? res)
+  },
 }

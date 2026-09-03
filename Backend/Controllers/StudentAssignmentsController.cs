@@ -25,7 +25,9 @@ public class StudentAssignmentsController : ControllerBase
 
     [HttpGet]
     [Authorize(Roles = "Student")]
-    public async Task<ActionResult<ApiResponseDto<List<StudentAssignmentDto>>>> GetAssignments()
+    public async Task<ActionResult<ApiResponseDto<List<StudentAssignmentDto>>>> GetAssignments(
+        [FromQuery] int? courseId = null,
+        [FromQuery] string? course = null)
     {
         var currentUser = HttpContext.Items["CurrentUser"] as CurrentUserContext;
         if (currentUser == null)
@@ -35,9 +37,23 @@ public class StudentAssignmentsController : ControllerBase
 
         var enrolledMonHocIds = await GetStudentSubjectIdsAsync(currentUser.UserId);
 
-        var assignments = await _context.BaiTaps
+        var query = _context.BaiTaps
             .Include(b => b.MonHoc)
-            .Where(b => enrolledMonHocIds.Contains(b.MaMonHoc) && b.TrangThai != "nhap")
+            .Where(b => enrolledMonHocIds.Contains(b.MaMonHoc) && b.TrangThai != "nhap");
+
+        if (courseId.HasValue && courseId.Value > 0)
+        {
+            query = query.Where(b => b.MaMonHoc == courseId.Value);
+        }
+        else if (!string.IsNullOrWhiteSpace(course))
+        {
+            var normalizedCourse = course.Trim().ToLower();
+            query = query.Where(b => b.MonHoc != null &&
+                (b.MonHoc.TenMonHoc.ToLower().Contains(normalizedCourse) ||
+                 b.MonHoc.MaCodeMonHoc.ToLower().Contains(normalizedCourse)));
+        }
+
+        var assignments = await query
             .OrderByDescending(b => b.HanNop)
             .ToListAsync();
 
@@ -82,6 +98,8 @@ public class StudentAssignmentsController : ControllerBase
             return new StudentAssignmentDto
             {
                 Id = a.MaBaiTap.ToString(),
+                CourseId = a.MaMonHoc,
+                CourseCode = a.MonHoc?.MaCodeMonHoc ?? "",
                 Course = a.MonHoc?.TenMonHoc ?? "",
                 Title = a.TieuDe,
                 Deadline = a.HanNop.ToString("dd/MM/yyyy"),
@@ -375,7 +393,7 @@ public class StudentAssignmentsController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(raw))
         {
-            return [".zip", ".rar", ".pdf", ".doc", ".docx"];
+            return [".zip", ".rar", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt"];
         }
 
         return raw

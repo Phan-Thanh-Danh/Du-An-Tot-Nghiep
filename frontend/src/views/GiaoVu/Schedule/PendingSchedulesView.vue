@@ -49,16 +49,17 @@ const selectedDraftSummary = computed(() => {
   const warnings = items.filter(item => (item.canhBao || item.CanhBao || []).length).length
   return { assigned: Math.max(0, items.length - unassigned), unassigned, warnings, sessions: items.length }
 })
+const selectedDraftCourseCount = computed(() => {
+  const items = selectedDraftItems.value
+  const courseIds = new Set(items.map(item => item.maKhoaHoc ?? item.MaKhoaHoc).filter(Boolean))
+  return courseIds.size || selectedItem.value?.metrics?.classes || 0
+})
 const hasHardViolation = computed(() => selectedDraftItems.value.some(item => (item.loi || item.Loi || []).length > 0) || Boolean(selectedItem.value?.raw?.hasHardViolation ?? selectedItem.value?.raw?.HasHardViolation))
-const orderedDraftItems = computed(() => [...selectedDraftItems.value].sort((a, b) => {
-  const key = scheduleView.value === 'teacher' ? 'tenGiaoVien' : scheduleView.value === 'room' ? 'tenPhong' : 'tenLop'
-  return String(a[key] ?? a[key?.replace(/^t/, 'T')] ?? '').localeCompare(String(b[key] ?? b[key?.replace(/^t/, 'T')] ?? ''), 'vi')
-}))
 const groupedDraftItems = computed(() => {
   const items = selectedDraftItems.value
   const groups = new Map()
   items.forEach(item => {
-    let title = ''
+    let title
     if (scheduleView.value === 'teacher') {
       title = item.tenGiaoVien ?? item.TenGiaoVien ?? 'Chưa phân công giảng viên'
     } else if (scheduleView.value === 'room') {
@@ -73,6 +74,46 @@ const groupedDraftItems = computed(() => {
   })
   return Array.from(groups.values()).sort((a, b) => a.title.localeCompare(b.title, 'vi'))
 })
+
+const displayLimit = ref(50)
+const totalDraftItemsCount = computed(() => selectedDraftItems.value.length)
+
+const displayedGroupedDraftItems = computed(() => {
+  let remaining = displayLimit.value
+  return groupedDraftItems.value.map(grp => {
+    if (remaining <= 0) {
+      return {
+        ...grp,
+        renderedItems: [],
+        totalCount: grp.items.length,
+      }
+    }
+    const take = Math.min(remaining, grp.items.length)
+    remaining -= take
+    return {
+      ...grp,
+      renderedItems: grp.items.slice(0, take),
+      totalCount: grp.items.length,
+    }
+  }).filter(grp => grp.totalCount > 0)
+})
+
+const displayedItemsCount = computed(() =>
+  displayedGroupedDraftItems.value.reduce((acc, g) => acc + g.renderedItems.length, 0)
+)
+
+function loadMoreDraftItems() {
+  displayLimit.value += 50
+}
+
+watch(scheduleView, () => {
+  displayLimit.value = 50
+})
+
+watch(() => selectedItem.value?.id, () => {
+  displayLimit.value = 50
+})
+
 const getStatusLabel = (status) => statusLabels[status] || statusLabels.draft
 
 function unwrap(response) {
@@ -253,16 +294,35 @@ async function executePublish() {
   showPublishConfirm.value = false
   publishing.value = true
   try {
-    const res = await scheduleApi.publishDraft({ draftId: publishTarget.value.id })
+    await scheduleApi.publishDraft({ draftId: publishTarget.value.id })
     popupStore.success('Xuất bản thành công', 'Thời khóa biểu đã được xuất bản thành công.')
     await loadSchedules()
     selectedItem.value = null
   } catch (e) {
-    const status = e?.response?.status ?? e?.status
-    const message = status === 409
-      ? (String(e?.message || '').toLowerCase().includes('diem') ? 'Không thể thay đổi lịch vì đã có điểm danh.' : 'Không thể xuất bản/thay đổi lịch sau 30 phút. Lịch đã được khóa.')
-      : status === 403 ? 'Bạn không có quyền xuất bản thời khóa biểu của cơ sở này.'
-      : e?.message || 'Không thể xuất bản bản nháp. Hãy kiểm tra kết nối và thử lại.'
+    const code = e?.errorCode || e?.details?.errorCode || e?.details?.ErrorCode || ''
+    const status = e?.statusCode || (e?.response?.status ?? e?.status)
+
+    let message
+    if (code === 'SCHEDULE_LOCKED_BY_ATTENDANCE') {
+      message = 'Không thể xuất bản đè thời khóa biểu vì đã có buổi học được điểm danh thực tế trong học kỳ này.'
+    } else if (code === 'SCHEDULE_LOCKED_AFTER_EDIT_WINDOW') {
+      message = 'Thời khóa biểu đã xuất bản quá 30 phút, bị khóa chỉnh sửa/ghi đè vĩnh viễn.'
+    } else if (code === 'FORBIDDEN_CAMPUS' || status === 403) {
+      message = 'Bạn không có quyền quản lý thời khóa biểu của cơ sở này.'
+    } else if (code === 'DRAFT_ALREADY_PUBLISHED') {
+      message = 'Bản nháp này đã được xuất bản trước đó.'
+    } else if (code === 'DRAFT_EXPIRED_OR_INVALID') {
+      message = 'Bản nháp không hợp lệ hoặc đã hết hạn.'
+    } else if (code === 'HARD_CONFLICT') {
+      message = 'Bản nháp có dữ liệu xung đột cứng, không thể xuất bản.'
+    } else if (code === 'READINESS_BLOCKED') {
+      message = 'Dữ liệu học kỳ chưa sẵn sàng để xuất bản thời khóa biểu.'
+    } else if (code === 'CONCURRENT_CONFLICT' || status === 409) {
+      message = e?.message || 'Thao tác xuất bản bị xung đột hoặc học kỳ đã bị khóa. Vui lòng tải lại trang và kiểm tra lại.'
+    } else {
+      message = e?.message || 'Không thể xuất bản bản nháp. Vui lòng kiểm tra kết nối mạng và thử lại.'
+    }
+
     popupStore.error('Không thể xuất bản', message)
   } finally {
     publishing.value = false
@@ -310,7 +370,7 @@ watch(
           <span>Cơ sở</span>
           <select
             v-model.number="filterMaDonVi"
-            :disabled="loading || publishing || loadingFilters"
+            :disabled="loading || publishing || loadingFilters || !!authorizedCampusId"
             class="h-10 min-w-[220px] rounded-xl border border-(--border-input) bg-(--surface-input) px-3 text-sm text-(--text-body) outline-none focus:ring-2 focus:ring-(--border-focus) disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <option value="">Chọn cơ sở</option>
@@ -357,7 +417,7 @@ watch(
     <!-- Main Content Layout -->
     <div class="flex flex-1 min-h-0 gap-4 flex-col lg:flex-row">
       <!-- Left: List -->
-      <div class="flex-1 surface-card border border-(--border-card) rounded-2xl p-4 flex flex-col gap-3 min-w-0 overflow-y-auto">
+      <div data-testid="draft-container-card" class="flex-1 surface-card border border-(--border-card) rounded-2xl p-4 flex flex-col gap-3 min-w-0 overflow-y-auto">
         <div v-if="!filterMaDonVi || !filterMaHocKy" class="surface-card border border-(--border-card) rounded-2xl p-8 text-sm text-(--text-muted)">
           Chưa có học kỳ phù hợp để xem bản nháp thời khóa biểu.
         </div>
@@ -420,7 +480,7 @@ watch(
 
       <!-- Right: Detail Panel -->
       <div v-if="selectedItem" class="w-full lg:w-80 shrink-0 flex flex-col gap-3">
-        <div class="surface-card border border-(--border-card) rounded-2xl shadow-sm flex flex-col h-full overflow-hidden">
+        <div data-testid="draft-container-card" class="surface-card border border-(--border-card) rounded-2xl shadow-sm flex flex-col h-full overflow-hidden">
           <div class="p-4 border-b border-(--border-default) flex justify-between items-center bg-(--surface-input)">
             <h3 class="font-bold text-(--text-heading)">Chi tiết bộ TKB</h3>
             <button class="text-(--text-muted) hover:text-(--text-heading)" @click="selectedItem = null"><X :size="16" /></button>
@@ -439,9 +499,15 @@ watch(
             </div>
 
             <div class="grid grid-cols-2 gap-2 text-center text-sm">
+              <div class="rounded-lg bg-(--surface-input) p-2">
+                <strong data-testid="summary-courses">{{ selectedDraftCourseCount }}/{{ selectedDraftCourseCount }} khóa</strong>
+                <span class="block text-xs text-(--text-muted)">Khóa học</span>
+              </div>
+              <div class="rounded-lg bg-(--surface-input) p-2">
+                <strong data-testid="summary-sessions">{{ selectedDraftSummary.sessions }} buổi</strong>
+                <span class="block text-xs text-(--text-muted)">Tổng số buổi</span>
+              </div>
               <div class="rounded-lg bg-(--surface-input) p-2"><strong>{{ selectedDraftSummary.assigned }}</strong><span class="block text-xs text-(--text-muted)">Đã xếp</span></div>
-              <div class="rounded-lg bg-(--surface-input) p-2"><strong>{{ selectedDraftSummary.unassigned }}</strong><span class="block text-xs text-(--text-muted)">Chưa xếp</span></div>
-              <div class="rounded-lg bg-(--surface-input) p-2"><strong>{{ selectedDraftSummary.sessions }}</strong><span class="block text-xs text-(--text-muted)">Ca mỗi tuần</span></div>
               <div class="rounded-lg bg-(--surface-input) p-2"><strong>{{ selectedDraftSummary.warnings }}</strong><span class="block text-xs text-(--text-muted)">Cảnh báo</span></div>
             </div>
 
@@ -455,14 +521,25 @@ watch(
             </div>
 
             <div v-if="(selectedItem.raw.items && selectedItem.raw.items.length) || (selectedItem.raw.Items && selectedItem.raw.Items.length)">
-              <p class="text-xs text-(--text-muted) uppercase tracking-wider font-bold mb-1">Chi tiết môn học</p>
+              <div class="flex items-center justify-between mb-1">
+                <p class="text-xs text-(--text-muted) uppercase tracking-wider font-bold">Chi tiết môn học</p>
+                <span data-testid="display-count" class="text-xs font-semibold text-(--text-muted)">
+                  Đang hiển thị {{ displayedItemsCount }}/{{ totalDraftItemsCount }} buổi
+                </span>
+              </div>
               <div class="space-y-4 mt-2 max-h-[360px] overflow-y-auto pr-1">
-                <div v-for="grp in groupedDraftItems" :key="grp.title" class="space-y-2">
+                <div v-for="grp in displayedGroupedDraftItems" :key="grp.title" class="space-y-2">
                   <div class="flex items-center justify-between px-1 text-xs font-bold text-(--text-muted) border-b border-(--border-default) pb-1 sticky top-0 bg-(--surface-card) z-10">
                     <span class="truncate text-(--text-heading)">{{ grp.title }}</span>
-                    <span class="text-[10px] rounded-full bg-(--surface-input) px-2 py-0.5 shrink-0">{{ grp.items.length }} ca</span>
+                    <span class="text-[10px] rounded-full bg-(--surface-input) px-2 py-0.5 shrink-0">{{ grp.renderedItems.length }}/{{ grp.totalCount }} ca</span>
                   </div>
-                  <div v-for="cItem in grp.items" :key="cItem.maDraftItem || cItem.MaDraftItem" class="text-sm border border-(--border-default) rounded-xl p-3">
+                  <div
+                    v-for="cItem in grp.renderedItems"
+                    :key="cItem.maDraftItem || cItem.MaDraftItem || `${grp.title}-${cItem.maKhoaHoc}-${cItem.thuTrongTuan}-${cItem.maCaHoc}`"
+                    data-testid="draft-session-item"
+                    :data-draft-item-id="cItem.maDraftItem || cItem.MaDraftItem || `${cItem.maKhoaHoc}-${cItem.thuTrongTuan}-${cItem.maCaHoc}`"
+                    class="text-sm border border-(--border-default) rounded-xl p-3"
+                  >
                   <div class="flex justify-between items-center mb-1 gap-2">
                     <span class="font-bold text-(--text-heading) truncate">{{ cItem.tenMonHoc ?? cItem.TenMonHoc ?? `Khóa học ${cItem.maKhoaHoc ?? cItem.MaKhoaHoc}` }}</span>
                     <GlassBadge :variant="(cItem.loi || cItem.Loi || []).length ? 'danger' : (cItem.canhBao || cItem.CanhBao || []).length ? 'warning' : 'success'" size="sm">{{ (cItem.loi || cItem.Loi || []).length ? 'Không thể xuất bản' : (cItem.canhBao || cItem.CanhBao || []).length ? 'Cần xem lại' : 'Tốt' }}</GlassBadge>
@@ -532,6 +609,19 @@ watch(
                     </div>
                   </div>
                 </div>
+                </div>
+
+                <!-- Load More button -->
+                <div v-if="displayedItemsCount < totalDraftItemsCount" class="pt-2 text-center">
+                  <GlassButton
+                    variant="secondary"
+                    size="sm"
+                    class="w-full justify-center"
+                    data-testid="load-more-btn"
+                    @click="loadMoreDraftItems"
+                  >
+                    Xem thêm {{ totalDraftItemsCount - displayedItemsCount }} buổi
+                  </GlassButton>
                 </div>
               </div>
             </div>

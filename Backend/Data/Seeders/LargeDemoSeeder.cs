@@ -629,7 +629,10 @@ public static class LargeDemoSeeder
     private static async Task SeedSmartSchedulingDemoTermCoreAsync(ApplicationDbContext context)
     {
         const string targetTermCode = "HK1_2027";
+        const string targetAcademicYear = "2027";
+        const int weeklyTeacherCap = 6;
         const int targetCourseCount = 30;
+        const string d0CourseTitlePrefix = "Smart Demo 2027 - ";
         var now = DateTime.UtcNow;
         var studentRole = AuthRoles.ToDatabaseCode(AuthRoles.Student);
         var teacherRole = AuthRoles.ToDatabaseCode(AuthRoles.Teacher);
@@ -655,60 +658,44 @@ public static class LargeDemoSeeder
             {
                 MaDonVi = campus.MaDonVi,
                 MaCodeHocKy = targetTermCode,
-                TenHocKy = "Học kỳ Demo Smart Scheduling 2029 (Hồ Chí Minh)",
-                NamHoc = "2029",
+                TenHocKy = "Học kỳ Demo Smart Scheduling 2027 (Hồ Chí Minh)",
+                NamHoc = targetAcademicYear,
                 ThuTuTrongNam = 1,
-                NgayBatDau = new DateOnly(2029, 1, 1),
-                NgayKetThuc = new DateOnly(2029, 4, 30),
+                NgayBatDau = new DateOnly(2027, 1, 1),
+                NgayKetThuc = new DateOnly(2027, 4, 30),
                 DaKhoa = false
             };
             context.HocKys.Add(term);
             await context.SaveChangesAsync();
         }
-        else
-        {
-            // Keep the academic term's existing code/name/dates intact.
-        }
-
-        // HK1_2027's legacy fixture has cancelled schedules but no sections or
-        // enrolments. Preserve it for audit while excluding it from the live
-        // scheduler, so the D0 target remains the intended 30 complete courses.
-        var activeTargetCourses = await context.KhoaHocs
-            .Where(x => x.MaHocKy == term.MaHocKy && x.TrangThai != "luu_tru")
-            .ToListAsync();
-        if (activeTargetCourses.Count > targetCourseCount
-            && !await context.LopHocPhans.AnyAsync(x => x.MaHocKy == term.MaHocKy)
-            && !await context.DangKyHocPhans.AnyAsync(x => x.LopHocPhan != null && x.LopHocPhan.MaHocKy == term.MaHocKy))
-        {
-            foreach (var course in activeTargetCourses)
-            {
-                course.TrangThai = "luu_tru";
-            }
-            await context.SaveChangesAsync();
-        }
+        else { term.NamHoc = targetAcademicYear; term.TenHocKy = "Học kỳ Demo Smart Scheduling 2027 (Hồ Chí Minh)"; term.NgayBatDau = new DateOnly(2027, 1, 1); term.NgayKetThuc = new DateOnly(2027, 4, 30); term.DaKhoa = false; await context.SaveChangesAsync(); }
 
         var existingBlocks = await context.Blocks
             .Where(x => x.MaHocKy == term.MaHocKy)
             .OrderBy(x => x.ThuTuBlock)
             .ToListAsync();
-        if (existingBlocks.Count == 0)
+        if (existingBlocks.Count > 5 || existingBlocks.GroupBy(x => x.ThuTuBlock).Any(x => x.Count() != 1))
+            throw new InvalidOperationException("SmartScheduling D0 requires one block for each order 1..5.");
+        const int blockDays = 24;
+        for (var order = 1; order <= 5; order++)
         {
-            const int blockDays = 24;
-            for (var order = 1; order <= 5; order++)
+            var start = term.NgayBatDau.AddDays((order - 1) * blockDays);
+            var block = existingBlocks.SingleOrDefault(x => x.ThuTuBlock == order);
+            if (block is null)
             {
-                var start = term.NgayBatDau.AddDays((order - 1) * blockDays);
-                context.Blocks.Add(new Block
+                block = new Block
                 {
                     MaHocKy = term.MaHocKy,
-                    ThuTuBlock = order,
-                    TenBlock = $"Block {order}",
-                    NgayBatDau = start,
-                    NgayKetThuc = order == 5 ? term.NgayKetThuc : start.AddDays(blockDays - 1)
-                });
+                    ThuTuBlock = order
+                };
+                context.Blocks.Add(block);
             }
-            await context.SaveChangesAsync();
-            existingBlocks = await context.Blocks.Where(x => x.MaHocKy == term.MaHocKy).OrderBy(x => x.ThuTuBlock).ToListAsync();
+            block.TenBlock = $"Block {order}";
+            block.NgayBatDau = start;
+            block.NgayKetThuc = order == 5 ? term.NgayKetThuc : start.AddDays(blockDays - 1);
         }
+        await context.SaveChangesAsync();
+        existingBlocks = await context.Blocks.Where(x => x.MaHocKy == term.MaHocKy).OrderBy(x => x.ThuTuBlock).ToListAsync();
 
         // A clean LargeDemo database has no room bootstrap outside this seed.
         // Ensure a small, explicit campus-14 inventory before measuring capacity
@@ -754,11 +741,8 @@ public static class LargeDemoSeeder
             .ThenBy(x => x.Class.MaCodeLop)
             .Take(targetCourseCount)
             .ToListAsync();
-        if (classes.Count < 25)
-        {
-            Console.WriteLine($"SmartScheduling D0: only {classes.Count} capacity-safe classes found; skipped.");
-            return;
-        }
+        if (classes.Count < targetCourseCount)
+            throw new InvalidOperationException($"SmartScheduling D0 requires {targetCourseCount} capacity-safe classes, found {classes.Count}.");
 
         var capabilities = await (
             from capability in context.GiaoVienMonHocs
@@ -879,15 +863,19 @@ public static class LargeDemoSeeder
         var subjectSets = subjectTeachers.OrderBy(x => x.Key).ToList();
         var firstBlock = existingBlocks.First(x => x.ThuTuBlock == 1);
         var addedCourses = new List<KhoaHoc>();
+        var targetCourseIds = new HashSet<int>();
         var teacherWeeklyLoads = new Dictionary<int, int>();
         for (var index = 0; index < classes.Count; index++)
         {
             var subjectSet = subjectSets[index % subjectSets.Count];
+            var conversionCandidate = subjectSet.Value.First();
+            var requiredWeeklySessions = mappings[conversionCandidate.SoTinChi].SoBuoiMoiTuan;
             var selectedTeacher = subjectSet.Value
+                .Where(x => teacherWeeklyLoads.GetValueOrDefault(x.MaGiaoVien) + requiredWeeklySessions <= weeklyTeacherCap)
                 .OrderBy(x => teacherWeeklyLoads.GetValueOrDefault(x.MaGiaoVien))
                 .ThenByDescending(x => x.MucDoPhuHop)
                 .ThenBy(x => x.MaGiaoVien)
-                .First();
+                .FirstOrDefault() ?? throw new InvalidOperationException($"SmartScheduling D0 lacks teacher capacity for subject {subjectSet.Key}, course {index + 1}.");
             var conversion = mappings[selectedTeacher.SoTinChi];
             teacherWeeklyLoads[selectedTeacher.MaGiaoVien] =
                 teacherWeeklyLoads.GetValueOrDefault(selectedTeacher.MaGiaoVien) + conversion.SoBuoiMoiTuan;
@@ -898,9 +886,11 @@ public static class LargeDemoSeeder
                 // unique (campus, subject, term, class) constraint.
                 var course = await context.KhoaHocs.SingleAsync(x => x.MaKhoaHoc == existingCourse.MaKhoaHoc);
                 course.TrangThai = "nhap";
+                course.TieuDe = $"{d0CourseTitlePrefix}{classInfo.Class.MaCodeLop}";
                 course.MaGiaoVien = selectedTeacher.MaGiaoVien;
                 course.MaBlockBatDau = firstBlock.MaBlock;
                 course.SoBlockHoc = conversion.SoBlockHoc;
+                targetCourseIds.Add(course.MaKhoaHoc);
                 continue;
             }
             addedCourses.Add(new KhoaHoc
@@ -912,7 +902,7 @@ public static class LargeDemoSeeder
                 MaMonHoc = subjectSet.Key,
                 MaGiaoVien = selectedTeacher.MaGiaoVien,
                 MaLop = classInfo.Class.MaLop,
-                TieuDe = $"Smart Demo 2029 - {classInfo.Class.MaCodeLop}",
+                TieuDe = $"Smart Demo 2027 - {classInfo.Class.MaCodeLop}",
                 TrangThai = "nhap",
                 NgayTao = now
             });
@@ -922,9 +912,26 @@ public static class LargeDemoSeeder
             context.KhoaHocs.AddRange(addedCourses);
             await context.SaveChangesAsync();
         }
+        foreach (var course in addedCourses)
+            targetCourseIds.Add(course.MaKhoaHoc);
+
+        if (targetCourseIds.Count != targetCourseCount)
+            throw new InvalidOperationException($"SmartScheduling D0 target set must contain {targetCourseCount} courses, found {targetCourseIds.Count}.");
+
+        // The target set is derived from the deterministic upsert keys above,
+        // not from a title/status marker. HK1_2027 is an owned demo term, so
+        // archive every other active course in this exact campus and term.
+        var legacyCourses = await context.KhoaHocs
+            .Where(x => x.MaDonVi == campus.MaDonVi && x.MaHocKy == term.MaHocKy &&
+                        x.TrangThai != "luu_tru" && !targetCourseIds.Contains(x.MaKhoaHoc))
+            .ToListAsync();
+        foreach (var legacyCourse in legacyCourses)
+            legacyCourse.TrangThai = "luu_tru";
+        await context.SaveChangesAsync();
 
         var termCourses = await context.KhoaHocs
-            .Where(x => x.MaHocKy == term.MaHocKy && x.MaDonVi == campus.MaDonVi && x.TrangThai != "luu_tru")
+            .Where(x => x.MaHocKy == term.MaHocKy && x.MaDonVi == campus.MaDonVi &&
+                        targetCourseIds.Contains(x.MaKhoaHoc))
             .OrderBy(x => x.MaKhoaHoc)
             .ToListAsync();
         var sectionByCourse = new Dictionary<int, LopHocPhan>();
@@ -1007,7 +1014,7 @@ public static class LargeDemoSeeder
                     MaHocKy = term.MaHocKy,
                     MaDonVi = campus.MaDonVi,
                     SoLopToiDaMongMuon = 4,
-                    SoCaToiDaMoiTuan = 8,
+                    SoCaToiDaMoiTuan = weeklyTeacherCap,
                     TrangThai = "submitted",
                     NgayTao = now,
                     NgayGui = now,
@@ -1016,7 +1023,15 @@ public static class LargeDemoSeeder
                 context.GiaoVienNguyenVongHocKys.Add(preference);
                 await context.SaveChangesAsync();
             }
-            if (activeShifts.Count > 0 && !await context.GiaoVienNguyenVongCaDays.AnyAsync(x => x.NguyenVongId == preference.Id))
+            preference.SoCaToiDaMoiTuan = weeklyTeacherCap;
+            preference.TrangThai = "submitted";
+            preference.MaDonVi = campus.MaDonVi;
+            var existingDetails = await context.GiaoVienNguyenVongCaDays
+                .Where(x => x.NguyenVongId == preference.Id)
+                .ToListAsync();
+            if (existingDetails.Count > 0)
+                context.GiaoVienNguyenVongCaDays.RemoveRange(existingDetails);
+            if (activeShifts.Count > 0)
             {
                 context.GiaoVienNguyenVongCaDays.Add(new GiaoVienNguyenVongCaDay
                 {

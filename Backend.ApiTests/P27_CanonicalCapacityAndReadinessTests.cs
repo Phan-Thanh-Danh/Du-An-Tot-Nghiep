@@ -366,4 +366,42 @@ public class P27_CanonicalCapacityAndReadinessTests
         Assert.That(availabilityItem!.Status, Is.EqualTo("blocked"));
         Assert.That(result.CanPrepareSchedule, Is.False);
     }
+
+    [Test]
+    public async Task Readiness_BlocksWhenTeacherCapacityIsInsufficient()
+    {
+        var today = GetToday();
+        const int campusId = 1;
+        const int termId = 16;
+        const int teacherId = 99;
+        _db.HocKys.Add(new HocKy { MaHocKy = termId, MaDonVi = campusId, NgayBatDau = today.AddDays(10), NgayKetThuc = today.AddDays(80) });
+        _db.DanhMucMonHocs.Add(new DanhMucMonHoc { MaMonHoc = 1, SoTinChi = 3, ConHoatDong = true });
+        _db.QuyDoiTinChis.Add(new QuyDoiTinChi { MaQuyDoi = 1, SoTinChi = 3, SoBuoiMoiTuan = 3, SoBlockHoc = 1, SoCaMoiBuoi = 1 });
+        for (var id = 1; id <= 3; id++)
+            _db.KhoaHocs.Add(new KhoaHoc { MaKhoaHoc = id, MaHocKy = termId, MaDonVi = campusId, MaMonHoc = 1, MaGiaoVien = teacherId, TrangThai = "nhap" });
+        await _db.SaveChangesAsync();
+
+        var result = await _readinessService.GetContextAsync(campusId);
+        var item = result.Readiness.Items.Single(x => x.Code == "TEACHER_CAPACITY_READY");
+
+        Assert.That(item.Status, Is.EqualTo("blocked"));
+        Assert.That(item.AffectedItems, Is.Not.Empty);
+    }
+
+    [Test]
+    public async Task Readiness_BlocksWhenNoShiftIsActive()
+    {
+        var today = GetToday();
+        const int campusId = 1;
+        const int termId = 17;
+        _db.HocKys.Add(new HocKy { MaHocKy = termId, MaDonVi = campusId, NgayBatDau = today.AddDays(10), NgayKetThuc = today.AddDays(80) });
+        _db.CaHocs.Add(new CaHoc { MaCaHoc = 1, TenCa = "Ca inactive", ConHoatDong = false });
+        await _db.SaveChangesAsync();
+
+        var result = await _readinessService.GetContextAsync(campusId);
+        var item = result.Readiness.Items.Single(x => x.Code == "ACTIVE_SHIFTS_READY");
+
+        Assert.That(item.Status, Is.EqualTo("blocked"));
+        Assert.That(result.CanPrepareSchedule, Is.False);
+    }
 }

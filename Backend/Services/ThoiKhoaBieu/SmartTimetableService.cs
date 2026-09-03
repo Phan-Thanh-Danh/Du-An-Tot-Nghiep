@@ -354,7 +354,7 @@ public class SmartTimetableService : ISmartTimetableService
             .FirstOrDefaultAsync(x => x.DraftId == draftId, cancellationToken);
 
         if (job is null)
-            throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy bản nháp.");
+            throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy bản nháp.", "DRAFT_EXPIRED_OR_INVALID");
 
         EnsureCanManageSchedule(currentUser, job.MaDonVi);
 
@@ -401,14 +401,14 @@ public class SmartTimetableService : ISmartTimetableService
         await _schedulingContextService.ValidateSchedulableTermAsync(job.MaDonVi, job.MaHocKy, cancellationToken);
 
         if (job.TrangThai == "da_xuat_ban")
-            throw new ApiException(StatusCodes.Status400BadRequest, "Bản nháp này đã được xuất bản.");
+            throw new ApiException(StatusCodes.Status400BadRequest, "Bản nháp này đã được xuất bản.", "DRAFT_ALREADY_PUBLISHED");
 
         if (job.TrangThai != "draft")
-            throw new ApiException(StatusCodes.Status400BadRequest, "Chỉ bản nháp ở trạng thái draft mới được xuất bản.");
+            throw new ApiException(StatusCodes.Status400BadRequest, "Chỉ bản nháp ở trạng thái draft mới được xuất bản.", "DRAFT_EXPIRED_OR_INVALID");
 
         if ((job.SoKhongXepDuoc ?? 0) > 0)
             throw new ApiException(StatusCodes.Status400BadRequest,
-                "Không thể xuất bản bản nháp chưa xếp đủ tất cả khóa học.");
+                "Không thể xuất bản bản nháp chưa xếp đủ tất cả khóa học.", "HARD_CONFLICT");
 
         var items = await _context.ScheduleDraftItems
             .AsNoTracking()
@@ -416,7 +416,7 @@ public class SmartTimetableService : ISmartTimetableService
             .ToListAsync(cancellationToken);
 
         if (items.Count == 0)
-            throw new ApiException(StatusCodes.Status400BadRequest, "Bản nháp không có ca học hợp lệ để xuất bản.");
+            throw new ApiException(StatusCodes.Status400BadRequest, "Bản nháp không có ca học hợp lệ để xuất bản.", "DRAFT_EXPIRED_OR_INVALID");
 
         var result = new TimetablePublishResultDto();
         var strategy = _context.Database.CreateExecutionStrategy();
@@ -449,8 +449,9 @@ public class SmartTimetableService : ISmartTimetableService
 
                     if (hasAttendance)
                     {
-                        throw new ApiException(StatusCodes.Status400BadRequest,
-                            "Không thể xuất bản đè thời khóa biểu vì đã có buổi học được điểm danh thực tế trong học kỳ này.");
+                        throw new ApiException(StatusCodes.Status409Conflict,
+                            "Không thể xuất bản đè thời khóa biểu vì đã có buổi học được điểm danh thực tế trong học kỳ này.",
+                            "SCHEDULE_LOCKED_BY_ATTENDANCE");
                     }
 
                     // 2. Ràng buộc khóa 30 phút chống lách khóa
@@ -461,8 +462,9 @@ public class SmartTimetableService : ISmartTimetableService
                     var timeSincePublish = _timeProvider.GetUtcNow().UtcDateTime - oldestPublishTime;
                     if (timeSincePublish > TimeSpan.FromMinutes(30))
                     {
-                        throw new ApiException(StatusCodes.Status400BadRequest,
-                            $"Thời khóa biểu đã xuất bản quá 30 phút (đã qua {Math.Round(timeSincePublish.TotalMinutes)} phút), bị khóa chỉnh sửa/ghi đè. Danh sách khóa học bị khóa: {string.Join(", ", existingCourseIds)}.");
+                        throw new ApiException(StatusCodes.Status409Conflict,
+                            $"Thời khóa biểu đã xuất bản quá 30 phút (đã qua {Math.Round(timeSincePublish.TotalMinutes)} phút), bị khóa chỉnh sửa/ghi đè. Danh sách khóa học bị khóa: {string.Join(", ", existingCourseIds)}.",
+                            "SCHEDULE_LOCKED_AFTER_EDIT_WINDOW");
                     }
 
                     // Đang trong 30 phút và chưa có điểm danh: Xóa BuoiHoc cũ và hủy TKB cũ để ghi đè sạch sẽ
@@ -528,6 +530,8 @@ public class SmartTimetableService : ISmartTimetableService
                     .Where(b => b.MaHocKy == job.MaHocKy)
                     .OrderBy(b => b.ThuTuBlock)
                     .ToListAsync(cancellationToken);
+
+                ValidateCourseBlockRanges(courses.Values, termBlocks, job.HocKy);
 
                 var groupedItems = items.GroupBy(x => x.MaKhoaHoc).ToList();
                 var activeCourseCount = courses.Count;
@@ -638,25 +642,9 @@ public class SmartTimetableService : ISmartTimetableService
                         NgayCapNhat = DateTime.UtcNow
                     };
 
-                    if (course.MaBlockBatDau.HasValue && termBlocks.Count > 0)
-                    {
-                        var startBlock = termBlocks.FirstOrDefault(b => b.MaBlock == course.MaBlockBatDau.Value);
-                        if (startBlock != null)
-                        {
-                            var courseBlocks = termBlocks.Where(b => b.ThuTuBlock >= startBlock.ThuTuBlock && b.ThuTuBlock < startBlock.ThuTuBlock + course.SoBlockHoc).ToList();
-                            if (courseBlocks.Count > 0)
-                            {
-                                schedule.NgayBatDau = courseBlocks.First().NgayBatDau;
-                                schedule.NgayKetThuc = courseBlocks.Last().NgayKetThuc;
-                            }
-                        }
-                    }
-
-                    if (!schedule.NgayBatDau.HasValue && job.HocKy != null)
-                    {
-                        schedule.NgayBatDau = job.HocKy.NgayBatDau;
-                        schedule.NgayKetThuc = job.HocKy.NgayKetThuc;
-                    }
+                    var scheduleDates = ResolveCourseScheduleDates(course, termBlocks, job.HocKy);
+                    schedule.NgayBatDau = scheduleDates.Start;
+                    schedule.NgayKetThuc = scheduleDates.End;
 
                     _context.ThoiKhoaBieus.Add(schedule);
                     map.OccupyTeacher(job.MaHocKy, item.ThuTrongTuan.Value, item.MaCaHoc.Value, course.MaGiaoVien);
@@ -697,7 +685,8 @@ public class SmartTimetableService : ISmartTimetableService
 
                 if (result.BuoiHocLoi > 0)
                     throw new ApiException(StatusCodes.Status400BadRequest,
-                        "Bản nháp có dữ liệu không hợp lệ nên không thể xuất bản.");
+                        "Bản nháp có dữ liệu không hợp lệ nên không thể xuất bản.",
+                        "HARD_CONFLICT");
 
                 job.TrangThai = "da_xuat_ban";
                 job.NgayXuatBan = DateTime.UtcNow;
@@ -756,12 +745,83 @@ public class SmartTimetableService : ISmartTimetableService
         return result;
     }
 
+    internal static void ValidateCourseBlockRanges(
+        IEnumerable<KhoaHoc> courses,
+        IReadOnlyList<Block> termBlocks,
+        HocKy? term)
+    {
+        foreach (var course in courses.Where(x => x.MaBlockBatDau.HasValue))
+        {
+            if (term is null || course.SoBlockHoc <= 0)
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest,
+                    $"Khóa học {course.MaKhoaHoc} có cấu hình Block không hợp lệ.");
+            }
+
+            var startBlock = termBlocks.FirstOrDefault(x => x.MaBlock == course.MaBlockBatDau!.Value);
+            if (startBlock is null)
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest,
+                    $"Khóa học {course.MaKhoaHoc} tham chiếu Block bắt đầu không thuộc học kỳ xuất bản.");
+            }
+
+            var courseBlocks = termBlocks
+                .Where(x => x.ThuTuBlock >= startBlock.ThuTuBlock && x.ThuTuBlock < startBlock.ThuTuBlock + course.SoBlockHoc)
+                .OrderBy(x => x.ThuTuBlock)
+                .ToList();
+            if (courseBlocks.Count != course.SoBlockHoc ||
+                courseBlocks.Any(x => x.NgayBatDau < term.NgayBatDau || x.NgayKetThuc > term.NgayKetThuc || x.NgayKetThuc < x.NgayBatDau))
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest,
+                    $"Khóa học {course.MaKhoaHoc} có phạm vi Block vượt ngoài hoặc không hợp lệ trong học kỳ.");
+            }
+        }
+    }
+
+    internal static (DateOnly? Start, DateOnly? End) ResolveCourseScheduleDates(
+        KhoaHoc course,
+        IReadOnlyList<Block> termBlocks,
+        HocKy? term)
+    {
+        if (course.MaBlockBatDau.HasValue)
+        {
+            var startBlock = termBlocks.First(x => x.MaBlock == course.MaBlockBatDau.Value);
+            var blocks = termBlocks
+                .Where(x => x.ThuTuBlock >= startBlock.ThuTuBlock && x.ThuTuBlock < startBlock.ThuTuBlock + course.SoBlockHoc)
+                .OrderBy(x => x.ThuTuBlock)
+                .ToList();
+            return (blocks.First().NgayBatDau, blocks.Last().NgayKetThuc);
+        }
+
+        return term is null ? (null, null) : (term.NgayBatDau, term.NgayKetThuc);
+    }
+
     public async Task<ConflictCheckBatchResultDto> CheckConflictsAsync(
         ConflictCheckBatchRequest request,
         CancellationToken cancellationToken = default)
     {
         var currentUser = GetCurrentUser();
         EnsureCanManageSchedule(currentUser, request.MaDonVi);
+
+        var term = await _context.HocKys
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.MaHocKy == request.MaHocKy, cancellationToken);
+        if (term != null && currentUser.Role != AuthRoles.SuperAdmin && term.MaDonVi != currentUser.CampusId)
+        {
+            throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền kiểm tra xung đột của học kỳ thuộc cơ sở này.", "FORBIDDEN_CAMPUS");
+        }
+
+        if (request.DraftId.HasValue)
+        {
+            var draftJob = await _context.ScheduleGenerationJobs
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.DraftId == request.DraftId.Value, cancellationToken);
+            if (draftJob != null)
+            {
+                EnsureCanManageSchedule(currentUser, draftJob.MaDonVi);
+            }
+        }
+
         var map = await BuildOccupationMapAsync(request.MaHocKy, request.MaDonVi, cancellationToken);
         var courses = await _context.KhoaHocs.AsNoTracking()
             .Where(x => x.MaHocKy == request.MaHocKy && x.MaDonVi == request.MaDonVi)
@@ -838,6 +898,47 @@ public class SmartTimetableService : ISmartTimetableService
         }
 
         return result;
+    }
+
+    public async Task<ScheduleDraftDto?> GetCurrentGenerationJobAsync(
+        int maHocKy,
+        CancellationToken cancellationToken = default)
+    {
+        var currentUser = GetCurrentUser();
+        EnsureCanManageSchedule(currentUser);
+
+        var campusId = currentUser.CampusId;
+        if (currentUser.Role != AuthRoles.SuperAdmin && campusId <= 0)
+        {
+            throw new ApiException(StatusCodes.Status403Forbidden, "Tài khoản không thuộc cơ sở nào.", "FORBIDDEN_CAMPUS");
+        }
+
+        var term = await _context.HocKys
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.MaHocKy == maHocKy, cancellationToken);
+        if (term != null && currentUser.Role != AuthRoles.SuperAdmin && term.MaDonVi != campusId)
+        {
+            throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền quản lý thời khóa biểu của cơ sở này.", "FORBIDDEN_CAMPUS");
+        }
+
+        var query = _context.ScheduleGenerationJobs
+            .AsNoTracking()
+            .Where(x => x.MaHocKy == maHocKy && x.TrangThai == "draft");
+
+        if (currentUser.Role != AuthRoles.SuperAdmin)
+        {
+            query = query.Where(x => x.MaDonVi == campusId);
+        }
+
+        var job = await query
+            .OrderByDescending(x => x.NgayTao)
+            .ThenByDescending(x => x.MaJob)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (job is null)
+            return null;
+
+        return await ToDraftDtoAsync(job.MaJob, cancellationToken);
     }
 
     public async Task<bool> DeleteDraftAsync(
@@ -1312,7 +1413,7 @@ public class SmartTimetableService : ISmartTimetableService
         var isGlobal = currentUser.Role == AuthRoles.SuperAdmin;
         if (!isGlobal && targetCampusId.HasValue && targetCampusId.Value > 0 && currentUser.CampusId != targetCampusId.Value)
         {
-            throw new ApiException(StatusCodes.Status403Forbidden, "Không có quyền trên cơ sở này.");
+            throw new ApiException(StatusCodes.Status403Forbidden, "Không có quyền trên cơ sở này.", "FORBIDDEN_CAMPUS");
         }
     }
 

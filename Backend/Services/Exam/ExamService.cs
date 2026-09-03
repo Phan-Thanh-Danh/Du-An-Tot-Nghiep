@@ -636,10 +636,27 @@ public class ExamService : IExamService
 
     public async Task StartCaThiAsync(int id, CancellationToken ct)
     {
-        var caThi = await _db.CaThis.FindAsync(new object[] { id }, ct)
+        var caThi = await _db.CaThis
+            .Include(c => c.LichThiTong)
+            .FirstOrDefaultAsync(c => c.MaCaThi == id, ct)
             ?? throw new ApiException(404, "Không tìm thấy ca thi.");
+
+        if (caThi.TrangThai is "da_ket_thuc" or "da_huy")
+            throw new ApiException(400, "Ca thi đã kết thúc hoặc đã bị hủy.");
+
         caThi.TrangThai = "dang_thi";
         caThi.NgayCapNhat = DateTime.UtcNow;
+
+        if (caThi.LichThiTong?.MaDeKiemTra is int maDeKiemTra)
+        {
+            var deKiemTra = await _db.DeKiemTras.FindAsync(new object[] { maDeKiemTra }, ct);
+            if (deKiemTra != null && deKiemTra.TrangThai is "nhap" or "da_len_lich")
+            {
+                deKiemTra.TrangThai = "dang_mo";
+                deKiemTra.NgayCapNhat = DateTime.UtcNow;
+            }
+        }
+
         await _db.SaveChangesAsync(ct);
 
         await _hubContext.Clients.Group($"exam-{id}").SendAsync("ExamStatusChanged", new { maCaThi = id, status = "dang_thi" }, ct);
@@ -657,6 +674,16 @@ public class ExamService : IExamService
 
         // MaDeKiemTra lấy từ LichThiTong
         int? maDeKiemTra = caThi.LichThiTong?.MaDeKiemTra;
+
+        if (maDeKiemTra is int examId)
+        {
+            var deKiemTra = await _db.DeKiemTras.FindAsync(new object[] { examId }, ct);
+            if (deKiemTra != null && deKiemTra.TrangThai == "dang_mo")
+            {
+                deKiemTra.TrangThai = "da_dong";
+                deKiemTra.NgayCapNhat = DateTime.UtcNow;
+            }
+        }
 
         // ── 1. Auto-submit các phiên đang làm dở ────────────────────────────
         var activeSessions = await _db.PhienThiHocSinhs
@@ -1452,7 +1479,7 @@ public class ExamService : IExamService
             .FirstOrDefaultAsync(t => t.MaCaThi == request.MaCaThi && t.MaHocSinh == maHocSinh, ct)
             ?? throw new ApiException(403, "Sinh viên không có trong danh sách thi của ca này.");
 
-        if (thiSinh.TrangThaiDuThi == "khong_duoc_thi" || thiSinh.TrangThaiDuThi == "dinh_chi")
+        if (thiSinh.TrangThaiDuThi != "duoc_thi")
             throw new ApiException(403, "Sinh viên không đủ điều kiện dự thi.");
 
         // Validate Environment Security

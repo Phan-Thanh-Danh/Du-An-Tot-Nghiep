@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, reactive, onMounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import {
   Search,
   Plus,
@@ -33,6 +33,7 @@ import { formatDate, formatTime } from '@/utils/dateFormat'
 
 const authStore = useAuthStore()
 const canManage = computed(() => authStore.hasRole(['SuperAdmin', 'Admin', 'CampusAdmin', 'SubCampusAdmin']))
+const userCampusId = computed(() => Number(authStore.user?.campusId || authStore.user?.maDonVi || 0))
 
 const loading = ref(true)
 const error = ref(null)
@@ -64,7 +65,8 @@ const ROOM_TYPE_LABEL = {
 async function fetchBuildings() {
   try {
     const res = await buildingApi.list({ PageSize: 200 })
-    buildings.value = Array.isArray(res) ? res : (res?.items || res?.data || [])
+    const all = Array.isArray(res) ? res : (res?.items || res?.data || [])
+    buildings.value = userCampusId.value ? all.filter(b => !b.maDonVi || Number(b.maDonVi) === userCampusId.value) : all
   } catch {
     buildings.value = []
   }
@@ -124,6 +126,7 @@ async function fetchRooms() {
 const filteredRooms = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
   return rooms.value.filter(r => {
+    if (userCampusId.value && r.maDonVi && Number(r.maDonVi) !== userCampusId.value) return false
     const matchSearch = !q || r.tenPhong?.toLowerCase().includes(q) || r.maCodePhong?.toLowerCase().includes(q)
     const matchType   = filterType.value   === 'all' || r.loaiPhong === filterType.value
     const matchStatus = filterStatus.value === 'all' || r.trangThaiPhong === filterStatus.value
@@ -166,7 +169,7 @@ const isSubmitting  = ref(false)
 const addErrors     = reactive({})
 
 const defaultForm = () => ({
-  maDonVi: 1,
+  maDonVi: userCampusId.value || 1,
   maToaNha: null,
   maTang: null,
   maCodePhong: '',
@@ -203,7 +206,7 @@ async function submitAddRoom() {
   isSubmitting.value = true
   try {
     await roomApi.create({
-      maDonVi: newRoom.maDonVi,
+      maDonVi: userCampusId.value || newRoom.maDonVi,
       maToaNha: Number(newRoom.maToaNha),
       maTang: Number(newRoom.maTang),
       maCodePhong: newRoom.maCodePhong,
@@ -264,7 +267,7 @@ async function submitEditRoom() {
   isSubmitting.value = true
   try {
     await roomApi.update(editingRoom.value.maPhong, {
-      maDonVi: editingRoom.value.maDonVi,
+      maDonVi: userCampusId.value || editingRoom.value.maDonVi,
       maToaNha: Number(editingRoom.value.maToaNha),
       maTang: Number(editingRoom.value.maTang),
       maCodePhong: editingRoom.value.maCodePhong,
@@ -365,7 +368,7 @@ function closeMenu()    { menuOpenId.value = null }
 const highlightedRoomId = ref('')
 const suggestedInfo = ref(null)
 const route = useRoute()
-const router = useRouter()
+// router not needed in R1
 
 function findRoomById(id) {
   const nid = Number(id)
@@ -374,14 +377,6 @@ function findRoomById(id) {
 
 function handleConflictSuggestion() {
   if (route.query.action === 'change-room' && route.query.roomId) {
-    if (route.query.autoApply === 'true' && route.query.suggestedRoom) {
-      const oldRoom = findRoomById(route.query.roomId)
-      if (oldRoom) {
-        oldRoom.tenPhong = route.query.suggestedRoom
-      }
-      router.replace('/staff/conflicts')
-      return
-    }
     highlightedRoomId.value = route.query.roomId
     const oldRoom = findRoomById(route.query.roomId)
     if (oldRoom) {
@@ -391,17 +386,6 @@ function handleConflictSuggestion() {
         suggestedRoom: route.query.suggestedRoom || ''
       }
     }
-  }
-}
-
-function applySuggestedRoom() {
-  if (suggestedInfo.value) {
-    const oldRoom = findRoomById(String(suggestedInfo.value.oldRoomId))
-    if (oldRoom) {
-      oldRoom.tenPhong = suggestedInfo.value.suggestedRoom
-      console.log(`Đã áp dụng đổi phòng thành công! Phòng ${suggestedInfo.value.oldRoomId} đã đổi tên thành ${suggestedInfo.value.suggestedRoom}.`)
-    }
-    clearSuggestion()
   }
 }
 
@@ -458,10 +442,7 @@ function applyFilterAndReload() {
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <button @click="applySuggestedRoom" class="lg-button-primary px-4 py-2 text-xs font-bold shadow-md shadow-(--lg-primary)/10">
-            Áp dụng đổi
-          </button>
-          <button @click="clearSuggestion" class="p-2 hover:bg-(--surface-input) rounded-lg text-placeholder transition-colors">
+          <button @click="clearSuggestion" class="p-2 hover:bg-(--surface-input) rounded-lg text-placeholder transition-colors" title="Đóng gợi ý">
             <X :size="16" />
           </button>
         </div>

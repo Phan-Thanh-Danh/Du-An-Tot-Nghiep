@@ -11,6 +11,7 @@ public class AcademicSchedulingContextDto
     public bool CanPrepareSchedule { get; set; }
     public string ReasonCode { get; set; } = string.Empty;
     public string ReasonMessage { get; set; } = string.Empty;
+    public string? LockReasonCode { get; set; }
     
     public SchedulingReadinessDto Readiness { get; set; } = new();
 }

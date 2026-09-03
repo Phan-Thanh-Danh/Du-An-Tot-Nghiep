@@ -38,7 +38,6 @@
           <option value="draft">Bản thảo</option>
           <option value="pending_approval">Chờ duyệt</option>
           <option value="approved">Đã duyệt</option>
-          <option value="archived">Đã lưu trữ</option>
         </LmsSelect>
       </div>
     </div>
@@ -175,7 +174,8 @@ async function loadData() {
   error.value = null
   try {
     const res = await bghApi.getPrograms()
-    programs.value = unwrapApiData(res) || []
+    const all = unwrapApiData(res) || []
+    programs.value = all.filter(p => p.trangThai !== 'archived' && p.trangThai !== 'luu_tru')
   } catch (e) {
     error.value = e?.message || 'Lỗi tải dữ liệu chương trình đào tạo'
   } finally {
@@ -184,7 +184,7 @@ async function loadData() {
 }
 
 const filteredPrograms = computed(() => {
-  let result = programs.value
+  let result = programs.value.filter(p => p.trangThai !== 'archived' && p.trangThai !== 'luu_tru')
   if (statusFilter.value) {
     result = result.filter(p => p.trangThai === statusFilter.value)
   }

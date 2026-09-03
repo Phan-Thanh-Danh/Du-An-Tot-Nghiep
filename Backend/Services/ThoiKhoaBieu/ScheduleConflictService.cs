@@ -14,13 +14,16 @@ public class ScheduleConflictService : IScheduleConflictService
 
     private readonly ApplicationDbContext _context;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ICourseCapacityService _courseCapacityService;
 
     public ScheduleConflictService(
         ApplicationDbContext context,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor,
+        ICourseCapacityService courseCapacityService)
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
+        _courseCapacityService = courseCapacityService;
     }
 
     public async Task<ScheduleConflictResultDto> CheckConflictsAsync(
@@ -37,11 +40,12 @@ public class ScheduleConflictService : IScheduleConflictService
             cancellationToken);
 
         await ValidateShiftAsync(request.MaCaHoc, cancellationToken);
-        await ValidateRoomAsync(
+        var room = await ValidateRoomAsync(
             request.MaPhong,
             requestCourse.MaDonVi,
             allowedOrganizationIds,
             cancellationToken);
+        await ValidateCanonicalRoomCapacityAsync(requestCourse, room, cancellationToken);
 
         var existingSchedules = await CreateConflictQuery()
             .Where(x =>
@@ -163,7 +167,7 @@ public class ScheduleConflictService : IScheduleConflictService
         }
     }
 
-    private async Task ValidateRoomAsync(
+    private async Task<PhongHoc> ValidateRoomAsync(
         int roomId,
         int courseOrganizationId,
         HashSet<int> allowedOrganizationIds,
@@ -196,6 +200,25 @@ public class ScheduleConflictService : IScheduleConflictService
         if (room.SucChua <= 0)
         {
             throw new ApiException(StatusCodes.Status400BadRequest, "Phòng học không có sức chứa hợp lệ.");
+        }
+
+        return room;
+    }
+
+    private async Task ValidateCanonicalRoomCapacityAsync(
+        KhoaHoc course,
+        PhongHoc room,
+        CancellationToken cancellationToken)
+    {
+        var capacity = (await _courseCapacityService.GetRequiredCapacitiesAsync(new[] { course }, cancellationToken))
+            .GetValueOrDefault(course.MaKhoaHoc);
+        if (capacity is null || !_courseCapacityService.IsRoomEligible(room, capacity, course.MaDonVi))
+        {
+            throw new ApiException(
+                StatusCodes.Status400BadRequest,
+                capacity is null || !capacity.IsKnown
+                    ? "STUDENT_CAPACITY_DATA_MISSING: Chưa có dữ liệu sĩ số hợp lệ để kiểm tra phòng học."
+                    : $"Phòng học không đủ sức chứa cho khóa học (cần {capacity.Value}, phòng có {room.SucChua}).");
         }
     }
 
