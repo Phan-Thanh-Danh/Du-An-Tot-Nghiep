@@ -175,6 +175,8 @@ const handlePageSizeChange = (e: Event) => {
           <option :value="10">10 / trang</option>
           <option :value="20">20 / trang</option>
           <option :value="50">50 / trang</option>
+          <option :value="100">100 / trang</option>
+          <option :value="1000">Tất cả</option>
         </select>
         <span class="text-xs text-slate-500 hidden sm:inline">Tổng: {{ totalItems }}</span>
       </div>
