@@ -51,6 +51,7 @@ const activeCreateMode = ref('quick')
 
 // course & room data
 const courseOptions = ref([])
+const allTermCourses = ref([])
 const roomOptions = ref([])
 const shiftOptions = ref([])
 const academicTermOptions = ref([])
@@ -109,6 +110,29 @@ const authorizedCampusName = computed(() =>
 )
 const simpleReadiness = computed(() => {
   const readiness = schedulingContext.readiness || {}
+  const backendItems = readiness.items || []
+  if (backendItems.length > 0) {
+    return backendItems.map(item => ({
+      code: item.code,
+      label: item.code === 'COURSES_READY' ? 'Khóa học cần xếp' :
+             item.code === 'BLOCKS_READY' ? 'Cấu hình Block' :
+             item.code === 'CREDIT_MAPPING_READY' ? 'Quy đổi tín chỉ' :
+             item.code === 'TEACHER_SKILL_READY' ? 'Năng lực giảng viên' :
+             item.code === 'TEACHER_AVAILABILITY_READY' ? 'Thời gian rảnh giảng viên' :
+             item.code === 'TEACHER_CAPACITY_READY' ? 'Tải trọng giảng viên' :
+             item.code === 'ACTIVE_ROOMS_READY' ? 'Phòng học hoạt động' :
+             item.code === 'ROOM_CAPACITY_READY' ? 'Sức chứa phòng' :
+             item.code === 'ACTIVE_SHIFTS_READY' ? 'Ca học' :
+             item.code === 'TOTAL_ROOM_SLOTS_READY' ? 'Tổng slot phòng' :
+             item.code === 'EXISTING_SCHEDULE_LOCK_READY' ? 'Khóa lịch công bố' : item.code,
+      ready: item.status !== 'blocked' && item.status !== 'unknown',
+      status: item.status,
+      detail: item.message,
+      actionRoute: item.actionRoute,
+      affectedCount: item.affectedCount
+    }))
+  }
+
   const count = unscheduledCourses.value.filter(c => !authorizedCampusId.value || Number(c.maDonVi) === authorizedCampusId.value).length
   return [
     { label: 'Khóa học', ready: count > 0, detail: count ? `${count} khóa học cần xếp` : 'Chưa có khóa học cần xếp' },
@@ -195,11 +219,17 @@ const bulkCandidateCourses = computed(() => {
 })
 
 const filteredCourses = computed(() => {
-  // Lọc theo học kỳ đang chọn ở bộ lọc (nếu có)
-  let base = courseOptions.value
+  // Ưu tiên các khóa học của lớp đang chọn; nếu không có hoặc người dùng đang tìm kiếm thì tìm trong toàn bộ khóa học của học kỳ
+  let base = (courseOptions.value.length > 0 && !courseSearchQuery.value)
+    ? courseOptions.value
+    : (allTermCourses.value.length > 0 ? allTermCourses.value : courseOptions.value)
+
   if (filterHocKy.value) {
     base = base.filter(c => Number(c.maHocKy) === Number(filterHocKy.value))
+  } else if (schedulingContext.schedulableTerm?.maHocKy) {
+    base = base.filter(c => Number(c.maHocKy) === Number(schedulingContext.schedulableTerm.maHocKy))
   }
+
   if (!courseSearchQuery.value) return base.slice(0, 50)
   const q = courseSearchQuery.value.toLowerCase()
   return base.filter(c =>
@@ -327,9 +357,10 @@ async function loadData() {
     ])
     
     const allCourses = unwrapList(courseRes).map(normalizeCourse)
-    courseOptions.value = schedulingContext.schedulableTerm 
+    const classFiltered = schedulingContext.schedulableTerm 
       ? allCourses.filter(c => Number(c.maHocKy) === Number(schedulingContext.schedulableTerm.maHocKy))
       : allCourses
+    courseOptions.value = classFiltered.length > 0 ? classFiltered : (allTermCourses.value.length > 0 ? allTermCourses.value : classFiltered)
     if (authorizedCampusId.value) smartCampusId.value = authorizedCampusId.value
     else if (campusOptions.value.length === 1) smartCampusId.value = campusOptions.value[0].value
 
@@ -480,9 +511,10 @@ async function loadScheduleOptions() {
 
     academicTermOptions.value = unwrapList(termRes).map(normalizeAcademicTerm)
     const allCourses = unwrapList(courseRes).map(normalizeCourse)
-    courseOptions.value = schedulingContext.schedulableTerm 
+    allTermCourses.value = schedulingContext.schedulableTerm 
       ? allCourses.filter(c => Number(c.maHocKy) === Number(schedulingContext.schedulableTerm.maHocKy))
       : allCourses
+    courseOptions.value = [...allTermCourses.value]
     roomOptions.value = unwrapList(roomRes).map(normalizeRoom)
     shiftOptions.value = unwrapList(shiftRes).map(normalizeShift).sort((a, b) => Number(a.thuTu || a.maCaHoc) - Number(b.thuTu || b.maCaHoc))
     existingSchedules.value = unwrapList(scheduleRes).map(beToView).map(viewToScheduleRecord)
@@ -619,6 +651,8 @@ function openCreate(thu, caId) {
   formMode.value = 'create'
   editingId.value = null
   form.value = emptyForm()
+  courseSearchQuery.value = ''
+  showCourseDropdown.value = false
   if (thu) form.value.thuTrongTuan = thu
   if (caId) form.value.caHoc = shiftOptions.value.find(c => c.id === caId) || shiftOptions.value[0] || null
   if (thu && caId) form.value.isPreFilledCaHoc = true
@@ -1056,20 +1090,19 @@ async function createBulkDrafts() {
 }
 
 async function generateSmartDraft() {
-  if (!schedulingContext.schedulableTerm?.maHocKy || !smartCampusId.value) {
+  const campusId = authorizedCampusId.value || Number(smartCampusId.value)
+  const termId = Number(schedulingContext.schedulableTerm?.maHocKy)
+  if (!termId || !campusId) {
     popupStore.warning('Thiếu thông tin', 'Vui lòng chọn cơ sở và đảm bảo có học kỳ hợp lệ để xếp lịch.')
     return
   }
-  const selectedIds =
-    smartCourseScope.value === 'manual'
-      ? smartSelectedCourseIds.value.map(Number)
-      : unscheduledCourses.value
-          .filter(c => Number(c.maHocKy) === Number(schedulingContext.schedulableTerm?.maHocKy) && Number(c.maDonVi) === Number(smartCampusId.value))
-          .map(c => Number(c.maKhoaHoc))
-
-  if (selectedIds.length === 0) {
-    popupStore.warning('Không có khóa học phù hợp', 'Vui lòng chọn ít nhất một khóa học hoặc đổi cơ sở/học kỳ.')
-    return
+  let selectedIds = null
+  if (smartCourseScope.value === 'manual') {
+    selectedIds = smartSelectedCourseIds.value.map(Number)
+    if (!selectedIds.length) {
+      popupStore.warning('Chưa chọn khóa học', 'Vui lòng tick ít nhất một khóa học cần xếp lịch.')
+      return
+    }
   }
 
   const clientDraftId = crypto.randomUUID()
@@ -1091,8 +1124,8 @@ async function generateSmartDraft() {
   startProgressPolling(clientDraftId)
   try {
     const res = await scheduleApi.generateDraft({
-      maHocKy: Number(schedulingContext.schedulableTerm?.maHocKy),
-      maDonVi: Number(smartCampusId.value),
+      maHocKy: termId,
+      maDonVi: campusId,
       maKhoaHocFilter: selectedIds,
       tongTheHe: Number(smartOptions.value.tongTheHe || 100),
       kichThuocQuanThe: Number(smartOptions.value.kichThuocQuanThe || 50),
@@ -1515,7 +1548,11 @@ function thuLabel(thu) {
                     @focus="showCourseDropdown = true"
                     @input="showCourseDropdown = true"
                   />
-                  <ChevronDown :size="14" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-(--text-muted)" />
+                  <ChevronDown
+                    :size="14"
+                    class="absolute right-2.5 top-1/2 -translate-y-1/2 text-(--text-muted) cursor-pointer"
+                    @click="showCourseDropdown = !showCourseDropdown"
+                  />
                 </div>
                 <div v-if="form.selectedCourse" class="mt-1.5 flex flex-wrap gap-2 text-xs">
                   <span class="px-2 py-1 rounded-full bg-(--color-info-bg) text-(--color-info-text) flex items-center gap-1">
@@ -1540,21 +1577,26 @@ function thuLabel(thu) {
                   </span>
                 </div>
                 <div
-                  v-if="showCourseDropdown && filteredCourses.length > 0"
+                  v-if="showCourseDropdown"
                   class="absolute z-20 left-0 right-0 top-full mt-1 bg-(--surface-modal) border border-(--border-card) rounded-xl shadow-xl max-h-64 overflow-y-auto"
-                  @click="showCourseDropdown = false"
                 >
-                  <button
-                    v-for="c in filteredCourses" :key="c.maKhoaHoc"
-                    class="w-full px-3 py-2.5 text-left text-sm hover:bg-(--surface-hover) transition-colors border-b last:border-b-0 border-(--border-default) flex items-center gap-2"
-                    @click="selectCourse(c)"
-                  >
-                    <GraduationCap :size="14" class="text-(--lg-primary) shrink-0" />
-                    <div class="min-w-0 flex-1">
-                      <span class="font-medium text-(--text-heading) block truncate">{{ c.tenMonHoc }}</span>
-                      <span class="text-(--text-muted) text-xs block truncate">{{ c.tenLop }} · {{ c.tenGiaoVien }} · {{ c.tenHocKy }}</span>
-                    </div>
-                  </button>
+                  <template v-if="filteredCourses.length > 0">
+                    <button
+                      v-for="c in filteredCourses" :key="c.maKhoaHoc"
+                      type="button"
+                      class="w-full px-3 py-2.5 text-left text-sm hover:bg-(--surface-hover) transition-colors border-b last:border-b-0 border-(--border-default) flex items-center gap-2"
+                      @click="selectCourse(c)"
+                    >
+                      <GraduationCap :size="14" class="text-(--lg-primary) shrink-0" />
+                      <div class="min-w-0 flex-1">
+                        <span class="font-medium text-(--text-heading) block truncate">{{ c.tenMonHoc }}</span>
+                        <span class="text-(--text-muted) text-xs block truncate">{{ c.tenLop }} · {{ c.tenGiaoVien }} · {{ c.tenHocKy }}</span>
+                      </div>
+                    </button>
+                  </template>
+                  <div v-else class="p-3 text-xs text-(--text-muted) text-center">
+                    Không tìm thấy khóa học phù hợp trong học kỳ này.
+                  </div>
                 </div>
               </div>
 

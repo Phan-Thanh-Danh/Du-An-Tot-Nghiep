@@ -282,7 +282,9 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
                 TeacherIdx = teacherIndex[course.MaGiaoVien],
                 MaLop = course.MaLop,
                 ClassIdx = classIndex[course.MaLop],
-                ExpectedStudentCount = studentCounts.GetValueOrDefault(course.MaLop, 0),
+                ExpectedStudentCount = studentCounts.TryGetValue(course.MaKhoaHoc, out var countByCourse)
+                    ? countByCourse
+                    : studentCounts.GetValueOrDefault(course.MaLop, 0),
                 RequiredSlots = requiredSlots.GetValueOrDefault(course.MaKhoaHoc, 1)
             };
             if (def.RequiredSlots <= 0) continue;
@@ -303,7 +305,7 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
                     for (var r = 0; r < rooms.Count; r++)
                     {
                         var room = rooms[r];
-                        if (room.SucChua > 0 && classSize > 0 && room.SucChua < classSize) continue;
+                        if (classSize <= 0 || room.SucChua < classSize) continue;
 
                         var slot = new CandidateSlot
                         {

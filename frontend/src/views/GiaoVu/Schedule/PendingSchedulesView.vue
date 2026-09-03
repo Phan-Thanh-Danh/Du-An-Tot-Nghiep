@@ -8,6 +8,7 @@ import { usePopupStore } from '@/stores/popup'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
 import ListSkeleton from '@/components/common/skeleton/ListSkeleton.vue'
 import { academicTermApi } from '@/services/academicTermApi'
 import { courseApi } from '@/services/courseApi'
@@ -53,6 +54,25 @@ const orderedDraftItems = computed(() => [...selectedDraftItems.value].sort((a, 
   const key = scheduleView.value === 'teacher' ? 'tenGiaoVien' : scheduleView.value === 'room' ? 'tenPhong' : 'tenLop'
   return String(a[key] ?? a[key?.replace(/^t/, 'T')] ?? '').localeCompare(String(b[key] ?? b[key?.replace(/^t/, 'T')] ?? ''), 'vi')
 }))
+const groupedDraftItems = computed(() => {
+  const items = selectedDraftItems.value
+  const groups = new Map()
+  items.forEach(item => {
+    let title = ''
+    if (scheduleView.value === 'teacher') {
+      title = item.tenGiaoVien ?? item.TenGiaoVien ?? 'Chưa phân công giảng viên'
+    } else if (scheduleView.value === 'room') {
+      title = item.tenPhong ?? item.TenPhong ?? 'Chưa xếp phòng'
+    } else {
+      title = item.tenLop ?? item.TenLop ?? `Lớp ${item.maLop ?? item.MaLop ?? ''}`
+    }
+    if (!groups.has(title)) {
+      groups.set(title, { title, items: [] })
+    }
+    groups.get(title).items.push(item)
+  })
+  return Array.from(groups.values()).sort((a, b) => a.title.localeCompare(b.title, 'vi'))
+})
 const getStatusLabel = (status) => statusLabels[status] || statusLabels.draft
 
 function unwrap(response) {
@@ -436,8 +456,13 @@ watch(
 
             <div v-if="(selectedItem.raw.items && selectedItem.raw.items.length) || (selectedItem.raw.Items && selectedItem.raw.Items.length)">
               <p class="text-xs text-(--text-muted) uppercase tracking-wider font-bold mb-1">Chi tiết môn học</p>
-              <div class="space-y-3 mt-2 max-h-[300px] overflow-y-auto pr-1">
-                <div v-for="cItem in orderedDraftItems" :key="cItem.maDraftItem || cItem.MaDraftItem" class="text-sm border border-(--border-default) rounded-xl p-3">
+              <div class="space-y-4 mt-2 max-h-[360px] overflow-y-auto pr-1">
+                <div v-for="grp in groupedDraftItems" :key="grp.title" class="space-y-2">
+                  <div class="flex items-center justify-between px-1 text-xs font-bold text-(--text-muted) border-b border-(--border-default) pb-1 sticky top-0 bg-(--surface-card) z-10">
+                    <span class="truncate text-(--text-heading)">{{ grp.title }}</span>
+                    <span class="text-[10px] rounded-full bg-(--surface-input) px-2 py-0.5 shrink-0">{{ grp.items.length }} ca</span>
+                  </div>
+                  <div v-for="cItem in grp.items" :key="cItem.maDraftItem || cItem.MaDraftItem" class="text-sm border border-(--border-default) rounded-xl p-3">
                   <div class="flex justify-between items-center mb-1 gap-2">
                     <span class="font-bold text-(--text-heading) truncate">{{ cItem.tenMonHoc ?? cItem.TenMonHoc ?? `Khóa học ${cItem.maKhoaHoc ?? cItem.MaKhoaHoc}` }}</span>
                     <GlassBadge :variant="(cItem.loi || cItem.Loi || []).length ? 'danger' : (cItem.canhBao || cItem.CanhBao || []).length ? 'warning' : 'success'" size="sm">{{ (cItem.loi || cItem.Loi || []).length ? 'Không thể xuất bản' : (cItem.canhBao || cItem.CanhBao || []).length ? 'Cần xem lại' : 'Tốt' }}</GlassBadge>
@@ -506,6 +531,7 @@ watch(
                       </ul>
                     </div>
                   </div>
+                </div>
                 </div>
               </div>
             </div>

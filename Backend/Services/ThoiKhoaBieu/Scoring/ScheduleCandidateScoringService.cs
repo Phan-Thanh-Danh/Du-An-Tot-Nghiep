@@ -89,32 +89,32 @@ public class ScheduleCandidateScoringService : IScheduleCandidateScoringService
 
     private void EvaluateRoomFit(ScheduleCandidateContext context, ScheduleSlotSuggestionDto result)
     {
-        if (context.ExpectedStudentCount > 0 && context.Room.SucChua > 0)
+        if (context.ExpectedStudentCount <= 0)
         {
-            if (context.Room.SucChua < context.ExpectedStudentCount)
-            {
-                result.HardConstraintPassed = false;
-                result.Warnings.Add($"Sức chứa phòng ({context.Room.SucChua}) không đủ cho sĩ số ({context.ExpectedStudentCount}).");
-                return;
-            }
-
-            var ratio = (double)context.Room.SucChua / context.ExpectedStudentCount;
-            if (ratio >= 1.0 && ratio <= _options.OversizedRoomRatio)
-            {
-                result.Components.RoomFit = _options.GoodRoomFitBonus;
-                result.RawScore += _options.GoodRoomFitBonus;
-                result.Reasons.Add("Phòng có sức chứa phù hợp.");
-            }
-            else if (ratio > _options.OversizedRoomRatio)
-            {
-                result.Components.RoomFit = -_options.OversizedRoomPenalty;
-                result.RawScore -= _options.OversizedRoomPenalty;
-                result.Reasons.Add("Phòng quá lớn so với sĩ số.");
-            }
+            result.HardConstraintPassed = false;
+            result.Warnings.Add("Chưa có dữ liệu sĩ số để đánh giá độ phù hợp phòng (STUDENT_CAPACITY_DATA_MISSING).");
+            return;
         }
-        else
+
+        if (context.Room.SucChua < context.ExpectedStudentCount)
         {
-            result.Warnings.Add("Chưa có dữ liệu sĩ số để đánh giá độ phù hợp phòng.");
+            result.HardConstraintPassed = false;
+            result.Warnings.Add($"Sức chứa phòng ({context.Room.SucChua}) không đủ cho sĩ số ({context.ExpectedStudentCount}).");
+            return;
+        }
+
+        var ratio = (double)context.Room.SucChua / context.ExpectedStudentCount;
+        if (ratio >= 1.0 && ratio <= _options.OversizedRoomRatio)
+        {
+            result.Components.RoomFit = _options.GoodRoomFitBonus;
+            result.RawScore += _options.GoodRoomFitBonus;
+            result.Reasons.Add("Phòng có sức chứa phù hợp.");
+        }
+        else if (ratio > _options.OversizedRoomRatio)
+        {
+            result.Components.RoomFit = -_options.OversizedRoomPenalty;
+            result.RawScore -= _options.OversizedRoomPenalty;
+            result.Reasons.Add("Phòng quá lớn so với sĩ số.");
         }
     }
 
