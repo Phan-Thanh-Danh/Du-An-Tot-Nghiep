@@ -3,6 +3,8 @@ namespace Backend.DTOs.StudentAssignments;
 public class StudentAssignmentDto
 {
     public string Id { get; set; } = string.Empty;
+    public int? CourseId { get; set; }
+    public string CourseCode { get; set; } = string.Empty;
     public string Course { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string Deadline { get; set; } = string.Empty;

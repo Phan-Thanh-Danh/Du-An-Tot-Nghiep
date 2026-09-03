@@ -166,11 +166,17 @@ function toneClass(tone, part) {
 
     <div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
       <LmsCard variant="solid" padding="0" class="overflow-hidden">
-        <div class="border-b border-white/55 bg-white/45 px-5 py-4">
-          <h3 class="text-base font-bold text-slate-950">{{ primaryTitle }}</h3>
-          <p v-if="primaryDescription" class="mt-1 text-sm leading-6 text-slate-600">
-            {{ primaryDescription }}
-          </p>
+        <div class="flex flex-col gap-3 border-b border-white/55 bg-white/45 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 class="text-base font-bold text-slate-950">{{ primaryTitle }}</h3>
+            <p v-if="primaryDescription" class="mt-1 text-sm leading-6 text-slate-600">
+              {{ primaryDescription }}
+            </p>
+          </div>
+          <div v-if="$slots['primary-actions'] || $slots['filters']" class="flex flex-wrap items-center gap-2">
+            <slot name="primary-actions" />
+            <slot name="filters" />
+          </div>
         </div>
 
         <div v-if="rows.length" class="divide-y divide-slate-100">

@@ -59,7 +59,7 @@ export const studentApi = {
       method: 'GET',
     })
     const data = unwrapApiData(raw)
-    
+
     if (data && data.schedule) {
       data.schedule = data.schedule.map(s => {
         return {
@@ -76,7 +76,7 @@ export const studentApi = {
         }
       })
     }
-    
+
     return { success: true, data }
   },
   getCourses() {
@@ -145,6 +145,12 @@ export const studentApi = {
   },
   getAssignments() {
     return apiRequest('/api/student/assignments', {
+  getAssignments(params = {}) {
+    const query = new URLSearchParams()
+    if (params.courseId) query.append('courseId', params.courseId)
+    if (params.course) query.append('course', params.course)
+    const qs = query.toString()
+    return apiRequest(`/api/student/assignments${qs ? `?${qs}` : ''}`, {
       method: 'GET',
     })
   },
@@ -194,17 +200,17 @@ export const studentApi = {
     const query = new URLSearchParams({ ...defaultParams, ...params }).toString()
     const raw = await apiRequest(`/api/student/attendance?${query}`)
     const data = unwrapApiData(raw) || {}
-    
+
     const items = data.items || []
-    
+
     const history = items.map(dto => ({
       id: dto.maDiemDanh || Math.random(),
       subject: dto.tenMonHoc || '',
       courseCode: dto.tieuDeKhoaHoc || '',
-      shift: { 
-        label: dto.tenCa || '', 
-        start: dto.gioBatDau || '', 
-        end: dto.gioKetThuc || '' 
+      shift: {
+        label: dto.tenCa || '',
+        start: dto.gioBatDau || '',
+        end: dto.gioKetThuc || ''
       },
       room: dto.tenPhong || '',
       status: dto.trangThai || 'chua_diem_danh',
@@ -260,7 +266,7 @@ export const studentApi = {
     if (params.pageIndex) query.append('pageIndex', params.pageIndex)
     if (params.pageSize) query.append('pageSize', params.pageSize)
     const qs = query.toString()
-    
+
     const raw = await apiRequest(`/api/student/schedule${qs ? '?' + qs : ''}`)
     const data = unwrapApiData(raw)
     const items = data?.items || data?.Items || []

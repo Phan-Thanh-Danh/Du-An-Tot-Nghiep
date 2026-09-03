@@ -2,11 +2,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { studentApi } from '@/services/studentApi.js'
 import StudentModulePage from '@/components/SinhVien/StudentModulePage.vue'
-
+import LmsSelect from '@/components/LmsSelect.vue'
 import { unwrapApiData } from '@/services/apiClient.js'
 
 const assignmentList = ref([])
 const loading = ref(true)
+const selectedCourse = ref('')  // Lọc theo tên môn học (CourseCode/Course)
 
 onMounted(async () => {
   try {
@@ -20,20 +21,46 @@ onMounted(async () => {
   }
 })
 
+// Danh sách các khóa học/môn học duy nhất (để hiển thị dropdown)
+const courseOptions = computed(() => {
+  const seen = new Set()
+  const options = []
+  for (const item of assignmentList.value || []) {
+    const key = item.courseId || item.course
+    if (key && !seen.has(key)) {
+      seen.add(key)
+      options.push({
+        value: String(item.courseId || item.course),
+        label: item.courseCode ? `${item.courseCode} – ${item.course}` : item.course,
+      })
+    }
+  }
+  return options.sort((a, b) => a.label.localeCompare(b.label, 'vi'))
+})
+
+// Danh sách bài tập sau khi lọc theo khóa học
+const filteredList = computed(() => {
+  const list = assignmentList.value || []
+  if (!selectedCourse.value) return list
+  return list.filter(item => {
+    const key = String(item.courseId || item.course)
+    return key === selectedCourse.value
+  })
+})
+
 const rows = computed(() => {
-  if (!assignmentList.value) return []
-  return assignmentList.value.map((item) => {
+  return filteredList.value.map((item) => {
     let tone = item.variant || 'blue'
-    
+
     let icon = 'ClipboardList'
-    const courseLower = item.course.toLowerCase()
+    const courseLower = (item.course || '').toLowerCase()
     if (courseLower.includes('web')) icon = 'Code2'
-    else if (courseLower.includes('csdl')) icon = 'Database'
+    else if (courseLower.includes('csdl') || courseLower.includes('cơ sở dữ liệu')) icon = 'Database'
     else if (courseLower.includes('marketing') || courseLower.includes('seo')) icon = 'TrendingUp'
     else if (courseLower.includes('thiết kế') || courseLower.includes('màu sắc') || courseLower.includes('hình')) icon = 'Palette'
 
     const meta = [
-      item.course,
+      item.courseCode ? `${item.courseCode} – ${item.course}` : item.course,
       `Hạn: ${item.deadline}`,
     ]
     if (item.priority) {
@@ -55,55 +82,54 @@ const rows = computed(() => {
 })
 
 const metrics = computed(() => {
-  const list = assignmentList.value || []
-  
+  const list = filteredList.value
+
   const unpaid = list.filter(item => item.status === 'Chưa nộp' || item.status === 'Sắp đến hạn' || item.status === 'Quá hạn').length
   const paid = list.filter(item => item.status === 'Đã nộp' || item.status === 'Hoàn thành').length
   const grading = list.filter(item => item.status === 'Đang chấm' || item.status === 'Chờ chấm').length
-  
+
   return [
-    { 
-      label: 'Chưa nộp', 
-      value: String(unpaid), 
-      unit: 'bài', 
-      icon: 'AlertCircle', 
-      tone: 'orange', 
-      progress: list.length ? Math.round((unpaid / list.length) * 100) : 0, 
-      hint: unpaid > 0 ? `Cần chú ý` : 'Không có bài gấp' 
+    {
+      label: 'Chưa nộp',
+      value: String(unpaid),
+      unit: 'bài',
+      icon: 'AlertCircle',
+      tone: 'orange',
+      progress: list.length ? Math.round((unpaid / list.length) * 100) : 0,
+      hint: unpaid > 0 ? `Cần chú ý` : 'Không có bài gấp'
     },
-    { 
-      label: 'Đã nộp', 
-      value: String(paid), 
-      unit: 'bài', 
-      icon: 'CheckCircle2', 
-      tone: 'green', 
-      progress: list.length ? Math.round((paid / list.length) * 100) : 0, 
-      hint: 'Tỷ lệ hoàn thành ổn định' 
+    {
+      label: 'Đã nộp',
+      value: String(paid),
+      unit: 'bài',
+      icon: 'CheckCircle2',
+      tone: 'green',
+      progress: list.length ? Math.round((paid / list.length) * 100) : 0,
+      hint: 'Tỷ lệ hoàn thành ổn định'
     },
-    { 
-      label: 'Đang chấm', 
-      value: String(grading), 
-      unit: 'bài', 
-      icon: 'Clock3', 
-      tone: 'blue', 
-      progress: list.length ? Math.round((grading / list.length) * 100) : 0, 
-      hint: 'Chờ phản hồi từ giảng viên' 
+    {
+      label: 'Đang chấm',
+      value: String(grading),
+      unit: 'bài',
+      icon: 'Clock3',
+      tone: 'blue',
+      progress: list.length ? Math.round((grading / list.length) * 100) : 0,
+      hint: 'Chờ phản hồi từ giảng viên'
     },
-    { 
-      label: 'Điểm TB', 
-      value: '8.2', 
-      unit: '/10', 
-      icon: 'Star', 
-      tone: 'violet', 
-      progress: 82, 
-      hint: 'GPA học kỳ hiện tại' 
+    {
+      label: 'Tổng bài tập',
+      value: String(list.length),
+      unit: 'bài',
+      icon: 'ClipboardList',
+      tone: 'violet',
+      progress: assignmentList.value.length ? Math.round((list.length / assignmentList.value.length) * 100) : 0,
+      hint: selectedCourse.value ? 'Bài tập của môn đã chọn' : 'Tất cả môn học'
     },
   ]
 })
 
 const timeline = computed(() => {
-  const list = assignmentList.value || []
-  return list.map(item => {
+  return filteredList.value.map(item => {
     let tone = 'blue'
     if (item.priority === 'high') tone = 'orange'
     else if (item.status === 'Quá hạn') tone = 'red'
@@ -132,5 +158,16 @@ const timeline = computed(() => {
     :rows="rows"
     :timeline="timeline"
     :actions="[{ label: 'Xem khóa học', to: '/student/courses' }, { label: 'Tạo ticket hỗ trợ', to: '/student/support-tickets', primary: true }]"
-  />
+  >
+    <template #filters>
+      <!-- Bộ lọc theo khóa học / môn học -->
+      <LmsSelect
+        v-model="selectedCourse"
+        :options="courseOptions"
+        placeholder="Tất cả môn học"
+        :searchable="courseOptions.length > 5"
+        class="min-w-[200px]"
+      />
+    </template>
+  </StudentModulePage>
 </template>
