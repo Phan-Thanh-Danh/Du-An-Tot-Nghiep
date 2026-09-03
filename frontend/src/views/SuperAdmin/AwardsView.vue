@@ -1,6 +1,5 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { Award, Search, Users, Loader2 } from 'lucide-vue-next'
 import GlassPanel from '@/components/ui/GlassPanel.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
@@ -241,15 +240,6 @@ const selectCampaign = async (cmp) => {
     }
   } catch (err) {
     popupStore.error('Không thể tải thông tin', err?.message || 'Không thể tải thông tin đợt khen thưởng.')
-  }
-}
-
-function parseConfig(json) {
-  try {
-    const value = typeof json === 'string' ? JSON.parse(json) : json
-    return value || null
-  } catch {
-    return null
   }
 }
 
