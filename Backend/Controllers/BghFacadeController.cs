@@ -33,6 +33,18 @@ public class BghFacadeController : ControllerBase
                        user?.Role == AuthRoles.Principal ||
                        (user?.Email != null && (user.Email.Contains("bgh_all", StringComparison.OrdinalIgnoreCase) ||
                                                 user.Email.Contains("p15", StringComparison.OrdinalIgnoreCase)));
+        var isCampusScoped = (user?.Role == AuthRoles.Principal || user?.Role == "hieu_truong") && campusId > 0 &&
+                             !(user?.Email?.Contains("bgh_all", StringComparison.OrdinalIgnoreCase) ?? false) &&
+                             !(user?.Email?.Contains("p15", StringComparison.OrdinalIgnoreCase) ?? false);
+
+        var isGlobal = !isCampusScoped && (
+            user?.Role == AuthRoles.SuperAdmin ||
+            user?.Role == AuthRoles.Admin ||
+            user?.Role == AuthRoles.Chairman ||
+            campusId == 0 ||
+            (user?.Email != null && (user.Email.Contains("bgh_all", StringComparison.OrdinalIgnoreCase) ||
+                                     user.Email.Contains("p15", StringComparison.OrdinalIgnoreCase)))
+        );
         return (campusId, isGlobal);
     }
 
@@ -198,6 +210,7 @@ public class BghFacadeController : ControllerBase
             {
                 Id = x.MaHocKy,
                 MaHocKy = x.MaHocKy,
+                MaDonVi = x.MaDonVi,
                 MaCode = x.MaCodeHocKy,
                 MaCodeHocKy = x.MaCodeHocKy,
                 TenKyHoc = x.TenHocKy,
