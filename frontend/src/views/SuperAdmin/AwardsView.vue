@@ -253,26 +253,21 @@ function parseConfig(json) {
   }
 }
 
-const showGenerateTemplateModal = ref(false)
-const generateSelectedTemplateId = ref(null)
-
-async function generateCertificatesFrontend(campaign, templateId) {
+async function generateCertificatesFrontend(campaign) {
   await rewardDisciplineApi.generateRewardCertificates(campaign.id, {
     forceRegenerate: true,
-    maMauBangKhen: templateId || undefined,
+    maMauBangKhen: campaign.maMauBangKhen || undefined,
   })
   return { mode: 'backend' }
 }
 
-function doShowGenerateConfirm(cmp, templateId) {
-  const tpl = templateId
-    ? templates.value.find(t => (t.maMauBangKhen ?? t.MaMauBangKhen) === templateId)
-    : null
-  const tplName = tpl ? (tpl.tenMau ?? tpl.TenMau) : cmp.tenMauBangKhen
+const generateCertificates = () => {
+  if (!selectedCampaign.value) return
+  const cmp = selectedCampaign.value
   confirmAction.value = {
     title: 'Phát sinh bằng khen',
-    message: tplName
-      ? `Đợt "${cmp.tenDot}" sẽ dùng mẫu "${tplName}". Sinh viên sẽ nhận thành tích sau khi phát sinh.`
+    message: cmp.tenMauBangKhen
+      ? `Đợt "${cmp.tenDot}" sẽ dùng mẫu "${cmp.tenMauBangKhen}". Sinh viên sẽ nhận thành tích sau khi phát sinh.`
       : `Bạn muốn tạo bằng khen (PDF) cho đợt "${cmp.tenDot}"? Thao tác này sẽ xử lý toàn bộ ứng viên đã duyệt.`,
     label: 'Cấp phát bằng khen',
     variant: 'primary',
@@ -280,7 +275,7 @@ function doShowGenerateConfirm(cmp, templateId) {
       confirmAction.value = null
       try {
         genProgress.value = { current: 0, total: cmp.daDuyet || 1, message: 'Đang xử lý...' }
-        await generateCertificatesFrontend(cmp, templateId)
+        await generateCertificatesFrontend(cmp)
         popupStore.success('Hoàn tất', 'Đã cấp phát bằng khen thành công.')
         cmp.trangThai = 'completed'
         await fetchCampaigns()
@@ -291,19 +286,6 @@ function doShowGenerateConfirm(cmp, templateId) {
         genProgress.value = null
       }
     },
-  }
-}
-
-const generateCertificates = () => {
-  if (!selectedCampaign.value) return
-  const cmp = selectedCampaign.value
-  if (cmp.maMauBangKhen) {
-    // Campaign already has a template, go straight to confirm
-    doShowGenerateConfirm(cmp, cmp.maMauBangKhen)
-  } else {
-    // No template assigned — show picker first
-    generateSelectedTemplateId.value = null
-    showGenerateTemplateModal.value = true
   }
 }
 
@@ -665,28 +647,6 @@ const cancelCampaignAction = () => {
         </div>
         <div class="p-4 border-t border-(--border-default) bg-(--surface-card) flex justify-end">
           <GlassButton @click="showCandidatesModal = false" variant="ghost">Đóng</GlassButton>
-        </div>
-      </div>
-    </div>
-    <!-- Generate Certificate: Template Picker Modal -->
-    <div v-if="showGenerateTemplateModal" class="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4">
-      <div class="lg-glass-strong w-full max-w-md rounded-2xl border border-(--border-card) p-6">
-        <h3 class="text-lg font-bold text-(--text-heading) mb-1">Chọn mẫu giấy khen</h3>
-        <p class="text-sm text-(--text-muted) mb-4">Đợt này chưa có mẫu mặc định. Vui lòng chọn mẫu để phát sinh giấy khen cho sinh viên.</p>
-        <select v-model="generateSelectedTemplateId" class="w-full h-10 px-3 bg-(--surface-input) border border-(--border-input) rounded-lg focus:ring-2 focus:ring-(--border-focus) outline-none transition-shadow text-sm mb-5">
-          <option :value="null">-- Chọn mẫu bằng khen --</option>
-          <option v-for="tpl in templates" :key="tpl.maMauBangKhen ?? tpl.MaMauBangKhen" :value="tpl.maMauBangKhen ?? tpl.MaMauBangKhen">
-            {{ (tpl.isRootTemplate || tpl.maDonVi === 1 || !tpl.maDonVi) ? '🌐 [Toàn trường] ' : '📍 [Cơ sở] ' }}{{ tpl.tenMau ?? tpl.TenMau }}
-          </option>
-        </select>
-        <div class="flex justify-end gap-3">
-          <GlassButton @click="showGenerateTemplateModal = false" variant="ghost">Hủy</GlassButton>
-          <GlassButton
-            :disabled="!generateSelectedTemplateId"
-            variant="primary"
-            class="bg-amber-600 hover:bg-amber-700 text-white border-none disabled:opacity-50"
-            @click="() => { showGenerateTemplateModal = false; doShowGenerateConfirm(selectedCampaign, generateSelectedTemplateId) }"
-          >Tiếp tục</GlassButton>
         </div>
       </div>
     </div>
