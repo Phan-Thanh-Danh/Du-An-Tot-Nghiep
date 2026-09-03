@@ -493,14 +493,12 @@ public class CertificateGenerationService : ICertificateGenerationService
         // Nếu có ít nhất 1 bằng khen được sinh thành công → chuyển đợt sang "da_cong_bo"
         if (result.SuccessCount > 0 || result.SkippedCount > 0)
         {
-            var campaignToUpdate = await _context.DotKhenThuongs
-                .FirstOrDefaultAsync(x => x.MaDotKhenThuong == campaign.MaDotKhenThuong, cancellationToken);
-            if (campaignToUpdate != null &&
-                campaignToUpdate.TrangThai == RewardDisciplineConstants.RewardCampaignStatuses.Approved)
-            {
-                campaignToUpdate.TrangThai = RewardDisciplineConstants.RewardCampaignStatuses.Published;
-                await _context.SaveChangesAsync(cancellationToken);
-            }
+            await _context.DotKhenThuongs
+                .Where(x => x.MaDotKhenThuong == campaign.MaDotKhenThuong &&
+                            x.TrangThai == RewardDisciplineConstants.RewardCampaignStatuses.Approved)
+                .ExecuteUpdateAsync(
+                    s => s.SetProperty(x => x.TrangThai, RewardDisciplineConstants.RewardCampaignStatuses.Published),
+                    cancellationToken);
         }
 
         await _auditLogService.LogAsync(
