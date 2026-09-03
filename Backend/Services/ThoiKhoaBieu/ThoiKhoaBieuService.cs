@@ -146,6 +146,15 @@ public class ThoiKhoaBieuService : IThoiKhoaBieuService
 
         if (result is null)
         {
+            var rawSchedule = await _context.ThoiKhoaBieus
+                .Include(x => x.KhoaHoc)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.MaTkb == scheduleId, cancellationToken);
+            if (rawSchedule != null && rawSchedule.KhoaHoc != null && !await CanAccessOrganizationAsync(currentUser, rawSchedule.KhoaHoc.MaDonVi, cancellationToken))
+            {
+                throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền xem thời khóa biểu của cơ sở này.", "FORBIDDEN_CAMPUS");
+            }
+
             throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy thời khóa biểu.");
         }
 

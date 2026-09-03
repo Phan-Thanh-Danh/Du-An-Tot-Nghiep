@@ -50,15 +50,11 @@ const selectedDraftSummary = computed(() => {
   return { assigned: Math.max(0, items.length - unassigned), unassigned, warnings, sessions: items.length }
 })
 const hasHardViolation = computed(() => selectedDraftItems.value.some(item => (item.loi || item.Loi || []).length > 0) || Boolean(selectedItem.value?.raw?.hasHardViolation ?? selectedItem.value?.raw?.HasHardViolation))
-const orderedDraftItems = computed(() => [...selectedDraftItems.value].sort((a, b) => {
-  const key = scheduleView.value === 'teacher' ? 'tenGiaoVien' : scheduleView.value === 'room' ? 'tenPhong' : 'tenLop'
-  return String(a[key] ?? a[key?.replace(/^t/, 'T')] ?? '').localeCompare(String(b[key] ?? b[key?.replace(/^t/, 'T')] ?? ''), 'vi')
-}))
 const groupedDraftItems = computed(() => {
   const items = selectedDraftItems.value
   const groups = new Map()
   items.forEach(item => {
-    let title = ''
+    let title
     if (scheduleView.value === 'teacher') {
       title = item.tenGiaoVien ?? item.TenGiaoVien ?? 'Chưa phân công giảng viên'
     } else if (scheduleView.value === 'room') {
@@ -253,16 +249,35 @@ async function executePublish() {
   showPublishConfirm.value = false
   publishing.value = true
   try {
-    const res = await scheduleApi.publishDraft({ draftId: publishTarget.value.id })
+    await scheduleApi.publishDraft({ draftId: publishTarget.value.id })
     popupStore.success('Xuất bản thành công', 'Thời khóa biểu đã được xuất bản thành công.')
     await loadSchedules()
     selectedItem.value = null
   } catch (e) {
-    const status = e?.response?.status ?? e?.status
-    const message = status === 409
-      ? (String(e?.message || '').toLowerCase().includes('diem') ? 'Không thể thay đổi lịch vì đã có điểm danh.' : 'Không thể xuất bản/thay đổi lịch sau 30 phút. Lịch đã được khóa.')
-      : status === 403 ? 'Bạn không có quyền xuất bản thời khóa biểu của cơ sở này.'
-      : e?.message || 'Không thể xuất bản bản nháp. Hãy kiểm tra kết nối và thử lại.'
+    const code = e?.errorCode || e?.details?.errorCode || e?.details?.ErrorCode || ''
+    const status = e?.statusCode || (e?.response?.status ?? e?.status)
+
+    let message
+    if (code === 'SCHEDULE_LOCKED_BY_ATTENDANCE') {
+      message = 'Không thể xuất bản đè thời khóa biểu vì đã có buổi học được điểm danh thực tế trong học kỳ này.'
+    } else if (code === 'SCHEDULE_LOCKED_AFTER_EDIT_WINDOW') {
+      message = 'Thời khóa biểu đã xuất bản quá 30 phút, bị khóa chỉnh sửa/ghi đè vĩnh viễn.'
+    } else if (code === 'FORBIDDEN_CAMPUS' || status === 403) {
+      message = 'Bạn không có quyền quản lý thời khóa biểu của cơ sở này.'
+    } else if (code === 'DRAFT_ALREADY_PUBLISHED') {
+      message = 'Bản nháp này đã được xuất bản trước đó.'
+    } else if (code === 'DRAFT_EXPIRED_OR_INVALID') {
+      message = 'Bản nháp không hợp lệ hoặc đã hết hạn.'
+    } else if (code === 'HARD_CONFLICT') {
+      message = 'Bản nháp có dữ liệu xung đột cứng, không thể xuất bản.'
+    } else if (code === 'READINESS_BLOCKED') {
+      message = 'Dữ liệu học kỳ chưa sẵn sàng để xuất bản thời khóa biểu.'
+    } else if (code === 'CONCURRENT_CONFLICT' || status === 409) {
+      message = e?.message || 'Thao tác xuất bản bị xung đột hoặc học kỳ đã bị khóa. Vui lòng tải lại trang và kiểm tra lại.'
+    } else {
+      message = e?.message || 'Không thể xuất bản bản nháp. Vui lòng kiểm tra kết nối mạng và thử lại.'
+    }
+
     popupStore.error('Không thể xuất bản', message)
   } finally {
     publishing.value = false
@@ -310,7 +325,7 @@ watch(
           <span>Cơ sở</span>
           <select
             v-model.number="filterMaDonVi"
-            :disabled="loading || publishing || loadingFilters"
+            :disabled="loading || publishing || loadingFilters || !!authorizedCampusId"
             class="h-10 min-w-[220px] rounded-xl border border-(--border-input) bg-(--surface-input) px-3 text-sm text-(--text-body) outline-none focus:ring-2 focus:ring-(--border-focus) disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <option value="">Chọn cơ sở</option>

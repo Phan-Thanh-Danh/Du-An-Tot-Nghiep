@@ -160,6 +160,15 @@ public class ThoiKhoaBieuController : ControllerBase
         return Ok(ApiResponseDto<List<ScheduleDraftDto>>.Ok(drafts));
     }
 
+    [HttpGet("current-job")]
+    public async Task<ActionResult<ApiResponseDto<ScheduleDraftDto?>>> GetCurrentGenerationJob(
+        [FromQuery] int maHocKy,
+        CancellationToken cancellationToken)
+    {
+        var job = await _smartTimetableService.GetCurrentGenerationJobAsync(maHocKy, cancellationToken);
+        return Ok(ApiResponseDto<ScheduleDraftDto?>.Ok(job));
+    }
+
     [HttpPost("publish")]
     public async Task<ActionResult<ApiResponseDto<TimetablePublishResultDto>>> Publish(
         PublishTimetableRequest request,

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import {
   CalendarRange, Search, Plus, CheckCircle, AlertTriangle, BookOpen, X, Loader2, Pencil, Wand2,
   Clock, Sparkles, GraduationCap, Users, ChevronDown
@@ -46,6 +46,10 @@ const submitting = ref(false)
 const conflictPreview = ref([])
 const checkingConflict = ref(false)
 const generating = ref(false)
+const pollError = ref('')
+const currentPollingDraftId = ref('')
+let pollStartTime = 0
+const POLL_TIMEOUT_MS = 120000
 const isLoadingOptions = ref(false)
 const activeCreateMode = ref('quick')
 
@@ -67,7 +71,7 @@ const bulkSelectedCourseIds = ref([])
 const bulkReviewRows = ref([])
 const bulkCreating = ref(false)
 const bulkCoursePickerOpen = ref(false)
-const smartCourseScope = ref('unscheduled')
+const smartCourseScope = ref('whole_term')
 const smartCampusId = ref('')
 const smartSelectedCourseIds = ref([])
 const smartOptions = ref({ tongTheHe: 100, kichThuocQuanThe: 50, tyLeCheo: 0.5, doTuoiThoToiDa: 10 })
@@ -125,25 +129,48 @@ const simpleReadiness = computed(() => {
              item.code === 'ACTIVE_SHIFTS_READY' ? 'Ca học' :
              item.code === 'TOTAL_ROOM_SLOTS_READY' ? 'Tổng slot phòng' :
              item.code === 'EXISTING_SCHEDULE_LOCK_READY' ? 'Khóa lịch công bố' : item.code,
-      ready: item.status !== 'blocked' && item.status !== 'unknown',
+      ready: item.status === 'ready',
+      warning: item.status === 'warning',
+      blocked: item.status === 'blocked',
+      unknown: item.status === 'unknown',
       status: item.status,
       detail: item.message,
       actionRoute: item.actionRoute,
-      affectedCount: item.affectedCount
+      affectedCount: item.affectedCount,
+      affectedItems: item.affectedItems || []
     }))
   }
 
-  const count = unscheduledCourses.value.filter(c => !authorizedCampusId.value || Number(c.maDonVi) === authorizedCampusId.value).length
-  return [
-    { label: 'Khóa học', ready: count > 0, detail: count ? `${count} khóa học cần xếp` : 'Chưa có khóa học cần xếp' },
-    { label: 'Giảng viên phù hợp', ready: readiness.hasTeachers !== false, detail: readiness.hasTeachers === false ? 'Cần bổ sung giảng viên phù hợp.' : 'Đã sẵn sàng' },
-    { label: 'Thời gian rảnh của giảng viên', ready: readiness.hasTeachers !== false, detail: readiness.hasTeachers === false ? 'Cần cập nhật thời gian rảnh.' : 'Đã sẵn sàng' },
-    { label: 'Phòng học', ready: readiness.hasRooms !== false, detail: readiness.hasRooms === false ? 'Cần bổ sung phòng học.' : 'Đã sẵn sàng' },
-    { label: 'Ca học', ready: readiness.hasShifts !== false, detail: readiness.hasShifts === false ? 'Cần bổ sung ca học.' : 'Đã sẵn sàng' },
-    { label: 'Sức chứa phòng', ready: readiness.hasRooms !== false, detail: readiness.hasRooms === false ? 'Cần kiểm tra phòng học phù hợp.' : 'Đã sẵn sàng' },
-  ]
+  return []
 })
-const canGenerateSimple = computed(() => authorizedCampusId.value > 0 && schedulingContext.canPrepareSchedule && simpleReadiness.value.every(item => item.ready) && !generating.value)
+
+const termCourseCount = computed(() => {
+  const item = simpleReadiness.value.find(i => i.code === 'COURSES_READY')
+  if (item && typeof item.affectedCount === 'number') return item.affectedCount
+  return 30
+})
+
+const coursesToScheduleCount = computed(() => {
+  if (smartCourseScope.value === 'class') {
+    return courseOptions.value.length
+  } else if (smartCourseScope.value === 'manual') {
+    return smartSelectedCourseIds.value.length
+  }
+  return termCourseCount.value
+})
+
+const currentClassName = computed(() => {
+  if (!schedulingContext.selectedClassId) return ''
+  const course = courseOptions.value.find(c => Number(c.maLop) === Number(schedulingContext.selectedClassId))
+  return course?.tenLop || course?.maCodeLop || `Lớp #${schedulingContext.selectedClassId}`
+})
+
+const canGenerateSimple = computed(() => {
+  if (submitting.value || generating.value) return false
+  if (!authorizedCampusId.value || !schedulingContext.canPrepareSchedule) return false
+  if (!simpleReadiness.value.length) return false
+  return simpleReadiness.value.every(item => item.status === 'ready' || item.status === 'warning')
+})
 
 const selectedCourse = computed(() =>
   courseOptions.value.find(c => Number(c.maKhoaHoc) === Number(form.value.maKhoaHoc)) || form.value.selectedCourse || null
@@ -669,17 +696,26 @@ function openSmartMode() {
 }
 
 async function generateSimpleDraft() {
-  smartButtonState.value = 'checking'
+  if (submitting.value || generating.value) return
   if (!canGenerateSimple.value) {
-    popupStore.warning('Cần bổ sung dữ liệu', 'Hãy hoàn tất các mục đang cần bổ sung trước khi xếp lịch.')
-    smartButtonState.value = 'idle'
+    const blocking = simpleReadiness.value.filter(i => i.blocked)
+    const detailMsg = blocking.length > 0 ? blocking.map(b => `${b.label}: ${b.detail}`).join('; ') : 'Dữ liệu chưa sẵn sàng.'
+    popupStore.warning('Cần bổ sung dữ liệu', `Hãy hoàn tất các mục đang cần bổ sung trước khi xếp lịch. ${detailMsg}`)
     return
   }
-  smartCampusId.value = authorizedCampusId.value || smartCampusId.value
-  smartCourseScope.value = 'unscheduled'
-  smartButtonState.value = 'generating'
-  await generateSmartDraft()
-  smartButtonState.value = smartDraft.value ? 'done' : 'idle'
+  submitting.value = true
+  smartButtonState.value = 'checking'
+  try {
+    smartCampusId.value = authorizedCampusId.value || smartCampusId.value
+    if (smartCourseScope.value !== 'class') {
+      smartCourseScope.value = 'whole_term'
+    }
+    smartButtonState.value = 'generating'
+    await generateSmartDraft()
+    smartButtonState.value = smartDraft.value ? 'done' : 'idle'
+  } finally {
+    submitting.value = false
+  }
 }
 
 async function openEdit(row) {
@@ -1090,6 +1126,7 @@ async function createBulkDrafts() {
 }
 
 async function generateSmartDraft() {
+  if (generating.value) return
   const campusId = authorizedCampusId.value || Number(smartCampusId.value)
   const termId = Number(schedulingContext.schedulableTerm?.maHocKy)
   if (!termId || !campusId) {
@@ -1103,10 +1140,17 @@ async function generateSmartDraft() {
       popupStore.warning('Chưa chọn khóa học', 'Vui lòng tick ít nhất một khóa học cần xếp lịch.')
       return
     }
+  } else if (smartCourseScope.value === 'class') {
+    selectedIds = courseOptions.value.map(c => Number(c.maKhoaHoc)).filter(id => id > 0)
+    if (!selectedIds.length) {
+      popupStore.warning('Chưa có khóa học', 'Lớp này chưa có khóa học nào để xếp lịch.')
+      return
+    }
   }
 
   const clientDraftId = crypto.randomUUID()
   generating.value = true
+  pollError.value = ''
   smartButtonState.value = 'generating'
   generationProgress.value = {
     draftId: clientDraftId,
@@ -1134,31 +1178,67 @@ async function generateSmartDraft() {
       clientDraftId,
     })
     smartDraft.value = res?.data ?? res?.Data ?? res
+    sessionStorage.removeItem('active_schedule_draft')
     await loadData()
     popupStore.success('Đã sinh bản nháp', 'Vui lòng kiểm tra bản nháp trước khi xuất bản.')
     await router.push(pendingDraftRoute.value)
   } catch (e) {
-    popupStore.error('Lỗi xếp lịch thông minh', e?.message || 'Không thể sinh bản nháp thời khóa biểu.')
-  } finally {
+    const code = e?.errorCode || e?.details?.errorCode || e?.details?.ErrorCode || ''
+    if (code === 'FORBIDDEN_CAMPUS') {
+      popupStore.error('Không có quyền', 'Bạn không có quyền xếp lịch cho cơ sở này.')
+    } else {
+      popupStore.error('Lỗi xếp lịch thông minh', e?.message || 'Không thể sinh bản nháp thời khóa biểu.')
+    }
     stopProgressPolling()
     generating.value = false
-    showProgressModal.value = false
+    sessionStorage.removeItem('active_schedule_draft')
   }
 }
 
 async function startProgressPolling(draftId) {
   stopProgressPolling()
+  currentPollingDraftId.value = draftId
+  pollStartTime = Date.now()
+  pollError.value = ''
+
+  sessionStorage.setItem('active_schedule_draft', JSON.stringify({
+    draftId,
+    termId: schedulingContext.schedulableTerm?.maHocKy,
+    campusId: authorizedCampusId.value,
+    timestamp: Date.now()
+  }))
+
   progressPollTimer = setInterval(async () => {
+    if (Date.now() - pollStartTime > POLL_TIMEOUT_MS) {
+      stopProgressPolling()
+      pollError.value = 'Quá thời gian chờ phản hồi từ máy chủ (timeout 120s). Tiến trình có thể vẫn đang tiếp tục trong nền.'
+      return
+    }
+
     try {
       const p = await scheduleApi.getGenerationProgress(draftId)
       if (p) generationProgress.value = { ...generationProgress.value, ...p }
       if (p?.trangThai === 'hoan_tat' || p?.trangThai === 'draft') {
         stopProgressPolling()
+        sessionStorage.removeItem('active_schedule_draft')
+        generating.value = false
+        showProgressModal.value = false
+        await loadData()
+        popupStore.success('Đã sinh bản nháp', 'Vui lòng kiểm tra bản nháp trước khi xuất bản.')
+        await router.push(pendingDraftRoute.value)
       }
-    } catch {
-      // backend may not have job yet; keep polling
+    } catch (err) {
+      const status = err?.statusCode || err?.response?.status
+      if (status === 401 || status === 403) {
+        stopProgressPolling()
+        pollError.value = 'Phiên làm việc đã hết hạn hoặc bạn không có quyền trên cơ sở này.'
+      } else if (status === 404) {
+        stopProgressPolling()
+        pollError.value = 'Không tìm thấy tiến trình xếp lịch (404).'
+        sessionStorage.removeItem('active_schedule_draft')
+      }
     }
-  }, 500)
+  }, 1000)
 }
 
 function stopProgressPolling() {
@@ -1168,41 +1248,35 @@ function stopProgressPolling() {
   }
 }
 
-// ── Publish all drafts ────────────────────────────────────────────
-const draftRows = computed(() => rows.value.filter(r => r.trangThai === 'nhap'))
-const publishingAll = ref(false)
-
-function publishAll() {
-  const drafts = draftRows.value
-  if (!drafts.length) {
-    popupStore.warning('Không có bản nháp', 'Tất cả lịch đã được xuất bản hoặc chưa có lịch nào.')
-    return
-  }
-  confirmAction.value = {
-    title: 'Xuất bản toàn bộ thời khóa biểu?',
-    message: `${drafts.length} ca học nháp sẽ được công bố chính thức tới sinh viên và giảng viên. Hành động này không thể hoàn tác.`,
-    label: 'Xuất bản tất cả',
-    variant: 'primary',
-    run: async () => {
-      confirmAction.value = null
-      publishingAll.value = true
-      try {
-        await Promise.all(
-          drafts.map(row =>
-            scheduleApi.update(row.id, { ...viewToBe(row), trangThai: 'da_xuat_ban' })
-          )
-        )
+async function retryCheckProgress() {
+  if (!currentPollingDraftId.value) return
+  pollError.value = ''
+  try {
+    const p = await scheduleApi.getGenerationProgress(currentPollingDraftId.value)
+    if (p) {
+      generationProgress.value = { ...generationProgress.value, ...p }
+      if (p.trangThai === 'hoan_tat' || p.trangThai === 'draft') {
+        sessionStorage.removeItem('active_schedule_draft')
+        generating.value = false
+        showProgressModal.value = false
         await loadData()
-        popupStore.success('Đã xuất bản', `Đã công bố ${drafts.length} ca học thành công.`)
-      } catch (e) {
-        popupStore.error('Lỗi xuất bản', e?.message || 'Một số lịch không thể xuất bản.')
-        await loadData()
-      } finally {
-        publishingAll.value = false
+        popupStore.success('Đã sinh bản nháp', 'Vui lòng kiểm tra bản nháp trước khi xuất bản.')
+        await router.push(pendingDraftRoute.value)
+        return
       }
-    },
+    }
+    startProgressPolling(currentPollingDraftId.value)
+  } catch (e) {
+    pollError.value = e.message || 'Không thể kiểm tra lại tiến trình.'
   }
 }
+
+onUnmounted(() => {
+  stopProgressPolling()
+})
+
+// ── Draft rows indicator (official publish via PendingSchedulesView) ──
+const draftRows = computed(() => rows.value.filter(r => r.trangThai === 'nhap'))
 
 function cancelRow(row) {
   confirmAction.value = {
@@ -1271,13 +1345,11 @@ function thuLabel(thu) {
         <GlassButton
           v-if="draftRows.length > 0"
           variant="secondary"
-          class="h-10 shrink-0 border-emerald-500/50 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
-          :disabled="publishingAll"
-          @click="publishAll"
+          class="h-10 shrink-0 border-amber-500/50 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+          @click="router.push('/staff/schedule/pending')"
         >
-          <Loader2 v-if="publishingAll" :size="15" class="mr-1 animate-spin" />
-          <CheckCircle v-else :size="15" class="mr-1" />
-          Xuất bản ({{ draftRows.length }} nháp)
+          <Clock :size="15" class="mr-1" />
+          Duyệt bản nháp ({{ draftRows.length }})
         </GlassButton>
         <GlassButton variant="primary" class="h-10 shrink-0" @click="openCreate()">
           <Plus :size="15" class="mr-1" /> Tạo lịch
@@ -1783,19 +1855,27 @@ function thuLabel(thu) {
                   <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     <div class="rounded-xl bg-(--surface-input) p-3 text-sm"><span class="block text-xs text-(--text-muted)">Học kỳ</span><strong>{{ schedulingContext.schedulableTerm?.tenHocKy || 'Chưa có học kỳ phù hợp' }}</strong></div>
                     <div class="rounded-xl bg-(--surface-input) p-3 text-sm"><span class="block text-xs text-(--text-muted)">Cơ sở</span><strong>{{ authorizedCampusName }}</strong></div>
-                    <div class="rounded-xl bg-(--surface-input) p-3 text-sm"><span class="block text-xs text-(--text-muted)">Khóa học cần xếp</span><strong>{{ simpleReadiness[0].detail }}</strong></div>
+                    <div class="rounded-xl bg-(--surface-input) p-3 text-sm"><span class="block text-xs text-(--text-muted)">Phạm vi xếp</span><strong>{{ smartCourseScope === 'class' ? (currentClassName ? 'Lớp ' + currentClassName : 'Lớp đã chọn') : 'Toàn bộ học kỳ' }} ({{ coursesToScheduleCount }} khóa)</strong></div>
                     <div class="rounded-xl bg-(--surface-input) p-3 text-sm"><span class="block text-xs text-(--text-muted)">Trạng thái dữ liệu</span><strong :class="canGenerateSimple ? 'text-(--color-success-text)' : 'text-(--color-warning-text)'">{{ canGenerateSimple ? 'Sẵn sàng' : 'Cần bổ sung' }}</strong></div>
                   </div>
                   <div class="mt-4 grid gap-2 sm:grid-cols-2" aria-live="polite">
                     <div v-for="item in simpleReadiness" :key="item.label" class="flex items-center justify-between gap-3 rounded-lg border border-(--border-default) px-3 py-2 text-sm">
-                      <span>{{ item.label }}</span><span :class="item.ready ? 'text-(--color-success-text)' : 'text-(--color-warning-text)'" class="font-semibold">{{ item.ready ? 'Đã sẵn sàng' : 'Cần bổ sung' }}</span>
+                      <div class="flex flex-col">
+                        <span>{{ item.label }}</span>
+                        <span v-if="item.detail" class="text-[11px] text-(--text-muted)">{{ item.detail }}</span>
+                      </div>
+                      <span :class="item.ready ? 'text-(--color-success-text)' : item.warning ? 'text-(--color-warning-text)' : 'text-(--color-danger-text)'" class="font-semibold text-xs shrink-0">
+                        {{ item.ready ? 'Đã sẵn sàng' : item.warning ? 'Cảnh báo' : 'Cần bổ sung' }}
+                      </span>
                     </div>
                   </div>
-                  <p v-if="!canGenerateSimple" class="mt-3 text-sm text-(--color-warning-text)">Hoàn tất các mục “Cần bổ sung” trước khi hệ thống có thể xếp lịch.</p>
-                  <GlassButton variant="primary" class="mt-4" :disabled="!canGenerateSimple" @click="generateSimpleDraft">
-                    <Loader2 v-if="generating" class="mr-1.5 animate-spin" :size="16" />
+                  <p v-if="!canGenerateSimple" class="mt-3 text-sm text-(--color-warning-text)">
+                    Hoàn tất các mục “Cần bổ sung” trước khi hệ thống có thể xếp lịch.
+                  </p>
+                  <GlassButton variant="primary" class="mt-4" :disabled="!canGenerateSimple || submitting || generating" @click="generateSimpleDraft">
+                    <Loader2 v-if="generating || submitting" class="mr-1.5 animate-spin" :size="16" />
                     <Sparkles v-else :size="16" class="mr-1.5" />
-                    {{ smartButtonState === 'checking' ? 'Đang kiểm tra dữ liệu…' : smartButtonState === 'generating' ? 'Đang tìm phương án phù hợp…' : smartButtonState === 'done' ? 'Đã tạo lịch thành công' : 'Xếp lịch ngay' }}
+                    {{ submitting ? 'Đang chuẩn bị...' : smartButtonState === 'checking' ? 'Đang kiểm tra dữ liệu…' : smartButtonState === 'generating' ? 'Đang tìm phương án phù hợp…' : smartButtonState === 'done' ? 'Đã tạo lịch thành công' : 'Xếp lịch ngay' }}
                   </GlassButton>
                   <div v-if="smartDraft" class="mt-3 rounded-xl border border-(--border-default) bg-(--color-success-bg) p-3 text-sm text-(--color-success-text)">
                     Đã tạo bản nháp. <RouterLink :to="pendingDraftRoute" class="font-bold underline">Xem và duyệt thời khóa biểu</RouterLink>
@@ -1818,7 +1898,8 @@ function thuLabel(thu) {
                   <label class="text-xs font-semibold text-(--text-muted)">
                     Phạm vi khóa học
                     <select v-model="smartCourseScope" class="mt-1 h-9 w-full rounded-lg border border-(--border-input) bg-(--surface-input) px-3 text-sm">
-                      <option value="unscheduled">Tất cả khóa học chưa có lịch</option>
+                      <option value="whole_term">Toàn bộ khóa học trong học kỳ (mặc định)</option>
+                      <option value="class" :disabled="!schedulingContext.selectedClassId">Chỉ xếp cho lớp đang chọn ({{ currentClassName || 'Chưa chọn lớp' }})</option>
                       <option value="manual">Tick thủ công</option>
                     </select>
                   </label>
@@ -1926,6 +2007,17 @@ function thuLabel(thu) {
               Xếp được: <span class="font-semibold text-(--color-success-text)">{{ generationProgress.xepDuoc }}</span> ·
               Không xếp được: <span class="font-semibold text-(--color-danger-text)">{{ generationProgress.khongXepDuoc }}</span>
             </p>
+            <div v-if="pollError" class="mt-3 p-3 rounded-xl border border-(--color-danger-border) bg-(--color-danger-bg) text-xs text-(--color-danger-text)">
+              <p class="font-semibold">{{ pollError }}</p>
+              <div class="mt-2 flex gap-2 justify-end">
+                <button class="px-3 py-1.5 rounded-lg border border-(--border-default) bg-(--surface-card) text-(--text-body) hover:bg-(--surface-hover)" @click="showProgressModal = false; generating = false">
+                  Đóng
+                </button>
+                <button class="px-3 py-1.5 rounded-lg bg-(--sidebar-accent) text-white font-semibold hover:opacity-90" @click="retryCheckProgress">
+                  Kiểm tra lại tiến trình
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </transition>

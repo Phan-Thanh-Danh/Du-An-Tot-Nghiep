@@ -44,7 +44,7 @@ public class AcademicTermService : IAcademicTermService
         {
             if (!allowedOrganizationIds.Contains(parameters.MaDonVi.Value))
             {
-                throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền xem học kỳ của đơn vị này.");
+                throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền xem học kỳ của đơn vị này.", "FORBIDDEN_CAMPUS");
             }
 
             termQuery = termQuery.Where(x => x.MaDonVi == parameters.MaDonVi.Value);
@@ -376,7 +376,6 @@ public class AcademicTermService : IAcademicTermService
             currentUser.Role == AuthRoles.HoiDongQuanLyNoiDung ||
             currentUser.Role == AuthRoles.Chairman ||
             currentUser.Role == AuthRoles.Admin ||
-            currentUser.Role == AuthRoles.AcademicStaff ||
             currentUser.CampusId == 0)
         {
             return await _context.DonVis

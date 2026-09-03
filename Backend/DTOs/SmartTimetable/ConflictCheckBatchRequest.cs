@@ -2,6 +2,7 @@ namespace Backend.DTOs.SmartTimetable;
 
 public class ConflictCheckBatchRequest
 {
+    public Guid? DraftId { get; set; }
     public int MaHocKy { get; set; }
     public int MaDonVi { get; set; }
     public List<ConflictCheckItem> Items { get; set; } = new();

@@ -1,12 +1,17 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import {
-  ShieldAlert, Search, User, Building, Users, CheckCircle2, Wrench, X, AlertTriangle, Lightbulb
+  ShieldAlert, Search, User, Building, Users, CheckCircle2, Wrench, X, AlertTriangle, Lightbulb, Clock
 } from 'lucide-vue-next'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import ListSkeleton from '@/components/common/skeleton/ListSkeleton.vue'
 import { scheduleApi } from '@/services/scheduleApi'
+import academicSchedulingApi from '@/services/academicSchedulingApi'
+import { useAuthStore } from '@/stores/auth'
+
+const authStore = useAuthStore()
+const userCampusId = computed(() => Number(authStore.user?.campusId || authStore.user?.maDonVi || 0))
 
 const conflicts = ref([])
 const selected = ref(null)
@@ -16,6 +21,11 @@ const filterMucDo = ref('')
 const error = ref('')
 
 const isChecking = ref(false)
+const hasChecked = ref(false)
+const scannedCount = ref(0)
+const activeTerm = ref(null)
+const hardConflictCount = ref(0)
+const softWarningCount = ref(0)
 
 function unwrapList(response) {
   const data = response?.data ?? response?.Data ?? response
@@ -24,6 +34,16 @@ function unwrapList(response) {
   if (Array.isArray(data?.Items)) return data.Items
   return []
 }
+
+onMounted(async () => {
+  try {
+    const ctxRes = await academicSchedulingApi.getContext()
+    const ctx = ctxRes?.data ?? ctxRes?.Data ?? ctxRes
+    activeTerm.value = ctx?.schedulableTerm || ctx?.SchedulableTerm || ctx?.currentTerm || ctx?.CurrentTerm || null
+  } catch {
+    // Context load optional for initial view
+  }
+})
 
 // ── Computed ───────────────────────────────────────────────────
 const stats = computed(() => ({
@@ -45,23 +65,70 @@ const filtered = computed(() => {
   return list
 })
 
-const loaiLabel = l => ({ giang_vien: 'Giảng viên', phong_hoc: 'Phòng học', lop_hoc: 'Lớp học' }[l] || l)
-const mucDoLabel = m => ({ critical: 'Nghiêm trọng', major: 'Trung bình', minor: 'Nhẹ' }[m] || m)
+const loaiLabel = l => ({ giang_vien: 'Giảng viên', phong_hoc: 'Phòng học', lop_hoc: 'Lớp học', suc_chua: 'Sức chứa' }[l] || l)
+const mucDoLabel = m => ({ critical: 'Xung đột cứng', major: 'Cảnh báo', minor: 'Nhẹ' }[m] || m)
 const mucDoVariant = m => ({ critical: 'danger', major: 'warning', minor: 'info' }[m] || 'neutral')
 const xuLyLabel = s => ({ chua_xu_ly: 'Chưa xử lý', dang_xu_ly: 'Đang xử lý', da_xu_ly: 'Đã xử lý' }[s] || s)
 const xuLyVariant = s => ({ chua_xu_ly: 'danger', dang_xu_ly: 'warning', da_xu_ly: 'success' }[s] || 'neutral')
-const loaiIcon = l => ({ giang_vien: User, phong_hoc: Building, lop_hoc: Users }[l] || ShieldAlert)
+const loaiIcon = l => ({ giang_vien: User, phong_hoc: Building, lop_hoc: Users, suc_chua: Building }[l] || ShieldAlert)
 
 async function performCheck() {
   isChecking.value = true
+  hasChecked.value = false
   error.value = ''
+  conflicts.value = []
+  scannedCount.value = 0
+  hardConflictCount.value = 0
+  softWarningCount.value = 0
+
   try {
-    const response = await scheduleApi.list({ pageSize: 100 })
-    const rows = unwrapList(response).filter(r => r.trangThai !== 'da_huy')
-    conflicts.value = buildConflicts(rows)
+    const campusId = userCampusId.value || 1
+    let termId = activeTerm.value?.maHocKy || activeTerm.value?.MaHocKy
+
+    if (!termId) {
+      const ctxRes = await academicSchedulingApi.getContext()
+      const ctx = ctxRes?.data ?? ctxRes?.Data ?? ctxRes
+      activeTerm.value = ctx?.schedulableTerm || ctx?.SchedulableTerm || ctx?.currentTerm || ctx?.CurrentTerm || null
+      termId = activeTerm.value?.maHocKy || activeTerm.value?.MaHocKy
+    }
+
+    // Load drafts or published schedules for this campus + term
+    const [draftsRes, schedulesRes] = await Promise.all([
+      termId ? scheduleApi.listDrafts({ maDonVi: campusId, maHocKy: termId }).catch(() => []) : [],
+      scheduleApi.list({ MaDonVi: campusId, MaHocKy: termId || undefined, PageSize: 1000 }).catch(() => [])
+    ])
+
+    const drafts = unwrapList(draftsRes)
+    const schedules = unwrapList(schedulesRes).filter(r => r.trangThai !== 'da_huy')
+
+    let allItems = []
+    if (drafts.length > 0 && drafts[0].items && drafts[0].items.length > 0) {
+      allItems = drafts[0].items.map(d => ({
+        thuTrongTuan: d.thuTrongTuan ?? d.ThuTrongTuan,
+        maCaHoc: d.maCaHoc ?? d.MaCaHoc,
+        maGiaoVien: d.maGiaoVien ?? d.MaGiaoVien,
+        tenGiaoVien: d.tenGiaoVien ?? d.TenGiaoVien,
+        maPhong: d.maPhong ?? d.MaPhong,
+        tenPhong: d.tenPhong ?? d.TenPhong,
+        maLop: d.maLop ?? d.MaLop,
+        tenLop: d.tenLop ?? d.TenLop,
+        loi: d.loi ?? d.Loi ?? [],
+        canhBao: d.canhBao ?? d.CanhBao ?? []
+      }))
+    } else {
+      allItems = schedules
+    }
+
+    scannedCount.value = allItems.length
+    conflicts.value = buildConflicts(allItems)
+
+    hardConflictCount.value = conflicts.value.filter(c => c.mucDo === 'critical').length
+    softWarningCount.value = conflicts.value.filter(c => c.mucDo !== 'critical').length
+    hasChecked.value = true
   } catch (e) {
     error.value = e.message || 'Không thể kiểm tra xung đột thời khóa biểu.'
     conflicts.value = []
+    hasChecked.value = true
   } finally {
     isChecking.value = false
   }
@@ -81,10 +148,28 @@ function buildConflicts(rows) {
     map.get(key).push({ item, label })
   }
   for (const r of rows) {
-    push('giang_vien', `${r.thuTrongTuan}-${r.maCaHoc}-${r.maGiaoVien}`, r, r.tenGiaoVien || `Giáo viên #${r.maGiaoVien}`)
-    push('phong_hoc', `${r.thuTrongTuan}-${r.maCaHoc}-${r.maPhong}`, r, r.tenPhong || `Phòng ${r.maPhong}`)
-    push('lop_hoc', `${r.thuTrongTuan}-${r.maCaHoc}-${r.maLop}`, r, r.tenLop || `Lớp #${r.maLop}`)
+    if (r.thuTrongTuan && r.maCaHoc) {
+      if (r.maGiaoVien) push('giang_vien', `${r.thuTrongTuan}-${r.maCaHoc}-${r.maGiaoVien}`, r, r.tenGiaoVien || `Giáo viên #${r.maGiaoVien}`)
+      if (r.maPhong) push('phong_hoc', `${r.thuTrongTuan}-${r.maCaHoc}-${r.maPhong}`, r, r.tenPhong || `Phòng ${r.maPhong}`)
+      if (r.maLop) push('lop_hoc', `${r.thuTrongTuan}-${r.maCaHoc}-${r.maLop}`, r, r.tenLop || `Lớp #${r.maLop}`)
+    }
+
+    if (Array.isArray(r.loi) && r.loi.length > 0) {
+      r.loi.forEach((msg, idx) => {
+        out.push({
+          id: `err-${r.maKhoaHoc || r.maLop}-${idx}`,
+          loai: 'phong_hoc',
+          mucDo: 'critical',
+          doiTuong: r.tenMonHoc || r.tenLop || 'Khóa học',
+          moTa: msg,
+          thoiGian: r.thuTrongTuan ? slotLabel(r) : 'Chưa xếp slot',
+          trangThaiXuLy: 'chua_xu_ly',
+          deXuat: ''
+        })
+      })
+    }
   }
+
   for (const loai of ['giang_vien', 'phong_hoc', 'lop_hoc']) {
     for (const [key, entries] of groups[loai]) {
       if (entries.length < 2) continue
@@ -92,12 +177,12 @@ function buildConflicts(rows) {
       out.push({
         id: `${loai}-${key}`,
         loai,
-        mucDo: entries.length > 2 ? 'critical' : 'major',
+        mucDo: 'critical',
         doiTuong: entries[0].label,
         moTa: `${entries.length} buổi trùng ${loai === 'giang_vien' ? 'giảng viên' : loai === 'phong_hoc' ? 'phòng học' : 'lớp học'} tại ${slotLabel(s)}.`,
         thoiGian: slotLabel(s),
         trangThaiXuLy: 'chua_xu_ly',
-        deXuat: '',
+        deXuat: ''
       })
     }
   }
@@ -114,7 +199,13 @@ function buildConflicts(rows) {
           <ShieldAlert class="text-amber-500" :size="24" />
           <h1 class="text-xl font-bold text-(--text-heading)">Kiểm tra xung đột</h1>
         </div>
-        <p class="text-sm text-(--text-muted) mt-0.5 ml-8">Phát hiện và xử lý xung đột giảng viên, lớp học, phòng học trước khi xuất bản.</p>
+        <div class="flex items-center gap-3 text-xs text-(--text-muted) mt-1 ml-8 flex-wrap">
+          <span v-if="userCampusId" class="font-semibold text-(--text-body)">Cơ sở: {{ userCampusId }}</span>
+          <span v-if="activeTerm" class="font-semibold text-(--text-body)">Học kỳ: {{ activeTerm.tenHocKy || activeTerm.TenHocKy }}</span>
+          <span v-if="hasChecked">Đã quét: <strong class="text-(--text-heading)">{{ scannedCount }}</strong> mục</span>
+          <span v-if="hasChecked">Xung đột cứng: <strong class="text-(--color-danger-text)">{{ hardConflictCount }}</strong></span>
+          <span v-if="hasChecked">Cảnh báo: <strong class="text-(--color-warning-text)">{{ softWarningCount }}</strong></span>
+        </div>
       </div>
       <div class="flex gap-2">
         <GlassButton variant="primary" @click="performCheck" :disabled="isChecking">
@@ -224,9 +315,16 @@ function buildConflicts(rows) {
             <ListSkeleton :items="4" />
           </div>
 
-          <div v-else-if="filtered.length === 0" class="flex flex-col items-center justify-center p-8 text-(--text-muted)">
-            <CheckCircle2 :size="48" class="opacity-20 mb-3" />
-            <p>Không tìm thấy xung đột nào.</p>
+          <div v-else-if="!hasChecked" class="flex flex-col items-center justify-center p-12 text-(--text-muted)">
+            <Clock :size="48" class="opacity-20 mb-3" />
+            <p class="font-semibold text-sm">Chưa kiểm tra xung đột</p>
+            <p class="text-xs mt-1">Nhấn nút "Kiểm tra toàn hệ thống" phía trên để quét toàn bộ lịch của cơ sở và học kỳ.</p>
+          </div>
+
+          <div v-else-if="filtered.length === 0" class="flex flex-col items-center justify-center p-12 text-(--text-muted)">
+            <CheckCircle2 :size="48" class="text-emerald-500 mb-3 opacity-90" />
+            <p class="font-bold text-sm text-(--text-heading)">Không phát hiện xung đột</p>
+            <p class="text-xs mt-1">Đã quét {{ scannedCount }} mục trong học kỳ. Toàn bộ giảng viên, phòng học và lớp học đều hợp lệ.</p>
           </div>
         </div>
       </div>

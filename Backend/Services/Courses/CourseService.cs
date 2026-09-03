@@ -55,7 +55,7 @@ public class CourseService : ICourseService
         {
             if (!allowedOrganizationIds.Contains(parameters.MaDonVi.Value))
             {
-                throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền xem khóa học của cơ sở này.");
+                throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền xem khóa học của cơ sở này.", "FORBIDDEN_CAMPUS");
             }
 
             query = query.Where(x => x.Course.MaDonVi == parameters.MaDonVi.Value);
@@ -230,6 +230,7 @@ public class CourseService : ICourseService
         var organization = await ValidateOrganizationAsync(request.MaDonVi, currentUser, cancellationToken);
         var subject = await ValidateSubjectAsync(request.MaMonHoc, cancellationToken);
         var term = await ValidateTermAsync(request.MaHocKy, organization.MaDonVi, cancellationToken);
+        await ValidateBlockAsync(request.MaBlockBatDau, term?.MaHocKy, organization.MaDonVi, cancellationToken);
         var teacher = await ValidateTeacherAsync(
             request.MaGiaoVien, 
             organization.MaDonVi, 
@@ -320,6 +321,20 @@ public class CourseService : ICourseService
             .AsNoTracking()
             .Where(x => classIds.Contains(x.MaLop))
             .ToListAsync(cancellationToken);
+
+        // Pre-validate all classes for foreign campus to ensure atomic failure before any mutations
+        foreach (var classEntity in classes)
+        {
+            if (currentUser.Role != AuthRoles.SuperAdmin && classEntity.MaDonVi != currentUser.CampusId)
+            {
+                throw new ApiException(StatusCodes.Status403Forbidden, "Lớp hành chính không thuộc cơ sở được quản lý.", "FORBIDDEN_CAMPUS");
+            }
+
+            if (classEntity.MaDonVi != organization.MaDonVi)
+            {
+                throw new ApiException(StatusCodes.Status403Forbidden, "Lớp hành chính không thuộc cùng cơ sở với giảng viên.", "FORBIDDEN_CAMPUS");
+            }
+        }
 
         var result = new BulkAssignCoursesResultDto();
         var now = DateTime.UtcNow;
@@ -495,6 +510,7 @@ public class CourseService : ICourseService
         var oldStatus = course.TrangThai;
 
         var term = await ValidateTermAsync(request.MaHocKy, course.MaDonVi, cancellationToken);
+        await ValidateBlockAsync(request.MaBlockBatDau, term?.MaHocKy, course.MaDonVi, cancellationToken);
         var teacher = await ValidateTeacherAsync(
             request.MaGiaoVien, 
             course.MaDonVi, 
@@ -759,7 +775,7 @@ public class CourseService : ICourseService
 
         if (!await CanAccessOrganizationAsync(currentUser, course.MaDonVi, cancellationToken))
         {
-            throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền quản lý khóa học của cơ sở này.");
+            throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền quản lý khóa học của cơ sở này.", "FORBIDDEN_CAMPUS");
         }
 
         return course;
@@ -781,7 +797,7 @@ public class CourseService : ICourseService
 
         if (!await CanAccessOrganizationAsync(currentUser, organizationId, cancellationToken))
         {
-            throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền quản lý khóa học của cơ sở này.");
+            throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền quản lý khóa học của cơ sở này.", "FORBIDDEN_CAMPUS");
         }
 
         return organization;
@@ -833,7 +849,10 @@ public class CourseService : ICourseService
 
         if (!eligibility.IsEligible)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, eligibility.ReasonMessage);
+            var isCampusErr = eligibility.ReasonCode == "INVALID_CAMPUS";
+            var statusCode = isCampusErr ? StatusCodes.Status403Forbidden : StatusCodes.Status400BadRequest;
+            var errCode = isCampusErr ? "FORBIDDEN_CAMPUS" : eligibility.ReasonCode;
+            throw new ApiException(statusCode, eligibility.ReasonMessage, errCode);
         }
 
         return teacher;
@@ -859,7 +878,7 @@ public class CourseService : ICourseService
 
         if (!await CanAccessOrganizationAsync(currentUser, teacher.MaDonVi, cancellationToken))
         {
-            throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền phân phối khóa học cho cơ sở của giảng viên này.");
+            throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền phân phối khóa học cho cơ sở của giảng viên này.", "FORBIDDEN_CAMPUS");
         }
 
         var eligibility = await _eligibilityService.ValidateTeacherForSubjectAsync(
@@ -874,7 +893,10 @@ public class CourseService : ICourseService
 
         if (!eligibility.IsEligible)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, eligibility.ReasonMessage);
+            var isCampusErr = eligibility.ReasonCode == "INVALID_CAMPUS";
+            var statusCode = isCampusErr ? StatusCodes.Status403Forbidden : StatusCodes.Status400BadRequest;
+            var errCode = isCampusErr ? "FORBIDDEN_CAMPUS" : eligibility.ReasonCode;
+            throw new ApiException(statusCode, eligibility.ReasonMessage, errCode);
         }
 
         return teacher;
@@ -918,7 +940,7 @@ public class CourseService : ICourseService
 
         if (term.MaDonVi != organizationId)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Học kỳ không thuộc cơ sở đã chọn.");
+            throw new ApiException(StatusCodes.Status403Forbidden, "Học kỳ không thuộc cơ sở đã chọn.", "FORBIDDEN_CAMPUS");
         }
 
         return term;
@@ -940,10 +962,39 @@ public class CourseService : ICourseService
 
         if (classEntity.MaDonVi != organizationId)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Lớp hành chính không thuộc cơ sở đã chọn.");
+            throw new ApiException(StatusCodes.Status403Forbidden, "Lớp hành chính không thuộc cơ sở đã chọn.", "FORBIDDEN_CAMPUS");
         }
 
         return classEntity;
+    }
+
+    private async Task ValidateBlockAsync(
+        int? blockId,
+        int? termId,
+        int organizationId,
+        CancellationToken cancellationToken)
+    {
+        if (!blockId.HasValue || !termId.HasValue) return;
+
+        var block = await _context.Blocks
+            .Include(b => b.HocKy)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(b => b.MaBlock == blockId.Value, cancellationToken);
+
+        if (block == null)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Block không tồn tại.");
+        }
+
+        if (block.HocKy != null && block.HocKy.MaDonVi != organizationId)
+        {
+            throw new ApiException(StatusCodes.Status403Forbidden, "Block không thuộc cơ sở đã chọn.", "FORBIDDEN_CAMPUS");
+        }
+
+        if (block.MaHocKy != termId.Value)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "Block không thuộc học kỳ đã chọn.", "BLOCK_TERM_MISMATCH");
+        }
     }
 
     private async Task ValidateUniqueCourseAsync(

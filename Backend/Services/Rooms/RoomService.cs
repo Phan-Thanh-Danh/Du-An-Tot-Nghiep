@@ -404,7 +404,7 @@ public class RoomService : IRoomService
     {
         if (!allowedOrganizationIds.Contains(organizationId))
         {
-            throw new ApiException(StatusCodes.Status403Forbidden, message);
+            throw new ApiException(StatusCodes.Status403Forbidden, message, "FORBIDDEN_CAMPUS");
         }
     }
 

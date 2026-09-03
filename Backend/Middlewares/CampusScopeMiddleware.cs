@@ -135,6 +135,7 @@ public class CampusScopeMiddleware
         {
             success = false,
             message = "Bạn không có quyền truy cập dữ liệu của cơ sở này.",
+            errorCode = "FORBIDDEN_CAMPUS",
             errors = new[] { "Bạn không có quyền truy cập dữ liệu của cơ sở này." },
             traceId = context.TraceIdentifier,
             statusCode = StatusCodes.Status403Forbidden

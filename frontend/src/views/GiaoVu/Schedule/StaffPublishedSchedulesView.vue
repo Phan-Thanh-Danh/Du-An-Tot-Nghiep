@@ -12,6 +12,10 @@ import { scheduleApi } from '@/services/scheduleApi'
 import { staffApi } from '@/services/staffApi'
 import { academicTermApi } from '@/services/academicTermApi'
 import { courseApi } from '@/services/courseApi'
+import { useAuthStore } from '@/stores/auth'
+
+const authStore = useAuthStore()
+const authorizedCampusId = computed(() => Number(authStore.user?.campusId || authStore.user?.CampusId || authStore.user?.maDonVi || authStore.user?.MaDonVi || 0))
 
 const loading = ref(true)
 const apiError = ref('')
@@ -148,9 +152,16 @@ async function loadFilterOptions() {
         if (!course.maDonVi) return
         campusMap.set(Number(course.maDonVi), course.tenDonVi || `Cơ sở ${course.maDonVi}`)
       })
-    campusOptions.value = [...campusMap.entries()]
+    const allCampuses = [...campusMap.entries()]
       .map(([value, label]) => ({ value, label }))
       .sort((a, b) => String(a.label).localeCompare(String(b.label), 'vi'))
+    campusOptions.value = authorizedCampusId.value
+      ? allCampuses.filter(c => Number(c.value) === authorizedCampusId.value)
+      : allCampuses
+
+    if (authorizedCampusId.value) {
+      filterMaDonVi.value = authorizedCampusId.value
+    }
 
     if (!filterMaDonVi.value && campusOptions.value.length === 1) {
       filterMaDonVi.value = campusOptions.value[0].value

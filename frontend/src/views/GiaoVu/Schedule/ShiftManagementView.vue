@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Search, Plus, X, Pencil, Clock, Sun, Moon, Sunset, Loader2 } from 'lucide-vue-next'
+import { Search, Plus, X, Pencil, Clock, Sun, Moon, Sunset, Loader2, Power, AlertCircle } from 'lucide-vue-next'
 import GlassButton from '@/components/ui/GlassButton.vue'
 import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton.vue'
@@ -26,7 +26,9 @@ const BUOI_COLOR = {
 const showFormModal = ref(false); const formMode = ref('create'); const editingId = ref(null); const submitting = ref(false)
 const formData = ref({ tenCa: '', buoi: 'Sáng', gioBatDau: '', gioKetThuc: '', thuTu: null })
 const formErrors = ref({})
-const confirmDelete = ref(null)
+const confirmToggle = ref(null)
+const submittingToggle = ref(false)
+const actionError = ref('')
 
 onMounted(fetchShifts)
 async function fetchShifts() {
@@ -87,20 +89,37 @@ async function submitForm() {
 }
 
 // ── Actions ──
-async function toggleActive(s) {
-  try { await shiftApi.toggleActive(s.maCaHoc); await fetchShifts() }
-  catch { /* ignore */ }
+function requestToggle(s) {
+  actionError.value = ''
+  confirmToggle.value = s
 }
-function requestDelete(s) { confirmDelete.value = s }
-async function executeDelete() {
-  if (!confirmDelete.value) return
-  try { await shiftApi.toggleActive(confirmDelete.value.maCaHoc); confirmDelete.value = null; await fetchShifts() }
-  catch { confirmDelete.value = null }
+
+async function executeToggle() {
+  if (!confirmToggle.value) return
+  submittingToggle.value = true
+  actionError.value = ''
+  try {
+    await shiftApi.toggleActive(confirmToggle.value.maCaHoc)
+    confirmToggle.value = null
+    await fetchShifts()
+  } catch (e) {
+    actionError.value = e.message || 'Không thể cập nhật trạng thái ca học'
+  } finally {
+    submittingToggle.value = false
+  }
 }
 </script>
 
 <template>
   <div class="space-y-4">
+
+    <div v-if="actionError" class="surface-card border border-(--color-danger-text) rounded-xl p-3 flex items-center justify-between text-xs text-(--color-danger-text) bg-(--color-danger-bg)">
+      <div class="flex items-center gap-2">
+        <AlertCircle :size="16" />
+        <span>{{ actionError }}</span>
+      </div>
+      <button @click="actionError = ''" class="p-1 hover:bg-black/10 rounded-lg"><X :size="14" /></button>
+    </div>
 
     <!-- KPI Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -215,14 +234,13 @@ async function executeDelete() {
               </td>
               <td class="px-3 py-3.5">
                 <div class="flex items-center justify-center gap-1">
-                  <button class="h-8 w-8 rounded-lg hover:bg-(--color-danger-bg) flex items-center justify-center text-muted hover:text-(--color-danger-text) transition-colors" :title="s.conHoatDong ? 'Vô hiệu hóa' : 'Kích hoạt'" @click.stop="toggleActive(s)">
-                    <component :is="s.conHoatDong ? X : Clock" :size="15" />
-                  </button>
                   <button class="h-8 w-8 rounded-lg hover:bg-(--accent-primary-soft) flex items-center justify-center text-muted hover:text-(--sidebar-accent) transition-colors" title="Chỉnh sửa" @click.stop="openEdit(s)">
                     <Pencil :size="15" />
                   </button>
-                  <button class="h-8 w-8 rounded-lg hover:bg-(--color-danger-bg) flex items-center justify-center text-muted hover:text-(--color-danger-text) transition-colors" title="Ngừng hoạt động" @click.stop="requestDelete(s)">
-                    <X :size="15" />
+                  <button class="h-8 w-8 rounded-lg flex items-center justify-center transition-colors"
+                    :class="s.conHoatDong ? 'hover:bg-(--color-danger-bg) text-muted hover:text-(--color-danger-text)' : 'hover:bg-(--color-success-bg) text-muted hover:text-(--color-success-text)'"
+                    :title="s.conHoatDong ? 'Ngừng hoạt động' : 'Kích hoạt lại'" @click.stop="requestToggle(s)">
+                    <Power :size="15" />
                   </button>
                 </div>
               </td>
@@ -288,9 +306,13 @@ async function executeDelete() {
       </transition>
     </Teleport>
 
-    <ConfirmActionDialog v-if="confirmDelete" :modelValue="true" title="Ngừng hoạt động ca học"
-      :message="`Bạn có chắc muốn ngừng hoạt động ca &quot;${confirmDelete.tenCa}&quot;?`"
-      confirm-label="Xác nhận" variant="danger" @confirm="executeDelete" @cancel="confirmDelete = null" />
+    <ConfirmActionDialog v-if="confirmToggle" :modelValue="true"
+      :title="confirmToggle.conHoatDong ? 'Ngừng hoạt động ca học' : 'Kích hoạt lại ca học'"
+      :message="confirmToggle.conHoatDong ? `Bạn có chắc muốn ngừng hoạt động ca &quot;${confirmToggle.tenCa}&quot;?` : `Bạn có chắc muốn kích hoạt lại ca &quot;${confirmToggle.tenCa}&quot;?`"
+      :confirm-label="confirmToggle.conHoatDong ? 'Ngừng hoạt động' : 'Kích hoạt'"
+      :variant="confirmToggle.conHoatDong ? 'danger' : 'success'"
+      :loading="submittingToggle"
+      @confirm="executeToggle" @cancel="confirmToggle = null" />
   </div>
 </template>
 

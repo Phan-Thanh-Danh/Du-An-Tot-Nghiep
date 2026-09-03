@@ -106,11 +106,11 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
         // nearest locked term as the fallback so existing callers still receive
         // the precise SCHEDULE_ALREADY_PUBLISHED reason when no alternative
         // future term exists.
-        var permanentlyLockedTermIds = await GetPermanentlyLockedTermIdsAsync(
+        var permanentlyLockedTerms = await GetPermanentlyLockedTermsAsync(
             campusId,
             futureTerms.Select(x => x.MaHocKy).ToList(),
             cancellationToken);
-        result.SchedulableTerm = futureTerms.FirstOrDefault(x => !permanentlyLockedTermIds.Contains(x.MaHocKy))
+        result.SchedulableTerm = futureTerms.FirstOrDefault(x => !permanentlyLockedTerms.Contains(x.MaHocKy))
             ?? result.NextTerm;
 
         if (result.SchedulableTerm == null)
@@ -360,14 +360,18 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
                 && x.TrangThai == "da_xuat_ban")
             .ToListAsync(cancellationToken);
         var hasPublishedSchedule = publishedSchedules.Count > 0;
-        var isLockedPermanently = permanentlyLockedTermIds.Contains(schedulableTermId);
+        var isLockedByAttendance = permanentlyLockedTerms.IsLockedByAttendance(schedulableTermId);
+        var isLockedByTimeout = permanentlyLockedTerms.IsLockedByTimeout(schedulableTermId);
+        var isLockedPermanently = permanentlyLockedTerms.Contains(schedulableTermId);
         readinessItems.Add(new SchedulingReadinessItemDto
         {
             Code = "EXISTING_SCHEDULE_LOCK_READY",
             Status = isLockedPermanently ? "blocked" : "ready",
-            Message = isLockedPermanently
-                ? "Thời khóa biểu đã được công bố chính thức và đã bị khóa vĩnh viễn (quá 30 phút hoặc đã điểm danh)."
-                : "Học kỳ cho phép chuẩn bị hoặc xuất bản lịch mới.",
+            Message = isLockedByAttendance
+                ? "Thời khóa biểu đã được công bố chính thức và đã có dữ liệu điểm danh phát sinh (khóa vĩnh viễn)."
+                : (isLockedByTimeout
+                    ? "Thời khóa biểu đã được công bố chính thức quá 30 phút (hết thời hạn chỉnh sửa)."
+                    : "Học kỳ cho phép chuẩn bị hoặc xuất bản lịch mới."),
             ActionRoute = "/staff/schedule/published",
             AffectedCount = isLockedPermanently ? 1 : 0,
             AffectedItems = isLockedPermanently
@@ -402,7 +406,9 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
             {
                 result.Readiness.BlockingIssues.Add(new SchedulingBlockingIssueDto
                 {
-                    Code = b.Code,
+                    Code = b.Code == "EXISTING_SCHEDULE_LOCK_READY"
+                        ? (isLockedByAttendance ? "SCHEDULE_LOCKED_BY_ATTENDANCE" : "SCHEDULE_LOCKED_AFTER_EDIT_WINDOW")
+                        : b.Code,
                     Message = b.Message,
                     ActionRoute = b.ActionRoute
                 });
@@ -411,7 +417,16 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
             if (isLockedPermanently)
             {
                 result.ReasonCode = "SCHEDULE_ALREADY_PUBLISHED";
-                result.ReasonMessage = "Thời khóa biểu cho học kỳ này đã được công bố chính thức và đã bị khóa (quá 30 phút hoặc đã điểm danh).";
+                if (isLockedByAttendance)
+                {
+                    result.LockReasonCode = "SCHEDULE_LOCKED_BY_ATTENDANCE";
+                    result.ReasonMessage = "Thời khóa biểu cho học kỳ này đã có dữ liệu điểm danh thực tế và đã bị khóa vĩnh viễn.";
+                }
+                else
+                {
+                    result.LockReasonCode = "SCHEDULE_LOCKED_AFTER_EDIT_WINDOW";
+                    result.ReasonMessage = "Thời khóa biểu cho học kỳ này đã được công bố chính thức quá 30 phút và đã hết thời hạn chỉnh sửa.";
+                }
             }
             else if (!hasCourses)
             {
@@ -428,14 +443,23 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
         return result;
     }
 
-    private async Task<HashSet<int>> GetPermanentlyLockedTermIdsAsync(
+    private record PermanentlyLockedTerms(
+        HashSet<int> AttendanceLockedTermIds,
+        HashSet<int> TimeoutLockedTermIds)
+    {
+        public bool Contains(int termId) => AttendanceLockedTermIds.Contains(termId) || TimeoutLockedTermIds.Contains(termId);
+        public bool IsLockedByAttendance(int termId) => AttendanceLockedTermIds.Contains(termId);
+        public bool IsLockedByTimeout(int termId) => TimeoutLockedTermIds.Contains(termId);
+    }
+
+    private async Task<PermanentlyLockedTerms> GetPermanentlyLockedTermsAsync(
         int campusId,
         IReadOnlyCollection<int> futureTermIds,
         CancellationToken cancellationToken)
     {
         if (futureTermIds.Count == 0)
         {
-            return new HashSet<int>();
+            return new PermanentlyLockedTerms(new HashSet<int>(), new HashSet<int>());
         }
 
         var publishedSchedules = await _db.ThoiKhoaBieus
@@ -457,7 +481,7 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
 
         if (publishedSchedules.Count == 0)
         {
-            return new HashSet<int>();
+            return new PermanentlyLockedTerms(new HashSet<int>(), new HashSet<int>());
         }
 
         var publishedCourseIds = publishedSchedules.Select(x => x.MaKhoaHoc).Distinct().ToList();
@@ -470,12 +494,20 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
         var attendedSet = attendedCourseIds.ToHashSet();
         var now = _timeProvider.GetUtcNow().UtcDateTime;
 
-        return publishedSchedules
+        var attendanceLocked = publishedSchedules
             .GroupBy(x => x.TermId)
-            .Where(group => group.Any(x => attendedSet.Contains(x.MaKhoaHoc))
-                || now - group.Min(x => x.PublishedAt) > TimeSpan.FromMinutes(30))
+            .Where(group => group.Any(x => attendedSet.Contains(x.MaKhoaHoc)))
             .Select(group => group.Key)
             .ToHashSet();
+
+        var timeoutLocked = publishedSchedules
+            .GroupBy(x => x.TermId)
+            .Where(group => !attendanceLocked.Contains(group.Key)
+                && now - group.Min(x => x.PublishedAt) > TimeSpan.FromMinutes(30))
+            .Select(group => group.Key)
+            .ToHashSet();
+
+        return new PermanentlyLockedTerms(attendanceLocked, timeoutLocked);
     }
 
     public async Task ValidateSchedulableTermAsync(
@@ -488,14 +520,16 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
 
         if (!context.CanPrepareSchedule && context.SchedulableTerm?.MaHocKy == requestedTermId)
         {
-            throw new ApiException(StatusCodes.Status409Conflict, context.ReasonMessage);
+            var errCode = context.LockReasonCode ?? context.ReasonCode;
+            throw new ApiException(StatusCodes.Status409Conflict, context.ReasonMessage, errCode);
         }
 
         if (context.SchedulableTerm == null)
         {
             throw new ApiException(
                 StatusCodes.Status400BadRequest,
-                "Không thể chuẩn bị lịch do không có học kỳ hợp lệ."
+                "Không thể chuẩn bị lịch do không có học kỳ hợp lệ.",
+                "NO_FUTURE_TERM"
             );
         }
 

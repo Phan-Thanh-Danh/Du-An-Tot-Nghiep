@@ -8,8 +8,11 @@ import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import { assignmentApi } from '@/services/assignmentApi'
 import { usePopupStore } from '@/stores/popup'
+import { useAuthStore } from '@/stores/auth'
 
 const popupStore = usePopupStore()
+const authStore = useAuthStore()
+const authorizedCampusId = computed(() => authStore.user?.campusId ?? authStore.user?.MaDonVi ?? null)
 const loading = ref(true); const error = ref(null); const rows = ref([])
 const searchQuery = ref(''); const filterTrangThai = ref(''); const filterDonVi = ref('')
 
@@ -18,6 +21,17 @@ const formData = ref({ maKhoaHoc: null, thuTrongTuan: 1, maCaHoc: null, maPhong:
 const formErrors = ref({})
 
 const showAssignModal = ref(false); const assignItem = ref(null); const assignTeacherId = ref(null); const teachers = ref([]); const assigning = ref(false)
+const filteredTeachers = computed(() => {
+  return teachers.value.filter(t => {
+    if (authorizedCampusId.value && t.maDonVi && Number(t.maDonVi) !== Number(authorizedCampusId.value)) {
+      return false
+    }
+    if (t.reasons?.some(r => typeof r === 'string' && r.toLowerCase().includes('cơ sở'))) {
+      return false
+    }
+    return true
+  })
+})
 
 const showDeleteModal = ref(false); const itemToDelete = ref(null); const deleting = ref(false)
 
@@ -390,16 +404,16 @@ function selectedCourseLabel(maKhoaHoc) {
               <div>
                 <label class="block text-xs font-semibold text-(--text-muted) mb-2">Chọn giảng viên</label>
                 <div class="space-y-2 max-h-[240px] overflow-y-auto">
-                  <label v-for="t in teachers" :key="t.maGiangVien" class="flex items-center gap-3 p-3 rounded-xl border border-card surface-card cursor-pointer hover:bg-(--surface-hover) transition-colors"
-                    :class="assignTeacherId === t.maGiangVien ? 'ring-2 ring-(--lg-primary)' : ''">
-                    <input type="radio" :value="t.maGiangVien" v-model="assignTeacherId" class="accent-(--lg-primary)" />
+                  <label v-for="t in filteredTeachers" :key="t.maGiangVien" class="flex items-center gap-3 p-3 rounded-xl border border-card surface-card transition-colors"
+                    :class="t.isEligible === false ? 'opacity-60 cursor-not-allowed bg-(--surface-input)' : (assignTeacherId === t.maGiangVien ? 'cursor-pointer ring-2 ring-(--lg-primary)' : 'cursor-pointer hover:bg-(--surface-hover)')">
+                    <input type="radio" :value="t.maGiangVien" v-model="assignTeacherId" :disabled="t.isEligible === false" class="accent-(--lg-primary) disabled:cursor-not-allowed" />
                     <div class="flex-1 min-w-0">
                       <p class="text-sm font-bold text-heading truncate">{{ t.hoTen }}</p>
                       <p class="text-xs text-muted">{{ t.chuyenNganh || '—' }}</p>
                     </div>
-                    <span v-if="!t.isEligible" class="text-[10px] font-bold text-(--color-danger-text) shrink-0">Không đủ điều kiện</span>
+                    <span v-if="t.isEligible === false" class="text-[10px] font-bold text-(--color-danger-text) shrink-0">{{ t.ineligibleReason || 'Không đủ điều kiện' }}</span>
                   </label>
-                  <p v-if="teachers.length === 0" class="text-xs text-muted text-center py-4">Không có giảng viên phù hợp.</p>
+                  <p v-if="filteredTeachers.length === 0" class="text-xs text-muted text-center py-4">Không có giảng viên phù hợp.</p>
                 </div>
               </div>
             </div>

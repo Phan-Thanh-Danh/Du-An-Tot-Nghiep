@@ -28,7 +28,7 @@ public class ExceptionMiddleware
         }
         catch (ApiException exception)
         {
-            await WriteErrorAsync(context, exception.StatusCode, exception.Message);
+            await WriteErrorAsync(context, exception.StatusCode, exception.Message, exception.ErrorCode);
         }
         catch (DbUpdateConcurrencyException ex)
         {
@@ -44,6 +44,7 @@ public class ExceptionMiddleware
                 success = false,
                 message = "Thao tác publish bị xung đột do có yêu cầu khác đang " +
                           "xử lý cùng lúc. Vui lòng tải lại trang và thử lại.",
+                errorCode = "CONCURRENT_CONFLICT",
                 errors = new[] { ex.Message },
                 traceId = context.TraceIdentifier,
                 statusCode = 409
@@ -61,7 +62,7 @@ public class ExceptionMiddleware
         }
     }
 
-    private static async Task WriteErrorAsync(HttpContext context, int statusCode, string message)
+    private static async Task WriteErrorAsync(HttpContext context, int statusCode, string message, string? errorCode = null)
     {
         if (context.Response.HasStarted)
         {
@@ -75,6 +76,7 @@ public class ExceptionMiddleware
         {
             success = false,
             message,
+            errorCode,
             errors = new[] { message },
             traceId = context.TraceIdentifier,
             statusCode
