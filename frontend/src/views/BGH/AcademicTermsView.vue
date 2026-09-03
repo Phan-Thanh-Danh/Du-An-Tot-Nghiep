@@ -151,14 +151,8 @@ const filteredTerms = computed(() => {
 })
 
 const academicYears = computed(() => {
-  const years = new Set(terms.value.map(t => t.namHoc))
   const years = new Set(filteredTerms.value.map(t => t.namHoc))
   return [...years].sort()
-})
-
-const filteredTerms = computed(() => {
-  if (!yearFilter.value) return terms.value
-  return terms.value.filter(t => t.namHoc === yearFilter.value)
 })
 
 function filterData() {}
