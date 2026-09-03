@@ -141,8 +141,9 @@ onMounted(async () => {
       createForm.value.maDonVi = userCampusId.value
     }
 
-    const tplData = unwrapApiData(templatesRes) || templatesRes
-    templates.value = tplData?.items ?? tplData?.Items ?? (Array.isArray(tplData) ? tplData : [])
+    // certificateTemplateApi.getTemplates() already calls unwrapApiData internally
+    // so templatesRes is already the unwrapped data object { items: [...] }
+    templates.value = templatesRes?.items ?? templatesRes?.Items ?? (Array.isArray(templatesRes) ? templatesRes : [])
   } catch (err) {
     console.error('Lỗi tải danh mục:', err)
   }
