@@ -48,15 +48,26 @@
             <h2>Điểm danh thí sinh dự thi</h2>
             <p>{{ currentSession.examTitle }} · {{ formatSessionTime(currentSession) }} · {{ currentSession.room }}</p>
           </div>
-          <button
-            type="button"
-            class="primary-action"
-            :disabled="attendanceStats.present === 0"
-            @click="startMonitoring"
-          >
-            <LayoutGrid :size="16" />
-            Bắt đầu canh thi
-          </button>
+          <div class="flex flex-wrap items-center justify-end gap-2">
+            <button
+              type="button"
+              class="ghost-action"
+              :disabled="currentStudents.length === 0"
+              @click="markAllPresent"
+            >
+              <CheckCheck :size="16" />
+              Điểm danh tất cả có mặt
+            </button>
+            <button
+              type="button"
+              class="primary-action"
+              :disabled="attendanceStats.present === 0"
+              @click="startMonitoring"
+            >
+              <LayoutGrid :size="16" />
+              Bắt đầu canh thi
+            </button>
+          </div>
         </div>
 
         <div class="stats-grid compact">
@@ -116,7 +127,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Monitor, Clock, LogOut, AlertCircle, LayoutGrid } from 'lucide-vue-next'
+import { Monitor, Clock, LogOut, AlertCircle, CheckCheck, LayoutGrid } from 'lucide-vue-next'
 import ListSkeleton from '@/components/common/skeleton/ListSkeleton.vue'
 import GlassBadge from '@/components/ui/GlassBadge.vue'
 import { usePopupStore } from '@/stores/popup'
@@ -193,6 +204,12 @@ function setAttendance(student, status) {
   }
 }
 
+function markAllPresent() {
+  currentStudents.value.forEach((student) => {
+    student.attendanceStatus = 'present'
+  })
+}
+
 async function startMonitoring() {
   if (!currentSession.value || attendanceStats.value.present === 0) {
     popupStore.warning('Chưa thể bắt đầu', 'Cần điểm danh ít nhất 1 thí sinh có mặt.')
@@ -216,7 +233,7 @@ async function startMonitoring() {
         };
       })
     }
-    
+
     await teacherApi.batchExamAttendance(attendancePayload)
     await teacherApi.startExamSession(currentSession.value.id)
 

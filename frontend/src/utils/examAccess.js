@@ -39,6 +39,9 @@ function isAfterClose(exam, now) {
 export function getExamAccessState(exam, studentContext = {}, now = new Date()) {
   const policy = exam.accessPolicy || {}
   const status = normalizeExamStatus(exam.status)
+  const hasCaThi = exam.maCaThi || exam.MaCaThi
+  const accessStatus = String(exam.accessStatus || exam.AccessStatus || '').toLowerCase()
+  const caThiIsOfficial = Boolean(hasCaThi) && accessStatus === 'official'
   const usedAttempts = Number(exam.usedAttempts ?? exam.attempts ?? 0)
   const maxAttempts = Number(exam.maxAttempts ?? 1)
 
@@ -63,7 +66,13 @@ export function getExamAccessState(exam, studentContext = {}, now = new Date()) 
     }
   }
 
-  if (status === EXAM_STATUS.DRAFT || status === EXAM_STATUS.SCHEDULED || isBeforeOpen(exam, now)) {
+  // Ca thi dang_thi la nguon trang thai thuc te; khong de lich mo cu trong
+  // openAt khoa sinh vien sau khi giang vien da mo ca.
+  if (
+    (status === EXAM_STATUS.DRAFT && !caThiIsOfficial) ||
+    (status === EXAM_STATUS.SCHEDULED && !caThiIsOfficial) ||
+    (status !== EXAM_STATUS.OPEN && !caThiIsOfficial && isBeforeOpen(exam, now))
+  ) {
     return {
       canEnter: false,
       reason: 'Đề thi chưa mở.',
@@ -71,7 +80,7 @@ export function getExamAccessState(exam, studentContext = {}, now = new Date()) 
     }
   }
 
-  if (status === EXAM_STATUS.CLOSED || isAfterClose(exam, now)) {
+  if (status === EXAM_STATUS.CLOSED && !caThiIsOfficial) {
     return {
       canEnter: false,
       reason: 'Đề thi đã đóng.',
@@ -96,7 +105,6 @@ export function getExamAccessState(exam, studentContext = {}, now = new Date()) 
     }
   }
 
-  const hasCaThi = exam.maCaThi || exam.MaCaThi;
   const ttdt = exam.trangThaiDuThi || exam.TrangThaiDuThi;
 
   if (hasCaThi && !['duoc_thi', 'cho_thi'].includes(ttdt)) {
