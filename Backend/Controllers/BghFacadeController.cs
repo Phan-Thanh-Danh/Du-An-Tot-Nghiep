@@ -46,6 +46,7 @@ public class BghFacadeController : ControllerBase
             .AsNoTracking()
             .Where(x =>
                 (isGlobal || x.LopHanhChinhs.Any(l => l.MaDonVi == campusId)) &&
+                x.TrangThai != "archived" && x.TrangThai != "luu_tru" &&
                 (string.IsNullOrEmpty(normalizedKeyword) ||
                  x.TenChuongTrinh.Contains(normalizedKeyword) ||
                  x.MaCodeChuongTrinh.Contains(normalizedKeyword)))

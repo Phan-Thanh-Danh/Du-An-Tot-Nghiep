@@ -141,7 +141,8 @@ async function loadData() {
   error.value = null
   try {
     const progRes = await bghApi.getPrograms()
-    programs.value = unwrapApiData(progRes) || []
+    const all = unwrapApiData(progRes) || []
+    programs.value = all.filter(p => p.trangThai !== 'archived' && p.trangThai !== 'luu_tru')
     if (programs.value.length > 0) {
       const first = programs.value[0]
       selectedProgram.value = first.maChuongTrinh || first.id
