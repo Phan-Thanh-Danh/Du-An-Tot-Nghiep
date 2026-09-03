@@ -32,19 +32,22 @@ public class ThoiKhoaBieuService : IThoiKhoaBieuService
     private readonly IAuditLogService _auditLogService;
     private readonly IScheduleConflictService _scheduleConflictService;
     private readonly IAcademicSchedulingContextService _schedulingContextService;
+    private readonly ICourseCapacityService _courseCapacityService;
 
     public ThoiKhoaBieuService(
         ApplicationDbContext context,
         IHttpContextAccessor httpContextAccessor,
         IAuditLogService auditLogService,
         IScheduleConflictService scheduleConflictService,
-        IAcademicSchedulingContextService schedulingContextService)
+        IAcademicSchedulingContextService schedulingContextService,
+        ICourseCapacityService courseCapacityService)
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
         _auditLogService = auditLogService;
         _scheduleConflictService = scheduleConflictService;
         _schedulingContextService = schedulingContextService;
+        _courseCapacityService = courseCapacityService;
     }
 
     public async Task<PagedResultDto<ThoiKhoaBieuDto>> GetAsync(
@@ -223,6 +226,7 @@ public class ThoiKhoaBieuService : IThoiKhoaBieuService
         await _schedulingContextService.ValidateSchedulableTermAsync(course.MaDonVi, course.MaHocKy ?? 0, cancellationToken);
         var shift = await ValidateShiftAsync(request.MaCaHoc, cancellationToken);
         var room = await ValidateRoomAsync(request.MaPhong, course.MaDonVi, currentUser, cancellationToken);
+        await ValidateCanonicalRoomCapacityAsync(course, room, cancellationToken);
         ValidateDayOfWeek(request.ThuTrongTuan);
         ValidateDateRange(request.NgayBatDau, request.NgayKetThuc);
         await ValidateScheduleDatesInTermAsync(course, request.NgayBatDau, request.NgayKetThuc, cancellationToken);
@@ -328,6 +332,7 @@ public class ThoiKhoaBieuService : IThoiKhoaBieuService
         await _schedulingContextService.ValidateSchedulableTermAsync(course.MaDonVi, course.MaHocKy ?? 0, cancellationToken);
         var shift = await ValidateShiftAsync(request.MaCaHoc, cancellationToken);
         var room = await ValidateRoomAsync(request.MaPhong, course.MaDonVi, currentUser, cancellationToken);
+        await ValidateCanonicalRoomCapacityAsync(course, room, cancellationToken);
         ValidateDayOfWeek(request.ThuTrongTuan);
         ValidateDateRange(request.NgayBatDau, request.NgayKetThuc);
         await ValidateScheduleDatesInTermAsync(course, request.NgayBatDau, request.NgayKetThuc, cancellationToken);
@@ -601,6 +606,23 @@ public class ThoiKhoaBieuService : IThoiKhoaBieuService
         }
 
         return room;
+    }
+
+    private async Task ValidateCanonicalRoomCapacityAsync(
+        KhoaHoc course,
+        PhongHoc room,
+        CancellationToken cancellationToken)
+    {
+        var capacity = (await _courseCapacityService.GetRequiredCapacitiesAsync(new[] { course }, cancellationToken))
+            .GetValueOrDefault(course.MaKhoaHoc);
+        if (capacity is null || !_courseCapacityService.IsRoomEligible(room, capacity, course.MaDonVi))
+        {
+            throw new ApiException(
+                StatusCodes.Status400BadRequest,
+                capacity is null || !capacity.IsKnown
+                    ? "STUDENT_CAPACITY_DATA_MISSING: Chưa có dữ liệu sĩ số hợp lệ để kiểm tra phòng học."
+                    : $"Phòng học không đủ sức chứa cho khóa học (cần {capacity.Value}, phòng có {room.SucChua}).");
+        }
     }
 
     private async Task ValidateScheduleDatesInTermAsync(

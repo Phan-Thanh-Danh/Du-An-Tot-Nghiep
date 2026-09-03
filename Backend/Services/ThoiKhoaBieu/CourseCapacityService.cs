@@ -60,24 +60,24 @@ public sealed class CourseCapacityService : ICourseCapacityService
         var sectionIds = source.Where(x => x.MaLopHocPhan.HasValue).Select(x => x.MaLopHocPhan!.Value).Distinct().ToList();
         var studentRoleCode = AuthRoles.ToDatabaseCode(AuthRoles.Student);
 
-        // 1. Đếm distinct sinh viên đăng ký hợp lệ theo từng Lớp học phần:
-        var registrationsBySection = new Dictionary<int, int>();
+        // 1. Đếm distinct sinh viên đăng ký hợp lệ theo từng Lớp học phần/cơ sở.
+        // CK_DangKyHocPhan_trang_thai_1 chỉ công nhận da_dang_ky là đăng ký chính thức.
+        // Campus phải được đối chiếu theo từng khóa học ở dưới, không được suy ra từ LHP.
+        var registrations = new List<(int SectionId, int StudentId, int CampusId)>();
         if (sectionIds.Count > 0)
         {
             var rawRegistrations = await _db.DangKyHocPhans.AsNoTracking()
                 .Where(x => sectionIds.Contains(x.MaLopHocPhan)
-                    && (x.TrangThai == "da_dang_ky" || x.TrangThai == "da_duyet" || x.TrangThai == "da_thanh_toan")
+                    && x.TrangThai == "da_dang_ky"
                     && x.HocSinh != null
                     && x.HocSinh.VaiTroChinh == studentRoleCode
                     && x.HocSinh.TrangThai == UserStatuses.DbActive)
-                .Select(x => new { x.MaLopHocPhan, x.MaHocSinh })
+                .Select(x => new { x.MaLopHocPhan, x.MaHocSinh, x.HocSinh!.MaDonVi })
                 .ToListAsync(cancellationToken);
 
-            registrationsBySection = rawRegistrations
-                .GroupBy(x => x.MaLopHocPhan)
-                .ToDictionary(
-                    g => g.Key,
-                    g => g.Select(x => x.MaHocSinh).Distinct().Count());
+            registrations = rawRegistrations
+                .Select(x => (x.MaLopHocPhan, x.MaHocSinh, x.MaDonVi))
+                .ToList();
         }
 
         // 2. Đếm sinh viên hoạt động trong Lớp hành chính theo MaLop & MaDonVi:
@@ -92,16 +92,21 @@ public sealed class CourseCapacityService : ICourseCapacityService
         // 3. Sĩ số dự kiến từ Lớp hành chính:
         var expected = await _db.LopHanhChinhs.AsNoTracking()
             .Where(x => classIds.Contains(x.MaLop))
-            .Select(x => new { x.MaLop, x.SiSoDuKien })
-            .ToDictionaryAsync(x => x.MaLop, x => x.SiSoDuKien, cancellationToken);
+            .Select(x => new { x.MaLop, x.MaDonVi, x.SiSoDuKien })
+            .ToListAsync(cancellationToken);
 
         var result = new Dictionary<int, RequiredCapacity>();
         foreach (var course in source)
         {
             // Ưu tiên 1: Đăng ký học phần thực tế
-            if (course.MaLopHocPhan.HasValue &&
-                registrationsBySection.TryGetValue(course.MaLopHocPhan.Value, out var regCount) &&
-                regCount > 0)
+            var regCount = course.MaLopHocPhan.HasValue
+                ? registrations
+                    .Where(x => x.SectionId == course.MaLopHocPhan.Value && x.CampusId == course.MaDonVi)
+                    .Select(x => x.StudentId)
+                    .Distinct()
+                    .Count()
+                : 0;
+            if (regCount > 0)
             {
                 result[course.MaKhoaHoc] = new RequiredCapacity(
                     regCount,
@@ -124,7 +129,8 @@ public sealed class CourseCapacityService : ICourseCapacityService
             }
 
             // Ưu tiên 3: Sĩ số dự kiến
-            if (expected.GetValueOrDefault(course.MaLop) is int fallback && fallback > 0)
+            var fallback = expected.FirstOrDefault(x => x.MaLop == course.MaLop && x.MaDonVi == course.MaDonVi)?.SiSoDuKien ?? 0;
+            if (fallback > 0)
             {
                 result[course.MaKhoaHoc] = new RequiredCapacity(
                     fallback,

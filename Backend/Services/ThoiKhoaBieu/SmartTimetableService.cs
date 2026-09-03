@@ -529,6 +529,8 @@ public class SmartTimetableService : ISmartTimetableService
                     .OrderBy(b => b.ThuTuBlock)
                     .ToListAsync(cancellationToken);
 
+                ValidateCourseBlockRanges(courses.Values, termBlocks, job.HocKy);
+
                 var groupedItems = items.GroupBy(x => x.MaKhoaHoc).ToList();
                 var activeCourseCount = courses.Count;
                 if (job.TongCourse != activeCourseCount)
@@ -638,25 +640,9 @@ public class SmartTimetableService : ISmartTimetableService
                         NgayCapNhat = DateTime.UtcNow
                     };
 
-                    if (course.MaBlockBatDau.HasValue && termBlocks.Count > 0)
-                    {
-                        var startBlock = termBlocks.FirstOrDefault(b => b.MaBlock == course.MaBlockBatDau.Value);
-                        if (startBlock != null)
-                        {
-                            var courseBlocks = termBlocks.Where(b => b.ThuTuBlock >= startBlock.ThuTuBlock && b.ThuTuBlock < startBlock.ThuTuBlock + course.SoBlockHoc).ToList();
-                            if (courseBlocks.Count > 0)
-                            {
-                                schedule.NgayBatDau = courseBlocks.First().NgayBatDau;
-                                schedule.NgayKetThuc = courseBlocks.Last().NgayKetThuc;
-                            }
-                        }
-                    }
-
-                    if (!schedule.NgayBatDau.HasValue && job.HocKy != null)
-                    {
-                        schedule.NgayBatDau = job.HocKy.NgayBatDau;
-                        schedule.NgayKetThuc = job.HocKy.NgayKetThuc;
-                    }
+                    var scheduleDates = ResolveCourseScheduleDates(course, termBlocks, job.HocKy);
+                    schedule.NgayBatDau = scheduleDates.Start;
+                    schedule.NgayKetThuc = scheduleDates.End;
 
                     _context.ThoiKhoaBieus.Add(schedule);
                     map.OccupyTeacher(job.MaHocKy, item.ThuTrongTuan.Value, item.MaCaHoc.Value, course.MaGiaoVien);
@@ -754,6 +740,57 @@ public class SmartTimetableService : ISmartTimetableService
         }
 
         return result;
+    }
+
+    internal static void ValidateCourseBlockRanges(
+        IEnumerable<KhoaHoc> courses,
+        IReadOnlyList<Block> termBlocks,
+        HocKy? term)
+    {
+        foreach (var course in courses.Where(x => x.MaBlockBatDau.HasValue))
+        {
+            if (term is null || course.SoBlockHoc <= 0)
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest,
+                    $"Khóa học {course.MaKhoaHoc} có cấu hình Block không hợp lệ.");
+            }
+
+            var startBlock = termBlocks.FirstOrDefault(x => x.MaBlock == course.MaBlockBatDau!.Value);
+            if (startBlock is null)
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest,
+                    $"Khóa học {course.MaKhoaHoc} tham chiếu Block bắt đầu không thuộc học kỳ xuất bản.");
+            }
+
+            var courseBlocks = termBlocks
+                .Where(x => x.ThuTuBlock >= startBlock.ThuTuBlock && x.ThuTuBlock < startBlock.ThuTuBlock + course.SoBlockHoc)
+                .OrderBy(x => x.ThuTuBlock)
+                .ToList();
+            if (courseBlocks.Count != course.SoBlockHoc ||
+                courseBlocks.Any(x => x.NgayBatDau < term.NgayBatDau || x.NgayKetThuc > term.NgayKetThuc || x.NgayKetThuc < x.NgayBatDau))
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest,
+                    $"Khóa học {course.MaKhoaHoc} có phạm vi Block vượt ngoài hoặc không hợp lệ trong học kỳ.");
+            }
+        }
+    }
+
+    internal static (DateOnly? Start, DateOnly? End) ResolveCourseScheduleDates(
+        KhoaHoc course,
+        IReadOnlyList<Block> termBlocks,
+        HocKy? term)
+    {
+        if (course.MaBlockBatDau.HasValue)
+        {
+            var startBlock = termBlocks.First(x => x.MaBlock == course.MaBlockBatDau.Value);
+            var blocks = termBlocks
+                .Where(x => x.ThuTuBlock >= startBlock.ThuTuBlock && x.ThuTuBlock < startBlock.ThuTuBlock + course.SoBlockHoc)
+                .OrderBy(x => x.ThuTuBlock)
+                .ToList();
+            return (blocks.First().NgayBatDau, blocks.Last().NgayKetThuc);
+        }
+
+        return term is null ? (null, null) : (term.NgayBatDau, term.NgayKetThuc);
     }
 
     public async Task<ConflictCheckBatchResultDto> CheckConflictsAsync(
