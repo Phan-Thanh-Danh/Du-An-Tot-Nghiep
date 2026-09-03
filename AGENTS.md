@@ -252,3 +252,14 @@ Get-ChildItem README.md,AGENTS.md,CLAUDE.md,docs,.cursor/rules -Recurse
 - Runner phải resolve ID thật từ list API trước khi vào route detail; nếu list API không có dữ liệu thì ghi `SKIPPED_NO_DATA`, không dùng ID giả.
 - Kết quả P15G.3 ngày 2026-07-09: 166 route entries, 166 pass, 0 fail, 0 `SKIPPED_NO_DATA`, console/runtime/network 401/403/404/500 đều bằng 0.
 - Dữ liệu detail P15G.3 phải đến từ seed/backend thật: BGH at-risk, BGH teacher evaluation, Teacher class detail/workspace. Không dùng ID giả hoặc fallback local.
+
+## Bắt buộc đọc trước khi làm Smart Timetable
+
+Trước mọi task liên quan xếp lịch, dữ liệu demo lịch, phòng học, sĩ số, API giáo vụ hoặc UX Smart Timetable, agent **phải đọc đầy đủ** theo thứ tự:
+
+1. `docs/TASK_7D_SMART_TIMETABLE_HANDOFF.md` — kiến trúc, luồng nghiệp vụ, tiêu chí feasibility, dữ liệu LargeDemo và các bất biến không được phá.
+2. `docs/API_CONTRACT.md` và `docs/SMART_SCHEDULING_SYSTEM_DOCUMENTATION.md` — hợp đồng API và mô tả module.
+3. `docs/TASK_7D_D0_LARGEDEMO_DATA_COMPLETENESS_REPORT.md` — bằng chứng baseline/seed/Generate của Task 7D-D0-C2.
+4. Các file thực thi: `Backend/Services/ThoiKhoaBieu/SmartTimetableService.cs`, `Backend/Services/ThoiKhoaBieu/GeneticTimetableSolver.cs`, `Backend/Services/ThoiKhoaBieu/CourseCapacityService.cs`, `Backend/Services/AcademicSchedulingContext/AcademicSchedulingContextService.cs`, `Backend/Data/Seeders/LargeDemoSeeder.cs`, `Backend/Controllers/ThoiKhoaBieuController.cs`.
+
+Không đổi `HK1_2027`, không bypass Academic Scheduling Context, không publish draft test, không tự bịa mapping tín chỉ hoặc sức chứa, và không dùng SuperAdmin để thay quyền AcademicStaff.

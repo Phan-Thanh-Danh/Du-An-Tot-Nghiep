@@ -49,8 +49,9 @@ public class P25_AcademicSchedulingContextTests
         _db.HocKys.Add(new HocKy { MaHocKy = 1, MaDonVi = campusId, NgayBatDau = today.AddDays(-30), NgayKetThuc = today.AddDays(30) });
         _db.HocKys.Add(new HocKy { MaHocKy = 2, MaDonVi = campusId, NgayBatDau = today.AddDays(40), NgayKetThuc = today.AddDays(100) });
         
-        // Add course so Readiness works
+        // Add course and room so Readiness works
         _db.KhoaHocs.Add(new KhoaHoc { MaKhoaHoc = 1, MaHocKy = 2, MaDonVi = campusId, TrangThai = "nhap" });
+        _db.PhongHocs.Add(new PhongHoc { MaPhong = 1, MaDonVi = campusId, TrangThaiPhong = "hoat_dong", TenPhong = "P101" });
         await _db.SaveChangesAsync();
 
         var result = await _service.GetContextAsync(campusId);

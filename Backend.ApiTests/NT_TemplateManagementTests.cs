@@ -18,8 +18,7 @@ public class NT_TemplateManagementTests : ApiTestBase
 {
     private new string GetSharedTestConnectionString()
     {
-        return Environment.GetEnvironmentVariable("LMS_TEST_CONNECTION_STRING")
-               ?? "Server=(localdb)\\mssqllocaldb;Database=LMS_TEST_DB;Trusted_Connection=True;MultipleActiveResultSets=true";
+        return TestDatabaseSafetyGuard.GetVerifiedTestConnectionString();
     }
 
     private new string GetSharedTestPassword()

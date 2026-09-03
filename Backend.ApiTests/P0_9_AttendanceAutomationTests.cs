@@ -375,40 +375,7 @@ public class P0_9_AttendanceAutomationTests : ApiTestBase
 
     private static string GetConnectionString()
     {
-        var fromEnvironment = Environment.GetEnvironmentVariable("LMS_TEST_CONNECTION_STRING");
-        if (!string.IsNullOrWhiteSpace(fromEnvironment))
-        {
-            return fromEnvironment;
-        }
-
-        var root = FindRepositoryRoot();
-        foreach (var relativePath in new[]
-                 {
-                     Path.Combine("Backend", "appsettings.Development.json"),
-                     Path.Combine("Backend", "appsettings.json")
-                 })
-        {
-            var path = Path.Combine(root, relativePath);
-            if (!File.Exists(path))
-            {
-                continue;
-            }
-
-            using var document = JsonDocument.Parse(File.ReadAllText(path));
-            if (document.RootElement.TryGetProperty("ConnectionStrings", out var connectionStrings) &&
-                connectionStrings.TryGetProperty("DefaultConnection", out var defaultConnection) &&
-                defaultConnection.ValueKind == JsonValueKind.String)
-            {
-                var value = defaultConnection.GetString();
-                if (!string.IsNullOrWhiteSpace(value))
-                {
-                    return value;
-                }
-            }
-        }
-
-        Assert.Fail("Không tìm thấy ConnectionStrings:DefaultConnection để test EF helper.");
-        throw new InvalidOperationException("Unreachable after Assert.Fail.");
+        return TestDatabaseSafetyGuard.GetVerifiedTestConnectionString();
     }
 
     private static string FindRepositoryRoot()

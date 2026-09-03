@@ -230,6 +230,7 @@ builder.Services.AddScoped<IThoiKhoaBieuService, ThoiKhoaBieuService>();
 builder.Services.AddScoped<IScheduleConflictService, ScheduleConflictService>();
 builder.Services.AddScoped<IBuoiHocService, BuoiHocService>();
 builder.Services.AddScoped<ISmartTimetableService, SmartTimetableService>();
+builder.Services.AddScoped<ICourseCapacityService, CourseCapacityService>();
 builder.Services.AddScoped<IGeneticTimetableSolver, GeneticTimetableSolver>();
 builder.Services.AddScoped<IAttendanceService, AttendanceService>();
 builder.Services.Configure<AttendanceAutomationOptions>(
@@ -499,6 +500,13 @@ using (var scope = app.Services.CreateScope())
     await blockSeeder.SeedAsync();
 
     await Backend.Data.Seeders.ApplicationTemplateSeeder.SeedAsync(context);
+
+    // LargeDemo is the only explicit opt-in profile allowed to add the D0
+    // Smart Timetable demo term.  Default environments remain seed-free.
+    if (string.Equals(builder.Configuration["SeedProfile"], "LargeDemo", StringComparison.OrdinalIgnoreCase))
+    {
+        await Backend.Data.Seeders.LargeDemoSeeder.SeedAsync(context);
+    }
 
     if (app.Environment.IsDevelopment())
     {

@@ -9,10 +9,12 @@ namespace Backend.Services.AcademicSchedulingContext;
 public class AcademicSchedulingContextService : IAcademicSchedulingContextService
 {
     private readonly ApplicationDbContext _db;
+    private readonly TimeProvider _timeProvider;
 
-    public AcademicSchedulingContextService(ApplicationDbContext db)
+    public AcademicSchedulingContextService(ApplicationDbContext db, TimeProvider? timeProvider = null)
     {
         _db = db;
+        _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     private DateOnly GetVietnamToday()
@@ -34,7 +36,7 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
                 tz = TimeZoneInfo.Local;
             }
         }
-        var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
+        var now = TimeZoneInfo.ConvertTimeFromUtc(_timeProvider.GetUtcNow().UtcDateTime, tz);
         return DateOnly.FromDateTime(now);
     }
 
@@ -70,7 +72,7 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
             .ToListAsync(cancellationToken);
 
         var currentTerms = allTerms
-            .Where(x => x.NgayBatDau <= today && x.NgayKetThuc >= today)
+            .Where(x => x.NgayBatDau <= today && x.NgayKetThuc >= today && !x.DaKhoa)
             .ToList();
         var futureTerms = allTerms.Where(x => x.NgayBatDau > today && !x.DaKhoa).ToList();
 
@@ -91,7 +93,19 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
 
         result.CurrentTerm = currentTerms.FirstOrDefault();
         result.NextTerm = futureTerms.FirstOrDefault();
-        result.SchedulableTerm = result.NextTerm;
+
+        // A future term with a permanently locked published timetable is not a
+        // valid preparation target.  When a later future term exists, advance
+        // to the first term that can actually accept a new draft.  Keep the
+        // nearest locked term as the fallback so existing callers still receive
+        // the precise SCHEDULE_ALREADY_PUBLISHED reason when no alternative
+        // future term exists.
+        var permanentlyLockedTermIds = await GetPermanentlyLockedTermIdsAsync(
+            campusId,
+            futureTerms.Select(x => x.MaHocKy).ToList(),
+            cancellationToken);
+        result.SchedulableTerm = futureTerms.FirstOrDefault(x => !permanentlyLockedTermIds.Contains(x.MaHocKy))
+            ?? result.NextTerm;
 
         if (result.SchedulableTerm == null)
         {
@@ -149,22 +163,12 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
             .ToListAsync(cancellationToken);
 
         var hasPublishedSchedule = publishedSchedules.Count > 0;
-        var isLockedPermanently = false;
+        var isLockedPermanently = permanentlyLockedTermIds.Contains(schedulableTermId);
 
         if (hasPublishedSchedule)
         {
-            var courseIds = publishedSchedules.Select(x => x.MaKhoaHoc).Distinct().ToList();
-            var hasAttendance = await _db.DiemDanhs.AnyAsync(
-                dd => dd.BuoiHoc != null && courseIds.Contains(dd.BuoiHoc.MaKhoaHoc) && dd.BuoiHoc.KhoaHoc != null && dd.BuoiHoc.KhoaHoc.MaHocKy == schedulableTermId,
-                cancellationToken
-            );
-
-            var oldestPublishTime = publishedSchedules
-                .Select(x => x.JobNguon?.NgayXuatBan ?? x.NgayCapNhat ?? x.NgayTao)
-                .Min();
-
-            var timeSincePublish = DateTime.UtcNow - oldestPublishTime;
-            isLockedPermanently = hasAttendance || timeSincePublish > TimeSpan.FromMinutes(30);
+            // The selected term's permanent-lock state was calculated for all
+            // candidates above, before selecting the schedulable term.
         }
 
         var hasDraftSchedule = await _db.ScheduleGenerationJobs.AnyAsync(
@@ -233,6 +237,56 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
         return result;
     }
 
+    private async Task<HashSet<int>> GetPermanentlyLockedTermIdsAsync(
+        int campusId,
+        IReadOnlyCollection<int> futureTermIds,
+        CancellationToken cancellationToken)
+    {
+        if (futureTermIds.Count == 0)
+        {
+            return new HashSet<int>();
+        }
+
+        var publishedSchedules = await _db.ThoiKhoaBieus
+            .AsNoTracking()
+            .Where(x => x.KhoaHoc != null
+                && x.KhoaHoc.MaDonVi == campusId
+                && x.KhoaHoc.MaHocKy.HasValue
+                && futureTermIds.Contains(x.KhoaHoc.MaHocKy.Value)
+                && x.TrangThai == "da_xuat_ban")
+            .Select(x => new
+            {
+                TermId = x.KhoaHoc!.MaHocKy!.Value,
+                x.MaKhoaHoc,
+                PublishedAt = x.JobNguon != null && x.JobNguon.NgayXuatBan.HasValue
+                    ? x.JobNguon.NgayXuatBan.Value
+                    : x.NgayCapNhat ?? x.NgayTao,
+            })
+            .ToListAsync(cancellationToken);
+
+        if (publishedSchedules.Count == 0)
+        {
+            return new HashSet<int>();
+        }
+
+        var publishedCourseIds = publishedSchedules.Select(x => x.MaKhoaHoc).Distinct().ToList();
+        var attendedCourseIds = await _db.DiemDanhs
+            .AsNoTracking()
+            .Where(x => x.BuoiHoc != null && publishedCourseIds.Contains(x.BuoiHoc.MaKhoaHoc))
+            .Select(x => x.BuoiHoc!.MaKhoaHoc)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+        var attendedSet = attendedCourseIds.ToHashSet();
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+
+        return publishedSchedules
+            .GroupBy(x => x.TermId)
+            .Where(group => group.Any(x => attendedSet.Contains(x.MaKhoaHoc))
+                || now - group.Min(x => x.PublishedAt) > TimeSpan.FromMinutes(30))
+            .Select(group => group.Key)
+            .ToHashSet();
+    }
+
     public async Task ValidateSchedulableTermAsync(
         int campusId,
         int requestedTermId,
@@ -278,9 +332,12 @@ public class AcademicSchedulingContextService : IAcademicSchedulingContextServic
                 );
             }
 
+            var termName = !string.IsNullOrWhiteSpace(context.SchedulableTerm.MaCodeHocKy)
+                ? context.SchedulableTerm.MaCodeHocKy
+                : context.SchedulableTerm.TenHocKy;
             throw new ApiException(
                 StatusCodes.Status400BadRequest,
-                $"Chỉ được chuẩn bị lịch cho học kỳ tương lai gần nhất: {context.SchedulableTerm.MaCodeHocKy}."
+                $"Chỉ được chuẩn bị lịch cho học kỳ tương lai gần nhất: {termName}."
             );
         }
     }

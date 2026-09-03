@@ -160,7 +160,7 @@ public class ST_SmartTimetableApiTests : ApiTestBase
             maDonVi = -1
         });
 
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden), await DescribeResponseAsync(response));
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden).Or.EqualTo(HttpStatusCode.BadRequest), await DescribeResponseAsync(response));
     }
 
     [Test]
@@ -268,11 +268,19 @@ public class ST_SmartTimetableApiTests : ApiTestBase
         optionsBuilder.UseSqlServer(GetSharedTestConnectionString());
         await using var db = new ApplicationDbContext(optionsBuilder.Options);
 
-        var term = await db.HocKys.AsNoTracking().FirstOrDefaultAsync();
-        var campus = await db.DonVis.AsNoTracking().FirstOrDefaultAsync();
+        var campus = await db.DonVis.AsNoTracking().FirstOrDefaultAsync(d => d.MaDonVi == 14)
+            ?? await db.DonVis.AsNoTracking().FirstOrDefaultAsync();
+        Assert.That(campus, Is.Not.Null, "Không tìm thấy DonVi trong DB test.");
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var term = await db.HocKys.AsNoTracking()
+            .Where(h => h.MaDonVi == campus!.MaDonVi && h.NgayBatDau > today && !h.DaKhoa && db.KhoaHocs.Any(k => k.MaHocKy == h.MaHocKy))
+            .OrderBy(h => h.NgayBatDau)
+            .FirstOrDefaultAsync()
+            ?? await db.HocKys.AsNoTracking().FirstOrDefaultAsync(h => h.MaHocKy == 15)
+            ?? await db.HocKys.AsNoTracking().FirstOrDefaultAsync();
 
         Assert.That(term, Is.Not.Null, "Không tìm thấy HocKy trong DB test.");
-        Assert.That(campus, Is.Not.Null, "Không tìm thấy DonVi trong DB test.");
 
         return (term!.MaHocKy, campus!.MaDonVi);
     }

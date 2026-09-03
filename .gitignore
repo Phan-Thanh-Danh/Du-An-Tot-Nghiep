@@ -1,4 +1,5 @@
 # OS and editor files
+.env
 .DS_Store
 Thumbs.db
 .idea/

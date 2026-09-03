@@ -31,6 +31,8 @@ public class SmartTimetableService : ISmartTimetableService
     private readonly IGeneticTimetableSolver _geneticSolver;
     private readonly IScheduleNotificationService _scheduleNotificationService;
     private readonly SmartTimetableScoringOptions _scoringOptions;
+    private readonly TimeProvider _timeProvider;
+    private readonly ICourseCapacityService _courseCapacityService;
 
     public SmartTimetableService(
         ApplicationDbContext context,
@@ -41,7 +43,9 @@ public class SmartTimetableService : ISmartTimetableService
         IScheduleCandidateScoringService scoringService,
         IGeneticTimetableSolver geneticSolver,
         IScheduleNotificationService scheduleNotificationService,
-        IOptions<SmartTimetableScoringOptions> scoringOptions)
+        IOptions<SmartTimetableScoringOptions> scoringOptions,
+        ICourseCapacityService courseCapacityService,
+        TimeProvider? timeProvider = null)
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
@@ -52,6 +56,8 @@ public class SmartTimetableService : ISmartTimetableService
         _geneticSolver = geneticSolver;
         _scheduleNotificationService = scheduleNotificationService;
         _scoringOptions = scoringOptions.Value;
+        _timeProvider = timeProvider ?? TimeProvider.System;
+        _courseCapacityService = courseCapacityService;
     }
 
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, GenerationProgress> _progressStore = new();
@@ -61,7 +67,7 @@ public class SmartTimetableService : ISmartTimetableService
         CancellationToken cancellationToken = default)
     {
         var currentUser = GetCurrentUser();
-        EnsureCanManageSchedule(currentUser);
+        EnsureCanManageSchedule(currentUser, request.MaDonVi);
 
         await _schedulingContextService.ValidateSchedulableTermAsync(request.MaDonVi, request.MaHocKy, cancellationToken);
 
@@ -88,7 +94,12 @@ public class SmartTimetableService : ISmartTimetableService
             requiredSlots[course.MaKhoaHoc] = quyDoi.GetValueOrDefault(soTinChi, 1);
         }
 
-        var studentCounts = await GetClassStudentCountsAsync(courses.Select(x => x.MaLop), cancellationToken);
+        var capacityByCourse = await _courseCapacityService.GetRequiredCapacitiesAsync(courses, cancellationToken);
+        var incompleteCourses = courses.Where(x => capacityByCourse[x.MaKhoaHoc].Status == "blocked").ToList();
+        if (incompleteCourses.Count > 0)
+            throw new ApiException(StatusCodes.Status400BadRequest, $"DATA_INCOMPLETE: {incompleteCourses.Count} khóa học chưa có sĩ số thực tế hoặc sĩ số dự kiến.");
+        var studentCounts = courses.GroupBy(x => x.MaLop)
+            .ToDictionary(g => g.Key, g => g.Max(x => capacityByCourse[x.MaKhoaHoc].Value));
 
         // =========================================================================
         // FEASIBILITY CHECK TIỀN KỲ (Kiểm tra khả thi trước khi khởi tạo GA)
@@ -176,7 +187,7 @@ public class SmartTimetableService : ISmartTimetableService
         await _context.SaveChangesAsync(cancellationToken);
 
         var teacherIds = courses.Select(x => x.MaGiaoVien).Where(id => id > 0).Distinct();
-        var confirmedAvailability = await LoadConfirmedTeachingAvailabilityAsync(
+        var unavailableSlots = await LoadConfirmedTeachingAvailabilityAsync(
             request.MaHocKy,
             request.MaDonVi,
             teacherIds,
@@ -198,7 +209,7 @@ public class SmartTimetableService : ISmartTimetableService
             rooms,
             requiredSlots,
             studentCounts,
-            confirmedAvailability,
+            unavailableSlots,
             request.TongTheHe ?? 100,
             request.KichThuocQuanThe ?? 50,
             request.TyLeCheo ?? 0.5,
@@ -297,15 +308,19 @@ public class SmartTimetableService : ISmartTimetableService
         Guid draftId,
         CancellationToken cancellationToken = default)
     {
-        if (_progressStore.TryGetValue(draftId, out var live))
-            return live;
-
+        var currentUser = GetCurrentUser();
+        EnsureCanManageSchedule(currentUser);
         var job = await _context.ScheduleGenerationJobs
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.DraftId == draftId, cancellationToken);
 
         if (job is null)
             throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy công việc xếp lịch.");
+
+        EnsureCanManageSchedule(currentUser, job.MaDonVi);
+
+        if (_progressStore.TryGetValue(draftId, out var live))
+            return live;
 
         return new GenerationProgress
         {
@@ -332,8 +347,7 @@ public class SmartTimetableService : ISmartTimetableService
         if (job is null)
             throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy bản nháp.");
 
-        if (job.MaDonVi != currentUser.CampusId && currentUser.Role != AuthRoles.SuperAdmin)
-            throw new ApiException(StatusCodes.Status403Forbidden, "Không có quyền trên cơ sở này.");
+        EnsureCanManageSchedule(currentUser, job.MaDonVi);
 
         return await ToDraftDtoAsync(job.MaJob, cancellationToken);
     }
@@ -344,10 +358,7 @@ public class SmartTimetableService : ISmartTimetableService
         CancellationToken cancellationToken = default)
     {
         var currentUser = GetCurrentUser();
-        EnsureCanManageSchedule(currentUser);
-
-        if (maDonVi != currentUser.CampusId && currentUser.Role != AuthRoles.SuperAdmin)
-            throw new ApiException(StatusCodes.Status403Forbidden, "Không có quyền trên cơ sở này.");
+        EnsureCanManageSchedule(currentUser, maDonVi);
 
         var jobs = await _context.ScheduleGenerationJobs
             .AsNoTracking()
@@ -376,8 +387,7 @@ public class SmartTimetableService : ISmartTimetableService
         if (job is null)
             throw new ApiException(StatusCodes.Status404NotFound, "Không tìm thấy bản nháp.");
 
-        if (job.MaDonVi != currentUser.CampusId && currentUser.Role != AuthRoles.SuperAdmin)
-            throw new ApiException(StatusCodes.Status403Forbidden, "Không có quyền trên cơ sở này.");
+        EnsureCanManageSchedule(currentUser, job.MaDonVi);
 
         await _schedulingContextService.ValidateSchedulableTermAsync(job.MaDonVi, job.MaHocKy, cancellationToken);
 
@@ -439,7 +449,7 @@ public class SmartTimetableService : ISmartTimetableService
                         .Select(x => x.JobNguon?.NgayXuatBan ?? x.NgayCapNhat ?? x.NgayTao)
                         .Min();
 
-                    var timeSincePublish = DateTime.UtcNow - oldestPublishTime;
+                    var timeSincePublish = _timeProvider.GetUtcNow().UtcDateTime - oldestPublishTime;
                     if (timeSincePublish > TimeSpan.FromMinutes(30))
                     {
                         throw new ApiException(StatusCodes.Status400BadRequest,
@@ -497,6 +507,13 @@ public class SmartTimetableService : ISmartTimetableService
                 var rooms = await _context.PhongHocs.AsNoTracking()
                     .Where(x => x.MaDonVi == job.MaDonVi)
                     .ToDictionaryAsync(x => x.MaPhong, cancellationToken);
+                var activeShiftIds = await _context.CaHocs.AsNoTracking()
+                    .Where(x => x.ConHoatDong)
+                    .Select(x => x.MaCaHoc)
+                    .ToHashSetAsync(cancellationToken);
+                var studentCounts = await GetClassStudentCountsAsync(courses.Values.Select(x => x.MaLop), cancellationToken);
+                var unavailableSlots = await LoadConfirmedTeachingAvailabilityAsync(
+                    job.MaHocKy, job.MaDonVi, courses.Values.Select(x => x.MaGiaoVien), cancellationToken);
 
                 var groupedItems = items.GroupBy(x => x.MaKhoaHoc).ToList();
                 var activeCourseCount = courses.Count;
@@ -548,6 +565,28 @@ public class SmartTimetableService : ISmartTimetableService
                     {
                         result.BuoiHocLoi++;
                         result.ChiTietLoi.Add($"MaKhoaHoc {item.MaKhoaHoc}: phòng học không khả dụng.");
+                        continue;
+                    }
+
+                    if (!activeShiftIds.Contains(item.MaCaHoc.Value))
+                    {
+                        result.BuoiHocLoi++;
+                        result.ChiTietLoi.Add($"MaKhoaHoc {item.MaKhoaHoc}: ca học không hoạt động.");
+                        continue;
+                    }
+
+                    if (room.SucChua > 0 && studentCounts.GetValueOrDefault(course.MaLop, 0) > room.SucChua)
+                    {
+                        result.BuoiHocLoi++;
+                        result.ChiTietLoi.Add($"MaKhoaHoc {item.MaKhoaHoc}: phòng không đủ sức chứa lớp.");
+                        continue;
+                    }
+
+                    if (unavailableSlots.TryGetValue(course.MaGiaoVien, out var teacherUnavailableSlots) &&
+                        teacherUnavailableSlots.Contains((item.ThuTrongTuan.Value, item.MaCaHoc.Value)))
+                    {
+                        result.BuoiHocLoi++;
+                        result.ChiTietLoi.Add($"MaKhoaHoc {item.MaKhoaHoc}: giảng viên không có mặt tại ca này.");
                         continue;
                     }
 
@@ -673,10 +712,17 @@ public class SmartTimetableService : ISmartTimetableService
             cancellationToken);
         // ===================================================
 
-        await _auditLogService.LogAsync(
-            "SmartTimetable", request.DraftId.ToString(), "PUBLISH",
-            null, new { publishResult = result }, currentUser.UserId, job.MaDonVi,
-            "Xuất bản thời khóa biểu thông minh.", cancellationToken);
+        try
+        {
+            await _auditLogService.LogAsync(
+                "SmartTimetable", request.DraftId.ToString(), "PUBLISH",
+                null, new { publishResult = result }, currentUser.UserId, job.MaDonVi,
+                "Xuất bản thời khóa biểu thông minh.", cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to write audit log for SmartTimetable publish of Draft {DraftId}. Schedule publish was already committed successfully.", request.DraftId);
+        }
 
         return result;
     }
@@ -686,14 +732,21 @@ public class SmartTimetableService : ISmartTimetableService
         CancellationToken cancellationToken = default)
     {
         var currentUser = GetCurrentUser();
-        EnsureCanManageSchedule(currentUser);
-
-        if (request.MaDonVi != currentUser.CampusId && currentUser.Role != AuthRoles.SuperAdmin)
-            throw new ApiException(StatusCodes.Status403Forbidden, "Không có quyền trên cơ sở này.");
+        EnsureCanManageSchedule(currentUser, request.MaDonVi);
         var map = await BuildOccupationMapAsync(request.MaHocKy, request.MaDonVi, cancellationToken);
         var courses = await _context.KhoaHocs.AsNoTracking()
             .Where(x => x.MaHocKy == request.MaHocKy && x.MaDonVi == request.MaDonVi)
             .ToDictionaryAsync(x => x.MaKhoaHoc, cancellationToken);
+        var rooms = await _context.PhongHocs.AsNoTracking()
+            .Where(x => x.MaDonVi == request.MaDonVi)
+            .ToDictionaryAsync(x => x.MaPhong, cancellationToken);
+        var activeShiftIds = await _context.CaHocs.AsNoTracking()
+            .Where(x => x.ConHoatDong)
+            .Select(x => x.MaCaHoc)
+            .ToHashSetAsync(cancellationToken);
+        var studentCounts = await GetClassStudentCountsAsync(courses.Values.Select(x => x.MaLop), cancellationToken);
+        var unavailableSlots = await LoadConfirmedTeachingAvailabilityAsync(
+            request.MaHocKy, request.MaDonVi, courses.Values.Select(x => x.MaGiaoVien), cancellationToken);
 
         var result = new ConflictCheckBatchResultDto();
 
@@ -711,6 +764,25 @@ public class SmartTimetableService : ISmartTimetableService
             }
 
             var conflicts = new List<string>();
+
+            if (!item.ThuTrongTuan.HasValue || !item.MaCaHoc.HasValue || !item.MaPhong.HasValue)
+            {
+                conflicts.Add("Thiếu thông tin thứ, ca hoặc phòng.");
+            }
+            else
+            {
+                if (!activeShiftIds.Contains(item.MaCaHoc.Value))
+                    conflicts.Add("Ca học không hoạt động.");
+
+                if (!rooms.TryGetValue(item.MaPhong.Value, out var room) || room.TrangThaiPhong != "hoat_dong")
+                    conflicts.Add("Phòng học không khả dụng.");
+                else if (room.SucChua > 0 && studentCounts.GetValueOrDefault(course.MaLop, 0) > room.SucChua)
+                    conflicts.Add("Phòng không đủ sức chứa lớp.");
+
+                if (unavailableSlots.TryGetValue(course.MaGiaoVien, out var teacherUnavailableSlots) &&
+                    teacherUnavailableSlots.Contains((item.ThuTrongTuan.Value, item.MaCaHoc.Value)))
+                    conflicts.Add("Giảng viên không có mặt tại ca này.");
+            }
 
             if (item.ThuTrongTuan.HasValue && item.MaCaHoc.HasValue)
             {
@@ -750,8 +822,7 @@ public class SmartTimetableService : ISmartTimetableService
 
         if (job is null) return false;
         
-        if (job.MaDonVi != currentUser.CampusId && currentUser.Role != AuthRoles.SuperAdmin)
-            throw new ApiException(StatusCodes.Status403Forbidden, "Không có quyền trên cơ sở này.");
+        EnsureCanManageSchedule(currentUser, job.MaDonVi);
         if (job.TrangThai == "da_xuat_ban")
             throw new ApiException(StatusCodes.Status400BadRequest, "Không thể xóa bản nháp đã xuất bản.");
 
@@ -809,10 +880,10 @@ public class SmartTimetableService : ISmartTimetableService
         var rooms = await LoadRoomsAsync(course.MaDonVi, request.CandidateRoomIds, cancellationToken);
         var map = await BuildOccupationMapAsync(course.MaHocKy ?? 0, course.MaDonVi, cancellationToken);
         var studentCounts = await GetClassStudentCountsAsync(new[] { course.MaLop }, cancellationToken);
-        var confirmedAvailability = await LoadConfirmedTeachingAvailabilityAsync(
+        var unavailableSlots = await LoadConfirmedTeachingAvailabilityAsync(
             course.MaHocKy ?? 0, course.MaDonVi, new[] { course.MaGiaoVien }, cancellationToken);
 
-        var result = GetCourseSlotSuggestions(course, map, shifts, rooms, request.CandidateDays, studentCounts, confirmedAvailability, request.TopN);
+        var result = GetCourseSlotSuggestions(course, map, shifts, rooms, request.CandidateDays, studentCounts, unavailableSlots, request.TopN);
         return result;
     }
 
@@ -840,12 +911,13 @@ public class SmartTimetableService : ISmartTimetableService
             throw new ApiException(StatusCodes.Status400BadRequest, "Tất cả khóa học phải thuộc cùng cơ sở và học kỳ.");
 
         await _schedulingContextService.ValidateSchedulableTermAsync(maDonVi, maHocKy, cancellationToken);
+        EnsureCanManageSchedule(currentUser, maDonVi);
 
         var shifts = await LoadShiftsAsync(null, cancellationToken);
         var rooms = await LoadRoomsAsync(maDonVi, null, cancellationToken);
         var map = await BuildOccupationMapAsync(maHocKy, maDonVi, cancellationToken);
         var studentCounts = await GetClassStudentCountsAsync(courses.Select(x => x.MaLop), cancellationToken);
-        var confirmedAvailability = await LoadConfirmedTeachingAvailabilityAsync(
+        var unavailableSlots = await LoadConfirmedTeachingAvailabilityAsync(
             maHocKy, maDonVi, courses.Select(x => x.MaGiaoVien), cancellationToken);
 
         var result = new BatchSlotSuggestionResultDto();
@@ -858,7 +930,7 @@ public class SmartTimetableService : ISmartTimetableService
 
         foreach (var course in sortedCourses)
         {
-            var suggestions = GetCourseSlotSuggestions(course, map, shifts, rooms, null, studentCounts, confirmedAvailability, request.TopNPerCourse);
+            var suggestions = GetCourseSlotSuggestions(course, map, shifts, rooms, null, studentCounts, unavailableSlots, request.TopNPerCourse);
             var best = suggestions.Candidates.FirstOrDefault();
 
             if (best != null)
@@ -899,7 +971,7 @@ public class SmartTimetableService : ISmartTimetableService
         List<Models.PhongHoc> rooms,
         List<int>? candidateDays,
         Dictionary<int, int> studentCounts,
-        IReadOnlyDictionary<int, IReadOnlySet<(int Day, int Shift)>> confirmedAvailabilityByTeacher,
+        IReadOnlyDictionary<int, IReadOnlySet<(int Day, int Shift)>> unavailableSlotsByTeacher,
         int topN)
     {
         var result = new CourseSlotSuggestionResultDto
@@ -934,8 +1006,8 @@ public class SmartTimetableService : ISmartTimetableService
 
                 foreach (var room in rooms)
                 {
-                    if (confirmedAvailabilityByTeacher.TryGetValue(course.MaGiaoVien, out var availableSlots) &&
-                        !availableSlots.Contains((day, shift.MaCaHoc)))
+                    if (unavailableSlotsByTeacher.TryGetValue(course.MaGiaoVien, out var unavailableSlots) &&
+                        unavailableSlots.Contains((day, shift.MaCaHoc)))
                         continue;
 
                     if (map.IsRoomOccupied(result.MaHocKy, day, shift.MaCaHoc, room.MaPhong))
@@ -1016,7 +1088,7 @@ public class SmartTimetableService : ISmartTimetableService
         return forms.ToDictionary(
             x => x.MaGiaoVien,
             x => (IReadOnlySet<(int Day, int Shift)>)x.ChiTietNguyenVong
-                .Where(slot => slot.MucDo is "available" or "preferred")
+                .Where(slot => slot.MucDo == "unavailable")
                 .Select(slot => (slot.ThuTrongTuan, slot.MaCaHoc))
                 .ToHashSet());
     }
@@ -1191,10 +1263,16 @@ public class SmartTimetableService : ISmartTimetableService
         return currentUser;
     }
 
-    private static void EnsureCanManageSchedule(CurrentUserContext currentUser)
+    private static void EnsureCanManageSchedule(CurrentUserContext currentUser, int? targetCampusId = null)
     {
         if (currentUser.Role is not (AuthRoles.SuperAdmin or AuthRoles.Admin or AuthRoles.CampusAdmin or AuthRoles.AcademicStaff))
             throw new ApiException(StatusCodes.Status403Forbidden, "Bạn không có quyền quản lý thời khóa biểu thông minh.");
+
+        var isGlobal = currentUser.Role == AuthRoles.SuperAdmin;
+        if (!isGlobal && targetCampusId.HasValue && targetCampusId.Value > 0 && currentUser.CampusId != targetCampusId.Value)
+        {
+            throw new ApiException(StatusCodes.Status403Forbidden, "Không có quyền trên cơ sở này.");
+        }
     }
 
     private async Task<Dictionary<int, int>> GetClassStudentCountsAsync(IEnumerable<int> classIds, CancellationToken cancellationToken)

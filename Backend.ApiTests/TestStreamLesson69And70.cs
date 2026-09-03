@@ -19,7 +19,7 @@ namespace Backend.ApiTests
         [Test]
         public async Task TestStorageStreamForLesson69And70()
         {
-            var connStr = "Server=localhost,1433;Database=LMS;User Id=sa;Password=Test@123_PassWord!;TrustServerCertificate=True;";
+            var connStr = TestDatabaseSafetyGuard.GetVerifiedTestConnectionString();
             var options = new DbContextOptionsBuilder<ApplicationDbContext>()
                 .UseSqlServer(connStr)
                 .Options;

@@ -88,24 +88,7 @@ public abstract class ApiTestBase
 
     protected static string GetSharedTestConnectionString()
     {
-        var connectionString = Environment.GetEnvironmentVariable("LMS_TEST_CONNECTION_STRING");
-        if (string.IsNullOrWhiteSpace(connectionString))
-        {
-            Assert.Fail("Thiếu env var LMS_TEST_CONNECTION_STRING cho API tests.");
-        }
-
-        var builder = CreateConnectionStringBuilder(
-            connectionString!,
-            "LMS_TEST_CONNECTION_STRING không hợp lệ");
-
-        if (string.IsNullOrWhiteSpace(builder.InitialCatalog) ||
-            !builder.InitialCatalog.StartsWith("LMS_TEST_", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(builder.InitialCatalog, "LMS", StringComparison.OrdinalIgnoreCase))
-        {
-            Assert.Fail("API tests chỉ được chạy trên database isolated có tên bắt đầu bằng 'LMS_TEST_' và không được là database LMS chính.");
-        }
-
-        return connectionString!;
+        return TestDatabaseSafetyGuard.GetVerifiedTestConnectionString();
     }
 
     protected static void ValidateSharedBackendDatabase()

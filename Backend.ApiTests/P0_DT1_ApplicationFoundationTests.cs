@@ -490,36 +490,7 @@ internal static class P0Dt1TestDatabase
 
     public static string GetConnectionString()
     {
-        var environmentConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
-        if (!string.IsNullOrWhiteSpace(environmentConnectionString))
-        {
-            return environmentConnectionString;
-        }
-
-        var root = FindRepoRoot();
-        foreach (var configFile in new[] { "appsettings.Development.json", "appsettings.json" })
-        {
-            var configPath = Path.Combine(root, "Backend", configFile);
-            if (!File.Exists(configPath))
-            {
-                continue;
-            }
-
-            var json = File.ReadAllText(configPath, Encoding.UTF8);
-            using var document = JsonDocument.Parse(json);
-            var connectionString = document.RootElement
-                .GetProperty("ConnectionStrings")
-                .GetProperty("DefaultConnection")
-                .GetString();
-
-            if (!string.IsNullOrWhiteSpace(connectionString))
-            {
-                return connectionString;
-            }
-        }
-
-        Assert.Fail("Không tìm thấy ConnectionStrings:DefaultConnection để test P0-DT1.");
-        throw new InvalidOperationException("Unreachable after Assert.Fail.");
+        return TestDatabaseSafetyGuard.GetVerifiedTestConnectionString();
     }
 
     private static string FindRepoRoot()

@@ -49,7 +49,7 @@ public interface IGeneticTimetableSolver
         IReadOnlyList<PhongHoc> rooms,
         IReadOnlyDictionary<int, int> requiredSlotsPerCourse,
         IReadOnlyDictionary<int, int> studentCounts,
-        IReadOnlyDictionary<int, IReadOnlySet<(int Day, int Shift)>> confirmedAvailabilityByTeacher,
+        IReadOnlyDictionary<int, IReadOnlySet<(int Day, int Shift)>> unavailableSlotsByTeacher,
         int tongTheHe,
         int kichThuocQuanThe,
         double tyLeCheo,
@@ -79,7 +79,7 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
         IReadOnlyList<PhongHoc> rooms,
         IReadOnlyDictionary<int, int> requiredSlotsPerCourse,
         IReadOnlyDictionary<int, int> studentCounts,
-        IReadOnlyDictionary<int, IReadOnlySet<(int Day, int Shift)>> confirmedAvailabilityByTeacher,
+        IReadOnlyDictionary<int, IReadOnlySet<(int Day, int Shift)>> unavailableSlotsByTeacher,
         int tongTheHe,
         int kichThuocQuanThe,
         double tyLeCheo,
@@ -93,7 +93,7 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
         tyLeCheo = Math.Clamp(tyLeCheo, 0.0, 1.0);
         doTuoiThoToiDa = Math.Clamp(doTuoiThoToiDa, 1, 100);
 
-        var problem = BuildProblem(courses, shifts, rooms, requiredSlotsPerCourse, studentCounts, confirmedAvailabilityByTeacher);
+        var problem = BuildProblem(courses, shifts, rooms, requiredSlotsPerCourse, studentCounts, unavailableSlotsByTeacher);
         if (problem.Courses.Count == 0)
             return new GeneticTimetableResult
             {
@@ -247,7 +247,7 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
         IReadOnlyList<PhongHoc> rooms,
         IReadOnlyDictionary<int, int> requiredSlots,
         IReadOnlyDictionary<int, int> studentCounts,
-        IReadOnlyDictionary<int, IReadOnlySet<(int Day, int Shift)>> confirmedAvailabilityByTeacher)
+        IReadOnlyDictionary<int, IReadOnlySet<(int Day, int Shift)>> unavailableSlotsByTeacher)
     {
         var problem = new TimetableProblem
         {
@@ -289,7 +289,7 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
 
             var classSize = def.ExpectedStudentCount;
             var teacherId = course.MaGiaoVien;
-            var hasConfirmedAvailability = confirmedAvailabilityByTeacher.TryGetValue(teacherId, out var availableSlots);
+            var hasUnavailableSlots = unavailableSlotsByTeacher.TryGetValue(teacherId, out var unavailableSlots);
 
             for (var d = 0; d < WeekDays.Length; d++)
             {
@@ -297,7 +297,7 @@ public sealed class GeneticTimetableSolver : IGeneticTimetableSolver
                 for (var s = 0; s < shifts.Count; s++)
                 {
                     var shift = shifts[s];
-                    if (hasConfirmedAvailability && !availableSlots!.Contains((day, shift.MaCaHoc)))
+                    if (hasUnavailableSlots && unavailableSlots!.Contains((day, shift.MaCaHoc)))
                         continue;
 
                     for (var r = 0; r < rooms.Count; r++)

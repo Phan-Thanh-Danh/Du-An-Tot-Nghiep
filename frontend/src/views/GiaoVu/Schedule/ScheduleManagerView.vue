@@ -15,10 +15,14 @@ import { staffApi } from '@/services/staffApi'
 import { academicTermApi } from '@/services/academicTermApi'
 import { blockApi } from '@/services/blockApi'
 import { usePopupStore } from '@/stores/popup'
+import { useAuthStore } from '@/stores/auth'
 import { useAcademicSchedulingContextStore } from '@/stores/academicSchedulingContext'
+import { useRouter } from 'vue-router'
 
 const popupStore = usePopupStore()
+const authStore = useAuthStore()
 const schedulingContext = useAcademicSchedulingContextStore()
+const router = useRouter()
 
 const thuTrongTuanOptions = [
   { value: 2, label: 'Thứ 2' }, { value: 3, label: 'Thứ 3' },
@@ -61,6 +65,7 @@ const suggestingSlots = ref(false)
 const bulkSelectedCourseIds = ref([])
 const bulkReviewRows = ref([])
 const bulkCreating = ref(false)
+const bulkCoursePickerOpen = ref(false)
 const smartCourseScope = ref('unscheduled')
 const smartCampusId = ref('')
 const smartSelectedCourseIds = ref([])
@@ -68,6 +73,7 @@ const smartOptions = ref({ tongTheHe: 100, kichThuocQuanThe: 50, tyLeCheo: 0.5, 
 const smartDraft = ref(null)
 const generationProgress = ref(null)
 const showProgressModal = ref(false)
+const smartButtonState = ref('idle')
 let progressPollTimer = null
 
 // drag state
@@ -96,6 +102,24 @@ const campusOptions = computed(() => {
   })
   return [...map.entries()].map(([value, label]) => ({ value, label }))
 })
+
+const authorizedCampusId = computed(() => Number(authStore.user?.campusId ?? authStore.user?.CampusId ?? authStore.user?.maDonVi ?? authStore.user?.MaDonVi ?? 0))
+const authorizedCampusName = computed(() =>
+  campusOptions.value.find(c => Number(c.value) === authorizedCampusId.value)?.label || authStore.user?.donVi || 'Cơ sở của bạn'
+)
+const simpleReadiness = computed(() => {
+  const readiness = schedulingContext.readiness || {}
+  const count = unscheduledCourses.value.filter(c => !authorizedCampusId.value || Number(c.maDonVi) === authorizedCampusId.value).length
+  return [
+    { label: 'Khóa học', ready: count > 0, detail: count ? `${count} khóa học cần xếp` : 'Chưa có khóa học cần xếp' },
+    { label: 'Giảng viên phù hợp', ready: readiness.hasTeachers !== false, detail: readiness.hasTeachers === false ? 'Cần bổ sung giảng viên phù hợp.' : 'Đã sẵn sàng' },
+    { label: 'Thời gian rảnh của giảng viên', ready: readiness.hasTeachers !== false, detail: readiness.hasTeachers === false ? 'Cần cập nhật thời gian rảnh.' : 'Đã sẵn sàng' },
+    { label: 'Phòng học', ready: readiness.hasRooms !== false, detail: readiness.hasRooms === false ? 'Cần bổ sung phòng học.' : 'Đã sẵn sàng' },
+    { label: 'Ca học', ready: readiness.hasShifts !== false, detail: readiness.hasShifts === false ? 'Cần bổ sung ca học.' : 'Đã sẵn sàng' },
+    { label: 'Sức chứa phòng', ready: readiness.hasRooms !== false, detail: readiness.hasRooms === false ? 'Cần kiểm tra phòng học phù hợp.' : 'Đã sẵn sàng' },
+  ]
+})
+const canGenerateSimple = computed(() => authorizedCampusId.value > 0 && schedulingContext.canPrepareSchedule && simpleReadiness.value.every(item => item.ready) && !generating.value)
 
 const selectedCourse = computed(() =>
   courseOptions.value.find(c => Number(c.maKhoaHoc) === Number(form.value.maKhoaHoc)) || form.value.selectedCourse || null
@@ -306,6 +330,8 @@ async function loadData() {
     courseOptions.value = schedulingContext.schedulableTerm 
       ? allCourses.filter(c => Number(c.maHocKy) === Number(schedulingContext.schedulableTerm.maHocKy))
       : allCourses
+    if (authorizedCampusId.value) smartCampusId.value = authorizedCampusId.value
+    else if (campusOptions.value.length === 1) smartCampusId.value = campusOptions.value[0].value
 
     const raw = unwrapList(scheduleRes)
     rows.value = Array.isArray(raw) ? raw.map(beToView) : []
@@ -606,6 +632,20 @@ function openSmartMode() {
   formMode.value = 'create'
   selectedRow.value = null
   showFormModal.value = true
+}
+
+async function generateSimpleDraft() {
+  smartButtonState.value = 'checking'
+  if (!canGenerateSimple.value) {
+    popupStore.warning('Cần bổ sung dữ liệu', 'Hãy hoàn tất các mục đang cần bổ sung trước khi xếp lịch.')
+    smartButtonState.value = 'idle'
+    return
+  }
+  smartCampusId.value = authorizedCampusId.value || smartCampusId.value
+  smartCourseScope.value = 'unscheduled'
+  smartButtonState.value = 'generating'
+  await generateSmartDraft()
+  smartButtonState.value = smartDraft.value ? 'done' : 'idle'
 }
 
 async function openEdit(row) {
@@ -933,7 +973,8 @@ function saveDraft() { saveSchedule(false) }
 async function suggestBulkCourses() {
   const selected = courseOptions.value.filter(c => bulkSelectedCourseIds.value.map(Number).includes(Number(c.maKhoaHoc)))
   if (!selected.length) {
-    popupStore.warning('Chưa chọn khóa học', 'Vui lòng tick ít nhất một khóa học để gợi ý.')
+    bulkCoursePickerOpen.value = true
+    popupStore.warning('Chọn khóa học', 'Danh sách khóa học đã được mở. Vui lòng tick ít nhất một khóa học để gợi ý.')
     return
   }
 
@@ -972,6 +1013,7 @@ async function suggestBulkCourses() {
         status: bestSlot ? 'ready' : 'no_slot',
       }
     })
+    bulkCoursePickerOpen.value = false
     
     if (bulkReviewRows.value.some(r => r.status === 'no_slot')) {
       popupStore.warning('Một số khóa chưa có slot', 'Kiểm tra bảng review trước khi tạo nháp hàng loạt.')
@@ -1032,6 +1074,7 @@ async function generateSmartDraft() {
 
   const clientDraftId = crypto.randomUUID()
   generating.value = true
+  smartButtonState.value = 'generating'
   generationProgress.value = {
     draftId: clientDraftId,
     trangThai: 'pending',
@@ -1060,6 +1103,7 @@ async function generateSmartDraft() {
     smartDraft.value = res?.data ?? res?.Data ?? res
     await loadData()
     popupStore.success('Đã sinh bản nháp', 'Vui lòng kiểm tra bản nháp trước khi xuất bản.')
+    await router.push(pendingDraftRoute.value)
   } catch (e) {
     popupStore.error('Lỗi xếp lịch thông minh', e?.message || 'Không thể sinh bản nháp thời khóa biểu.')
   } finally {
@@ -1657,9 +1701,11 @@ function thuLabel(thu) {
                     <div class="h-9 flex items-center rounded-lg border border-(--border-input) bg-(--surface-input) px-3 text-sm font-medium text-(--text-muted)">
                       Học kỳ: {{ schedulingContext.schedulableTerm?.tenHocKy || '—' }}
                     </div>
-                    <GlassButton variant="secondary" @click="suggestBulkCourses">Gợi ý lịch cho các khóa đã chọn</GlassButton>
+                    <GlassButton variant="secondary" @click="suggestBulkCourses">{{ bulkSelectedCourseIds.length ? `Gợi ý lịch cho ${bulkSelectedCourseIds.length} khóa học đã chọn` : 'Chọn khóa học để gợi ý' }}</GlassButton>
                   </div>
-                  <div class="max-h-56 overflow-y-auto rounded-xl border border-(--border-default)">
+                  <p v-if="!bulkCoursePickerOpen" class="text-sm text-(--text-muted)">Chọn “Chọn khóa học để gợi ý” để mở danh sách.</p>
+                  <div v-else-if="bulkCandidateCourses.length === 0" class="rounded-xl border border-(--border-default) p-3 text-sm text-(--text-muted)">Chưa có khóa học phù hợp trong học kỳ này.</div>
+                  <div v-else class="max-h-56 overflow-y-auto rounded-xl border border-(--border-default)">
                     <label v-for="course in bulkCandidateCourses" :key="course.maKhoaHoc" class="flex items-center gap-3 border-b border-(--border-default) px-3 py-2 text-sm last:border-b-0">
                       <input v-model="bulkSelectedCourseIds" type="checkbox" :value="course.maKhoaHoc" />
                       <span class="min-w-0">
@@ -1689,13 +1735,37 @@ function thuLabel(thu) {
               </template>
 
               <template v-else>
-                <div class="grid gap-3 md:grid-cols-2">
+                <section class="rounded-2xl border border-(--border-card) bg-(--surface-card) p-4" aria-labelledby="simple-schedule-title">
+                  <h3 id="simple-schedule-title" class="text-lg font-bold text-(--text-heading)">Xếp thời khóa biểu</h3>
+                  <p class="mt-1 text-sm text-(--text-muted)">Hệ thống sẽ tự kiểm tra giảng viên, phòng học và thời gian phù hợp.</p>
+                  <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div class="rounded-xl bg-(--surface-input) p-3 text-sm"><span class="block text-xs text-(--text-muted)">Học kỳ</span><strong>{{ schedulingContext.schedulableTerm?.tenHocKy || 'Chưa có học kỳ phù hợp' }}</strong></div>
+                    <div class="rounded-xl bg-(--surface-input) p-3 text-sm"><span class="block text-xs text-(--text-muted)">Cơ sở</span><strong>{{ authorizedCampusName }}</strong></div>
+                    <div class="rounded-xl bg-(--surface-input) p-3 text-sm"><span class="block text-xs text-(--text-muted)">Khóa học cần xếp</span><strong>{{ simpleReadiness[0].detail }}</strong></div>
+                    <div class="rounded-xl bg-(--surface-input) p-3 text-sm"><span class="block text-xs text-(--text-muted)">Trạng thái dữ liệu</span><strong :class="canGenerateSimple ? 'text-(--color-success-text)' : 'text-(--color-warning-text)'">{{ canGenerateSimple ? 'Sẵn sàng' : 'Cần bổ sung' }}</strong></div>
+                  </div>
+                  <div class="mt-4 grid gap-2 sm:grid-cols-2" aria-live="polite">
+                    <div v-for="item in simpleReadiness" :key="item.label" class="flex items-center justify-between gap-3 rounded-lg border border-(--border-default) px-3 py-2 text-sm">
+                      <span>{{ item.label }}</span><span :class="item.ready ? 'text-(--color-success-text)' : 'text-(--color-warning-text)'" class="font-semibold">{{ item.ready ? 'Đã sẵn sàng' : 'Cần bổ sung' }}</span>
+                    </div>
+                  </div>
+                  <p v-if="!canGenerateSimple" class="mt-3 text-sm text-(--color-warning-text)">Hoàn tất các mục “Cần bổ sung” trước khi hệ thống có thể xếp lịch.</p>
+                  <GlassButton variant="primary" class="mt-4" :disabled="!canGenerateSimple" @click="generateSimpleDraft">
+                    <Loader2 v-if="generating" class="mr-1.5 animate-spin" :size="16" />
+                    <Sparkles v-else :size="16" class="mr-1.5" />
+                    {{ smartButtonState === 'checking' ? 'Đang kiểm tra dữ liệu…' : smartButtonState === 'generating' ? 'Đang tìm phương án phù hợp…' : smartButtonState === 'done' ? 'Đã tạo lịch thành công' : 'Xếp lịch ngay' }}
+                  </GlassButton>
+                  <div v-if="smartDraft" class="mt-3 rounded-xl border border-(--border-default) bg-(--color-success-bg) p-3 text-sm text-(--color-success-text)">
+                    Đã tạo bản nháp. <RouterLink :to="pendingDraftRoute" class="font-bold underline">Xem và duyệt thời khóa biểu</RouterLink>
+                  </div>
+                </section>
+                <details class="mt-4 rounded-xl border border-(--border-default) p-3">
+                  <summary class="cursor-pointer font-semibold text-(--text-heading)">Thiết lập nâng cao</summary>
+                  <p class="mt-2 text-sm text-(--text-muted)">Chỉ nên thay đổi khi bạn hiểu rõ cách hệ thống xếp lịch.</p>
+                <div class="mt-3 grid gap-3 md:grid-cols-2">
                   <label class="text-xs font-semibold text-(--text-muted)">
                     Cơ sở
-                    <select v-model="smartCampusId" class="mt-1 h-9 w-full rounded-lg border border-(--border-input) bg-(--surface-input) px-3 text-sm">
-                      <option value="">Chọn cơ sở</option>
-                      <option v-for="campus in campusOptions" :key="campus.value" :value="campus.value">{{ campus.label }}</option>
-                    </select>
+                    <div class="mt-1 h-9 w-full rounded-lg border border-(--border-input) bg-(--surface-input) px-3 text-sm leading-9">{{ authorizedCampusName }}</div>
                   </label>
                   <label class="text-xs font-semibold text-(--text-muted)">
                     Học kỳ
@@ -1730,9 +1800,9 @@ function thuLabel(thu) {
                   </label>
                 </div>
                 <div v-if="smartDraft" class="rounded-xl border border-(--border-default) bg-(--color-success-bg) p-3 text-sm text-(--color-success-text)">
-                  Đã sinh bản nháp: {{ smartDraft.draftId || smartDraft.DraftId || smartDraft.id || 'xem trong lịch chờ duyệt' }}.
-                  <RouterLink :to="pendingDraftRoute" class="font-bold underline">Đi tới lịch chờ duyệt</RouterLink>
+                  Đã sinh bản nháp. <RouterLink :to="pendingDraftRoute" class="font-bold underline">Đi tới lịch chờ duyệt</RouterLink>
                 </div>
+                </details>
               </template>
             </div>
 
@@ -1750,10 +1820,10 @@ function thuLabel(thu) {
                 <Loader2 v-if="bulkCreating" :size="15" class="mr-1.5 animate-spin" />
                 Tạo nháp hàng loạt
               </GlassButton>
-              <GlassButton v-if="activeCreateMode === 'smart' && formMode !== 'edit'" variant="primary" @click="generateSmartDraft" :disabled="generating || !schedulingContext.canPrepareSchedule">
+              <GlassButton v-if="activeCreateMode === 'smart' && formMode !== 'edit'" variant="secondary" @click="generateSmartDraft" :disabled="generating || !schedulingContext.canPrepareSchedule">
                 <Loader2 v-if="generating" class="animate-spin" :size="16" />
                 <Sparkles v-else :size="16" />
-                Bắt đầu tạo
+                Dùng thiết lập nâng cao
               </GlassButton>
             </div>
           </div>
@@ -1779,8 +1849,8 @@ function thuLabel(thu) {
             <div class="mb-4 flex items-center gap-3">
               <Loader2 class="animate-spin text-(--sidebar-accent)" :size="22" />
               <div>
-                <h3 class="text-sm font-bold text-(--text-heading)">Đang chạy thuật toán di truyền</h3>
-                <p class="text-xs text-(--text-muted)">Thế hệ {{ generationProgress?.theHeHienTai || 0 }} / {{ generationProgress?.tongTheHe || '—' }}</p>
+                <h3 class="text-sm font-bold text-(--text-heading)">Đang hoàn thiện bản nháp</h3>
+                <p class="text-xs text-(--text-muted)">Hệ thống đang tìm phương án phù hợp. Bạn có thể chờ tại đây; yêu cầu mới sẽ không được tạo thêm.</p>
               </div>
             </div>
             <div class="mb-3 h-2 w-full overflow-hidden rounded-full bg-(--surface-input)">
@@ -1789,7 +1859,9 @@ function thuLabel(thu) {
                 :style="{ width: progressPercent + '%', background: 'linear-gradient(90deg, var(--active-start), var(--active-end))' }"
               ></div>
             </div>
-            <div class="grid grid-cols-2 gap-2 text-xs">
+            <details class="text-xs">
+              <summary class="cursor-pointer text-(--text-muted)">Xem thông tin kỹ thuật</summary>
+            <div class="mt-2 grid grid-cols-2 gap-2">
               <div class="rounded-lg border border-(--border-default) p-2">
                 <p class="text-(--text-muted)">Quần thể</p>
                 <p class="font-semibold text-(--text-heading)">{{ generationProgress?.kichThuocQuanThe || '—' }}</p>
@@ -1807,6 +1879,7 @@ function thuLabel(thu) {
                 <p class="font-semibold text-(--text-heading)">{{ generationProgress?.bestFitness != null ? generationProgress.bestFitness.toFixed(2) : '—' }}</p>
               </div>
             </div>
+            </details>
             <p v-if="generationProgress?.xepDuoc != null" class="mt-3 text-xs text-(--text-muted)">
               Xếp được: <span class="font-semibold text-(--color-success-text)">{{ generationProgress.xepDuoc }}</span> ·
               Không xếp được: <span class="font-semibold text-(--color-danger-text)">{{ generationProgress.khongXepDuoc }}</span>

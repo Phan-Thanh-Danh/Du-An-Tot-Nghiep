@@ -12,6 +12,8 @@ import ListSkeleton from '@/components/common/skeleton/ListSkeleton.vue'
 import { academicTermApi } from '@/services/academicTermApi'
 import { courseApi } from '@/services/courseApi'
 import { scheduleApi } from '@/services/scheduleApi'
+import { useAuthStore } from '@/stores/auth'
+import { useAcademicSchedulingContextStore } from '@/stores/academicSchedulingContext'
 
 const loading = ref(false)
 const loadingFilters = ref(false)
@@ -20,12 +22,15 @@ const schedules = ref([])
 const selectedItem = ref(null)
 const publishing = ref(false)
 const popupStore = usePopupStore()
+const authStore = useAuthStore()
+const schedulingContext = useAcademicSchedulingContextStore()
 const route = useRoute()
 const filterMaDonVi = ref('')
 const filterMaHocKy = ref('')
 const highlightDraftId = ref('')
 const campusOptions = ref([])
 const termOptions = ref([])
+const scheduleView = ref('class')
 
 const statusLabels = {
   pending: { label: 'Bản nháp', variant: 'warning' },
@@ -35,6 +40,19 @@ const statusLabels = {
 }
 
 const visibleSchedules = computed(() => schedules.value)
+const authorizedCampusId = computed(() => Number(authStore.user?.campusId ?? authStore.user?.CampusId ?? authStore.user?.maDonVi ?? authStore.user?.MaDonVi ?? 0))
+const selectedDraftItems = computed(() => selectedItem.value?.raw?.items || selectedItem.value?.raw?.Items || [])
+const selectedDraftSummary = computed(() => {
+  const items = selectedDraftItems.value
+  const unassigned = items.filter(item => item.isUnassigned ?? item.IsUnassigned ?? item.loi?.length ?? item.Loi?.length).length
+  const warnings = items.filter(item => (item.canhBao || item.CanhBao || []).length).length
+  return { assigned: Math.max(0, items.length - unassigned), unassigned, warnings, sessions: items.length }
+})
+const hasHardViolation = computed(() => selectedDraftItems.value.some(item => (item.loi || item.Loi || []).length > 0) || Boolean(selectedItem.value?.raw?.hasHardViolation ?? selectedItem.value?.raw?.HasHardViolation))
+const orderedDraftItems = computed(() => [...selectedDraftItems.value].sort((a, b) => {
+  const key = scheduleView.value === 'teacher' ? 'tenGiaoVien' : scheduleView.value === 'room' ? 'tenPhong' : 'tenLop'
+  return String(a[key] ?? a[key?.replace(/^t/, 'T')] ?? '').localeCompare(String(b[key] ?? b[key?.replace(/^t/, 'T')] ?? ''), 'vi')
+}))
 const getStatusLabel = (status) => statusLabels[status] || statusLabels.draft
 
 function unwrap(response) {
@@ -123,8 +141,8 @@ function formatDate(value) {
 }
 
 function syncQueryContext() {
-  filterMaDonVi.value = route.query.maDonVi ? Number(route.query.maDonVi) : ''
-  filterMaHocKy.value = route.query.maHocKy ? Number(route.query.maHocKy) : ''
+  filterMaDonVi.value = authorizedCampusId.value || (route.query.maDonVi ? Number(route.query.maDonVi) : '')
+  filterMaHocKy.value = schedulingContext.schedulableTerm?.maHocKy || (route.query.maHocKy ? Number(route.query.maHocKy) : '')
   highlightDraftId.value = route.query.draftId ? String(route.query.draftId) : ''
 }
 
@@ -216,18 +234,23 @@ async function executePublish() {
   publishing.value = true
   try {
     const res = await scheduleApi.publishDraft({ draftId: publishTarget.value.id })
-    const auditId = res?.auditLogId ?? res?.AuditLogId ?? `AUDIT-PUBLISH-${Date.now().toString().slice(-6)}`
-    popupStore.success('Xuất bản thành công', `Đã xuất bản thời khóa biểu. Vết kiểm toán đã được ghi nhận: ${auditId}`)
+    popupStore.success('Xuất bản thành công', 'Thời khóa biểu đã được xuất bản thành công.')
     await loadSchedules()
     selectedItem.value = null
   } catch (e) {
-    popupStore.error('Lỗi', e.message || 'Không thể xuất bản bản nháp.')
+    const status = e?.response?.status ?? e?.status
+    const message = status === 409
+      ? (String(e?.message || '').toLowerCase().includes('diem') ? 'Không thể thay đổi lịch vì đã có điểm danh.' : 'Không thể xuất bản/thay đổi lịch sau 30 phút. Lịch đã được khóa.')
+      : status === 403 ? 'Bạn không có quyền xuất bản thời khóa biểu của cơ sở này.'
+      : e?.message || 'Không thể xuất bản bản nháp. Hãy kiểm tra kết nối và thử lại.'
+    popupStore.error('Không thể xuất bản', message)
   } finally {
     publishing.value = false
   }
 }
 
 onMounted(async () => {
+  await schedulingContext.fetchContext()
   syncQueryContext()
   await loadFilterOptions()
   if (filterMaDonVi.value && filterMaHocKy.value) {
@@ -257,9 +280,12 @@ watch(
           <Clock class="text-(--lg-primary)" :size="24" />
           <h1 class="text-xl font-bold text-(--text-heading)">Bản nháp thời khóa biểu</h1>
         </div>
-        <p class="text-sm text-(--text-muted) mt-0.5 ml-8">Danh sách bản nháp thời khóa biểu theo cơ sở và học kỳ. Giáo vụ rà soát trước khi xuất bản.</p>
+        <p class="text-sm text-(--text-muted) mt-0.5 ml-8">Rà soát thời khóa biểu trước khi xuất bản.</p>
       </div>
-      <div class="flex flex-wrap items-end gap-3">
+      <div class="flex flex-wrap items-end gap-3" aria-live="polite">
+        <div class="rounded-xl border border-(--border-default) bg-(--surface-input) px-3 py-2 text-sm"><span class="text-(--text-muted)">Học kỳ: </span><strong>{{ schedulingContext.schedulableTerm?.tenHocKy || 'Đang xác định' }}</strong></div>
+        <div class="rounded-xl border border-(--border-default) bg-(--surface-input) px-3 py-2 text-sm"><span class="text-(--text-muted)">Cơ sở: </span><strong>{{ authStore.user?.donVi || 'Cơ sở của bạn' }}</strong></div>
+        <details class="text-xs text-(--text-muted)"><summary class="cursor-pointer">Bộ lọc nâng cao</summary>
         <label class="flex flex-col gap-1 text-xs font-semibold text-(--text-muted)">
           <span>Cơ sở</span>
           <select
@@ -304,6 +330,7 @@ watch(
           <Filter v-else :size="15" class="mr-1" />
           Tải bản nháp
         </GlassButton>
+        </details>
       </div>
     </div>
 
@@ -312,7 +339,7 @@ watch(
       <!-- Left: List -->
       <div class="flex-1 surface-card border border-(--border-card) rounded-2xl p-4 flex flex-col gap-3 min-w-0 overflow-y-auto">
         <div v-if="!filterMaDonVi || !filterMaHocKy" class="surface-card border border-(--border-card) rounded-2xl p-8 text-sm text-(--text-muted)">
-          Vui lòng chọn cơ sở và học kỳ để xem bản nháp thời khóa biểu.
+          Chưa có học kỳ phù hợp để xem bản nháp thời khóa biểu.
         </div>
         <div v-else-if="loading" class="p-4"><ListSkeleton :items="4" /></div>
         
@@ -340,7 +367,6 @@ watch(
           <!-- Info -->
           <div class="flex-1 pl-2">
             <div class="flex items-center gap-2 mb-1">
-              <span class="text-xs font-mono font-bold text-(--text-muted)">{{ item.id }}</span>
               <GlassBadge v-if="String(item.id) === String(highlightDraftId)" variant="success" size="sm">Bản nháp vừa sinh</GlassBadge>
               <GlassBadge :variant="getStatusLabel(item.status).variant" size="sm">{{ getStatusLabel(item.status).label }}</GlassBadge>
             </div>
@@ -361,10 +387,6 @@ watch(
              <div class="text-center">
                 <p class="text-[10px] uppercase text-(--text-muted) font-bold">Tiết/Tuần</p>
                 <p class="font-bold text-(--text-heading)">{{ item.metrics.hours }}</p>
-             </div>
-             <div class="text-center ml-2 border-l pl-4 border-(--border-default)">
-                <p class="text-[10px] uppercase text-(--lg-primary) font-bold">Điểm</p>
-                <p class="font-bold text-(--lg-primary)">{{ Math.round(item.metrics.score) }}</p>
              </div>
           </div>
 
@@ -388,14 +410,23 @@ watch(
             <div>
               <p class="text-xs text-(--text-muted) uppercase tracking-wider font-bold mb-1">Thông tin chung</p>
               <div class="space-y-2 text-sm text-(--text-body)">
-                <div class="flex justify-between"><span class="text-(--text-muted)">Mã TKB:</span> <span class="font-mono font-bold">{{ selectedItem.id }}</span></div>
                 <div class="flex justify-between"><span class="text-(--text-muted)">Học kỳ:</span> <span class="font-medium text-right">{{ selectedItem.term }}</span></div>
                 <div class="flex justify-between"><span class="text-(--text-muted)">Đơn vị:</span> <span class="font-medium text-right">{{ selectedItem.department }}</span></div>
-                <div class="flex justify-between"><span class="text-(--text-muted)">Điểm TB:</span> <span class="font-medium text-right text-(--lg-primary)">{{ Math.round(selectedItem.metrics.score) }}</span></div>
                 <div class="flex justify-between"><span class="text-(--text-muted)">Trạng thái:</span>
                   <GlassBadge :variant="getStatusLabel(selectedItem.status).variant" size="sm">{{ getStatusLabel(selectedItem.status).label }}</GlassBadge>
                 </div>
               </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 text-center text-sm">
+              <div class="rounded-lg bg-(--surface-input) p-2"><strong>{{ selectedDraftSummary.assigned }}</strong><span class="block text-xs text-(--text-muted)">Đã xếp</span></div>
+              <div class="rounded-lg bg-(--surface-input) p-2"><strong>{{ selectedDraftSummary.unassigned }}</strong><span class="block text-xs text-(--text-muted)">Chưa xếp</span></div>
+              <div class="rounded-lg bg-(--surface-input) p-2"><strong>{{ selectedDraftSummary.sessions }}</strong><span class="block text-xs text-(--text-muted)">Ca mỗi tuần</span></div>
+              <div class="rounded-lg bg-(--surface-input) p-2"><strong>{{ selectedDraftSummary.warnings }}</strong><span class="block text-xs text-(--text-muted)">Cảnh báo</span></div>
+            </div>
+
+            <div class="flex gap-1 rounded-lg bg-(--surface-input) p-1" role="tablist" aria-label="Cách xem thời khóa biểu">
+              <button v-for="mode in [{ value: 'class', label: 'Theo lớp' }, { value: 'teacher', label: 'Theo giảng viên' }, { value: 'room', label: 'Theo phòng' }]" :key="mode.value" class="flex-1 rounded-md px-2 py-1.5 text-xs font-semibold focus:ring-2 focus:ring-(--border-focus)" :class="scheduleView === mode.value ? 'bg-(--surface-card) text-(--text-heading)' : 'text-(--text-muted)'" @click="scheduleView = mode.value">{{ mode.label }}</button>
             </div>
 
             <div v-if="selectedItem.note" class="p-3 bg-(--color-danger-bg) border border-(--color-danger-border) rounded-xl">
@@ -406,10 +437,10 @@ watch(
             <div v-if="(selectedItem.raw.items && selectedItem.raw.items.length) || (selectedItem.raw.Items && selectedItem.raw.Items.length)">
               <p class="text-xs text-(--text-muted) uppercase tracking-wider font-bold mb-1">Chi tiết môn học</p>
               <div class="space-y-3 mt-2 max-h-[300px] overflow-y-auto pr-1">
-                <div v-for="cItem in (selectedItem.raw.items || selectedItem.raw.Items)" :key="cItem.maDraftItem || cItem.MaDraftItem" class="text-sm border border-(--border-default) rounded-xl p-3">
+                <div v-for="cItem in orderedDraftItems" :key="cItem.maDraftItem || cItem.MaDraftItem" class="text-sm border border-(--border-default) rounded-xl p-3">
                   <div class="flex justify-between items-center mb-1 gap-2">
                     <span class="font-bold text-(--text-heading) truncate">{{ cItem.tenMonHoc ?? cItem.TenMonHoc ?? `Khóa học ${cItem.maKhoaHoc ?? cItem.MaKhoaHoc}` }}</span>
-                    <span class="font-mono text-xs text-(--lg-primary) shrink-0">{{ Math.round(cItem.score ?? cItem.Score ?? 0) }}đ</span>
+                    <GlassBadge :variant="(cItem.loi || cItem.Loi || []).length ? 'danger' : (cItem.canhBao || cItem.CanhBao || []).length ? 'warning' : 'success'" size="sm">{{ (cItem.loi || cItem.Loi || []).length ? 'Không thể xuất bản' : (cItem.canhBao || cItem.CanhBao || []).length ? 'Cần xem lại' : 'Tốt' }}</GlassBadge>
                   </div>
                   <div class="text-xs text-(--text-muted) space-y-1">
                     <div v-if="cItem.maCodeMonHoc || cItem.MaCodeMonHoc" class="font-medium text-(--text-body)">Môn: <span class="font-mono">{{ cItem.maCodeMonHoc ?? cItem.MaCodeMonHoc }}</span></div>
@@ -420,7 +451,7 @@ watch(
                         v-if="cItem.mucDoPhuHop != null || cItem.MucDoPhuHop != null"
                         class="rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold"
                         :class="Number(cItem.mucDoPhuHop ?? cItem.MucDoPhuHop ?? 0) >= 80 ? 'bg-(--color-success-bg) text-(--color-success-text)' : 'bg-(--color-warning-bg) text-(--color-warning-text)'"
-                      >Phù hợp {{ Number(cItem.mucDoPhuHop ?? cItem.MucDoPhuHop ?? 0) }}%</span>
+                      >Phù hợp</span>
                     </div>
 
                     <div v-if="(cItem.monHocGiangDay || cItem.MonHocGiangDay)?.length" class="mt-1.5">
@@ -437,7 +468,12 @@ watch(
 
                     <div v-if="cItem.tenPhong ?? cItem.TenPhong" class="font-medium text-(--text-body)">Phòng: {{ cItem.tenPhong ?? cItem.TenPhong }} | Thứ {{ cItem.thuTrongTuan ?? cItem.ThuTrongTuan }} | {{ cItem.tenCa ?? cItem.TenCa }}</div>
 
-                    <div v-if="(cItem.scoreBreakdown || cItem.ScoreBreakdown)" class="mt-2">
+                    <div class="mt-2 rounded-lg bg-(--surface-input) p-2 text-(--text-body)">
+                      <p class="font-bold mb-0.5">Đã kiểm tra</p>
+                      <p>Các cảnh báo và mục cần xem lại được hiển thị ngay bên dưới khi dữ liệu bản nháp cung cấp.</p>
+                    </div>
+                    <details v-if="(cItem.scoreBreakdown || cItem.ScoreBreakdown)" class="mt-2">
+                      <summary class="cursor-pointer font-bold opacity-80">Chi tiết kỹ thuật</summary>
                       <p class="font-bold mb-1 opacity-80">Điểm thành phần:</p>
                       <div class="flex flex-wrap gap-1">
                         <span
@@ -447,7 +483,7 @@ watch(
                           :class="c.value < 0 ? 'bg-(--color-danger-bg) text-(--color-danger-text)' : 'bg-(--color-success-bg) text-(--color-success-text)'"
                         >{{ c.label }} {{ Number(c.value).toFixed(1) }}</span>
                       </div>
-                    </div>
+                    </details>
 
                     <div v-if="cItem.lyDoGoiY?.length || cItem.LyDoGoiY?.length" class="mt-2 text-(--text-body)">
                       <p class="font-bold mb-0.5 opacity-80">Lý do gợi ý:</p>
@@ -497,10 +533,11 @@ watch(
           </div>
 
           <div class="p-4 border-t border-(--border-default) space-y-2">
-            <GlassButton variant="primary" class="w-full justify-center" :disabled="publishing || loading" @click="requestPublish(selectedItem)">
+            <p v-if="hasHardViolation" class="text-sm text-(--color-danger-text)">Không thể xuất bản khi vẫn còn mục cần xử lý.</p>
+            <GlassButton variant="primary" class="w-full justify-center" :disabled="publishing || loading || hasHardViolation" @click="requestPublish(selectedItem)">
               <Loader2 v-if="publishing" :size="15" class="mr-1.5 animate-spin" />
               <CheckCircle v-else :size="15" class="mr-1.5" />
-              Xuất bản lịch
+              Duyệt và xuất bản
             </GlassButton>
           </div>
         </div>
@@ -512,9 +549,10 @@ watch(
     <ConfirmActionDialog
       :modelValue="showPublishConfirm"
       @update:modelValue="showPublishConfirm = $event"
-      title="Xác nhận Xuất bản Lịch học"
-      :message="publishTarget ? `Bạn có chắc chắn muốn xuất bản bộ thời khóa biểu nháp mã &quot;${publishTarget.id}&quot;? Thao tác này sẽ áp dụng chính thức và gửi thông báo tới toàn bộ giảng viên và sinh viên có liên quan.` : ''"
-      confirmLabel="Xác nhận Xuất bản"
+      title="Duyệt và xuất bản thời khóa biểu"
+      :message="publishTarget ? `Bạn đang duyệt bản nháp của ${publishTarget.term}. Sau khi xuất bản, lịch có thể tạo lại trong 30 phút nếu chưa có điểm danh; sau 30 phút hoặc khi đã có điểm danh, lịch sẽ bị khóa.` : ''"
+      cancelLabel="Quay lại kiểm tra"
+      confirmLabel="Xác nhận xuất bản"
       variant="success"
       :loading="publishing"
       @confirm="executePublish"
@@ -536,7 +574,7 @@ watch(
             <p class="text-[10px] text-muted font-bold uppercase mt-0.5">Tiết dạy/Tuần</p>
           </div>
         </div>
-        <p class="text-[10px] text-(--color-danger-text) italic mt-2">* Mọi hành động xuất bản thời khóa biểu đều sẽ ghi audit log kiểm toán bắt buộc của hệ thống Giáo vụ.</p>
+        <p class="text-xs text-(--text-muted) italic mt-2">Đây là bản nháp. Sau khi xác nhận, thời khóa biểu sẽ được công bố cho giảng viên và sinh viên liên quan.</p>
       </div>
     </ConfirmActionDialog>
   </div>

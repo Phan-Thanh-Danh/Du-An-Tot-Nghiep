@@ -79,10 +79,16 @@ public class ScheduleNotificationService : IScheduleNotificationService
             var firstRecipient = nguoiNhanIds[0];
 
             // 4. Tạo ThongBao & ThongBaoNguoiNhan trong transaction riêng biệt để đảm bảo tính nguyên tử (Atomicity)
+            var isRelational = _context.Database.IsRelational();
             var strategy = _context.Database.CreateExecutionStrategy();
             await strategy.ExecuteAsync(async () =>
             {
-                using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
+                Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? tx = null;
+                if (isRelational)
+                {
+                    tx = await _context.Database.BeginTransactionAsync(cancellationToken);
+                }
+
                 try
                 {
                     var thongBao = new ThongBao
@@ -122,12 +128,25 @@ public class ScheduleNotificationService : IScheduleNotificationService
                     _context.ThongBaoNguoiNhans.AddRange(nguoiNhans);
                     await _context.SaveChangesAsync(cancellationToken);
 
-                    await tx.CommitAsync(cancellationToken);
+                    if (tx != null)
+                    {
+                        await tx.CommitAsync(cancellationToken);
+                    }
                 }
                 catch
                 {
-                    await tx.RollbackAsync(cancellationToken);
+                    if (tx != null)
+                    {
+                        await tx.RollbackAsync(cancellationToken);
+                    }
                     throw;
+                }
+                finally
+                {
+                    if (tx != null)
+                    {
+                        await tx.DisposeAsync();
+                    }
                 }
             });
 
