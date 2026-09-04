@@ -266,10 +266,11 @@ public partial class OllamaService : IOllamaService
             }
         }
 
-        // 1.2. Nhận diện yêu cầu AI hỗ trợ soạn Phiếu Hỗ Trợ / Khiếu Nại (Support Ticket Draft)
-        bool isCreateTicketIntent = normalizedMsg.Contains("tao ticket") || normalizedMsg.Contains("tao phieu")
+        // 1.2. Nhận diện yêu cầu AI hỗ trợ soạn Phiếu Hỗ TrỢ / Khiếu Nại (Support Ticket Draft) - CHỈ DÀNH CHO SINH VIÊN
+        bool isStudentUser = userContext?.Role == AuthRoles.Student || userContext?.Role == "hoc_sinh";
+        bool isCreateTicketIntent = isStudentUser && (normalizedMsg.Contains("tao ticket") || normalizedMsg.Contains("tao phieu")
             || normalizedMsg.Contains("khieu nai") || normalizedMsg.Contains("gui ticket") || normalizedMsg.Contains("gui don")
-            || (normalizedMsg.Contains("bao loi") && (normalizedMsg.Contains("he thong") || normalizedMsg.Contains("hoc vu") || normalizedMsg.Contains("diem")));
+            || (normalizedMsg.Contains("bao loi") && (normalizedMsg.Contains("he thong") || normalizedMsg.Contains("hoc vu") || normalizedMsg.Contains("diem"))));
 
         if (isCreateTicketIntent)
         {
@@ -405,6 +406,7 @@ public partial class OllamaService : IOllamaService
                             "- Nếu người dùng hỏi đánh giá có tích cực không, hãy nêu rõ tỷ lệ % tích cực, điểm trung bình sao và trích dẫn khách quan nhận xét của sinh viên.\n" +
                             "- Nếu người dùng hỏi về điểm danh/giảng dạy, hãy nêu rõ số buổi đã dạy, số buổi đúng hạn, số buổi trễ hạn hoặc chưa điểm danh và tỷ lệ hoàn thành (%).\n" +
                             "- Tuyệt đối không được nói 'tôi không có dữ liệu' hoặc 'chưa được cấp báo cáo điều hành', vì toàn bộ dữ liệu thực tế đã được cung cấp ở trên.\n" +
+                            "- Nếu người dùng hỏi về cơ sở vật chất, phòng học hoặc thiết bị cần bảo trì, hãy nêu rõ số tòa nhà, số phòng học hoạt động tốt, tỷ lệ sẵn sàng sử dụng (%) và liệt kê chi tiết các thiết bị đang cần bảo trì, phòng học cần bảo dưỡng theo đúng số liệu thực tế.\n" +
                             "- Không để lộ thông tin cá nhân nhạy cảm (SĐT riêng, CCCD, lương).";
         }
 

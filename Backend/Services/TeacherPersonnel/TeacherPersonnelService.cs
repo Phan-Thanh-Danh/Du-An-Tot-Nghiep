@@ -152,7 +152,7 @@ public class TeacherPersonnelService : ITeacherPersonnelService
 
             var classCount = activeClassCounts.GetValueOrDefault(t.MaNguoiDung);
             var subCount = subjectCounts.GetValueOrDefault(t.MaNguoiDung);
-            var avgRating = evalRatings.GetValueOrDefault(t.MaNguoiDung);
+            var avgRating = evalRatings.TryGetValue(t.MaNguoiDung, out var r) ? r : 5.0;
 
             return new TeacherPersonnelListDto
             {
@@ -499,7 +499,7 @@ public class TeacherPersonnelService : ITeacherPersonnelService
         {
             return new TeacherEvaluationSummaryDto
             {
-                DiemTrungBinhChung = 4.8m,
+                DiemTrungBinhChung = 5.0m,
                 TongSoLuotDanhGia = 0,
                 TongSoHocSinhDanhGia = 0,
                 TheoHocKy = [],

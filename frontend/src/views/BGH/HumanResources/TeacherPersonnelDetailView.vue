@@ -379,7 +379,7 @@ onMounted(() => {
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="surface-card border border-card rounded-2xl p-5 text-center flex flex-col items-center justify-center">
             <div class="text-4xl font-black text-amber-500 flex items-center gap-1">
-              <span>{{ evaluations?.diemTrungBinhChung || 4.8 }}</span>
+              <span>{{ evaluations?.diemTrungBinhChung || 5.0 }}</span>
               <Star :size="28" class="fill-amber-500" />
             </div>
             <p class="text-xs font-bold text-heading mt-2">Điểm Đánh Giá Trung Bình</p>

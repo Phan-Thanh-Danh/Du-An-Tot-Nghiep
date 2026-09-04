@@ -70,9 +70,12 @@ public class AiAcademicQueryResolver : IAiAcademicQueryResolver
                                   normalized.Contains("gpa") || normalized.Contains("pho diem");
 
         bool hasFacilityKeyword = normalized.Contains("phong hoc") || normalized.Contains("phong") ||
-                                  normalized.Contains("co so vat chat") || normalized.Contains("toa nha") ||
-                                  normalized.Contains("thiet bi") || normalized.Contains("may chieu") ||
-                                  normalized.Contains("may lanh") || normalized.Contains("bao tri");
+                                  normalized.Contains("co so vat chat") || normalized.Contains("csvc") ||
+                                  normalized.Contains("toa nha") || normalized.Contains("thiet bi") ||
+                                  normalized.Contains("may chieu") || normalized.Contains("may lanh") ||
+                                  normalized.Contains("dieu hoa") || normalized.Contains("bao tri") ||
+                                  normalized.Contains("bao duong") || normalized.Contains("sua chua") ||
+                                  normalized.Contains("hu hong") || normalized.Contains("hong hoc");
 
         // 2. Nhóm nghiệp vụ Giảng viên & Đánh giá / Điểm danh
         if (hasTeacherKeyword || hasEvalKeyword || hasAttendanceKeyword)
@@ -238,7 +241,7 @@ public class AiAcademicQueryResolver : IAiAcademicQueryResolver
             .ToListAsync(cancellationToken);
 
         int totalReviews = evaluations.Count;
-        double avgRating = totalReviews > 0 ? Math.Round(evaluations.Average(d => (double)d.DiemSo), 2) : 4.8;
+        double avgRating = totalReviews > 0 ? Math.Round(evaluations.Average(d => (double)d.DiemSo), 2) : 5.0;
         int positiveCount = evaluations.Count(d => d.DiemSo >= 4 || d.AiCamXuc == "tich_cuc");
         int neutralCount = evaluations.Count(d => d.DiemSo == 3 || d.AiCamXuc == "trung_tinh");
         int negativeCount = evaluations.Count(d => d.DiemSo <= 2 || d.AiCamXuc == "tieu_cuc");
