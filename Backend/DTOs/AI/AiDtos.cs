@@ -10,6 +10,8 @@ public class AiChatRequest
     public string Message { get; set; } = string.Empty;
 
     public string? ConversationId { get; set; }
+    [MaxLength(8)]
+    public List<AiConversationTurn> History { get; set; } = new();
     public int? CourseId { get; set; }
     public int? LessonId { get; set; }
 
@@ -22,6 +24,14 @@ public class AiChatRequest
     /// Kích hoạt tìm kiếm văn bản quy chế học vụ qua RAG Vector Embedding
     /// </summary>
     public bool UseRag { get; set; } = false;
+}
+
+public class AiConversationTurn
+{
+    [Required, RegularExpression("^(user|assistant)$")]
+    public string Role { get; set; } = "user";
+    [Required, MaxLength(2000)]
+    public string Content { get; set; } = string.Empty;
 }
 
 public class AiChatResponse

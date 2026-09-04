@@ -3,18 +3,14 @@ import { ref, computed, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Sparkles,
-  Bot,
   X,
   Brain,
   CheckCircle2,
   AlertCircle,
-  Clock,
   Calendar,
-  Layers,
   Building2,
   ArrowRight,
   Loader2,
-  TrendingUp,
   ShieldCheck,
   Zap,
   RotateCcw,
@@ -22,26 +18,28 @@ import {
 } from 'lucide-vue-next'
 import { aiApi } from '@/services/aiApi.js'
 import { scheduleApi } from '@/services/scheduleApi.js'
-import { usePopupStore } from '@/stores/popup.js'
 import GlassButton from '@/components/ui/GlassButton.vue'
-import GlassBadge from '@/components/ui/GlassBadge.vue'
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false },
-  campusId: { type: Number, default: 14 },
+  campusId: { type: Number, default: null },
   termId: { type: Number, default: null },
-  campusName: { type: String, default: 'Cơ sở TP.HCM' },
-  termName: { type: String, default: 'Học kỳ 2 năm 2027' },
+  campusName: { type: String, default: '' },
+  termName: { type: String, default: '' },
   availableTerms: { type: Array, default: () => [] }
 })
 
 const emit = defineEmits(['close', 'draftGenerated'])
 const router = useRouter()
-const popupStore = usePopupStore()
 
 // State
 const selectedTermId = ref(props.termId)
 const prompt = ref('')
+const history = ref([])
+const activeDraftId = ref(null)
+let requestVersion = 0
+const isPlan = computed(() => interpretation.value?.intent === 'prepare_schedule')
+watch(prompt, () => { interpretation.value = null; requestVersion++ })
 const interpreting = ref(false)
 const interpretation = ref(null)
 const generating = ref(false)
@@ -63,21 +61,10 @@ const readinessWarning = ref(null)
 
 // Quick Prompt Chips
 const promptChips = [
-  {
-    label: '🎒 Ưu tiên Sinh viên',
-    desc: 'Hạn chế ca tối & tránh trống tiết',
-    text: 'Xếp lịch học kỳ tới, ưu tiên sinh viên ít bị trống tiết và hạn chế ca tối sau 18h.'
-  },
-  {
-    label: '👨‍🏫 Ưu tiên Giảng viên',
-    desc: 'Theo nguyện vọng & tránh dồn tải',
-    text: 'Xếp lịch ưu tiên nguyện vọng ca dạy của giảng viên, phân bổ tải đều trong tuần, tránh quá 3 ca mỗi ngày.'
-  },
-  {
-    label: '⚖️ Cân bằng toàn diện',
-    desc: 'Tối ưu giảng viên, sinh viên & phòng',
-    text: 'Xếp lịch cân bằng toàn diện giữa sinh viên, giảng viên và tối ưu hóa công suất sử dụng phòng học.'
-  }
+  { label: 'Kiểm tra sẵn sàng', desc: 'Xem điều kiện xếp lịch kỳ này', text: 'Hiện đã đủ điều kiện xếp lịch chưa?' },
+  { label: 'Thống kê lịch công bố', desc: 'Số môn học và phân bổ tuần', text: 'Lịch đã công bố có bao nhiêu môn học và phân bổ thế nào?' },
+  { label: 'Kiểm tra ca tối', desc: 'Tra cứu ca tối trong lịch', text: 'Lịch có ca tối nào không?' },
+  { label: 'Không xếp ca tối', desc: 'Đề xuất bản nháp chỉ có ca ban ngày', text: 'Tạo bản nháp mới, bỏ toàn bộ ca tối.' }
 ]
 
 function applyChip(chip) {
@@ -89,6 +76,9 @@ function applyChip(chip) {
 // Reset modal state
 watch(() => props.isOpen, (newVal) => {
   if (newVal) {
+    requestVersion++
+    history.value = []
+    activeDraftId.value = null
     selectedTermId.value = props.termId
     interpretation.value = null
     generating.value = false
@@ -106,25 +96,33 @@ watch(() => props.termId, (newTerm) => {
 })
 
 watch(selectedTermId, () => {
-  if (interpretation.value && prompt.value.trim()) {
-    handleInterpret()
-  }
+  requestVersion++
+  interpretation.value = null
+  history.value = []
+  activeDraftId.value = null
 })
 
 // Step 1: AI Intent Interpretation
 async function handleInterpret() {
-  if (!prompt.value.trim()) return
+  if (!prompt.value.trim() || interpreting.value) return
+  const version = ++requestVersion
+  const message = prompt.value.trim()
+  interpretation.value = null
   interpreting.value = true
   errorMessage.value = ''
   readinessWarning.value = null
 
   try {
     const res = await aiApi.interpretSchedulingIntent({
-      message: prompt.value.trim(),
+      message,
+      history: history.value.slice(-8),
+      draftId: activeDraftId.value,
       campusId: props.campusId,
       semesterId: selectedTermId.value || props.termId
     })
+    if (version !== requestVersion || !props.isOpen) return
     interpretation.value = res
+    history.value.push({ role: 'user', content: message }, { role: 'assistant', content: res.summary.slice(0, 2000) })
 
     if (res?.canPrepareSchedule === false && res?.validationErrors?.length) {
       // Fetch readiness explanation
@@ -137,7 +135,7 @@ async function handleInterpret() {
       readinessWarning.value = readRes
     }
   } catch (err) {
-    errorMessage.value = err?.message || 'Không thể phân tích yêu cầu xếp lịch bằng AI.'
+    if (version === requestVersion) errorMessage.value = err?.message || 'Không thể phân tích yêu cầu xếp lịch bằng AI.'
   } finally {
     interpreting.value = false
   }
@@ -145,6 +143,7 @@ async function handleInterpret() {
 
 // Step 2: Trigger Generate (Borrowing the Genetic Algorithm Solver)
 async function handleStartGeneration() {
+  if (generating.value || interpreting.value || !isPlan.value || !interpretation.value?.canPrepareSchedule) return
   generating.value = true
   errorMessage.value = ''
   const clientDraftId = crypto.randomUUID()
@@ -167,6 +166,7 @@ async function handleStartGeneration() {
       maHocKy: selectedTermId.value || interpretation.value?.semesterId || props.termId,
       maDonVi: props.campusId || interpretation.value?.campusId,
       profile: profile,
+      excludeEvening: interpretation.value.excludeEvening === true,
       tongTheHe: 100,
       kichThuocQuanThe: 50,
       tyLeCheo: 0.5,
@@ -176,6 +176,9 @@ async function handleStartGeneration() {
 
     const draft = res?.data ?? res?.Data ?? res
     generatedDraft.value = draft
+    activeDraftId.value = draft.draftId || draft.DraftId || clientDraftId
+    generating.value = false
+    stopProgressPolling()
     emit('draftGenerated', draft)
 
     // Step 3: Call AI to explain the newly generated draft
@@ -341,7 +344,7 @@ onUnmounted(() => {
             <div v-if="!generating && !generatedDraft" class="space-y-4">
               <div>
                 <label class="block text-xs font-bold text-heading uppercase tracking-wider mb-2">
-                  1. Nhập yêu cầu xếp lịch bằng ngôn ngữ tự nhiên:
+                  Hỏi về lịch hoặc mô tả thay đổi bạn muốn:
                 </label>
                 <div class="relative">
                   <textarea
@@ -355,8 +358,8 @@ onUnmounted(() => {
 
               <!-- Quick Prompt Chips -->
               <div class="space-y-1.5">
-                <span class="text-[11px] font-semibold text-muted">💡 Gợi ý kịch bản kiểm thử nhanh:</span>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <span class="text-[11px] font-semibold text-muted">Gợi ý câu hỏi:</span>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
                   <button
                     v-for="(chip, idx) in promptChips"
                     :key="idx"
@@ -380,7 +383,7 @@ onUnmounted(() => {
                 >
                   <Loader2 v-if="interpreting" :size="16" class="animate-spin" />
                   <Brain v-else :size="16" />
-                  <span>{{ interpreting ? 'AI ĐANG PHÂN TÍCH YÊU CẦU...' : '⚡ PHÂN TÍCH & THIẾT LẬP BẰNG AI' }}</span>
+                  <span>{{ interpreting ? 'AI ĐANG PHÂN TÍCH YÊU CẦU...' : 'GỬI CHO TRỢ LÝ' }}</span>
                 </button>
               </div>
 
@@ -393,10 +396,18 @@ onUnmounted(() => {
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
                       <ShieldCheck :size="18" class="text-indigo-600 dark:text-indigo-400" />
-                      <span class="font-bold text-xs text-heading">Kế Hoạch Xếp Lịch Do AI Đề Xuất</span>
+                      <span class="font-bold text-xs text-heading">
+                        {{ isPlan ? 'Đề xuất tạo bản nháp mới' : (interpretation.intent === 'query_readiness' ? 'Trạng thái sẵn sàng xếp lịch' : 'Trả lời của trợ lý') }}
+                      </span>
                     </div>
-                    <span class="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-indigo-600 text-white shadow-2xs">
+                    <span v-if="isPlan" class="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-indigo-600 text-white shadow-2xs">
                       Hồ sơ: {{ interpretation.profileDisplayName }}
+                    </span>
+                    <span v-else-if="interpretation.intent === 'query_readiness'" :class="[
+                      'px-2.5 py-0.5 rounded-full text-[10.5px] font-bold shadow-2xs',
+                      interpretation.canPrepareSchedule ? 'bg-emerald-600 text-white' : 'bg-amber-600 text-white'
+                    ]">
+                      {{ interpretation.canPrepareSchedule ? 'Đủ điều kiện' : 'Chưa đủ điều kiện' }}
                     </span>
                   </div>
 
@@ -404,28 +415,31 @@ onUnmounted(() => {
                     {{ interpretation.summary }}
                   </p>
 
-                  <div class="p-3 rounded-xl bg-(--surface-card) border border-(--border-default) space-y-1.5 text-xs">
+                  <div v-if="isPlan" class="p-3 rounded-xl bg-(--surface-card) border border-(--border-default) space-y-1.5 text-xs">
                     <div class="font-semibold text-heading flex items-center gap-1.5 text-[11.5px]">
                       <CheckCircle2 :size="14" class="text-emerald-500" />
-                      <span>Các ràng buộc tối ưu được ghi nhận:</span>
+                      <span>Yêu cầu cho bản nháp mới:</span>
                     </div>
                     <ul class="space-y-1 pl-5 list-disc text-muted text-[11px]">
                       <li v-for="(pref, pIdx) in interpretation.requestedPreferences" :key="pIdx">
                         {{ pref }}
                       </li>
-                      <li>Khối lượng: <strong class="text-heading">{{ interpretation.schedulableCourseCount }} khóa học</strong> sẵn sàng xếp phòng.</li>
+                      <li>Khối lượng: <strong class="text-heading">{{ interpretation.schedulableCourseCount }} khóa học</strong> trong học kỳ đã chọn.</li>
                     </ul>
                   </div>
 
+                  <p v-if="interpretation.unsupportedPreferences?.length" class="text-xs text-(--color-warning-text)">
+                    Chưa hỗ trợ: {{ interpretation.unsupportedPreferences.join('; ') }}
+                  </p>
                   <!-- Confirmation Action -->
-                  <div class="pt-2 flex items-center justify-between gap-3">
+                  <div v-if="isPlan" class="pt-2 flex items-center justify-between gap-3">
                     <span class="text-[11px] text-muted italic">
                       * Thuật toán Di truyền (GA) sẽ được kích hoạt để sinh bản nháp.
                     </span>
                     <button
                       type="button"
                       @click="handleStartGeneration"
-                      :disabled="generating || interpretation.canPrepareSchedule === false"
+                      :disabled="generating || interpreting || !interpretation.canPrepareSchedule"
                       class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/25 flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50 cursor-pointer shrink-0"
                     >
                       <Zap :size="15" />
@@ -541,9 +555,9 @@ onUnmounted(() => {
 
               <!-- Action buttons -->
               <div class="pt-2 flex items-center justify-between gap-3">
-                <GlassButton variant="ghost" size="sm" @click="generatedDraft = null">
+                <GlassButton variant="ghost" size="sm" @click="generatedDraft = null; interpretation = null; prompt = ''">
                   <RotateCcw :size="14" class="mr-1" />
-                  Thử prompt khác
+                  Hỏi tiếp về bản nháp này
                 </GlassButton>
                 <button
                   type="button"

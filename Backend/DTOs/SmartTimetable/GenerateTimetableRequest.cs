@@ -11,4 +11,5 @@ public class GenerateTimetableRequest
     public List<int>? MaKhoaHocFilter { get; set; }
     public Guid? ClientDraftId { get; set; }
     public string? Profile { get; set; }
+    public bool ExcludeEvening { get; set; }
 }

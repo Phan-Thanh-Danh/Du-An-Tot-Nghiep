@@ -84,6 +84,10 @@ public class SmartTimetableService : ISmartTimetableService
             .Where(x => x.TrangThaiPhong == "hoat_dong" && x.MaDonVi == request.MaDonVi)
             .ToListAsync(cancellationToken);
 
+        // Apply the confirmed prompt option before feasibility and candidate construction.
+        if (request.ExcludeEvening)
+            shifts = shifts.Where(x => !Backend.Services.AI.SchedulingAiService.IsEvening(x)).ToList();
+
         var quyDoi = await _context.QuyDoiTinChis.AsNoTracking()
             .ToDictionaryAsync(x => x.SoTinChi, x => x.SoBuoiMoiTuan, cancellationToken);
 
@@ -300,6 +304,7 @@ public class SmartTimetableService : ISmartTimetableService
             khongXepDuoc = result.KhongXepDuoc,
             Score = job.Score,
             profile = request.Profile ?? "balanced",
+            excludeEvening = request.ExcludeEvening,
             tongTheHe = request.TongTheHe ?? 100,
             kichThuocQuanThe = request.KichThuocQuanThe ?? 50,
             tyLeCheo = request.TyLeCheo ?? 0.5,

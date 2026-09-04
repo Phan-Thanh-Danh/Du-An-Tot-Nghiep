@@ -29,15 +29,15 @@ export const bghMenuGroups = [
     label: 'Đào tạo & Chương trình',
     icon: 'GraduationCap',
     children: [
-      { id: 'academic-programs', label: 'Ngành & Chuyên ngành', icon: 'BookOpen', route: '/bgh/academic-programs' },
-      { id: 'curriculum', label: 'Khung chương trình', icon: 'Library', route: '/bgh/curriculum' },
-      { id: 'academic-terms', label: 'Học kỳ & Khóa', icon: 'CalendarDays', route: '/bgh/academic-terms' },
+      { id: 'academic-programs', label: 'Ngành & Chuyên ngành', icon: 'BookOpen', route: '/bgh/academic-programs', permission: 'training.read' },
+      { id: 'curriculum', label: 'Khung chương trình', icon: 'Library', route: '/bgh/curriculum', permission: 'training.manage_curriculum' },
+      { id: 'academic-terms', label: 'Học kỳ & Khóa', icon: 'CalendarDays', route: '/bgh/academic-terms', permission: 'training.read' },
       // Báo cáo học tập
-      { id: 'academic-overview', label: 'Tổng quan kết quả học tập', icon: 'BarChart3', route: '/bgh/academic/overview' },
-      { id: 'academic-gpa', label: 'Báo cáo GPA', icon: 'Award', route: '/bgh/academic/gpa' },
-      { id: 'academic-at-risk', label: 'SV nguy cơ rớt môn', icon: 'AlertTriangle', route: '/bgh/academic/at-risk' },
-      { id: 'academic-reports', label: 'Báo cáo chi tiết', icon: 'FileText', route: '/bgh/academic/reports' },
-      { id: 'academic-pass-fail', label: 'Tỷ lệ Pass/Fail', icon: 'TrendingUp', route: '/bgh/academic/pass-fail' },
+      { id: 'academic-overview', label: 'Tổng quan kết quả học tập', icon: 'BarChart3', route: '/bgh/academic/overview', permission: 'reports.read' },
+      { id: 'academic-gpa', label: 'Báo cáo GPA', icon: 'Award', route: '/bgh/academic/gpa', permission: 'reports.read' },
+      { id: 'academic-at-risk', label: 'SV nguy cơ rớt môn', icon: 'AlertTriangle', route: '/bgh/academic/at-risk', permission: 'reports.ai_analysis' },
+      { id: 'academic-reports', label: 'Báo cáo chi tiết', icon: 'FileText', route: '/bgh/academic/reports', permission: 'reports.read' },
+      { id: 'academic-pass-fail', label: 'Tỷ lệ Pass/Fail', icon: 'TrendingUp', route: '/bgh/academic/pass-fail', permission: 'reports.read' },
     ],
   },
 

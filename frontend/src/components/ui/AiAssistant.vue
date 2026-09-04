@@ -82,8 +82,18 @@ const rolePrompts = computed(() => {
     ]
   }
 
+  if (role === 'Principal' || role === 'hieu_truong' || role === 'bgh' || role === 'BanGiamHieu' || role === 'CampusAdmin') {
+    return [
+      { label: '👨‍🏫 Đánh giá giảng viên', prompt: 'Tổng quan tình hình sinh viên đánh giá các giảng viên gần đây thế nào, có tích cực không?' },
+      { label: '⏱️ Kiểm tra điểm danh', prompt: 'Kiểm tra tình hình giảng dạy và điểm danh của các giảng viên, có buổi nào bị trễ hạn hoặc chưa nộp không?' },
+      { label: '📊 Tỷ lệ Pass/Fail & Nguy cơ', prompt: 'Báo cáo tỷ lệ Pass/Fail và số lượng sinh viên có nguy cơ rớt môn toàn trường kỳ này.' },
+      { label: '🏢 Cơ sở vật chất & Phòng học', prompt: 'Tình trạng các tòa nhà, phòng học đang hoạt động và các thiết bị cần bảo trì hiện tại ra sao?' },
+    ]
+  }
+
   if (role === 'AcademicStaff' || role === 'nhan_vien') {
     return [
+      { label: '⏱️ Tình hình điểm danh các lớp', prompt: 'Kiểm tra tình hình điểm danh của các lớp học phần hôm nay, có giảng viên nào chưa nộp điểm danh không?' },
       { label: '🏢 Tiêu chuẩn xếp phòng & ca', prompt: 'Các nguyên tắc phân bổ phòng học và tránh trùng lịch ca học.' },
       { label: '📑 Xử lý đơn từ học sinh', prompt: 'Quy trình thẩm định và phê duyệt các loại đơn học vụ phổ biến.' },
     ]
@@ -157,6 +167,10 @@ async function sendMessage(text) {
       lessonId: currentContext.value?.lessonId,
       mode: inferenceMode.value,
       useRag: useRag.value,
+      history: messages.value
+        .filter(m => m.id !== 'msg-0' && !m.isError && m.id !== userMsgId)
+        .slice(-8)
+        .map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text.slice(0, 2000) })),
     }
 
     const res = await aiApi.chat(payload)
@@ -596,7 +610,9 @@ function cancelDraft(msg) {
                         <Sparkles :size="13" class="text-blue-600 dark:text-blue-400 flex-shrink-0" />
                         <span class="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">{{ msg.action.title }}</span>
                       </div>
-                      <span class="text-[9px] bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-full px-1.5 py-0.5 font-bold whitespace-nowrap">Đã tạo vào CSDL</span>
+                      <span class="text-[9px] bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-full px-1.5 py-0.5 font-bold whitespace-nowrap">
+                        {{ msg.action.actionType === 'navigate' ? 'Dữ liệu hệ thống' : (msg.action.actionType === 'draft_ticket' ? 'Bản nháp' : 'Đã tạo vào CSDL') }}
+                      </span>
                     </div>
                     <p class="text-[10.5px] text-slate-600 dark:text-slate-300 mt-1 leading-snug">{{ msg.action.description }}</p>
                     <div class="mt-2 flex flex-wrap items-center gap-2">
@@ -616,10 +632,10 @@ function cancelDraft(msg) {
                       <router-link
                         v-if="msg.action.actionUrl && !msg.action.downloadUrl"
                         :to="msg.action.actionUrl"
-                        class="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold transition-all shadow-sm active:scale-95"
                         @click="close"
                       >
-                        <span>{{ msg.action.actionType === 'create_ticket' ? 'Xem và theo dõi phiếu hỗ trợ ngay' : 'Vào quản lý đề thi kiểm tra ngay' }}</span>
+                        <span>{{ msg.action.metadata?.buttonLabel || (msg.action.actionType === 'create_ticket' ? 'Xem và theo dõi phiếu hỗ trợ ngay' : (msg.action.actionType === 'navigate' ? 'Xem chi tiết trên hệ thống' : 'Vào quản lý đề thi kiểm tra ngay')) }}</span>
                         <ChevronRight :size="12" />
                       </router-link>
                     </div>

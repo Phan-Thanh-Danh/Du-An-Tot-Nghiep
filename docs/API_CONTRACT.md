@@ -1008,7 +1008,25 @@ Ghi chú P0-DT8:
 
 ### Đã có
 
-Chưa thấy controller AI trong repo hiện tại.
+| Method | Endpoint | Auth | Ghi chú |
+|---|---|---|---|
+| GET | `/api/ai/health` | Public | Kiểm tra trạng thái Ollama/model và cấu hình AI. Không trả secret. |
+| POST | `/api/ai/chat` | JWT | Chat AI dùng chung, nhận `message`, `mode`, `history`, `useRag`. Backend gửi lịch sử ngắn sang Ollama và chỉ kích hoạt action nghiệp vụ khi prompt yêu cầu rõ. |
+| POST | `/api/ai/embedding-test` | JWT | Kiểm tra embedding. |
+| GET | `/api/ai/dashboard-insight` | JWT | Sinh gợi ý/insight dashboard theo context người dùng. |
+| POST | `/api/ai/actions/generate-quiz` | JWT | Tạo bộ câu hỏi trắc nghiệm khi người dùng yêu cầu rõ tạo quiz/câu hỏi cho môn học. |
+| GET | `/api/ai/actions/download-quiz-doc` | JWT | Tải file quiz đã tạo. |
+| POST | `/api/ai/bgh/report` | Principal/Admin/SuperAdmin | Sinh nhận xét báo cáo BGH. |
+| GET | `/api/ai/analytics/gpa` | Principal/Admin/SuperAdmin | Phân tích điểm GPA từ service BGH hiện có. |
+| GET | `/api/ai/analytics/at-risk` | Principal/Admin/SuperAdmin | Phân tích sinh viên rủi ro từ service BGH hiện có. |
+| GET | `/api/ai/analytics/pass-fail` | Principal/Admin/SuperAdmin | Phân tích đạt/rớt từ service BGH hiện có. |
+| GET | `/api/ai/analytics/teacher-eval` | Principal/Admin/SuperAdmin | Phân tích đánh giá giảng viên từ service BGH hiện có. |
+| GET | `/api/ai/analytics/awards` | Principal/Admin/SuperAdmin | Phân tích khen thưởng từ service BGH hiện có. |
+| GET | `/api/ai/analytics/facilities` | Principal/Admin/SuperAdmin | Phân tích cơ sở vật chất từ service BGH hiện có. |
+| POST | `/api/ai/certificate-templates/ai-edit` | Principal/Admin/SuperAdmin/CampusAdmin | AI chỉnh HTML/CSS mẫu giấy khen. Output dùng JSON schema, preserve token `{{...}}`, cấm script/event/url/import, không dùng preset fallback; prompt nói rõ màu/viền được backend chốt bằng CSS override. |
+| POST | `/api/ai/scheduling/interpret` | AcademicStaff/Admin/SuperAdmin/CampusAdmin | AI diễn giải câu hỏi/yêu cầu xếp lịch theo campus/học kỳ thật. Câu hỏi ca tối trả lời bằng số liệu lịch thật; yêu cầu bỏ ca tối trả `excludeEvening=true` và cần xác nhận trước khi generate. |
+| POST | `/api/ai/scheduling/explain-draft` | AcademicStaff/Admin/SuperAdmin/CampusAdmin | Giải thích bản nháp xếp lịch từ facts backend tính, fallback deterministic nếu AI lỗi. |
+| POST | `/api/ai/scheduling/explain-readiness` | AcademicStaff/Admin/SuperAdmin/CampusAdmin | Diễn giải lý do chưa sẵn sàng xếp lịch từ readiness code backend. |
 
 ### Dự kiến/cần bổ sung
 

@@ -32,10 +32,6 @@ function isBeforeOpen(exam, now) {
   return exam.openAt && now < new Date(exam.openAt)
 }
 
-function isAfterClose(exam, now) {
-  return exam.closeAt && now > new Date(exam.closeAt)
-}
-
 export function getExamAccessState(exam, studentContext = {}, now = new Date()) {
   const policy = exam.accessPolicy || {}
   const status = normalizeExamStatus(exam.status)

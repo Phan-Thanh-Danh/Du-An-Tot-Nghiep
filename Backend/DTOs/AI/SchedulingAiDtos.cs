@@ -5,14 +5,20 @@ namespace Backend.DTOs.AI;
 
 public class AiSchedulingInterpretRequest
 {
+    [System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.MaxLength(2000)]
     public string Message { get; set; } = string.Empty;
     public int? CampusId { get; set; }
     public int? SemesterId { get; set; }
+    public Guid? DraftId { get; set; }
+    [System.ComponentModel.DataAnnotations.MaxLength(8)]
+    public List<AiConversationTurn> History { get; set; } = new();
 }
 
 public class AiSchedulingInterpretResponse
 {
-    public string Intent { get; set; } = "prepare_schedule"; // "prepare_schedule" | "query_readiness" | "unsupported"
+    public string Intent { get; set; } = "clarify"; // prepare_schedule | query_schedule | query_readiness | clarify | unsupported
+    public bool ExcludeEvening { get; set; }
+    public List<string> UnsupportedPreferences { get; set; } = new();
     public string Profile { get; set; } = "balanced"; // "balanced" | "student_friendly" | "teacher_friendly"
     public string ProfileDisplayName { get; set; } = "Cân bằng toàn diện";
     public string Summary { get; set; } = string.Empty;

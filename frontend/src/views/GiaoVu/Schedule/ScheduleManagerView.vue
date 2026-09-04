@@ -2086,10 +2086,10 @@ function thuLabel(thu) {
     <!-- AI Scheduling Modal (Task 7E) -->
     <AiSchedulingModal
       :is-open="showAiModal"
-      :campus-id="authorizedCampusId || 14"
-      :term-id="Number(filterHocKy) || Number(schedulingContext.schedulableTerm?.maHocKy) || 567"
-      :campus-name="authorizedCampusName || 'Cơ sở TP.HCM'"
-      :term-name="schedulingContext.schedulableTerm?.tenHocKy || 'Học kỳ 2 năm 2027'"
+      :campus-id="authorizedCampusId || null"
+      :term-id="Number(filterHocKy) || Number(schedulingContext.schedulableTerm?.maHocKy) || null"
+      :campus-name="authorizedCampusName"
+      :term-name="schedulingContext.schedulableTerm?.tenHocKy || ''"
       :available-terms="hocKyOptions"
       @close="showAiModal = false"
       @draft-generated="loadData"

@@ -22,7 +22,7 @@ using Microsoft.Extensions.Options;
 
 namespace Backend.Services.AI;
 
-public class OllamaService : IOllamaService
+public partial class OllamaService : IOllamaService
 {
     private readonly HttpClient _httpClient;
     private readonly OllamaOptions _options;
@@ -30,6 +30,7 @@ public class OllamaService : IOllamaService
     private readonly ApplicationDbContext _db;
     private readonly ILogger<OllamaService> _logger;
     private readonly IMemoryCache _cache;
+    private readonly IAiAcademicQueryResolver _academicQueryResolver;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -43,7 +44,8 @@ public class OllamaService : IOllamaService
         IAiRequestGate gate,
         ApplicationDbContext db,
         ILogger<OllamaService> logger,
-        IMemoryCache cache)
+        IMemoryCache cache,
+        IAiAcademicQueryResolver academicQueryResolver)
     {
         _httpClient = httpClient;
         _options = options.Value;
@@ -51,6 +53,7 @@ public class OllamaService : IOllamaService
         _db = db;
         _logger = logger;
         _cache = cache;
+        _academicQueryResolver = academicQueryResolver;
 
         if (!string.IsNullOrWhiteSpace(_options.BaseUrl))
         {
@@ -135,12 +138,13 @@ public class OllamaService : IOllamaService
         if (string.IsNullOrWhiteSpace(targetModel)) targetModel = _options.ChatModel;
 
         // 1.1. Ưu tiên hàng đầu: Nhận diện yêu cầu AI hành động tạo Đề tự luyện / Quiz / File Word
-        bool isCreateQuizIntent = (normalizedMsg.Contains("tao quiz") || normalizedMsg.Contains("tao de thi")
+        bool isAskingForAdvice = normalizedMsg.Contains("goi y") || normalizedMsg.Contains("huong dan") || normalizedMsg.Contains("cach") || normalizedMsg.Contains("tu van");
+        bool isCreateQuizIntent = !isAskingForAdvice && (
+            normalizedMsg.Contains("tao quiz") || normalizedMsg.Contains("tao de thi")
             || normalizedMsg.Contains("tao de kiem tra") || normalizedMsg.Contains("tao bai kiem tra")
-            || normalizedMsg.Contains("sinh quiz") || normalizedMsg.Contains("trac nghiem") || normalizedMsg.Contains("tu kiem tra")
-            || normalizedMsg.Contains("tu on tap") || normalizedMsg.Contains("de tu luyen") || normalizedMsg.Contains("file word"))
-            && (normalizedMsg.Contains("tao") || normalizedMsg.Contains("sinh") || normalizedMsg.Contains("lam")
-                || normalizedMsg.Contains("kiem tra") || normalizedMsg.Contains("cau") || normalizedMsg.Contains("word"));
+            || normalizedMsg.Contains("sinh quiz") || normalizedMsg.Contains("de tu luyen")
+            || (normalizedMsg.Contains("file word") && (normalizedMsg.Contains("de thi") || normalizedMsg.Contains("de on tap") || normalizedMsg.Contains("de kiem tra")))
+        );
 
         if (isCreateQuizIntent)
         {
@@ -378,8 +382,31 @@ public class OllamaService : IOllamaService
             }
         }
 
+        // 4. Tra cứu & xử lý nghiệp vụ học vụ / điều hành thực tế từ CSDL (Giảng viên, Đánh giá, Điểm danh, Pass/Fail, Phòng học...)
+        ResolvedAcademicContext? academicContext = null;
+        try
+        {
+            academicContext = await _academicQueryResolver.ResolveAcademicContextAsync(request.Message, userContext, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to resolve academic context for query: {Query}", request.Message);
+        }
+
         // 5. Xử lý câu hỏi học thuật qua Ollama với Concurrency Gate & Context học tập thực tế
         var systemPrompt = await BuildSystemPromptAsync(userContext, studentAcademicContext, teacherAcademicContext, request.CourseId, request.LessonId, cancellationToken);
+
+        if (academicContext != null && academicContext.HasAcademicData)
+        {
+            systemPrompt += "\n\n" + academicContext.GroundingContext;
+            systemPrompt += "\n\n[HƯỚNG DẪN TRẢ LỜI CHO TRỢ LÝ ĐIỀU HÀNH HỌC THUẬT]:\n" +
+                            "- BẠN ĐÃ ĐƯỢC KẾT NỐI TRỰC TIẾP VỚI CƠ SỞ DỮ LIỆU VÀ CÁC THUẬT TOÁN HỆ THỐNG LMS.\n" +
+                            "- Hãy trả lời trực tiếp, rõ ràng, trung thực bằng tiếng Việt dựa trên 100% số liệu thực tế đã cung cấp ở trên.\n" +
+                            "- Nếu người dùng hỏi đánh giá có tích cực không, hãy nêu rõ tỷ lệ % tích cực, điểm trung bình sao và trích dẫn khách quan nhận xét của sinh viên.\n" +
+                            "- Nếu người dùng hỏi về điểm danh/giảng dạy, hãy nêu rõ số buổi đã dạy, số buổi đúng hạn, số buổi trễ hạn hoặc chưa điểm danh và tỷ lệ hoàn thành (%).\n" +
+                            "- Tuyệt đối không được nói 'tôi không có dữ liệu' hoặc 'chưa được cấp báo cáo điều hành', vì toàn bộ dữ liệu thực tế đã được cung cấp ở trên.\n" +
+                            "- Không để lộ thông tin cá nhân nhạy cảm (SĐT riêng, CCCD, lương).";
+        }
 
         // Nạp kiến thức Quy chế RAG từ văn bản chính thức của trường
         var ragContext = GetRelevantRagContext(request.Message, request.UseRag);
@@ -391,15 +418,29 @@ public class OllamaService : IOllamaService
         var numPredict = _options.MaxOutputTokens > 0 ? _options.MaxOutputTokens : 2048;
         var numCtx = _options.ContextLength > 0 ? _options.ContextLength : 4096;
 
+        var chatMessages = new List<OllamaChatMessage>
+        {
+            new() { Role = "system", Content = systemPrompt }
+        };
+
+        if (request.History != null && request.History.Count > 0)
+        {
+            foreach (var h in request.History)
+            {
+                if (!string.IsNullOrWhiteSpace(h.Content))
+                {
+                    chatMessages.Add(new() { Role = h.Role, Content = h.Content });
+                }
+            }
+        }
+
+        chatMessages.Add(new() { Role = "user", Content = request.Message.Trim() });
+
         var payload = new OllamaChatPayload
         {
             Model = targetModel,
             Stream = false,
-            Messages = new List<OllamaChatMessage>
-            {
-                new() { Role = "system", Content = systemPrompt },
-                new() { Role = "user", Content = request.Message.Trim() }
-            },
+            Messages = chatMessages,
             Options = new OllamaChatOptions
             {
                 NumCtx = numCtx,
@@ -424,6 +465,20 @@ public class OllamaService : IOllamaService
                     var errorText = await httpResponse.Content.ReadAsStringAsync(token);
                     _logger.LogError("Ollama chat returned status code {StatusCode}: {Error}", httpResponse.StatusCode, errorText);
 
+                    if (academicContext != null && !string.IsNullOrWhiteSpace(academicContext.DirectAnswer))
+                    {
+                        return new AiChatResponse
+                        {
+                            Answer = academicContext.DirectAnswer,
+                            Thinking = null,
+                            ProcessingTimeMs = (int)sw.ElapsedMilliseconds,
+                            ConversationId = conversationId,
+                            Model = targetModel,
+                            Action = academicContext.SuggestedAction,
+                            Sources = new List<string>()
+                        };
+                    }
+
                     if ((int)httpResponse.StatusCode == 404)
                     {
                         throw new ApiException(503, $"Mô hình AI '{_options.ChatModel}' chưa được nạp trên máy chủ Ollama.");
@@ -440,9 +495,13 @@ public class OllamaService : IOllamaService
                 var thinking = chatResult?.Message?.Thinking?.Trim();
 
                 // Trường hợp model reasoning chỉ trả về thinking mà chưa xuất content
-                if (string.IsNullOrWhiteSpace(answer))
+                if (string.IsNullOrWhiteSpace(answer) || (academicContext != null && academicContext.HasAcademicData && answer.Contains("Xin lỗi, hiện tại tôi chưa thể")))
                 {
-                    if (!string.IsNullOrWhiteSpace(thinking))
+                    if (academicContext != null && !string.IsNullOrWhiteSpace(academicContext.DirectAnswer))
+                    {
+                        answer = academicContext.DirectAnswer;
+                    }
+                    else if (!string.IsNullOrWhiteSpace(thinking))
                     {
                         answer = CleanThinkingFallback(thinking);
                     }
@@ -459,12 +518,26 @@ public class OllamaService : IOllamaService
                     ProcessingTimeMs = (int)sw.ElapsedMilliseconds,
                     ConversationId = conversationId,
                     Model = targetModel,
+                    Action = academicContext?.SuggestedAction,
                     Sources = new List<string>()
                 };
             }
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "Failed to connect to Ollama at {BaseUrl}", _options.BaseUrl);
+                if (academicContext != null && !string.IsNullOrWhiteSpace(academicContext.DirectAnswer))
+                {
+                    return new AiChatResponse
+                    {
+                        Answer = academicContext.DirectAnswer,
+                        Thinking = null,
+                        ProcessingTimeMs = (int)sw.ElapsedMilliseconds,
+                        ConversationId = conversationId,
+                        Model = targetModel,
+                        Action = academicContext.SuggestedAction,
+                        Sources = new List<string>()
+                    };
+                }
                 throw new ApiException(503, "Dịch vụ AI cục bộ hiện đang ngoại tuyến. Vui lòng thử lại sau.");
             }
         }, cancellationToken);
@@ -806,7 +879,7 @@ public class OllamaService : IOllamaService
         return $"Chi tiết yêu cầu: {cleanTitle}.\nNội dung phản ánh từ người dùng: {s}\nKính mong bộ phận chuyên trách ({categoryUi}) kiểm tra và hỗ trợ xử lý.";
     }
 
-    private Task<List<AiGeneratedQuestionDto>> GenerateQuestionsWithAiAsync(
+    private Task<List<AiGeneratedQuestionDto>> GenerateQuestionsFromLegacyBankAsync(
         string tenMonHoc,
         string? chuDe,
         int count,
@@ -1581,15 +1654,8 @@ public class OllamaService : IOllamaService
             sb.AppendLine("Nhiệm vụ của bạn: Là Cố vấn Chiến lược Cấp cao Trực tiếp cho Ban Giám hiệu, hỗ trợ ra quyết định điều hành học thuật, khen thưởng, cơ sở vật chất và nhân sự.");
             sb.AppendLine("ĐẶC ĐIỂM CÂU TRẢ LỜI DÀNH CHO BAN GIÁM HIỆU:");
             sb.AppendLine("- Luôn có góc nhìn vĩ mô chiến lược, số liệu rõ ràng, hành văn đĩnh đạc, tự tin, chuyên nghiệp và có tính thuyết phục cao.");
-            sb.AppendLine("- Đưa ra các khuyến nghị hành động cụ thể theo từng bước (Actionable recommendations).");
-            sb.AppendLine("- DỮ LIỆU ĐIỀU HÀNH THỰC TẾ CƠ SỞ ĐÀO TẠO (Đã trích xuất từ CSDL SQL Server):");
-            sb.AppendLine("  + Cơ sở vật chất: Có 24 phòng học trên 3 tòa nhà chính, tỷ lệ phòng sẵn sàng hoạt động đạt 100%. Đã lên kế hoạch bảo dưỡng máy chiếu và dàn lạnh định kỳ.");
-            sb.AppendLine("  + Công tác khen thưởng: Đã tổ chức 3 đợt khen thưởng lớn, cấp 15 lượt bằng khen cho 12 sinh viên tiêu biểu với GPA trung bình đạt 9.93/10.");
-            sb.AppendLine("  + TỔNG HỢP TOP 3 SINH VIÊN GPA CAO NHẤT NĂM HỌC ĐỀ XUẤT VINH DANH TẠI LỄ KHAI GIẢNG:");
-            sb.AppendLine("    * 🥇 Thủ khoa Xuất sắc Toàn trường: Sinh Viên Hồ Chí Minh 0363 (MSSV: STUDENT.V11.3.0363, Lớp: D19-CNTT, GPA: 10.00/10.0, đã nhận 3 giải thưởng)");
-            sb.AppendLine("    * 🥈 Á khoa 1: Sinh Viên Hồ Chí Minh 0048 (MSSV: STUDENT.V11.3.0048, Lớp: D19-CNTT, GPA: 10.00/10.0, đã nhận 2 giải thưởng)");
-            sb.AppendLine("    * 🥉 Á khoa 2: Sinh Viên Hồ Chí Minh 0092 (MSSV: STUDENT.V11.3.0092, Lớp: D19-CNTT, GPA: 10.00/10.0, đã nhận 2 giải thưởng)");
-            sb.AppendLine("  + Khi Ban Giám hiệu hỏi về Top 3 GPA, thủ khoa, khen thưởng, cơ sở vật chất, phòng học hoặc đánh giá giảng viên: HÃY DẪN CHỨNG TRỰC TIẾP các số liệu và danh sách sinh viên thực tế trên!");
+            sb.AppendLine("- Đưa ra các khuyến nghị hành động cụ thể theo từng bước.");
+            sb.AppendLine("- Dẫn chứng trực tiếp các số liệu điều hành thực tế từ cơ sở dữ liệu khi phân tích báo cáo.");
         }
         else if (role == AuthRoles.SuperAdmin || role == AuthRoles.Admin || role == "sieu_quan_tri" || role == "quan_tri")
         {
