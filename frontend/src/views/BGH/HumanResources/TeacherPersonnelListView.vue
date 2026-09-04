@@ -53,7 +53,7 @@ const activeCount = computed(() => teachers.value.filter(t => t.trangThai === 'h
 const totalClassesSum = computed(() => teachers.value.reduce((acc, t) => acc + (t.soLopHocKyHienTai || 0), 0))
 const avgRatingOverall = computed(() => {
   const rated = teachers.value.filter(t => t.diemDanhGiaTrungBinh > 0)
-  if (rated.length === 0) return 4.8
+  if (rated.length === 0) return 5.0
   return (rated.reduce((acc, t) => acc + t.diemDanhGiaTrungBinh, 0) / rated.length).toFixed(1)
 })
 
@@ -331,7 +331,7 @@ onUnmounted(() => {
                 {{ t.soLopHocKyHienTai }} lớp
               </td>
               <td class="px-4 py-3.5 text-center">
-                <span class="font-bold text-amber-500">{{ t.diemDanhGiaTrungBinh > 0 ? t.diemDanhGiaTrungBinh : 4.8 }} ⭐</span>
+                <span class="font-bold text-amber-500">{{ t.diemDanhGiaTrungBinh > 0 ? t.diemDanhGiaTrungBinh : 5.0 }} ⭐</span>
               </td>
               <td class="px-4 py-3.5 text-center">
                 <span

@@ -462,7 +462,7 @@ namespace Backend.Services.Export
                     sheet.Cells[currentRow, 4].Value = t.Email;
                     sheet.Cells[currentRow, 5].Value = request.HocKy ?? "Học kỳ 1";
                     sheet.Cells[currentRow, 6].Value = 45;
-                    sheet.Cells[currentRow, 7].Value = 4.8;
+                    sheet.Cells[currentRow, 7].Value = 5.0;
                     sheet.Cells[currentRow, 8].Value = "Xuất sắc";
                     sheet.Cells[currentRow, 7].Style.Numberformat.Format = "0.00";
                     sheet.Cells[currentRow, 8].Style.Font.Color.SetColor(Color.DarkBlue);

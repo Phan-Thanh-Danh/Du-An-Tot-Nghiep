@@ -166,4 +166,24 @@ public class TeacherPersonnelServiceTests
         Assert.That(orgNode.TotalMembers, Is.EqualTo(2));
         Assert.That(orgNode.Children.Count, Is.EqualTo(2));
     }
+
+    [Test]
+    public async Task GetTeacherEvaluationsAsync_WhenNoReviews_ShouldReturnDefault5Stars()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        using var context = CreateInMemoryDbContext(dbName);
+        var mockAudit = new Mock<IAuditLogService>();
+
+        context.DonVis.Add(new DonVi { MaDonVi = 1, TenDonVi = "Cơ sở Hà Nội", CapDonVi = "co_so", ConHoatDong = true });
+        context.NguoiDungs.Add(new NguoiDung { MaNguoiDung = 500, HoTen = "GV Mới", Email = "gv500@edulms.local", VaiTroChinh = "giao_vien", MaDonVi = 1, TrangThai = "hoat_dong" });
+        await context.SaveChangesAsync();
+
+        var service = new TeacherPersonnelService(context, mockAudit.Object);
+        var principalUser = new CurrentUserContext { UserId = 99, Role = "Principal", CampusId = 1 };
+
+        var result = await service.GetTeacherEvaluationsAsync(principalUser, 500);
+
+        Assert.That(result.DiemTrungBinhChung, Is.EqualTo(5.0m));
+        Assert.That(result.TongSoLuotDanhGia, Is.EqualTo(0));
+    }
 }
