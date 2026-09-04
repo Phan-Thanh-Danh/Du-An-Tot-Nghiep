@@ -9,6 +9,7 @@ import GlassBadge from '@/components/ui/GlassBadge.vue'
 import ConfirmActionDialog from '@/components/ui/ConfirmActionDialog.vue'
 import SkeletonTable from '@/components/common/skeleton/SkeletonTable.vue'
 import ClassNavigator from './ClassNavigator.vue'
+import AiSchedulingModal from '@/components/GiaoVu/AiSchedulingModal.vue'
 import { scheduleApi } from '@/services/scheduleApi'
 import { courseApi } from '@/services/courseApi'
 import { staffApi } from '@/services/staffApi'
@@ -23,6 +24,7 @@ const popupStore = usePopupStore()
 const authStore = useAuthStore()
 const schedulingContext = useAcademicSchedulingContextStore()
 const router = useRouter()
+const showAiModal = ref(false)
 
 const thuTrongTuanOptions = [
   { value: 2, label: 'Thứ 2' }, { value: 3, label: 'Thứ 3' },
@@ -1370,7 +1372,15 @@ function thuLabel(thu) {
         </div>
         <p class="text-sm text-(--text-muted) mt-0.5 ml-8">Quản lý lịch học theo học kỳ · Kéo thả để điều chỉnh · Click để xem chi tiết</p>
       </div>
-      <div class="flex gap-2">
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          class="h-10 px-4 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white text-xs font-bold shadow-md shadow-indigo-500/20 flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shrink-0"
+          @click="showAiModal = true"
+        >
+          <Sparkles :size="15" />
+          <span>Trợ lý Xếp lịch AI</span>
+        </button>
         <GlassButton variant="secondary" class="h-10 shrink-0 border-(--border-default)" @click="openSmartMode" :disabled="generating">
           <Loader2 v-if="generating" :size="15" class="mr-1 animate-spin" />
           <Wand2 v-else :size="15" class="mr-1 text-(--accent-violet)" />
@@ -2073,6 +2083,17 @@ function thuLabel(thu) {
         </div>
       </transition>
     </Teleport>
+    <!-- AI Scheduling Modal (Task 7E) -->
+    <AiSchedulingModal
+      :is-open="showAiModal"
+      :campus-id="authorizedCampusId || null"
+      :term-id="Number(filterHocKy) || Number(schedulingContext.schedulableTerm?.maHocKy) || null"
+      :campus-name="authorizedCampusName"
+      :term-name="schedulingContext.schedulableTerm?.tenHocKy || ''"
+      :available-terms="hocKyOptions"
+      @close="showAiModal = false"
+      @draft-generated="loadData"
+    />
   </div>
 </template>
 

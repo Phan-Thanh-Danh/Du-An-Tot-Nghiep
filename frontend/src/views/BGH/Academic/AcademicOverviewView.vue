@@ -544,7 +544,7 @@ const getBarHeight = (gpa) => {
     <!-- AI Strategic Report Modal -->
     <BghAiReportModal
       :is-open="aiModalOpen"
-      title="Báo Cáo Tổng Quan Học Thuật AI (Qwen 9B)"
+      title="Báo Cáo Tổng Quan Học Thuật AI"
       subtitle="Phân tích tổng hợp chất lượng đào tạo và dự báo xu hướng toàn cơ sở"
       :scope-badges="aiScopeBadges"
       :loading="aiLoading"

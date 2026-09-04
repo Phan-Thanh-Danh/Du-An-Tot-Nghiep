@@ -52,7 +52,7 @@ onMounted(() => {
           <div class="flex items-center gap-1.5">
             <p class="text-xs font-semibold text-(--accent-violet)">Trợ lý học tập AI</p>
             <span class="inline-flex items-center gap-0.5 rounded-full bg-purple-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-purple-600 dark:text-purple-300">
-              <Sparkles :size="9" /> Qwen
+              <Sparkles :size="9" /> AI
             </span>
           </div>
           <h2 class="mt-1 text-lg font-semibold tracking-tight text-heading">Gợi ý học tập hôm nay</h2>

@@ -615,7 +615,7 @@ async function exportPdf() {
     <!-- AI Strategic Report Modal -->
     <BghAiReportModal
       :is-open="aiModalOpen"
-      title="Báo Cáo Tỷ Lệ Pass/Fail Môn Học AI (Qwen 9B)"
+      title="Báo Cáo Tỷ Lệ Pass/Fail Môn Học AI"
       subtitle="Phân tích chuyên sâu môn học có tỷ lệ rớt cao, điểm nghẽn học phần và khuyến nghị đào tạo"
       :scope-badges="aiScopeBadges"
       :loading="aiLoading"

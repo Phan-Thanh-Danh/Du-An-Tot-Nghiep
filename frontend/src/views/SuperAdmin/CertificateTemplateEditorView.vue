@@ -250,7 +250,7 @@ function applyAiDesign({ updatedHtml, updatedCss }) {
   if (updatedCss) form.value.css = updatedCss
   popupStore.show({
     title: 'Đã cập nhật',
-    message: 'Thiết kế mới từ AI 9B đã được áp dụng vào trình soạn thảo!',
+    message: 'Thiết kế mới từ AI đã được áp dụng vào trình soạn thảo!',
     type: 'success',
   })
 }
@@ -291,7 +291,7 @@ onMounted(() => {
           class="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white text-xs font-bold shadow-md shadow-indigo-500/20 flex items-center gap-2 transition-all active:scale-95 cursor-pointer shrink-0"
         >
           <Sparkles :size="15" />
-          <span>AI CHỈNH SỬA MẪU (9B)</span>
+          <span>AI CHỈNH SỬA MẪU</span>
         </button>
         <div v-if="isReadOnly">
           <GlassButton variant="primary" @click="cloneToCampus">

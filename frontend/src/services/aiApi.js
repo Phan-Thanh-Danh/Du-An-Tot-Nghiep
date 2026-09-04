@@ -153,4 +153,50 @@ export const aiApi = {
     })
     return unwrapApiData(res)
   },
+
+  /**
+   * AI Trợ lý phân tích ý định xếp lịch tiếng Việt và ánh xạ Allowlist Profile
+   * @param {Object} payload
+   * @param {string} payload.message
+   * @param {number} [payload.campusId]
+   * @param {number} [payload.semesterId]
+   */
+  async interpretSchedulingIntent(payload) {
+    const res = await apiRequest('/api/ai/scheduling/interpret', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+    return unwrapApiData(res)
+  },
+
+  /**
+   * AI Trợ lý giải thích và đánh giá bản nháp thời khóa biểu sau khi chạy GA
+   * @param {Object} payload
+   * @param {string} payload.draftId
+   * @param {number} [payload.campusId]
+   */
+  async explainSchedulingDraft(payload) {
+    const res = await apiRequest('/api/ai/scheduling/explain-draft', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+    return unwrapApiData(res)
+  },
+
+  /**
+   * AI Trợ lý chẩn đoán và hướng dẫn khắc phục khi feasibility/readiness bị chặn
+   * @param {Object} payload
+   * @param {string} payload.reasonCode
+   * @param {string} [payload.rawMessage]
+   * @param {number} [payload.campusId]
+   * @param {number} [payload.semesterId]
+   */
+  async explainSchedulingReadiness(payload) {
+    const res = await apiRequest('/api/ai/scheduling/explain-readiness', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+    return unwrapApiData(res)
+  },
 }
+

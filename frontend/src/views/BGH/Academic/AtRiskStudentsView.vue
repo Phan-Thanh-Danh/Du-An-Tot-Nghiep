@@ -540,7 +540,7 @@ function sendBulkWarning() {
   <!-- AI Strategic Report Modal -->
   <BghAiReportModal
     :is-open="aiModalOpen"
-    title="Báo Cáo Phân Tích SV Nguy Cơ Rớt Môn (Qwen 9B)"
+    title="Báo Cáo Phân Tích SV Nguy Cơ Rớt Môn (AI)"
     subtitle="Cảnh báo sớm sinh viên rủi ro cao, phân tích điểm nghẽn môn học và giải pháp can thiệp"
     :scope-badges="aiScopeBadges"
     :loading="aiLoading"

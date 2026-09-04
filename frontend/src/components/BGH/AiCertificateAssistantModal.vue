@@ -1,6 +1,6 @@
 <script setup>
-import { ref } from 'vue'
-import { Sparkles, X, Wand2, CheckCircle2, Loader2, ArrowRight, Palette } from 'lucide-vue-next'
+import { ref, computed, watch } from 'vue'
+import { Sparkles, X, Wand2, CheckCircle2, Loader2, ArrowRight, Clock } from 'lucide-vue-next'
 import { aiApi } from '@/services/aiApi'
 
 const props = defineProps({
@@ -17,23 +17,42 @@ const instruction = ref('')
 const loading = ref(false)
 const error = ref(null)
 const result = ref(null)
+const elapsedSeconds = ref(0)
+const latestDesign = ref(null)
+let requestVersion = 0
+watch(() => props.isOpen, () => {
+  requestVersion++
+  result.value = null
+  latestDesign.value = null
+  error.value = null
+})
+watch(instruction, () => { requestVersion++; result.value = null })
+const previewDoc = computed(() => result.value
+  ? `<!doctype html><html><head><meta charset="utf-8"><style>${result.value.updatedCss}</style></head><body>${result.value.updatedHtml}</body></html>`
+  : '')
 
 async function handleGenerate() {
-  if (!instruction.value.trim()) return
+  if (!instruction.value.trim() || loading.value) return
+  const version = ++requestVersion
+  const base = latestDesign.value
   loading.value = true
   error.value = null
   result.value = null
+  const startTime = Date.now()
   try {
     const res = await aiApi.editCertificateTemplate({
       templateId: Number(props.templateId) || 0,
       instruction: instruction.value.trim(),
-      currentHtml: props.currentHtml,
-      currentCss: props.currentCss,
-      mode: 'deep'
+      currentHtml: base?.updatedHtml ?? props.currentHtml,
+      currentCss: base?.updatedCss ?? props.currentCss,
+      mode: 'fast'
     })
+    elapsedSeconds.value = Number(((Date.now() - startTime) / 1000).toFixed(1))
+    if (version !== requestVersion || !props.isOpen) return
     result.value = res
+    latestDesign.value = res
   } catch (err) {
-    error.value = err.message || 'Không thể tạo bản thiết kế bằng AI. Vui lòng thử lại.'
+    if (version === requestVersion) error.value = err.message || 'Không thể tạo bản thiết kế bằng AI. Vui lòng thử lại.'
   } finally {
     loading.value = false
   }
@@ -67,8 +86,8 @@ function handleApply() {
               <div>
                 <div class="flex items-center gap-2">
                   <h3 class="text-base font-bold text-heading">AI Trợ Lý Thiết Kế Mẫu Bằng Khen</h3>
-                  <span class="px-2 py-0.5 text-[10px] font-extrabold tracking-wider uppercase rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/30">
-                    Qwen 9B Deep
+                  <span class="px-2 py-0.5 text-[10px] font-extrabold tracking-wider uppercase rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                    Phản hồi nhanh
                   </span>
                 </div>
                 <p class="text-xs text-muted mt-0.5">
@@ -105,7 +124,7 @@ function handleApply() {
               >
                 <Sparkles v-if="!loading" :size="16" />
                 <Loader2 v-else :size="16" class="animate-spin" />
-                <span>{{ loading ? 'MÔ HÌNH 9B ĐANG THIẾT KẾ...' : 'THỰC THI CHỈNH SỬA BẰNG AI' }}</span>
+                <span>{{ loading ? 'AI ĐANG THIẾT KẾ...' : 'THỰC THI CHỈNH SỬA BẰNG AI' }}</span>
               </button>
             </div>
 
@@ -116,11 +135,24 @@ function handleApply() {
 
             <!-- Result State -->
             <div v-if="result" class="p-4 rounded-xl surface-card border border-emerald-500/30 space-y-3 animate-fade-in">
-              <div class="flex items-center gap-2 text-emerald-400 font-bold text-xs">
-                <CheckCircle2 :size="16" />
-                <span>Bản thiết kế mới đã sẵn sàng!</span>
+              <div class="flex items-center justify-between text-xs">
+                <div class="flex items-center gap-2 text-emerald-400 font-bold">
+                  <CheckCircle2 :size="16" />
+                  <span>Bản thiết kế mới đã sẵn sàng!</span>
+                </div>
+                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-semibold">
+                  <Clock :size="13" />
+                  <span>Tốc độ phản hồi: {{ result.responseTimeSeconds || elapsedSeconds }}s</span>
+                </div>
               </div>
               <p class="text-xs text-muted">{{ result.explanation }}</p>
+              <iframe
+                :srcdoc="previewDoc"
+                sandbox=""
+                title="Xem trước thiết kế AI"
+                class="w-full h-80 border border-default rounded-lg surface-card"
+              />
+              <p class="text-xs text-label">Bạn có thể yêu cầu sửa tiếp trên bản xem trước này hoặc bấm áp dụng để đưa vào trình biên tập.</p>
 
               <div class="space-y-1 pt-1">
                 <p class="text-[11px] font-bold text-heading">Các điểm đã cải tiến:</p>

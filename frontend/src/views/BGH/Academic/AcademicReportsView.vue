@@ -193,7 +193,7 @@ async function generateReport() {
     }
     selectedReport.value = reportByType[reportType.value] || reports.value[0] || null
 
-    // Gọi AI Model 9B để phân tích sâu song song với tạo báo cáo
+    // Gọi dịch vụ AI phân tích sâu song song với tạo báo cáo
     const semId = semesterFilter.value !== 'all' ? parseInt(semesterFilter.value) : undefined
     const camId = campusFilter.value !== 'all' ? parseInt(campusFilter.value) : undefined
     const res = await aiApi.generateBghReport({
@@ -647,7 +647,7 @@ async function exportPdf() {
     <!-- AI Strategic Report Modal -->
     <BghAiReportModal
       :is-open="aiModalOpen"
-      title="Báo Cáo Học Thuật Chi Tiết AI (Qwen 9B)"
+      title="Báo Cáo Học Thuật Chi Tiết AI"
       subtitle="Tổng hợp dữ liệu đa chiều theo lớp, môn học, cơ sở và đề xuất giải pháp đào tạo"
       :scope-badges="aiScopeBadges"
       :loading="aiLoading"

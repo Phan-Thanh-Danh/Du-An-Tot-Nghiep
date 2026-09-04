@@ -157,7 +157,7 @@
     <!-- AI Strategic Report Modal -->
     <BghAiReportModal
       :is-open="aiModalOpen"
-      title="Báo Cáo Tình Trạng Cơ Sở Vật Chất & Bảo Trì AI (Qwen 9B)"
+      title="Báo Cáo Tình Trạng Cơ Sở Vật Chất & Bảo Trì AI"
       subtitle="Đánh giá quy mô tòa nhà, phòng học hoạt động tốt, thiết bị lỗi cần bảo dưỡng và tối ưu công suất sử dụng"
       :scope-badges="aiScopeBadges"
       :loading="aiLoading"

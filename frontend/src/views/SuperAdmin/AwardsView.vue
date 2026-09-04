@@ -702,7 +702,7 @@ const cancelCampaignAction = () => {
     <!-- AI Strategic Report Modal -->
     <BghAiReportModal
       :is-open="aiModalOpen"
-      title="Báo Cáo Khen Thưởng & Đề Xuất Top 3 GPA Năm Học (Qwen 9B)"
+      title="Báo Cáo Khen Thưởng & Đề Xuất Top 3 GPA Năm Học"
       subtitle="Phân tích tần suất khen thưởng, tổng kết GPA tích lũy và đề xuất danh sách Top 3 sinh viên xuất sắc nhất toàn trường"
       :scope-badges="aiScopeBadges"
       :loading="aiLoading"

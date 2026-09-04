@@ -101,14 +101,7 @@ public static class PermissionCatalogSeeder
             ["sieu_quan_tri"] = allPerms.Keys.ToList(),
             ["quan_tri"] = allPerms.Keys.ToList(),
             ["quan_tri_co_so"] = allPerms.Keys.ToList(),
-            ["hieu_truong"] = new List<string>
-            {
-                "training.read", "training.manage_curriculum",
-                "schedules.read", "schedules.approve",
-                "exams.read", "exams.unlock_grade",
-                "requests.read", "requests.process",
-                "reports.read", "reports.export", "reports.ai_analysis"
-            },
+            ["hieu_truong"] = allPerms.Keys.ToList(),
             ["nhan_vien"] = new List<string>
             {
                 "training.read", "training.create", "training.update",

@@ -168,7 +168,7 @@ function viewWarningList() {
         >
           <Sparkles v-if="!aiLoading" :size="15" />
           <Loader2 v-else :size="15" class="animate-spin" />
-          <span>{{ aiLoading ? 'ĐANG PHÂN TÍCH...' : '⚡ CHIẾN LƯỢC ĐẢM BẢO CHẤT LƯỢNG (AI 9B)' }}</span>
+          <span>{{ aiLoading ? 'ĐANG PHÂN TÍCH...' : '⚡ CHIẾN LƯỢC ĐẢM BẢO CHẤT LƯỢNG (AI)' }}</span>
         </button>
       </div>
 
@@ -372,9 +372,9 @@ function viewWarningList() {
     <!-- AI Strategic Report Modal -->
     <BghAiReportModal
       :is-open="aiModalOpen"
-      title="Báo Cáo Đảm Bảo Chất Lượng & Đánh Giá Giảng Viên AI (Qwen 9B)"
+      title="Báo Cáo Đảm Bảo Chất Lượng & Đánh Giá Giảng Viên AI"
       subtitle="Tổng hợp dữ liệu khảo sát từ người học, phát hiện các điểm nóng và đề xuất giải pháp bồi dưỡng chuyên môn"
-      :scope-badges="['Tổng quan Đánh giá', 'Phản hồi người học', 'Mô hình: Qwen 9B Deep']"
+      :scope-badges="['Tổng quan Đánh giá', 'Phản hồi người học', 'Chế độ: Phân tích chuyên sâu']"
       :loading="aiLoading"
       :error="aiError"
       :report-content="aiReport?.aiAnalysis"
